@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>QueryStringBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sling Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.sling.commons.request</a> &gt; <span class="el_source">QueryStringBuilder.java</span></div><h1>QueryStringBuilder.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2018 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.sling.commons.request;
+
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+import io.wcm.sling.commons.util.Escape;
+
+/**
+ * Builds a property URL-encoded query string.
+ */
+@ProviderType
+<span class="fc" id="L37">public final class QueryStringBuilder {</span>
+
+  private static final String PARAM_SEPARATOR = &quot;&amp;&quot;;
+  private static final String VALUE_SEPARATOR = &quot;=&quot;;
+
+<span class="fc" id="L42">  private final List&lt;NameValuePair&gt; params = new ArrayList&lt;&gt;();</span>
+
+  /**
+   * Add parameter to query string.
+   * @param name Parameter name
+   * @param value Parameter value. Will be converted to string.
+   *          If value is an array or {@link Iterable} the value items will be added as separate parameters.
+   * @return this
+   */
+  @SuppressWarnings(&quot;unchecked&quot;)
+  public @NotNull QueryStringBuilder param(@NotNull String name, @Nullable Object value) {
+<span class="fc bfc" id="L53" title="All 2 branches covered.">    if (value instanceof Iterable) {</span>
+<span class="fc" id="L54">      Iterable&lt;Object&gt; valueItems = (Iterable)value;</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">      for (Object valueItem : valueItems) {</span>
+<span class="fc" id="L56">        params.add(new NameValuePair(name, valueItem));</span>
+<span class="fc" id="L57">      }</span>
+<span class="fc" id="L58">    }</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    else if (isArray(value)) {</span>
+<span class="fc" id="L60">      int length = Array.getLength(value);</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">      for (int i = 0; i &lt; length; i++) {</span>
+<span class="fc" id="L62">        Object valueItem = Array.get(value, i);</span>
+<span class="fc" id="L63">        params.add(new NameValuePair(name, valueItem));</span>
+      }
+<span class="fc" id="L65">    }</span>
+    else {
+<span class="fc" id="L67">      params.add(new NameValuePair(name, value));</span>
+    }
+<span class="fc" id="L69">    return this;</span>
+  }
+
+  /**
+   * Add map of parameters to query string.
+   * @param values Map with parameter names and values. Values will be converted to strings.
+   *          If a value is an array or {@link Iterable} the value items will be added as separate parameters.
+   * @return this
+   */
+  public @NotNull QueryStringBuilder params(@NotNull Map&lt;String, Object&gt; values) {
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    for (Map.Entry&lt;String, Object&gt; entry : values.entrySet()) {</span>
+<span class="fc" id="L80">      param(entry.getKey(), entry.getValue());</span>
+<span class="fc" id="L81">    }</span>
+<span class="fc" id="L82">    return this;</span>
+  }
+
+  /**
+   * Build query string.
+   * @return Query string or null if query string contains no parameters at all.
+   */
+  public @Nullable String build() {
+<span class="fc" id="L90">    StringBuilder queryString = new StringBuilder();</span>
+
+<span class="fc bfc" id="L92" title="All 2 branches covered.">    for (NameValuePair param : params) {</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">      if (queryString.length() &gt; 0) {</span>
+<span class="fc" id="L94">        queryString.append(PARAM_SEPARATOR);</span>
+      }
+<span class="fc" id="L96">      queryString.append(Escape.urlEncode(param.getName()));</span>
+<span class="fc" id="L97">      queryString.append(VALUE_SEPARATOR);</span>
+<span class="fc" id="L98">      queryString.append(Escape.urlEncode(param.getValue()));</span>
+<span class="fc" id="L99">    }</span>
+
+<span class="fc bfc" id="L101" title="All 2 branches covered.">    if (queryString.length() &gt; 0) {</span>
+<span class="fc" id="L102">      return queryString.toString();</span>
+    }
+    else {
+<span class="fc" id="L105">      return null;</span>
+    }
+  }
+
+  private static boolean isArray(Object value) {
+<span class="fc bfc" id="L110" title="All 4 branches covered.">    return value != null &amp;&amp; value.getClass().isArray();</span>
+  }
+
+  private static class NameValuePair {
+
+    private final String name;
+    private final String value;
+
+<span class="fc" id="L118">    NameValuePair(String name, Object value) {</span>
+<span class="fc" id="L119">      this.name = name;</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">      if (value != null) {</span>
+<span class="fc" id="L121">        this.value = value.toString();</span>
+      }
+      else {
+<span class="fc" id="L124">        this.value = &quot;&quot;;</span>
+      }
+<span class="fc" id="L126">    }</span>
+
+    public String getName() {
+<span class="fc" id="L129">      return this.name;</span>
+    }
+
+    public String getValue() {
+<span class="fc" id="L133">      return this.value;</span>
+    }
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

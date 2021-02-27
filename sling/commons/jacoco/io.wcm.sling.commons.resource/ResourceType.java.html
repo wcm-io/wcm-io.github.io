@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResourceType.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sling Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.sling.commons.resource</a> &gt; <span class="el_source">ResourceType.java</span></div><h1>ResourceType.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.sling.commons.resource;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingException;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.day.cq.wcm.api.components.Component;
+import com.day.cq.wcm.api.components.ComponentManager;
+
+/**
+ * Helper methods for resource type path handling.
+ */
+public final class ResourceType {
+
+  private ResourceType() {
+    // utility methods only
+  }
+
+  /**
+   * /apps prefix for resource types
+   * @deprecated Search paths are confurable and should not be hard-coded.
+   */
+  @Deprecated
+  public static final String APPS_PREFIX = &quot;/apps/&quot;;
+
+  /**
+   * /libs prefix for resource types
+   * @deprecated Search paths are confurable and should not be hard-coded.
+   */
+  @Deprecated
+  public static final String LIBS_PREFIX = &quot;/libs/&quot;;
+
+  /**
+   * Converts the resource type to an absolute path. If it does not start with &quot;/&quot; the resource is resolved
+   * via search paths using resource resolver. If not matching resource is found it is returned unchanged.
+   * @param resourceType Resource type
+   * @param resourceResolver Resource resolver
+   * @return Absolute resource type
+   */
+  public static @NotNull String makeAbsolute(@NotNull String resourceType, @NotNull ResourceResolver resourceResolver) {
+<span class="fc bfc" id="L66" title="All 4 branches covered.">    if (StringUtils.isEmpty(resourceType) || StringUtils.startsWith(resourceType, &quot;/&quot;)) {</span>
+<span class="fc" id="L67">      return resourceType;</span>
+    }
+
+    // first try to resolve path via component manager - because on publish instance the original resource may not accessible
+<span class="fc" id="L71">    ComponentManager componentManager = resourceResolver.adaptTo(ComponentManager.class);</span>
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">    if (componentManager != null) {</span>
+<span class="fc" id="L73">      Component component = componentManager.getComponent(resourceType);</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">      if (component != null) {</span>
+<span class="fc" id="L75">        return component.getPath();</span>
+      }
+      else {
+<span class="fc" id="L78">        return resourceType;</span>
+      }
+    }
+
+    // otherwise use resource resolver directly
+<span class="nc" id="L83">    Resource resource = resourceResolver.getResource(resourceType);</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">    if (resource != null) {</span>
+<span class="nc" id="L85">      return resource.getPath();</span>
+    }
+    else {
+<span class="nc" id="L88">      return resourceType;</span>
+    }
+  }
+
+  /**
+   * Makes the given resource type relative by stripping off any search path prefix.
+   * In case the given resource type does not start with any of these prefixes it is returned unmodified.
+   * @param resourceType The resource type to make relative.
+   * @param resourceResolver Resource resolver
+   * @return Relative resource type
+   */
+  public static @NotNull String makeRelative(@NotNull String resourceType, @NotNull ResourceResolver resourceResolver) {
+<span class="fc" id="L100">    String[] searchPaths = resourceResolver.getSearchPath();</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">    for (String prefix : searchPaths) {</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">      if (StringUtils.startsWith(resourceType, prefix)) {</span>
+<span class="fc" id="L103">        return resourceType.substring(prefix.length());</span>
+      }
+    }
+<span class="fc" id="L106">    return resourceType;</span>
+  }
+
+  /**
+   * Makes the given resource type relative by stripping off an /apps/ or /libs/ prefix.
+   * In case the given resource type does not start with any of these prefixes it is returned unmodified.
+   * This method does not take the real configured search paths into account, but in case of AEM usually only /apps/ and
+   * /libs/ are used.
+   * @param resourceType The resource type to make relative.
+   * @return Relative resource type
+   * @deprecated Please use {@link #makeRelative(String, ResourceResolver)} instead.
+   */
+  @Deprecated
+  public static @NotNull String makeRelative(@NotNull String resourceType) {
+<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (StringUtils.startsWith(resourceType, APPS_PREFIX)) {</span>
+<span class="fc" id="L121">      return resourceType.substring(APPS_PREFIX.length());</span>
+    }
+<span class="fc bfc" id="L123" title="All 2 branches covered.">    else if (StringUtils.startsWith(resourceType, LIBS_PREFIX)) {</span>
+<span class="fc" id="L124">      return resourceType.substring(LIBS_PREFIX.length());</span>
+    }
+<span class="fc" id="L126">    return resourceType;</span>
+  }
+
+  /**
+   * Returns &lt;code&gt;true&lt;/code&gt; if the given resource type are equal.
+   * In case the value of any of the given resource types starts with /apps/ or /libs/ prefix this is removed before
+   * doing the comparison.
+   * @param resourceType A resource type
+   * @param anotherResourceType Another resource type to compare with
+   * @param resourceResolver Resource resolver
+   * @return &lt;code&gt;true&lt;/code&gt; if the resource type equals the given resource type.
+   */
+  public static boolean equals(@NotNull String resourceType, @NotNull String anotherResourceType,
+      @NotNull ResourceResolver resourceResolver) {
+<span class="fc" id="L140">    return StringUtils.equals(makeRelative(resourceType, resourceResolver), makeRelative(anotherResourceType, resourceResolver));</span>
+  }
+
+  /**
+   * Returns &lt;code&gt;true&lt;/code&gt; if the given resource type are equal.
+   * In case the value of any of the given resource types starts with /apps/ or /libs/ prefix this is removed before
+   * doing the comparison.
+   * @param resourceType A resource type
+   * @param anotherResourceType Another resource type to compare with
+   * @return &lt;code&gt;true&lt;/code&gt; if the resource type equals the given resource type.
+   * @deprecated Please use {@link #equals(String, String, ResourceResolver)} instead.
+   */
+  @Deprecated
+  public static boolean equals(@NotNull String resourceType, @NotNull String anotherResourceType) {
+<span class="fc" id="L154">    return StringUtils.equals(makeRelative(resourceType), makeRelative(anotherResourceType));</span>
+  }
+
+  /**
+   * Returns &lt;code&gt;true&lt;/code&gt; if the resource type or any of the resource's super type(s) equals the given resource
+   * type.
+   * This implementation is equal to {@link ResourceResolver#isResourceType(Resource, String)} - but in earlier sling
+   * version the comparison check did not take potentieal mixtures of relative and absolute resource types into account.
+   * This method respects this.
+   * @param resource The resource to check
+   * @param resourceType The resource type to check this resource against.
+   * @return &lt;code&gt;true&lt;/code&gt; if the resource type or any of the resource's super type(s) equals the given resource
+   *         type. &lt;code&gt;false&lt;/code&gt; is also returned if &lt;code&gt;resource&lt;/code&gt; or&lt;code&gt;resourceType&lt;/code&gt; are
+   *         &lt;code&gt;null&lt;/code&gt;.
+   */
+  public static boolean is(@Nullable Resource resource, @Nullable String resourceType) {
+<span class="pc bpc" id="L170" title="2 of 4 branches missed.">    if (resource == null || resourceType == null) {</span>
+<span class="nc" id="L171">      return false;</span>
+    }
+<span class="fc" id="L173">    ResourceResolver resolver = resource.getResourceResolver();</span>
+    // Check if the resource is of the given type. This method first checks the
+    // resource type of the resource, then its super resource type and continues
+    //  to go up the resource super type hierarchy.
+<span class="fc" id="L177">    boolean result = false;</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">    if (ResourceType.equals(resourceType, resource.getResourceType())) {</span>
+<span class="fc" id="L179">      result = true;</span>
+    }
+    else {
+<span class="fc" id="L182">      Set&lt;String&gt; superTypesChecked = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L183">      String superType = resolver.getParentResourceType(resource);</span>
+<span class="fc bfc" id="L184" title="All 4 branches covered.">      while (!result &amp;&amp; superType != null) {</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">        if (ResourceType.equals(resourceType, superType)) {</span>
+<span class="fc" id="L186">          result = true;</span>
+        }
+        else {
+<span class="fc" id="L189">          superTypesChecked.add(superType);</span>
+<span class="fc" id="L190">          superType = resolver.getParentResourceType(superType);</span>
+<span class="pc bpc" id="L191" title="1 of 4 branches missed.">          if (superType != null &amp;&amp; superTypesChecked.contains(superType)) {</span>
+<span class="nc" id="L192">            throw new SlingException(&quot;Cyclic dependency for resourceSuperType hierarchy detected on resource &quot; + resource.getPath(), null);</span>
+          }
+        }
+      }
+    }
+<span class="fc" id="L197">    return result;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SlingObjectOverlayInjector.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">AEM Sling Models Extensions</a> &gt; <a href="index.source.html" class="el_package">io.wcm.sling.models.injectors.impl</a> &gt; <span class="el_source">SlingObjectOverlayInjector.java</span></div><h1>SlingObjectOverlayInjector.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.sling.models.injectors.impl;
+
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Type;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.scripting.SlingBindings;
+import org.apache.sling.api.scripting.SlingScriptHelper;
+import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
+import org.apache.sling.models.annotations.injectorspecific.SlingObject;
+import org.apache.sling.models.spi.AcceptsNullName;
+import org.apache.sling.models.spi.DisposalCallbackRegistry;
+import org.apache.sling.models.spi.Injector;
+import org.apache.sling.models.spi.injectorspecific.AbstractInjectAnnotationProcessor2;
+import org.apache.sling.models.spi.injectorspecific.InjectAnnotationProcessor2;
+import org.apache.sling.models.spi.injectorspecific.StaticInjectAnnotationProcessorFactory;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.framework.Constants;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+
+import io.wcm.sling.commons.request.RequestContext;
+
+/**
+ * Injects common Sling objects that can be derived from either a SlingHttpServletRequest, a ResourceResolver or a
+ * Resource.
+ * Documentation see {@link SlingObject}.
+ * &lt;p&gt;
+ * This is an overlay of the SlingObject injector provided by the Sling Models implementation itself. It adds support to
+ * always get the sling request and all objects that can be derived from it whether the adaptable is a request or not -
+ * using a thread local (see also SLING-4083).
+ * &lt;/p&gt;
+ * &lt;p&gt;
+ * With this overlay it is possible to always get these context objects if the adaption is done in context of a
+ * request-bound thread: resource resolver, current resource, request, response, sling script helper.
+ * &lt;/p&gt;
+ */
+@Component(service = { Injector.class, StaticInjectAnnotationProcessorFactory.class }, property = {
+    // use ranking MAX_VALUE - 10 to overlay the sling-object injector of sling which is registered to MAX_VALUE
+    Constants.SERVICE_RANKING + &quot;:Integer=&quot; + (Integer.MAX_VALUE - 10)
+})
+<span class="fc" id="L67">public final class SlingObjectOverlayInjector implements Injector, StaticInjectAnnotationProcessorFactory, AcceptsNullName {</span>
+
+  /**
+   * Injector name
+   */
+  public static final @NotNull String NAME = &quot;sling-object&quot;;
+
+  @Reference
+  private RequestContext requestContext;
+  @Reference
+  private ModelsImplConfiguration modelsImplConfiguration;
+
+  @Override
+  public @NotNull String getName() {
+<span class="fc" id="L81">    return NAME;</span>
+  }
+
+  @Override
+  public Object getValue(@NotNull final Object adaptable, final String name, @NotNull final Type type,
+      @NotNull final AnnotatedElement element, @NotNull final DisposalCallbackRegistry callbackRegistry) {
+
+    // let the original sling object injector step in if the thread-local request feature is deactivated
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">    if (!modelsImplConfiguration.isRequestThreadLocal()) {</span>
+<span class="nc" id="L90">      return null;</span>
+    }
+
+    // only class types are supported
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">    if (!(type instanceof Class&lt;?&gt;)) {</span>
+<span class="nc" id="L95">      return null;</span>
+    }
+<span class="fc" id="L97">    Class&lt;?&gt; requestedClass = (Class&lt;?&gt;)type;</span>
+
+    // validate input
+<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (adaptable instanceof ResourceResolver) {</span>
+<span class="fc" id="L101">      ResourceResolver resourceResolver = (ResourceResolver)adaptable;</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">      if (requestedClass.equals(ResourceResolver.class)) {</span>
+<span class="fc" id="L103">        return resourceResolver;</span>
+      }
+<span class="fc" id="L105">    }</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">    else if (adaptable instanceof Resource) {</span>
+<span class="fc" id="L107">      Resource resource = (Resource)adaptable;</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">      if (requestedClass.equals(ResourceResolver.class)) {</span>
+<span class="fc" id="L109">        return resource.getResourceResolver();</span>
+      }
+<span class="fc bfc" id="L111" title="All 4 branches covered.">      if (requestedClass.equals(Resource.class) &amp;&amp; element.isAnnotationPresent(SlingObject.class)) {</span>
+<span class="fc" id="L112">        return resource;</span>
+      }
+    }
+<span class="fc" id="L115">    SlingHttpServletRequest request = getRequest(adaptable);</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">    if (request != null) {</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">      if (requestedClass.equals(ResourceResolver.class)) {</span>
+<span class="fc" id="L118">        return request.getResourceResolver();</span>
+      }
+<span class="fc bfc" id="L120" title="All 4 branches covered.">      if (requestedClass.equals(Resource.class) &amp;&amp; element.isAnnotationPresent(SlingObject.class)) {</span>
+<span class="fc" id="L121">        return request.getResource();</span>
+      }
+<span class="fc bfc" id="L123" title="All 4 branches covered.">      if (requestedClass.equals(SlingHttpServletRequest.class) || requestedClass.equals(HttpServletRequest.class)) {</span>
+<span class="fc" id="L124">        return request;</span>
+      }
+<span class="fc bfc" id="L126" title="All 4 branches covered.">      if (requestedClass.equals(SlingHttpServletResponse.class) || requestedClass.equals(HttpServletResponse.class)) {</span>
+<span class="fc" id="L127">        return getSlingHttpServletResponse(request);</span>
+      }
+<span class="fc bfc" id="L129" title="All 2 branches covered.">      if (requestedClass.equals(SlingScriptHelper.class)) {</span>
+<span class="fc" id="L130">        return getSlingScriptHelper(request);</span>
+      }
+    }
+
+<span class="fc" id="L134">    return null;</span>
+  }
+
+  private SlingHttpServletRequest getRequest(final Object adaptable) {
+<span class="fc bfc" id="L138" title="All 2 branches covered.">    if (adaptable instanceof SlingHttpServletRequest) {</span>
+<span class="fc" id="L139">      return (SlingHttpServletRequest)adaptable;</span>
+    }
+<span class="pc bpc" id="L141" title="1 of 2 branches missed.">    else if (modelsImplConfiguration.isRequestThreadLocal()) {</span>
+<span class="fc" id="L142">      return requestContext.getThreadRequest();</span>
+    }
+    else {
+<span class="nc" id="L145">      return null;</span>
+    }
+  }
+
+  private SlingScriptHelper getSlingScriptHelper(final SlingHttpServletRequest request) {
+<span class="fc" id="L150">    SlingBindings bindings = (SlingBindings)request.getAttribute(SlingBindings.class.getName());</span>
+<span class="pc bpc" id="L151" title="1 of 2 branches missed.">    if (bindings != null) {</span>
+<span class="fc" id="L152">      return bindings.getSling();</span>
+    }
+<span class="nc" id="L154">    return null;</span>
+  }
+
+  private SlingHttpServletResponse getSlingHttpServletResponse(final SlingHttpServletRequest request) {
+<span class="fc" id="L158">    SlingScriptHelper scriptHelper = getSlingScriptHelper(request);</span>
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">    if (scriptHelper != null) {</span>
+<span class="fc" id="L160">      return scriptHelper.getResponse();</span>
+    }
+<span class="nc" id="L162">    return null;</span>
+  }
+
+  @SuppressWarnings({ &quot;null&quot;, &quot;unused&quot; })
+  @Override
+  public InjectAnnotationProcessor2 createAnnotationProcessor(final AnnotatedElement element) {
+    // check if the element has the expected annotation
+<span class="nc" id="L169">    SlingObject annotation = element.getAnnotation(SlingObject.class);</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">    if (annotation != null) {</span>
+<span class="nc" id="L171">      return new SlingObjectAnnotationProcessor(annotation);</span>
+    }
+<span class="nc" id="L173">    return null;</span>
+  }
+
+  private static class SlingObjectAnnotationProcessor extends AbstractInjectAnnotationProcessor2 {
+
+    private final SlingObject annotation;
+
+<span class="nc" id="L180">    SlingObjectAnnotationProcessor(final SlingObject annotation) {</span>
+<span class="nc" id="L181">      this.annotation = annotation;</span>
+<span class="nc" id="L182">    }</span>
+
+    @Override
+    public InjectionStrategy getInjectionStrategy() {
+<span class="nc" id="L186">      return annotation.injectionStrategy();</span>
+    }
+
+    @Override
+    @SuppressWarnings(&quot;deprecation&quot;)
+    public Boolean isOptional() {
+<span class="nc" id="L192">      return annotation.optional();</span>
+    }
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

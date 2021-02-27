@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContextAwareServiceTracker.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sling Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.sling.commons.caservice.impl</a> &gt; <span class="el_source">ContextAwareServiceTracker.java</span></div><h1>ContextAwareServiceTracker.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2017 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.sling.commons.caservice.impl;
+
+import java.util.stream.Stream;
+
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.commons.osgi.Order;
+import org.apache.sling.commons.osgi.RankedServices;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
+import org.osgi.util.tracker.ServiceTracker;
+import org.osgi.util.tracker.ServiceTrackerCustomizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.wcm.sling.commons.caservice.ContextAwareService;
+import io.wcm.sling.commons.caservice.PathPreprocessor;
+
+class ContextAwareServiceTracker implements ServiceTrackerCustomizer&lt;ContextAwareService, ServiceInfo&gt; {
+
+  private final BundleContext bundleContext;
+  private final PathPreprocessor pathPreprocessor;
+  private final ServiceTracker&lt;ContextAwareService, ServiceInfo&gt; serviceTracker;
+  private volatile RankedServices&lt;ServiceInfo&gt; rankedServices;
+  private volatile long lastServiceChange;
+
+<span class="fc" id="L45">  private static final Logger log = LoggerFactory.getLogger(ContextAwareServiceTracker.class);</span>
+
+<span class="fc" id="L47">  ContextAwareServiceTracker(String serviceClassName, BundleContext bundleContext, PathPreprocessor pathPreprocessor) {</span>
+<span class="fc" id="L48">    this.bundleContext = bundleContext;</span>
+<span class="fc" id="L49">    this.pathPreprocessor = pathPreprocessor;</span>
+<span class="fc" id="L50">    this.rankedServices = new RankedServices&lt;ServiceInfo&gt;(Order.DESCENDING);</span>
+<span class="fc" id="L51">    this.serviceTracker = new ServiceTracker&lt;ContextAwareService, ServiceInfo&gt;(bundleContext, serviceClassName, this);</span>
+<span class="fc" id="L52">    this.serviceTracker.open();</span>
+<span class="fc" id="L53">  }</span>
+
+  public void dispose() {
+<span class="fc" id="L56">    serviceTracker.close();</span>
+<span class="fc" id="L57">    rankedServices = null;</span>
+<span class="fc" id="L58">  }</span>
+
+  @Override
+  public ServiceInfo addingService(ServiceReference&lt;ContextAwareService&gt; reference) {
+<span class="fc" id="L62">    ServiceInfo serviceInfo = new ServiceInfo(reference, bundleContext);</span>
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L64">      log.debug(&quot;Add service {}&quot;, serviceInfo.getService().getClass().getName());</span>
+    }
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">    if (rankedServices != null) {</span>
+<span class="fc" id="L67">      rankedServices.bind(serviceInfo, serviceInfo.getServiceProperties());</span>
+    }
+<span class="fc" id="L69">    lastServiceChange = System.currentTimeMillis();</span>
+<span class="fc" id="L70">    return serviceInfo;</span>
+  }
+
+  @Override
+  public void modifiedService(ServiceReference&lt;ContextAwareService&gt; reference, ServiceInfo serviceInfo) {
+    // nothing to do
+<span class="nc" id="L76">  }</span>
+
+  @Override
+  public void removedService(ServiceReference&lt;ContextAwareService&gt; reference, ServiceInfo serviceInfo) {
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L81">      log.debug(&quot;Remove service {}&quot;, serviceInfo.getService().getClass().getName());</span>
+    }
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">    if (rankedServices != null) {</span>
+<span class="fc" id="L84">      rankedServices.unbind(serviceInfo, serviceInfo.getServiceProperties());</span>
+    }
+<span class="fc" id="L86">    lastServiceChange = System.currentTimeMillis();</span>
+<span class="fc" id="L87">    bundleContext.ungetService(reference);</span>
+<span class="fc" id="L88">  }</span>
+
+  public Stream&lt;ServiceInfo&gt; resolve(Resource resource) {
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">    if (rankedServices == null) {</span>
+<span class="nc" id="L92">      return Stream.empty();</span>
+    }
+<span class="fc" id="L94">    return rankedServices.getList().stream()</span>
+<span class="fc" id="L95">        .filter(serviceInfo -&gt; matchesResource(serviceInfo, resource));</span>
+  }
+
+  private boolean matchesResource(ServiceInfo serviceInfo, Resource resource) {
+<span class="fc" id="L99">    String path = null;</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (resource != null) {</span>
+<span class="fc" id="L101">      path = resource.getPath();</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">      if (pathPreprocessor != null) {</span>
+        // apply path preprocessor
+<span class="fc" id="L104">        path = pathPreprocessor.apply(path, resource.getResourceResolver());</span>
+      }
+    }
+<span class="fc" id="L107">    return serviceInfo.matches(path);</span>
+  }
+
+  public long getLastServiceChangeTimestamp() {
+<span class="fc" id="L111">    return this.lastServiceChange;</span>
+  }
+
+  public Iterable&lt;ServiceInfo&gt; getServiceInfos() {
+<span class="nc" id="L115">    return rankedServices;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

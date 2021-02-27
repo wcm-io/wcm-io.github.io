@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ServiceInfo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sling Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.sling.commons.caservice.impl</a> &gt; <span class="el_source">ServiceInfo.java</span></div><h1>ServiceInfo.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2017 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.sling.commons.caservice.impl;
+
+import static io.wcm.sling.commons.caservice.ContextAwareService.PROPERTY_ACCEPTS_CONTEXT_PATH_EMPTY;
+import static io.wcm.sling.commons.caservice.ContextAwareService.PROPERTY_CONTEXT_PATH_BLACKLIST_PATTERN;
+import static io.wcm.sling.commons.caservice.ContextAwareService.PROPERTY_CONTEXT_PATH_PATTERN;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.wcm.sling.commons.caservice.ContextAwareService;
+
+/**
+ * Extracts metadata of a context-aware service implementation.
+ */
+class ServiceInfo {
+
+  private final ContextAwareService service;
+  private final Map&lt;String, Object&gt; serviceProperties;
+  private final Pattern contextPathRegex;
+  private final Pattern contextPathBlacklistRegex;
+  private final boolean acceptsContextPathEmpty;
+  private final String key;
+<span class="fc" id="L53">  private boolean valid = true;</span>
+
+<span class="fc" id="L55">  private static final Logger log = LoggerFactory.getLogger(ContextAwareServiceTracker.class);</span>
+
+<span class="fc" id="L57">  ServiceInfo(ServiceReference&lt;?&gt; serviceReference, BundleContext bundleContext) {</span>
+<span class="fc" id="L58">    this.service = validateAndGetService(serviceReference, bundleContext);</span>
+<span class="fc" id="L59">    this.serviceProperties = propertiesToMap(serviceReference);</span>
+<span class="fc" id="L60">    this.contextPathRegex = validateAndParsePattern(serviceReference, PROPERTY_CONTEXT_PATH_PATTERN);</span>
+<span class="fc" id="L61">    this.contextPathBlacklistRegex = validateAndParsePattern(serviceReference, PROPERTY_CONTEXT_PATH_BLACKLIST_PATTERN);</span>
+<span class="fc" id="L62">    this.acceptsContextPathEmpty = validateAndGetBoolan(lookupServicePropertyBundleHeader(serviceReference, PROPERTY_ACCEPTS_CONTEXT_PATH_EMPTY));</span>
+<span class="fc" id="L63">    this.key = buildKey();</span>
+<span class="fc" id="L64">  }</span>
+
+  @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
+  private ContextAwareService validateAndGetService(ServiceReference&lt;?&gt; serviceReference, BundleContext bundleContext) {
+<span class="fc" id="L68">    Object serviceObject = bundleContext.getService(serviceReference);</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">    if (serviceObject instanceof ContextAwareService) {</span>
+<span class="fc" id="L70">      return (ContextAwareService)serviceObject;</span>
+    }
+<span class="nc bnc" id="L72" title="All 2 branches missed.">    log.warn(&quot;Service implementation &quot; + (serviceObject != null ? serviceObject.getClass().getName() : &quot;&quot;)</span>
+        + &quot; does not implement the ContextAwareService interface&quot;
+        + &quot; - service will be ignored for context-aware service resolution.&quot;);
+<span class="nc" id="L75">    valid = false;</span>
+<span class="nc" id="L76">    return null;</span>
+  }
+
+  private Map&lt;String, Object&gt; propertiesToMap(ServiceReference&lt;?&gt; reference) {
+<span class="fc" id="L80">    Map&lt;String, Object&gt; props = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">    for (String propertyName : reference.getPropertyKeys()) {</span>
+<span class="fc" id="L82">      props.put(propertyName, reference.getProperty(propertyName));</span>
+    }
+<span class="fc" id="L84">    return props;</span>
+  }
+
+  private Object lookupServicePropertyBundleHeader(ServiceReference&lt;?&gt; serviceReference, String propertyName) {
+<span class="fc" id="L88">    Object value = serviceReference.getProperty(propertyName);</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L90">      value = serviceReference.getBundle().getHeaders().get(propertyName);</span>
+    }
+<span class="fc" id="L92">    return value;</span>
+  }
+
+  @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
+  private Pattern validateAndParsePattern(ServiceReference&lt;?&gt; serviceReference, String patternPropertyName) {
+<span class="fc" id="L97">    Object value = lookupServicePropertyBundleHeader(serviceReference, patternPropertyName);</span>
+<span class="pc bpc" id="L98" title="1 of 4 branches missed.">    if (value == null || value instanceof String) {</span>
+<span class="fc" id="L99">      String patternString = (String)value;</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">      if (StringUtils.isEmpty(patternString)) {</span>
+<span class="fc" id="L101">        return null;</span>
+      }
+      else {
+        try {
+<span class="fc" id="L105">          return Pattern.compile(patternString);</span>
+        }
+<span class="fc" id="L107">        catch (PatternSyntaxException ex) {</span>
+          // fallback to invalid
+        }
+      }
+    }
+<span class="fc" id="L112">    log.warn(&quot;Invalid &quot; + patternPropertyName + &quot; regex pattern '&quot; + value + &quot;' - &quot;</span>
+<span class="fc" id="L113">        + &quot;service &quot; + service.getClass().getName() + &quot; from bundle &quot; + serviceReference.getBundle().getSymbolicName() + &quot; &quot;</span>
+        + &quot;will be ignored for context-aware service resolution.&quot;);
+<span class="fc" id="L115">    valid = false;</span>
+<span class="fc" id="L116">    return null;</span>
+  }
+
+  private boolean validateAndGetBoolan(Object value) {
+<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (value instanceof Boolean) {</span>
+<span class="fc" id="L121">      return (Boolean)value;</span>
+    }
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">    if (value instanceof String) {</span>
+<span class="nc" id="L124">      return BooleanUtils.toBoolean((String)value);</span>
+    }
+<span class="fc" id="L126">    return false;</span>
+  }
+
+  /**
+   * Service implementation.
+   * @return Service object.
+   */
+  public ContextAwareService getService() {
+<span class="fc" id="L134">    return this.service;</span>
+  }
+
+  /**
+   * Service properties
+   * @return Property map
+   */
+  public Map&lt;String, Object&gt; getServiceProperties() {
+<span class="fc" id="L142">    return this.serviceProperties;</span>
+  }
+
+  /**
+   * Checks if this service implementation accepts the given resource path.
+   * @param resourcePath Resource path
+   * @return true if the implementation matches and the configuration is not invalid.
+   */
+  public boolean matches(String resourcePath) {
+<span class="fc bfc" id="L151" title="All 2 branches covered.">    if (!valid) {</span>
+<span class="fc" id="L152">      return false;</span>
+    }
+<span class="fc bfc" id="L154" title="All 2 branches covered.">    if (resourcePath == null) {</span>
+<span class="fc" id="L155">      return acceptsContextPathEmpty;</span>
+    }
+<span class="fc bfc" id="L157" title="All 4 branches covered.">    if (contextPathRegex != null &amp;&amp; !contextPathRegex.matcher(resourcePath).matches()) {</span>
+<span class="fc" id="L158">      return false;</span>
+    }
+<span class="fc bfc" id="L160" title="All 4 branches covered.">    if (contextPathBlacklistRegex != null &amp;&amp; contextPathBlacklistRegex.matcher(resourcePath).matches()) {</span>
+<span class="fc" id="L161">      return false;</span>
+    }
+<span class="fc" id="L163">    return true;</span>
+  }
+
+  private String buildKey() {
+<span class="fc" id="L167">    return &quot;[wl]&quot; + contextPathRegex + &quot;\n&quot;</span>
+        + &quot;[bl]&quot; + contextPathBlacklistRegex + &quot;\n&quot;;
+  }
+
+  /**
+   * Key from the path matching patterns defined by this service implementation that
+   * can be used for caching and faster lookup of matching services.
+   * @return Key of all path patterns
+   */
+  public String getKey() {
+<span class="fc" id="L177">    return this.key;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L182">    ToStringBuilder builder = new ToStringBuilder(service, TO_STRING_STYLE);</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">    if (contextPathRegex != null) {</span>
+<span class="nc" id="L184">      builder.append(&quot;contextPathRegex&quot;, contextPathRegex);</span>
+    }
+<span class="nc bnc" id="L186" title="All 2 branches missed.">    if (contextPathBlacklistRegex != null) {</span>
+<span class="nc" id="L187">      builder.append(&quot;contextPathBlacklistRegex&quot;, contextPathBlacklistRegex);</span>
+    }
+<span class="nc bnc" id="L189" title="All 2 branches missed.">    if (acceptsContextPathEmpty) {</span>
+<span class="nc" id="L190">      builder.append(&quot;acceptsContextPathEmpty&quot;, acceptsContextPathEmpty);</span>
+    }
+<span class="nc" id="L192">    return builder.build();</span>
+  }
+<span class="fc" id="L194">  private static final ToStringStyle TO_STRING_STYLE = new ToStringStyle() {</span>
+    private static final long serialVersionUID = 1L;
+    {
+<span class="fc" id="L197">      setUseIdentityHashCode(false);</span>
+<span class="fc" id="L198">      setContentStart(&quot; [&quot;);</span>
+<span class="fc" id="L199">    }</span>
+  };
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

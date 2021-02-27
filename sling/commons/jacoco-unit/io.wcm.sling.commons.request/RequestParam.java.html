@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RequestParam.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sling Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.sling.commons.request</a> &gt; <span class="el_source">RequestParam.java</span></div><h1>RequestParam.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.sling.commons.request;
+
+import java.io.UnsupportedEncodingException;
+import java.util.Map;
+
+import javax.servlet.ServletRequest;
+
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.CharEncoding;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+/**
+ * Several helper methods for getting parameters from the servlet request.
+ * This class automatically converts string parameters from ISO-8859-1 to UTF-8, because UTF-8 form data
+ * is expected by default. This is only done if no request parameter &quot;_charset_&quot; with an explicit encoding is set.
+ * If it is set, the {@link org.apache.sling.api.SlingHttpServletRequest} automatically converts the parameter data.
+ */
+@ProviderType
+public final class RequestParam {
+
+  /**
+   * The name of the form encoding parameter.
+   * If such a form parameter is set in a request the {@link org.apache.sling.api.SlingHttpServletRequest} automatically
+   * transcodes all parameters to this encoding.
+   */
+  public static final @NotNull String PARAMETER_FORMENCODING = &quot;_charset_&quot;;
+
+  private RequestParam() {
+    // Utility class - no instancing allowed
+  }
+
+  /**
+   * Returns a request parameter.&lt;br&gt;
+   * In addition the method fixes problems with incorrect UTF-8 characters returned by the servlet engine.
+   * All character data is converted from ISO-8859-1 to UTF-8 if not '_charset_' parameter is provided.
+   * @param request Request.
+   * @param param Parameter name.
+   * @return Parameter value or null if it is not set.
+   */
+  public static @Nullable String get(@NotNull ServletRequest request, @NotNull String param) {
+<span class="fc" id="L64">    return get(request, param, null);</span>
+  }
+
+  /**
+   * Returns a request parameter.&lt;br&gt;
+   * In addition the method fixes problems with incorrect UTF-8 characters returned by the servlet engine.
+   * All character data is converted from ISO-8859-1 to UTF-8 if not '_charset_' parameter is provided.
+   * @param request Request.
+   * @param param Parameter name.
+   * @param defaultValue Default value.
+   * @return Parameter value or the default value if it is not set.
+   */
+  public static @Nullable String get(@NotNull ServletRequest request, @NotNull String param, @Nullable String defaultValue) {
+<span class="fc" id="L77">    String value = request.getParameter(param);</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">    if (value != null) {</span>
+      // convert encoding to UTF-8 if not form encoding parameter is set
+<span class="fc bfc" id="L80" title="All 2 branches covered.">      if (!hasFormEncodingParam(request)) {</span>
+<span class="fc" id="L81">        value = convertISO88591toUTF8(value);</span>
+      }
+<span class="fc" id="L83">      return value;</span>
+    }
+    else {
+<span class="fc" id="L86">      return defaultValue;</span>
+    }
+  }
+
+  /**
+   * Returns a request parameter array.&lt;br&gt;
+   * The method fixes problems with incorrect UTF-8 characters returned by the servlet engine.
+   * All character data is converted from ISO-8859-1 to UTF-8.
+   * @param request Request.
+   * @param param Parameter name.
+   * @return Parameter value array value or null if it is not set.
+   */
+  public static String @Nullable [] getMultiple(@NotNull ServletRequest request, @NotNull String param) {
+<span class="fc" id="L99">    String[] values = request.getParameterValues(param);</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">    if (values == null) {</span>
+<span class="nc" id="L101">      return null;</span>
+    }
+    // convert encoding to UTF-8 if not form encoding parameter is set
+<span class="fc bfc" id="L104" title="All 2 branches covered.">    if (!hasFormEncodingParam(request)) {</span>
+<span class="fc" id="L105">      String[] convertedValues = new String[values.length];</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">      for (int i = 0; i &lt; values.length; i++) {</span>
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">        if (values[i] != null) {</span>
+<span class="fc" id="L108">          convertedValues[i] = convertISO88591toUTF8(values[i]);</span>
+        }
+      }
+<span class="fc" id="L111">      return convertedValues;</span>
+    }
+    else {
+<span class="fc" id="L114">      return values;</span>
+    }
+  }
+
+  /**
+   * Returns a request parameter.&lt;br&gt;
+   * In addition the method fixes problems with incorrect UTF-8 characters returned by the servlet engine.
+   * All character data is converted from ISO-8859-1 to UTF-8.
+   * @param requestMap Request Parameter map.
+   * @param param Parameter name.
+   * @return Parameter value or null if it is not set.
+   */
+  public static @Nullable String get(@NotNull Map&lt;String, String[]&gt; requestMap, @NotNull String param) {
+<span class="fc" id="L127">    String value = null;</span>
+<span class="fc" id="L128">    String[] valueArray = requestMap.get(param);</span>
+<span class="pc bpc" id="L129" title="1 of 4 branches missed.">    if (valueArray != null &amp;&amp; valueArray.length &gt; 0) {</span>
+<span class="fc" id="L130">      value = valueArray[0];</span>
+    }
+    // convert encoding to UTF-8 if not form encoding parameter is set
+<span class="fc bfc" id="L133" title="All 4 branches covered.">    if (value != null &amp;&amp; !hasFormEncodingParam(requestMap)) {</span>
+<span class="fc" id="L134">      value = convertISO88591toUTF8(value);</span>
+    }
+<span class="fc" id="L136">    return value;</span>
+  }
+
+  /**
+   * Returns a request parameter as integer.
+   * @param request Request.
+   * @param param Parameter name.
+   * @return Parameter value or 0 if it does not exist or is not a number.
+   */
+  public static int getInt(@NotNull ServletRequest request, @NotNull String param) {
+<span class="fc" id="L146">    return getInt(request, param, 0);</span>
+  }
+
+  /**
+   * Returns a request parameter as integer.
+   * @param request Request.
+   * @param param Parameter name.
+   * @param defaultValue Default value.
+   * @return Parameter value or default value if it does not exist or is not a number.
+   */
+  public static int getInt(@NotNull ServletRequest request, @NotNull String param, int defaultValue) {
+<span class="fc" id="L157">    String value = request.getParameter(param);</span>
+<span class="fc" id="L158">    return NumberUtils.toInt(value, defaultValue);</span>
+  }
+
+  /**
+   * Returns a request parameter as long.
+   * @param request Request.
+   * @param param Parameter name.
+   * @return Parameter value or 0 if it does not exist or is not a number.
+   */
+  public static long getLong(@NotNull ServletRequest request, @NotNull String param) {
+<span class="fc" id="L168">    return getLong(request, param, 0L);</span>
+  }
+
+  /**
+   * Returns a request parameter as long.
+   * @param request Request.
+   * @param param Parameter name.
+   * @param defaultValue Default value.
+   * @return Parameter value or default value if it does not exist or is not a number.
+   */
+  public static long getLong(@NotNull ServletRequest request, @NotNull String param, long defaultValue) {
+<span class="fc" id="L179">    String value = request.getParameter(param);</span>
+<span class="fc" id="L180">    return NumberUtils.toLong(value, defaultValue);</span>
+  }
+
+  /**
+   * Returns a request parameter as float.
+   * @param request Request.
+   * @param param Parameter name.
+   * @return Parameter value or 0 if it does not exist or is not a number.
+   */
+  public static float getFloat(@NotNull ServletRequest request, @NotNull String param) {
+<span class="fc" id="L190">    return getFloat(request, param, 0f);</span>
+  }
+
+  /**
+   * Returns a request parameter as float.
+   * @param request Request.
+   * @param param Parameter name.
+   * @param defaultValue Default value.
+   * @return Parameter value or default value if it does not exist or is not a number.
+   */
+  public static float getFloat(@NotNull ServletRequest request, @NotNull String param, float defaultValue) {
+<span class="fc" id="L201">    String value = request.getParameter(param);</span>
+<span class="fc" id="L202">    return NumberUtils.toFloat(value, defaultValue);</span>
+  }
+
+  /**
+   * Returns a request parameter as double.
+   * @param request Request.
+   * @param param Parameter name.
+   * @return Parameter value or 0 if it does not exist or is not a number.
+   */
+  public static double getDouble(@NotNull ServletRequest request, @NotNull String param) {
+<span class="fc" id="L212">    return getDouble(request, param, 0d);</span>
+  }
+
+  /**
+   * Returns a request parameter as double.
+   * @param request Request.
+   * @param param Parameter name.
+   * @param defaultValue Default value.
+   * @return Parameter value or default value if it does not exist or is not a number.
+   */
+  public static double getDouble(@NotNull ServletRequest request, @NotNull String param, double defaultValue) {
+<span class="fc" id="L223">    String value = request.getParameter(param);</span>
+<span class="fc" id="L224">    return NumberUtils.toDouble(value, defaultValue);</span>
+  }
+
+  /**
+   * Returns a request parameter as boolean.
+   * @param request Request.
+   * @param param Parameter name.
+   * @return Parameter value or &lt;code&gt;false&lt;/code&gt; if it does not exist or cannot be interpreted as boolean.
+   */
+  public static boolean getBoolean(@NotNull ServletRequest request, @NotNull String param) {
+<span class="nc" id="L234">    return getBoolean(request, param, false);</span>
+  }
+
+  /**
+   * Returns a request parameter as boolean.
+   * @param request Request.
+   * @param param Parameter name.
+   * @param defaultValue Default value.
+   * @return Parameter value or default value if it does not exist or &lt;code&gt;false&lt;/code&gt; if it cannot be interpreted as
+   *         boolean.
+   */
+  public static boolean getBoolean(@NotNull ServletRequest request, @NotNull String param, boolean defaultValue) {
+<span class="nc" id="L246">    String value = request.getParameter(param);</span>
+<span class="nc" id="L247">    return BooleanUtils.toBoolean(value);</span>
+  }
+
+  /**
+   * Returns a request parameter as enum value.
+   * @param &lt;T&gt; Enum type
+   * @param request Request.
+   * @param param Parameter name.
+   * @param enumClass Enum class
+   * @return Parameter value or null if it is not set or an invalid enum value.
+   */
+  public static &lt;T extends Enum&gt; @Nullable T getEnum(@NotNull ServletRequest request, @NotNull String param, @NotNull Class&lt;T&gt; enumClass) {
+<span class="fc" id="L259">    return getEnum(request, param, enumClass, null);</span>
+  }
+
+  /**
+   * Returns a request parameter as enum value.
+   * @param &lt;T&gt; Enum type
+   * @param request Request.
+   * @param param Parameter name.
+   * @param enumClass Enum class
+   * @param defaultValue Default value.
+   * @return Parameter value or the default value if it is not set or an invalid enum value.
+   */
+  @SuppressWarnings(&quot;unchecked&quot;)
+  public static &lt;T extends Enum&gt; @Nullable T getEnum(@NotNull ServletRequest request, @NotNull String param, @NotNull Class&lt;T&gt; enumClass,
+      @Nullable T defaultValue) {
+<span class="fc" id="L274">    String value = RequestParam.get(request, param);</span>
+<span class="fc bfc" id="L275" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(value)) {</span>
+      try {
+<span class="fc" id="L277">        return (T)Enum.valueOf(enumClass, value);</span>
+      }
+<span class="nc" id="L279">      catch (IllegalArgumentException ex) {</span>
+        // ignore, return default
+      }
+    }
+<span class="fc" id="L283">    return defaultValue;</span>
+  }
+
+  /**
+   * @param request Servlet request
+   * @return Checks if form encoding parameter is set
+   */
+  private static boolean hasFormEncodingParam(@NotNull ServletRequest request) {
+<span class="fc" id="L291">    return StringUtils.isNotEmpty(request.getParameter(PARAMETER_FORMENCODING));</span>
+  }
+
+  /**
+   * @param requestMap Request map
+   * @return Checks if form encoding parameter is set
+   */
+  private static boolean hasFormEncodingParam(@NotNull Map&lt;String, String[]&gt; requestMap) {
+<span class="fc" id="L299">    String[] valueArray = requestMap.get(PARAMETER_FORMENCODING);</span>
+<span class="pc bpc" id="L300" title="1 of 4 branches missed.">    return valueArray != null &amp;&amp; valueArray.length &gt; 0;</span>
+  }
+
+  /**
+   * Converts a string from ISO-8559-1 encoding to UTF-8.
+   * @param value ISO-8559-1 value
+   * @return UTF-8 value
+   */
+  private static String convertISO88591toUTF8(String value) {
+    try {
+<span class="fc" id="L310">      return new String(value.getBytes(CharEncoding.ISO_8859_1), CharEncoding.UTF_8);</span>
+    }
+<span class="nc" id="L312">    catch (UnsupportedEncodingException ex) {</span>
+      // ignore and fallback to original encoding
+<span class="nc" id="L314">      return value;</span>
+    }
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

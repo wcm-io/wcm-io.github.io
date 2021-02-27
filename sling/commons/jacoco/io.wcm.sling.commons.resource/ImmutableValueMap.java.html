@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImmutableValueMap.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sling Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.sling.commons.resource</a> &gt; <span class="el_source">ImmutableValueMap.java</span></div><h1>ImmutableValueMap.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.sling.commons.resource;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.api.wrappers.ValueMapDecorator;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
+
+/**
+ * {@link ValueMap} that does not support changing its content.
+ * &lt;p&gt;
+ * All methods that may change the content will throw a {@link UnsupportedOperationException}.
+ * &lt;/p&gt;
+ * &lt;p&gt;
+ * Static convenience methods provide similar behavior as Guava ImmutableMap variants.
+ * &lt;/p&gt;
+ */
+@ProviderType
+public final class ImmutableValueMap implements ValueMap {
+
+  private final ValueMap map;
+
+  /**
+   * @param map Value map
+   */
+<span class="fc" id="L56">  ImmutableValueMap(@NotNull ValueMap map) {</span>
+<span class="fc" id="L57">    this.map = map;</span>
+<span class="fc" id="L58">  }</span>
+
+  /**
+   * @param map Map
+   */
+<span class="fc" id="L63">  ImmutableValueMap(@NotNull Map&lt;String, Object&gt; map) {</span>
+<span class="fc" id="L64">    this.map = new ValueMapDecorator(map);</span>
+<span class="fc" id="L65">  }</span>
+
+  @Override
+  public @Nullable &lt;T&gt; T get(@NotNull String name, @NotNull Class&lt;T&gt; type) {
+<span class="fc" id="L69">    return this.map.get(name, type);</span>
+  }
+
+  @Override
+  public &lt;T&gt; T get(@NotNull String name, T defaultValue) {
+<span class="fc" id="L74">    return this.map.get(name, defaultValue);</span>
+  }
+
+  @Override
+  public int size() {
+<span class="fc" id="L79">    return this.map.size();</span>
+  }
+
+  @Override
+  public boolean isEmpty() {
+<span class="fc" id="L84">    return this.map.isEmpty();</span>
+  }
+
+  @Override
+  public boolean containsKey(Object key) {
+<span class="fc" id="L89">    return this.map.containsKey(key);</span>
+  }
+
+  @Override
+  public boolean containsValue(Object value) {
+<span class="fc" id="L94">    return this.map.containsValue(value);</span>
+  }
+
+  @Override
+  public Object get(Object key) {
+<span class="fc" id="L99">    return this.map.get(key);</span>
+  }
+
+  @Override
+  public Set&lt;String&gt; keySet() {
+<span class="fc" id="L104">    return this.map.keySet();</span>
+  }
+
+  @Override
+  public Collection&lt;Object&gt; values() {
+<span class="fc" id="L109">    return this.map.values();</span>
+  }
+
+  @Override
+  public Set&lt;Entry&lt;String, Object&gt;&gt; entrySet() {
+<span class="fc" id="L114">    return Collections.unmodifiableSet(this.map.entrySet());</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="nc" id="L119">    return this.map.hashCode();</span>
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">    if (!(obj instanceof ImmutableValueMap)) {</span>
+<span class="nc" id="L125">      return false;</span>
+    }
+<span class="fc" id="L127">    return this.map.entrySet().equals(((ImmutableValueMap)obj).map.entrySet());</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L132">    SortedMap sortedMap = ImmutableSortedMap.&lt;String, Object&gt;copyOf(this.map);</span>
+<span class="fc" id="L133">    return &quot;{&quot; + Joiner.on(&quot;,&quot;).withKeyValueSeparator(&quot;=&quot;).join(sortedMap) + &quot;}&quot;;</span>
+  }
+
+  // mutable operations not supported
+  /**
+   * @deprecated Unsupported operation
+   */
+  @Override
+  @Deprecated
+  public Object put(String key, Object value) {
+<span class="fc" id="L143">    throw new UnsupportedOperationException();</span>
+  }
+
+  /**
+   * @deprecated Unsupported operation
+   */
+  @Override
+  @Deprecated
+  public Object remove(Object key) {
+<span class="fc" id="L152">    throw new UnsupportedOperationException();</span>
+  }
+
+  /**
+   * @deprecated Unsupported operation
+   */
+  @Override
+  @Deprecated
+  public void putAll(Map&lt;? extends String, ? extends Object&gt; m) {
+<span class="fc" id="L161">    throw new UnsupportedOperationException();</span>
+  }
+
+  /**
+   * @deprecated Unsupported operation
+   */
+  @Override
+  @Deprecated
+  public void clear() {
+<span class="fc" id="L170">    throw new UnsupportedOperationException();</span>
+  }
+
+
+  /**
+   * Returns the empty map. This map behaves and performs comparably to {@link Collections#emptyMap}, and is preferable
+   * mainly for consistency
+   * and maintainability of your code.
+   * @return ImmutableValueMap
+   */
+  public static @NotNull ImmutableValueMap of() {
+<span class="fc" id="L181">    return new ImmutableValueMap(ValueMap.EMPTY);</span>
+  }
+
+  /**
+   * Returns an immutable map containing a single entry. This map behaves and
+   * performs comparably to {@link Collections#singletonMap} but will not accept
+   * a null key or value. It is preferable mainly for consistency and
+   * maintainability of your code.
+   * @param k1 Key 1
+   * @param v1 Value 1
+   * @return ImmutableValueMap
+   */
+  public static @NotNull ImmutableValueMap of(@NotNull String k1, @NotNull Object v1) {
+<span class="fc" id="L194">    return new ImmutableValueMap(ImmutableMap.&lt;String, Object&gt;of(k1, v1));</span>
+  }
+
+  /**
+   * Returns an immutable map containing the given entries, in order.
+   * @param k1 Key 1
+   * @param v1 Value 1
+   * @param k2 Key 2
+   * @param v2 Value 2
+   * @return ImmutableValueMap
+   * @throws IllegalArgumentException if duplicate keys are provided
+   */
+  public static @NotNull ImmutableValueMap of(@NotNull String k1, @NotNull Object v1,
+      @NotNull String k2, @NotNull Object v2) {
+<span class="fc" id="L208">    return new ImmutableValueMap(ImmutableMap.&lt;String, Object&gt;of(k1, v1, k2, v2));</span>
+  }
+
+  /**
+   * Returns an immutable map containing the given entries, in order.
+   * @param k1 Key 1
+   * @param v1 Value 1
+   * @param k2 Key 2
+   * @param v2 Value 2
+   * @param k3 Key 3
+   * @param v3 Value 3
+   * @return ImmutableValueMap
+   * @throws IllegalArgumentException if duplicate keys are provided
+   */
+  public static @NotNull ImmutableValueMap of(
+      @NotNull String k1, @NotNull Object v1,
+      @NotNull String k2, @NotNull Object v2,
+      @NotNull String k3, @NotNull Object v3) {
+<span class="fc" id="L226">    return new ImmutableValueMap(ImmutableMap.&lt;String, Object&gt;of(k1, v1, k2, v2, k3, v3));</span>
+  }
+
+  /**
+   * Returns an immutable map containing the given entries, in order.
+   * @param k1 Key 1
+   * @param v1 Value 1
+   * @param k2 Key 2
+   * @param v2 Value 2
+   * @param k3 Key 3
+   * @param v3 Value 3
+   * @param k4 Key 4
+   * @param v4 Value 4
+   * @return ImmutableValueMap
+   * @throws IllegalArgumentException if duplicate keys are provided
+   */
+  public static @NotNull ImmutableValueMap of( //NOPMD
+      @NotNull String k1, @NotNull Object v1,
+      @NotNull String k2, @NotNull Object v2,
+      @NotNull String k3, @NotNull Object v3,
+      @NotNull String k4, @NotNull Object v4) {
+<span class="fc" id="L247">    return new ImmutableValueMap(ImmutableMap.&lt;String, Object&gt;of(k1, v1, k2, v2, k3, v3, k4, v4));</span>
+  }
+
+  /**
+   * Returns an immutable map containing the given entries, in order.
+   * @param k1 Key 1
+   * @param v1 Value 1
+   * @param k2 Key 2
+   * @param v2 Value 2
+   * @param k3 Key 3
+   * @param v3 Value 3
+   * @param k4 Key 4
+   * @param v4 Value 4
+   * @param k5 Key 5
+   * @param v5 Value 5
+   * @return ImmutableValueMap
+   * @throws IllegalArgumentException if duplicate keys are provided
+   */
+  public static ImmutableValueMap of( //NOPMD
+      @NotNull String k1, @NotNull Object v1,
+      @NotNull String k2, @NotNull Object v2,
+      @NotNull String k3, @NotNull Object v3,
+      @NotNull String k4, @NotNull Object v4,
+      @NotNull String k5, @NotNull Object v5) {
+<span class="fc" id="L271">    return new ImmutableValueMap(ImmutableMap.&lt;String, Object&gt;of(k1, v1, k2, v2, k3, v3, k4, v4, k5, v5));</span>
+  }
+
+  // looking for of() with &gt; 5 entries? Use the builder instead.
+
+  /**
+   * Returns a new builder. The generated builder is equivalent to the builder
+   * created by the {@link Builder} constructor.
+   * @return Builder
+   */
+  public static @NotNull Builder builder() {
+<span class="fc" id="L282">    return new Builder();</span>
+  }
+
+  /**
+   * Returns an immutable map containing the same entries as {@code map}. If {@code map} somehow contains entries with
+   * duplicate keys (for example, if
+   * it is a {@code SortedMap} whose comparator is not &lt;i&gt;consistent with
+   * equals&lt;/i&gt;), the results of this method are undefined.
+   * &lt;p&gt;
+   * Despite the method name, this method attempts to avoid actually copying the data when it is safe to do so. The
+   * exact circumstances under which a copy will or will not be performed are undocumented and subject to change.
+   * &lt;/p&gt;
+   * @param map Map
+   * @return ImmutableValueMap
+   * @throws NullPointerException if any key or value in {@code map} is null
+   */
+  public static @NotNull ImmutableValueMap copyOf(@NotNull Map&lt;String, Object&gt; map) {
+<span class="fc bfc" id="L299" title="All 2 branches covered.">    if (map instanceof ValueMap) {</span>
+<span class="fc" id="L300">      return new ImmutableValueMap((ValueMap)map);</span>
+    }
+    else {
+<span class="fc" id="L303">      return new ImmutableValueMap(map);</span>
+    }
+  }
+
+  /**
+   * Builder interface for {@link ImmutableValueMap}.
+   */
+<span class="fc" id="L310">  public static final class Builder {</span>
+
+<span class="fc" id="L312">    private final @NotNull Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+
+    /**
+     * Associates {@code key} with {@code value} in the built map. Duplicate
+     * keys are not allowed, and will cause {@link #build} to fail.
+     * @param key Key
+     * @param value value
+     * @return this
+     */
+    public @NotNull Builder put(@NotNull String key, @NotNull Object value) {
+<span class="fc" id="L322">      map.put(key, value);</span>
+<span class="fc" id="L323">      return this;</span>
+    }
+
+    /**
+     * Adds the given {@code entry} to the map, making it immutable if
+     * necessary. Duplicate keys are not allowed, and will cause {@link #build} to fail.
+     * @param entry Entry
+     * @return this
+     */
+    public @NotNull Builder put(@NotNull Entry&lt;String, Object&gt; entry) {
+<span class="fc" id="L333">      return put(entry.getKey(), entry.getValue());</span>
+    }
+
+    /**
+     * Associates all of the given map's keys and values in the built map.
+     * Duplicate keys are not allowed, and will cause {@link #build} to fail.
+     * @param value Value
+     * @return this
+     * @throws NullPointerException if any key or value in {@code map} is null
+     */
+    public @NotNull Builder putAll(@NotNull Map&lt;String, Object&gt; value) {
+<span class="fc" id="L344">      map.putAll(value);</span>
+<span class="fc" id="L345">      return this;</span>
+    }
+
+    /**
+     * Returns a newly-created immutable map.
+     * @return ImmutableValueMap
+     * @throws IllegalArgumentException if duplicate keys were added
+     */
+    public @NotNull ImmutableValueMap build() {
+<span class="fc bfc" id="L354" title="All 2 branches covered.">      if (map.isEmpty()) {</span>
+<span class="fc" id="L355">        return ImmutableValueMap.of();</span>
+      }
+      else {
+<span class="fc" id="L358">        return new ImmutableValueMap(map);</span>
+      }
+    }
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

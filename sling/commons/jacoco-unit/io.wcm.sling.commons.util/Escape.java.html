@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Escape.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sling Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.sling.commons.util</a> &gt; <span class="el_source">Escape.java</span></div><h1>Escape.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.sling.commons.util;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+
+import org.apache.commons.lang3.CharEncoding;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+/**
+ * Encoding utility functions.
+ */
+@ProviderType
+public final class Escape {
+
+  private Escape() {
+    // Utility class - no instancing allowed
+  }
+
+  /**
+   * Applies URL-Encoding to the given parameter name or value. Uses {@link URLEncoder#encode(String, String)} with
+   * UTF-8 character set, while avoiding the need to catch the UnsupportedEncodingException.
+   * @param value the parameter name or value to encode
+   * @return URL-encoded string - or empty string if the specified value was null
+   * @throws RuntimeException in the very unlikely case that UTF-8 is not supported on the current system
+   */
+  public static @NotNull String urlEncode(@Nullable String value) {
+<span class="pc bpc" id="L50" title="1 of 2 branches missed.">    if (value == null) {</span>
+<span class="nc" id="L51">      return &quot;&quot;;</span>
+    }
+    try {
+<span class="fc" id="L54">      return URLEncoder.encode(value, CharEncoding.UTF_8);</span>
+    }
+<span class="nc" id="L56">    catch (UnsupportedEncodingException ex) {</span>
+<span class="nc" id="L57">      throw new RuntimeException(ex);</span>
+    }
+  }
+
+  /**
+   * Creates a valid node name. Replaces all chars not in a-z, A-Z and 0-9 or '_' with '-' and converts all to lowercase.
+   * @param value String to be labelized.
+   * @return The labelized string.
+   */
+  public static @NotNull String validName(@NotNull String value) {
+
+    // convert to lowercase
+<span class="fc" id="L69">    String text = value.toLowerCase();</span>
+
+    // replace some special chars first
+<span class="fc" id="L72">    text = StringUtils.replace(text, &quot;ä&quot;, &quot;ae&quot;);</span>
+<span class="fc" id="L73">    text = StringUtils.replace(text, &quot;ö&quot;, &quot;oe&quot;);</span>
+<span class="fc" id="L74">    text = StringUtils.replace(text, &quot;ü&quot;, &quot;ue&quot;);</span>
+<span class="fc" id="L75">    text = StringUtils.replace(text, &quot;ß&quot;, &quot;ss&quot;);</span>
+
+    // replace all invalid chars
+<span class="fc" id="L78">    StringBuilder sb = new StringBuilder(text);</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    for (int i = 0; i &lt; sb.length(); i++) {</span>
+<span class="fc" id="L80">      char ch = sb.charAt(i);</span>
+<span class="pc bpc" id="L81" title="1 of 14 branches missed.">      if (!((ch &gt;= 'A' &amp;&amp; ch &lt;= 'Z') || (ch &gt;= 'a' &amp;&amp; ch &lt;= 'z') || (ch &gt;= '0' &amp;&amp; ch &lt;= '9') || (ch == '_'))) {</span>
+<span class="fc" id="L82">        ch = '-';</span>
+<span class="fc" id="L83">        sb.setCharAt(i, ch);</span>
+      }
+    }
+<span class="fc" id="L86">    return sb.toString();</span>
+  }
+
+  /**
+   * Create valid filename by applying method {@link Escape#validName(String)} on filename and extension.
+   * @param value Filename
+   * @return Valid filename
+   */
+  public static @NotNull String validFilename(@NotNull String value) {
+<span class="fc" id="L95">    String fileExtension = StringUtils.substringAfterLast(value, &quot;.&quot;);</span>
+<span class="fc" id="L96">    String fileName = StringUtils.substringBeforeLast(value, &quot;.&quot;);</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">    if (StringUtils.isEmpty(fileExtension)) {</span>
+<span class="fc" id="L98">      return validName(fileName);</span>
+    }
+<span class="fc" id="L100">    return validName(fileName) + &quot;.&quot; + validName(fileExtension);</span>
+  }
+
+  /**
+   * Convert a string to a literal, suitable for inclusion in a query (XPath or JCR-SQL2).
+   * See JSR-283 specification v2.0, Section 4.6.6.19.
+   * @param value Any string.
+   * @return A valid JCR query string literal, including enclosing quotes.
+   */
+  @SuppressWarnings({ &quot;unused&quot;, &quot;null&quot; })
+  public static @NotNull String jcrQueryLiteral(@NotNull String value) {
+<span class="fc bfc" id="L111" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L112">      throw new IllegalArgumentException(&quot;Invalid query string value: &quot; + value);</span>
+    }
+<span class="fc" id="L114">    return &quot;'&quot; + StringUtils.replace(value, &quot;'&quot;, &quot;''&quot;) + &quot;'&quot;;</span>
+  }
+
+  /**
+   * Convert a string to a JCR search expression literal, suitable for use in jcr:contains() (inside XPath)
+   * or contains (JCR-SQL2). The characters - and &quot; have special meaning, and may be escaped with a backslash
+   * to obtain their literal value.
+   * See JSR-283 specification v2.0, Section 4.6.6.19.
+   * @param value Any string.
+   * @return A valid string literal suitable for use in JCR contains clauses, including enclosing quotes.
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  public static @NotNull String jcrQueryContainsExpr(@NotNull String value) {
+<span class="fc bfc" id="L127" title="All 4 branches covered.">    if (value == null || value.isEmpty()) {</span>
+<span class="fc" id="L128">      throw new IllegalArgumentException(&quot;Invalid query string value: &quot; + value);</span>
+    }
+    // Escape special characters not allowed in jcr:contains expression
+<span class="fc" id="L131">    return jcrQueryLiteral(Text.escapeIllegalXpathSearchChars(value));</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>
