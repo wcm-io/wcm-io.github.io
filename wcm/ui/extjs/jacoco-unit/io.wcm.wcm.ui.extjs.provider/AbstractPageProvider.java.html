@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractPageProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM ExtJS UI Extensions</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.ui.extjs.provider</a> &gt; <span class="el_source">AbstractPageProvider.java</span></div><h1>AbstractPageProvider.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.ui.extjs.provider;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.collections.Predicate;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.commons.json.JSONArray;
+import org.apache.sling.commons.json.JSONException;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ConsumerType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.commons.jcr.JcrConstants;
+import com.day.cq.commons.predicate.PredicateProvider;
+import com.day.cq.wcm.api.PageFilter;
+
+import io.wcm.sling.commons.request.RequestParam;
+import io.wcm.wcm.commons.contenttype.ContentType;
+import io.wcm.wcm.ui.extjs.provider.impl.util.PredicatePageFilter;
+
+/**
+ * Common functionality for {@link AbstractPageListProvider} and {@link AbstractPageTreeProvider}.
+ */
+@ConsumerType
+@SuppressWarnings(&quot;deprecation&quot;)
+<span class="fc" id="L53">public abstract class AbstractPageProvider extends SlingSafeMethodsServlet {</span>
+  private static final long serialVersionUID = 1L;
+
+  /**
+   * Request parameter for passing the path of the root resource to list the children
+   */
+  public static final String RP_PATH = &quot;path&quot;;
+
+  /**
+   * Parameter for specifying a predicate to filter the list of pages.
+   */
+  public static final String RP_PREDICATE = &quot;predicate&quot;;
+
+<span class="fc" id="L66">  protected final Logger log = LoggerFactory.getLogger(getClass());</span>
+
+  /**
+   * @return Predicate provider or null if none is available;
+   */
+  protected abstract PredicateProvider getPredicateProvider();
+
+  @Override
+  protected final void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response)
+      throws ServletException, IOException {
+
+    // determine root resource
+<span class="fc" id="L78">    Resource rootResource = getRootResource(request);</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    if (rootResource == null) {</span>
+<span class="fc" id="L80">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="fc" id="L81">      return;</span>
+    }
+
+<span class="fc" id="L84">    response.setContentType(ContentType.JSON);</span>
+
+    try {
+<span class="fc" id="L87">      PageFilter pageFilter = getPageFilter(request);</span>
+<span class="fc" id="L88">      JSONArray jsonContent = getJsonContent(rootResource, pageFilter);</span>
+<span class="fc" id="L89">      response.getWriter().write(jsonContent.toString());</span>
+    }
+<span class="nc" id="L91">    /*CHECKSTYLE:OFF*/ catch (Exception ex) { /*CHECKSTYLE:ON*/</span>
+<span class="nc" id="L92">      log.error(&quot;Unexpected error, rethrow as servlet exception.&quot;, ex);</span>
+<span class="nc" id="L93">      throw new ServletException(ex);</span>
+<span class="fc" id="L94">    }</span>
+<span class="fc" id="L95">  }</span>
+
+  /**
+   * Render result of provider servlet as JSON to string writer.
+   * @param rootResource Root resource
+   * @param pageFilter Page filter
+   * @return JSON array
+   * @throws JSONException JSON exception
+   */
+  @SuppressWarnings(&quot;javadoc&quot;)
+  protected abstract JSONArray getJsonContent(Resource rootResource, PageFilter pageFilter) throws JSONException;
+
+  /**
+   * Determine root resource to list its children. (use resource for root page because root node does not have to be a
+   * page but can be e.g. a nt:folder node)
+   * @param request Request
+   * @return Root resource or null if invalid resource was referenced
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  protected final Resource getRootResource(SlingHttpServletRequest request) {
+<span class="fc" id="L115">    String path = RequestParam.get(request, RP_PATH);</span>
+<span class="pc bpc" id="L116" title="1 of 4 branches missed.">    if (StringUtils.isEmpty(path) &amp;&amp; request.getResource() != null) {</span>
+<span class="fc" id="L117">      path = request.getResource().getPath();</span>
+    }
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">    if (StringUtils.isNotEmpty(path)) {</span>
+<span class="fc" id="L120">      path = StringUtils.removeEnd(path, &quot;/&quot; + JcrConstants.JCR_CONTENT);</span>
+<span class="fc" id="L121">      return request.getResourceResolver().getResource(path);</span>
+    }
+<span class="nc" id="L123">    return null;</span>
+  }
+
+  /**
+   * Can be overridden by subclasses to filter page list via page filter.
+   * If not overridden it supports defining a page filter via &quot;predicate&quot; request attribute.
+   * @param request Request
+   * @return Page filter or null if no filtering applies
+   */
+  protected PageFilter getPageFilter(SlingHttpServletRequest request) {
+
+    // check for predicate filter
+<span class="fc" id="L135">    String predicateName = RequestParam.get(request, RP_PREDICATE);</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(predicateName)) {</span>
+<span class="fc" id="L137">      PredicateProvider predicateProvider = getPredicateProvider();</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">      if (predicateProvider == null) {</span>
+<span class="nc" id="L139">        throw new RuntimeException(&quot;PredicateProvider service not available.&quot;);</span>
+      }
+<span class="fc" id="L141">      Predicate predicate = predicateProvider.getPredicate(predicateName);</span>
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">      if (predicate == null) {</span>
+<span class="nc" id="L143">        throw new RuntimeException(&quot;Predicate '&quot; + predicateName + &quot;' not available.&quot;);</span>
+      }
+<span class="fc" id="L145">      return new PredicatePageFilter(predicate, true, true);</span>
+    }
+
+<span class="fc" id="L148">    return null;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EditableTemplate.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.commons.util</a> &gt; <span class="el_source">EditableTemplate.java</span></div><h1>EditableTemplate.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.commons.util;
+
+import static com.day.cq.commons.jcr.JcrConstants.JCR_CONTENT;
+import static com.day.cq.commons.jcr.JcrConstants.JCR_PRIMARYTYPE;
+import static com.day.cq.wcm.api.NameConstants.NT_TEMPLATE;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.jetbrains.annotations.NotNull;
+
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.Template;
+import com.day.cq.wcm.api.components.ComponentContext;
+
+/**
+ * Helper methods for editable AEM templates.
+ */
+public final class EditableTemplate {
+
+  static final String NN_EDITABLE_TEMPLATE_INITIAL = &quot;initial&quot;;
+  static final String NN_EDITABLE_TEMPLATE_STRUCTURE = &quot;structure&quot;;
+  static final String NN_EDITABLE_TEMPLATE_POLICIES = &quot;policies&quot;;
+
+  static final String PN_EDITABLE = &quot;editable&quot;;
+
+  private EditableTemplate() {
+    // static methods only
+  }
+
+  /**
+   * Checks if editing of the given component in edit mode is forbidden due to a lock in the template editor
+   * for this component.
+   * @param wcmComponentContext WCM component context
+   * @return true if editing the component is forbidden
+   */
+  public static boolean isEditRestricted(@NotNull ComponentContext wcmComponentContext) {
+<span class="fc" id="L57">    Page page = wcmComponentContext.getPage();</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">    if (page == null) {</span>
+<span class="fc" id="L59">      return false;</span>
+    }
+<span class="fc" id="L61">    ResourceResolver resourceResolver = wcmComponentContext.getResource().getResourceResolver();</span>
+<span class="fc" id="L62">    Template template = page.getTemplate();</span>
+
+<span class="fc bfc" id="L64" title="All 6 branches covered.">    if (template == null || isPageInTemplateDefinition(page) || !isEditableTemplate(template)) {</span>
+<span class="fc" id="L65">      return false;</span>
+    }
+
+    // check if the current resource path already points to a structure path in the editable template
+<span class="fc" id="L69">    String resourcePath = wcmComponentContext.getResource().getPath();</span>
+<span class="fc" id="L70">    String templateStructurePath = template.getPath() + &quot;/&quot; + NN_EDITABLE_TEMPLATE_STRUCTURE + &quot;/&quot; + JCR_CONTENT;</span>
+<span class="fc" id="L71">    String resourcePathInStructure = null;</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (StringUtils.startsWith(resourcePath, templateStructurePath + &quot;/&quot;)) {</span>
+<span class="fc" id="L73">      resourcePathInStructure = resourcePath;</span>
+    }
+    else {
+      // resource path points to the current page, build structure path from path in page
+<span class="fc" id="L77">      String relativePathInPage = StringUtils.substringAfter(resourcePath, page.getContentResource().getPath());</span>
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">      if (StringUtils.isNotEmpty(relativePathInPage)) {</span>
+<span class="fc" id="L79">        resourcePathInStructure = templateStructurePath + relativePathInPage;</span>
+      }
+    }
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">    if (resourcePathInStructure == null) {</span>
+<span class="nc" id="L83">      return false;</span>
+    }
+
+<span class="fc" id="L86">    Resource resourceInStructure = resourceResolver.getResource(resourcePathInStructure);</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">    if (resourceInStructure == null) {</span>
+<span class="fc" id="L88">      return false;</span>
+    }
+<span class="fc bfc" id="L90" title="All 2 branches covered.">    return !resourceInStructure.getValueMap().get(PN_EDITABLE, false);</span>
+  }
+
+  /**
+   * Checks if the given template is an editable template.
+   * @param template TEmplate
+   * @return true if template is editable
+   */
+  private static boolean isEditableTemplate(@NotNull Template template) {
+<span class="fc" id="L99">    Resource resource = template.adaptTo(Resource.class);</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">    if (resource != null) {</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">      return resource.getChild(NN_EDITABLE_TEMPLATE_INITIAL) != null</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">          &amp;&amp; resource.getChild(NN_EDITABLE_TEMPLATE_STRUCTURE) != null</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">          &amp;&amp; resource.getChild(NN_EDITABLE_TEMPLATE_POLICIES) != null;</span>
+    }
+<span class="nc" id="L105">    return false;</span>
+  }
+
+  /**
+   * Checks if the given page is part of the editable template definition itself.
+   * @param page Page
+   * @return true if page is part of template definition.
+   */
+  private static boolean isPageInTemplateDefinition(Page page) {
+<span class="fc" id="L114">    Resource resource = page.adaptTo(Resource.class);</span>
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">    if (resource != null) {</span>
+<span class="fc" id="L116">      Resource parent = resource.getParent();</span>
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">      if (parent != null) {</span>
+<span class="fc" id="L118">        return StringUtils.equals(NT_TEMPLATE, parent.getValueMap().get(JCR_PRIMARYTYPE, String.class));</span>
+      }
+    }
+<span class="nc" id="L121">    return false;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

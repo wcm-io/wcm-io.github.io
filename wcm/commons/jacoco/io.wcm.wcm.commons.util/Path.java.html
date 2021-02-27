@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Path.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.commons.util</a> &gt; <span class="el_source">Path.java</span></div><h1>Path.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2018 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.commons.util;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.util.Text;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.tenant.Tenant;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
+
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageManager;
+
+/**
+ * Handling of paths and absolute parents in AEM.
+ * &lt;p&gt;
+ * The methods implement special handling for AEM features:
+ * &lt;/p&gt;
+ * &lt;ul&gt;
+ * &lt;li&gt;Side-by-side version comparison (at &lt;code&gt;/tmp/versionhistory&lt;/code&gt; or
+ * &lt;code&gt;/content/versionhistory&lt;/code&gt;)&lt;/li&gt;
+ * &lt;li&gt;Launches (at &lt;code&gt;/content/launches&lt;/code&gt;)&lt;/li&gt;
+ * &lt;/ul&gt;
+ * Paths starting with one of these special paths are treated in a special way so code relying on the original path
+ * structure still works.
+ */
+@ProviderType
+public final class Path {
+
+  // VERSION_HISTORY_PATH is used since AEM 6.5, AEM 6.4.3, AEM 6.3.3.2, LEGACY_VERSION_HISTORY_PATH in the versions before
+  private static final String VERSION_HISTORY_PATH = &quot;/tmp/versionhistory&quot;;
+  private static final String LEGACY_VERSION_HISTORY_PATH = &quot;/content/versionhistory&quot;;
+
+  private static final String LAUNCHES_PATH = &quot;/content/launches&quot;;
+  private static final String EXPERIENCE_FRAGMENTS_PATH = &quot;/content/experience-fragments&quot;;
+
+<span class="fc" id="L58">  private static final Pattern VERSION_HISTORY_PATTERN = Pattern.compile(VERSION_HISTORY_PATH + &quot;/[^/]+/[^/]+(/.*)?&quot;);</span>
+<span class="fc" id="L59">  private static final Pattern LEGACY_VERSION_HISTORY_PATTERN = Pattern.compile(LEGACY_VERSION_HISTORY_PATH + &quot;/[^/]+(/.*)?&quot;);</span>
+<span class="fc" id="L60">  private static final Pattern LEGACY_VERSION_HISTORY_TENANT_PATTERN = Pattern.compile(LEGACY_VERSION_HISTORY_PATH + &quot;/[^/]+/[^/]+(/.*)?&quot;);</span>
+<span class="fc" id="L61">  private static final Pattern LAUNCHES_PATTERN = Pattern.compile(LAUNCHES_PATH + &quot;/\\d+/\\d+/\\d+/[^/]+(/.*)?&quot;);</span>
+
+<span class="fc" id="L63">  private static final Pattern EXPERIENCE_FRAGMENTS_PATTERN = Pattern.compile(&quot;^&quot; + EXPERIENCE_FRAGMENTS_PATH + &quot;/.*$&quot;);</span>
+<span class="fc" id="L64">  private static final Pattern EDITABLE_TEMPLATE_PATTERN = Pattern.compile(&quot;^/conf/.*/settings/wcm/templates/.*$&quot;);</span>
+
+  private Path() {
+    // static methods only
+  }
+
+  /**
+   * Get absolute parent of given path.
+   * If the path is a version history or launch path the path level is adjusted accordingly.
+   * This is a replacement for {@link com.day.text.Text#getAbsoluteParent(String, int)}.
+   * @param path Path
+   * @param parentLevel Parent level
+   * @param resourceResolver Resource resolver
+   * @return Absolute parent path or empty string if path is invalid
+   */
+  public static String getAbsoluteParent(@NotNull String path, int parentLevel, @NotNull ResourceResolver resourceResolver) {
+<span class="fc bfc" id="L80" title="All 2 branches covered.">    if (parentLevel &lt; 0) {</span>
+<span class="fc" id="L81">      return &quot;&quot;;</span>
+    }
+<span class="fc" id="L83">    int level = parentLevel + getAbsoluteLevelOffset(path, resourceResolver);</span>
+<span class="fc" id="L84">    return Text.getAbsoluteParent(path, level);</span>
+  }
+
+  /**
+   * Get absolute parent of given path.
+   * If the path is a version history or launch path the path level is adjusted accordingly.
+   * This is a replacement for {@link Page#getAbsoluteParent(int)}.
+   * @param page Page
+   * @param parentLevel Parent level
+   * @param resourceResolver Resource resolver
+   * @return Absolute parent page or null if path is invalid
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  public static Page getAbsoluteParent(@NotNull Page page, int parentLevel, @NotNull ResourceResolver resourceResolver) {
+<span class="fc" id="L98">    PageManager pageManager = resourceResolver.adaptTo(PageManager.class);</span>
+<span class="fc" id="L99">    String absoluteParentPath = getAbsoluteParent(page.getPath(), parentLevel, resourceResolver);</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (StringUtils.isEmpty(absoluteParentPath)) {</span>
+<span class="fc" id="L101">      return null;</span>
+    }
+<span class="fc" id="L103">    return pageManager.getPage(absoluteParentPath);</span>
+  }
+
+  /**
+   * Gets level from parent use same logic (but reverse) as {@link #getAbsoluteParent(Page, int, ResourceResolver)}.
+   * If the path is a version history or launch path the original path is returned.
+   * @param path Path
+   * @param resourceResolver Resource resolver
+   * @return level &amp;gt;= 0 if path is valid, -1 if path is invalid
+   */
+  public static int getAbsoluteLevel(@NotNull String path, @NotNull ResourceResolver resourceResolver) {
+<span class="fc bfc" id="L114" title="All 4 branches covered.">    if (StringUtils.isEmpty(path) || StringUtils.equals(path, &quot;/&quot;)) {</span>
+<span class="fc" id="L115">      return -1;</span>
+    }
+<span class="fc" id="L117">    String originalPath = getOriginalPath(path, resourceResolver);</span>
+<span class="fc" id="L118">    return StringUtils.countMatches(originalPath, &quot;/&quot;) - 1;</span>
+  }
+
+  /**
+   * Resolve original path if the path is a version history or launch path.
+   * If the path does not point to any of these locations it is returned unchanged.
+   * @param path Path
+   * @param resourceResolver Resource resolver
+   * @return Path that is not a version history or launch path
+   */
+  public static String getOriginalPath(@NotNull String path, @NotNull ResourceResolver resourceResolver) {
+<span class="fc bfc" id="L129" title="All 2 branches covered.">    if (StringUtils.isEmpty(path)) {</span>
+<span class="fc" id="L130">      return null;</span>
+    }
+<span class="fc" id="L132">    Matcher versionHistoryMatcher = VERSION_HISTORY_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">    if (versionHistoryMatcher.matches()) {</span>
+<span class="fc" id="L134">      return &quot;/content&quot; + versionHistoryMatcher.group(1);</span>
+    }
+<span class="fc" id="L136">    Matcher legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (legacyVersionHistoryMatcher.matches()) {</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">      if (isTenant(resourceResolver)) {</span>
+<span class="fc" id="L139">        legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_TENANT_PATTERN.matcher(path);</span>
+      }
+<span class="pc bpc" id="L141" title="1 of 2 branches missed.">      if (legacyVersionHistoryMatcher.matches()) {</span>
+<span class="fc" id="L142">        return &quot;/content&quot; + legacyVersionHistoryMatcher.group(1);</span>
+      }
+    }
+<span class="fc" id="L145">    Matcher launchesMatcher = LAUNCHES_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">    if (launchesMatcher.matches()) {</span>
+<span class="fc" id="L147">      return launchesMatcher.group(1);</span>
+    }
+<span class="fc" id="L149">    return path;</span>
+  }
+
+  /**
+   * Calculates offset for absolute level if path is a version history or launch path.
+   * @param path Path
+   * @param resourceResolver Resource resolver
+   * @return 0 or offset if a version history or launch path.
+   */
+  private static int getAbsoluteLevelOffset(@NotNull String path, @NotNull ResourceResolver resourceResolver) {
+<span class="fc" id="L159">    Matcher versionHistoryMatcher = VERSION_HISTORY_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">    if (versionHistoryMatcher.matches()) {</span>
+<span class="fc" id="L161">      return 3;</span>
+    }
+<span class="fc" id="L163">    Matcher legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">    if (legacyVersionHistoryMatcher.matches()) {</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">      if (isTenant(resourceResolver)) {</span>
+<span class="fc" id="L166">        legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_TENANT_PATTERN.matcher(path);</span>
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">        if (legacyVersionHistoryMatcher.matches()) {</span>
+<span class="fc" id="L168">          return 3;</span>
+        }
+      }
+<span class="fc" id="L171">      return 2;</span>
+    }
+<span class="fc" id="L173">    Matcher launchesMatcher = LAUNCHES_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">    if (launchesMatcher.matches()) {</span>
+<span class="fc" id="L175">      return 6;</span>
+    }
+<span class="fc" id="L177">    return 0;</span>
+  }
+
+  /**
+   * Checks if a tenant is active for the current user.
+   * @param resourceResolver Resource resolver
+   * @return true if tenant is active
+   */
+  private static boolean isTenant(@NotNull ResourceResolver resourceResolver) {
+<span class="fc" id="L186">    Tenant tenant = resourceResolver.adaptTo(Tenant.class);</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">    return tenant != null;</span>
+  }
+
+  /**
+   * @param path Content path
+   * @return true if content path is inside experience fragements path.
+   */
+  public static boolean isExperienceFragmentPath(@NotNull String path) {
+<span class="fc" id="L195">    return EXPERIENCE_FRAGMENTS_PATTERN.matcher(path).matches();</span>
+  }
+
+  /**
+   * @param path Content path
+   * @return true if content path is inside an editable template definition.
+   */
+  public static boolean isEditableTemplatePath(@NotNull String path) {
+<span class="fc" id="L203">    return EDITABLE_TEMPLATE_PATTERN.matcher(path).matches();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

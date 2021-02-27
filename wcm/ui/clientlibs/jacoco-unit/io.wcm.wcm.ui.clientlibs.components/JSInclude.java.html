@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JSInclude.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Clientlibs UI Extensions</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.ui.clientlibs.components</a> &gt; <span class="el_source">JSInclude.java</span></div><h1>JSInclude.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.ui.clientlibs.components;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+
+import javax.annotation.PostConstruct;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
+import org.apache.sling.models.annotations.injectorspecific.OSGiService;
+import org.apache.sling.models.annotations.injectorspecific.RequestAttribute;
+import org.apache.sling.models.annotations.injectorspecific.SlingObject;
+import org.apache.sling.xss.XSSAPI;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+import com.adobe.granite.ui.clientlibs.HtmlLibraryManager;
+import com.adobe.granite.ui.clientlibs.LibraryType;
+
+/**
+ * Include JavaScript client libraries with optional attributes for script tag.
+ */
+@Model(adaptables = SlingHttpServletRequest.class)
+@ProviderType
+<span class="fc" id="L52">public class JSInclude {</span>
+
+<span class="fc" id="L54">  private static final Set CROSSORIGIN_ALLOWED_VALUES = new HashSet&lt;&gt;(Arrays.asList(</span>
+      &quot;anonymous&quot;, &quot;use-credentials&quot;));
+<span class="fc" id="L56">  private static final Set REFERRERPOLICY_ALLOWED_VALUES = new HashSet&lt;&gt;(Arrays.asList(</span>
+      &quot;no-referrer&quot;, &quot;no-referrer-when-downgrade&quot;, &quot;origin&quot;, &quot;origin-when-cross-origin&quot;,
+      &quot;same-origin&quot;, &quot;strict-origin&quot;, &quot;strict-origin-when-cross-origin&quot;, &quot;unsafe-url&quot;));
+<span class="fc" id="L59">  private static final Set TYPE_ALLOWED_VALUES = new HashSet&lt;&gt;(Arrays.asList(</span>
+      &quot;text/javascript&quot;, &quot;module&quot;));
+
+  @SlingObject
+  private ResourceResolver resourceResolver;
+  @OSGiService
+  private HtmlLibraryManager htmlLibraryManager;
+  @OSGiService
+  private XSSAPI xssApi;
+
+  @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private Object categories;
+  @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private boolean async;
+  @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private String crossorigin;
+  @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private boolean defer;
+  @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private String integrity;
+  @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private boolean nomodule;
+  @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private String nonce;
+  @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private String referrerpolicy;
+  @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private String type;
+
+  private String include;
+
+  @PostConstruct
+  private void activate() {
+    // build include string
+<span class="fc" id="L93">    String[] categoryArray = IncludeUtil.toCategoryArray(categories);</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (categoryArray != null) {</span>
+<span class="fc" id="L95">      List&lt;String&gt; libraryPaths = IncludeUtil.getLibraryUrls(htmlLibraryManager, resourceResolver,</span>
+          categoryArray, LibraryType.JS);
+<span class="fc bfc" id="L97" title="All 2 branches covered.">      if (!libraryPaths.isEmpty()) {</span>
+<span class="fc" id="L98">        Map&lt;String, String&gt; attrs = validateAndBuildAttributes();</span>
+<span class="fc" id="L99">        this.include = buildIncludeString(libraryPaths, attrs);</span>
+      }
+    }
+<span class="fc" id="L102">  }</span>
+
+  /**
+   * Validate attribute values from HTL script, escape them properly and build a map with all attributes
+   * for the resulting script tag(s).
+   * @return Map with attribute for script tag
+   */
+  private @NotNull Map&lt;String, String&gt; validateAndBuildAttributes() {
+<span class="fc" id="L110">    Map&lt;String, String&gt; attrs = new TreeMap&lt;&gt;();</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">    if (async) {</span>
+<span class="fc" id="L112">      attrs.put(&quot;async&quot;, null);</span>
+    }
+<span class="fc bfc" id="L114" title="All 2 branches covered.">    if (CROSSORIGIN_ALLOWED_VALUES.contains(crossorigin)) {</span>
+<span class="fc" id="L115">      attrs.put(&quot;crossorigin&quot;, crossorigin);</span>
+    }
+<span class="fc bfc" id="L117" title="All 2 branches covered.">    if (defer) {</span>
+<span class="fc" id="L118">      attrs.put(&quot;defer&quot;, null);</span>
+    }
+<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(integrity)) {</span>
+<span class="fc" id="L121">      attrs.put(&quot;integrity&quot;, xssApi.encodeForHTMLAttr(integrity));</span>
+    }
+<span class="fc bfc" id="L123" title="All 2 branches covered.">    if (nomodule) {</span>
+<span class="fc" id="L124">      attrs.put(&quot;nomodule&quot;, null);</span>
+    }
+<span class="fc bfc" id="L126" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(nonce)) {</span>
+<span class="fc" id="L127">      attrs.put(&quot;nonce&quot;, xssApi.encodeForHTMLAttr(nonce));</span>
+    }
+<span class="fc bfc" id="L129" title="All 2 branches covered.">    if (REFERRERPOLICY_ALLOWED_VALUES.contains(referrerpolicy)) {</span>
+<span class="fc" id="L130">      attrs.put(&quot;referrerpolicy&quot;, referrerpolicy);</span>
+    }
+<span class="fc bfc" id="L132" title="All 2 branches covered.">    if (TYPE_ALLOWED_VALUES.contains(type)) {</span>
+<span class="fc" id="L133">      attrs.put(&quot;type&quot;, type);</span>
+    }
+<span class="fc" id="L135">    return attrs;</span>
+  }
+
+  /**
+   * Build script tags for all client libraries with the defined custom script tag attributes set.
+   * @param libraryPaths Library paths
+   * @param attrs HTML attributes for script tag
+   * @return HTML markup with script tags
+   */
+  private @NotNull String buildIncludeString(@NotNull List&lt;String&gt; libraryPaths, @NotNull Map&lt;String, String&gt; attrs) {
+<span class="fc" id="L145">    StringBuilder markup = new StringBuilder();</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">    for (String libraryPath : libraryPaths) {</span>
+<span class="fc" id="L147">      markup.append(&quot;&lt;script src=\&quot;&quot; + xssApi.encodeForHTMLAttr(libraryPath) + &quot;\&quot;&quot;);</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">      for (Map.Entry&lt;String, String&gt; attr : attrs.entrySet()) {</span>
+<span class="fc" id="L149">        markup.append(&quot; &quot;);</span>
+<span class="fc" id="L150">        markup.append(attr.getKey());</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">        if (attr.getValue() != null) {</span>
+<span class="fc" id="L152">          markup.append(&quot;=\&quot;&quot;);</span>
+<span class="fc" id="L153">          markup.append(attr.getValue());</span>
+<span class="fc" id="L154">          markup.append(&quot;\&quot;&quot;);</span>
+        }
+<span class="fc" id="L156">      }</span>
+<span class="fc" id="L157">      markup.append(&quot;&gt;&lt;/script&gt;\n&quot;);</span>
+<span class="fc" id="L158">    }</span>
+<span class="fc" id="L159">    return markup.toString();</span>
+  }
+
+  /**
+   * @return HTML markup with script tags
+   */
+  public @Nullable String getInclude() {
+<span class="fc" id="L166">    return include;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TemplateFilterPageTreeProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM ExtJS UI Extensions</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.ui.extjs.provider.impl.servlets</a> &gt; <span class="el_source">TemplateFilterPageTreeProvider.java</span></div><h1>TemplateFilterPageTreeProvider.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.ui.extjs.provider.impl.servlets;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+import javax.jcr.Node;
+import javax.jcr.NodeIterator;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.servlet.Servlet;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.util.Text;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+
+import com.day.cq.commons.predicate.PredicateProvider;
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageFilter;
+import com.day.text.ISO9075;
+
+import io.wcm.sling.commons.request.RequestParam;
+import io.wcm.wcm.commons.contenttype.FileExtension;
+import io.wcm.wcm.ui.extjs.provider.AbstractPageTreeProvider;
+
+/**
+ * Page tree provider for tree nodes filtered by their templates
+ */
+@Component(service = Servlet.class, immediate = true, property = {
+    &quot;sling.servlet.extensions=&quot; + FileExtension.JSON,
+    &quot;sling.servlet.selectors=&quot; + TemplateFilterPageTreeProvider.SELECTOR,
+    &quot;sling.servlet.resourceTypes=sling/servlet/default&quot;,
+    &quot;sling.servlet.methods=&quot; + HttpConstants.METHOD_GET
+})
+<span class="fc" id="L64">public class TemplateFilterPageTreeProvider extends AbstractPageTreeProvider {</span>
+  private static final long serialVersionUID = 1L;
+
+  /**
+   * Define one or multiple template paths to filter the page tree for.
+   */
+  static final String RP_TEMPLATE = &quot;template&quot;;
+
+  static final String SELECTOR = &quot;wcm-io-wcm-ui-extjs-pagetree-templatefilter&quot;;
+
+  @Reference(cardinality = ReferenceCardinality.OPTIONAL)
+  private PredicateProvider predicateProvider;
+
+  @Override
+  protected PredicateProvider getPredicateProvider() {
+<span class="nc" id="L79">    return predicateProvider;</span>
+  }
+
+  @Override
+  protected PageFilter getPageFilter(SlingHttpServletRequest request) {
+<span class="fc" id="L84">    Resource rootResource = getRootResource(request);</span>
+<span class="fc" id="L85">    String[] templates = RequestParam.getMultiple(request, RP_TEMPLATE);</span>
+
+<span class="fc" id="L87">    Set&lt;String&gt; pagePathsToFollow = getPagePathsForTemplate(templates, rootResource.getPath(), request);</span>
+
+<span class="fc" id="L89">    return new PathPageFilter(pagePathsToFollow);</span>
+  }
+
+  /**
+   * Get paths for pages that use the given template
+   * @return a set of nodes that should be displayed in the tree
+   */
+  private Set&lt;String&gt; getPagePathsForTemplate(String[] templates, String rootPath, SlingHttpServletRequest request) {
+<span class="fc" id="L97">    Set&lt;String&gt; pagePaths = new HashSet&lt;&gt;();</span>
+
+<span class="pc bpc" id="L99" title="1 of 4 branches missed.">    if (templates != null &amp;&amp; templates.length &gt; 0) {</span>
+      try {
+<span class="fc" id="L101">        NodeIterator nodes = searchNodesByTemplate(templates, rootPath, request);</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">        while (nodes.hasNext()) {</span>
+<span class="fc" id="L103">          Node node = nodes.nextNode();</span>
+<span class="fc" id="L104">          String path = StringUtils.removeEnd(node.getPath(), &quot;/jcr:content&quot;);</span>
+<span class="fc" id="L105">          pagePaths.add(path);</span>
+<span class="fc" id="L106">        }</span>
+      }
+<span class="nc" id="L108">      catch (RepositoryException ex) {</span>
+<span class="nc" id="L109">        log.warn(&quot;Seaching nodes by template failed.&quot;, ex);</span>
+<span class="fc" id="L110">      }</span>
+    }
+
+<span class="fc" id="L113">    return pagePaths;</span>
+  }
+
+  /**
+   * Searches for page content nodes under the {@code pRootPath} with given
+   * template It uses a XPATH query and return the node iterator of results.
+   * @return results node iterator
+   */
+  private NodeIterator searchNodesByTemplate(String[] templates, String rootPath, SlingHttpServletRequest request) throws RepositoryException {
+<span class="fc" id="L122">    String queryString = &quot;/jcr:root&quot; + ISO9075.encodePath(rootPath) + &quot;//*&quot;</span>
+<span class="fc" id="L123">        + &quot;[@cq:template='&quot; + StringUtils.join(escapeXPathQueryExpressions(templates), &quot;' or @cq:template='&quot;) + &quot;']&quot;;</span>
+<span class="fc" id="L124">    Session session = request.getResourceResolver().adaptTo(Session.class);</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">    if (session == null) {</span>
+<span class="nc" id="L126">      throw new RuntimeException(&quot;No session.&quot;);</span>
+    }
+<span class="fc" id="L128">    QueryManager queryManager = session.getWorkspace().getQueryManager();</span>
+    @SuppressWarnings(&quot;deprecation&quot;)
+<span class="fc" id="L130">    Query query = queryManager.createQuery(queryString, Query.XPATH);</span>
+<span class="fc" id="L131">    QueryResult result = query.execute();</span>
+<span class="fc" id="L132">    return result.getNodes();</span>
+  }
+
+  /**
+   * @return array of escaped xPath query expressions
+   */
+  private String[] escapeXPathQueryExpressions(String[] expressions) {
+<span class="fc" id="L139">    List&lt;String&gt; escapedExpressions = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">    for (String expr : expressions) {</span>
+<span class="fc" id="L141">      escapedExpressions.add(Text.escapeIllegalXpathSearchChars(expr));</span>
+    }
+
+<span class="fc" id="L144">    return escapedExpressions.toArray(new String[0]);</span>
+  }
+
+  /**
+   * page filter that allows only a set of configurable paths
+   */
+  private static class PathPageFilter extends PageFilter {
+
+<span class="fc" id="L152">    private Set&lt;String&gt; pathsToFollow = new HashSet&lt;&gt;();</span>
+
+<span class="fc" id="L154">    PathPageFilter(Set&lt;String&gt; pagePathsToFollow) {</span>
+<span class="pc bpc" id="L155" title="1 of 2 branches missed.">      if (pagePathsToFollow != null) {</span>
+<span class="fc" id="L156">        this.pathsToFollow = pagePathsToFollow;</span>
+      }
+<span class="fc" id="L158">    }</span>
+
+    @Override
+    public boolean includes(Page page) {
+<span class="fc" id="L162">      boolean included = false;</span>
+
+<span class="fc" id="L164">      Iterator&lt;String&gt; pathsToFollowIter = pathsToFollow.iterator();</span>
+<span class="fc bfc" id="L165" title="All 4 branches covered.">      while (!included &amp;&amp; pathsToFollowIter.hasNext()) {</span>
+<span class="fc" id="L166">        String pathToFollow = pathsToFollowIter.next();</span>
+<span class="fc" id="L167">        included = StringUtils.startsWith(pathToFollow, page.getPath());</span>
+<span class="fc" id="L168">      }</span>
+
+<span class="fc" id="L170">      return included;</span>
+    }
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

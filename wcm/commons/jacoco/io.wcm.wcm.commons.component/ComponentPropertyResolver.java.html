@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ComponentPropertyResolver.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.commons.component</a> &gt; <span class="el_source">ComponentPropertyResolver.java</span></div><h1>ComponentPropertyResolver.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.commons.component;
+
+import java.util.Collection;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.LoginException;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.resource.ResourceUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageManager;
+import com.day.cq.wcm.api.components.Component;
+import com.day.cq.wcm.api.components.ComponentContext;
+import com.day.cq.wcm.api.components.ComponentManager;
+import com.day.cq.wcm.api.policies.ContentPolicy;
+import com.day.cq.wcm.api.policies.ContentPolicyManager;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
+import io.wcm.sling.commons.adapter.AdaptTo;
+
+/**
+ * Tries to resolve properties with or without inheritance from pages, content policies or component definitions.
+ * &lt;p&gt;
+ * The lookup can take place in:
+ * &lt;/p&gt;
+ * &lt;ol&gt;
+ * &lt;li&gt;Properties of the current page (including the parent pages if inheritance is enabled)&lt;/li&gt;
+ * &lt;li&gt;Properties from the content policy associated with the current resource&lt;/li&gt;
+ * &lt;li&gt;Properties defined on the component associated with the current resource (including super components if
+ * inheritance is enabled)&lt;/li&gt;
+ * &lt;/ol&gt;
+ * &lt;p&gt;
+ * By default, only option 3 is enabled (with inheritance).
+ * Please make sure to {@link #close()} instances of this class after usage.
+ * &lt;/p&gt;
+ */
+@ProviderType
+public final class ComponentPropertyResolver implements AutoCloseable {
+
+<span class="fc" id="L67">  private ComponentPropertyResolution componentPropertiesResolution = ComponentPropertyResolution.RESOLVE_INHERIT;</span>
+<span class="fc" id="L68">  private ComponentPropertyResolution pagePropertiesResolution = ComponentPropertyResolution.IGNORE;</span>
+<span class="fc" id="L69">  private ComponentPropertyResolution contentPolicyResolution = ComponentPropertyResolution.IGNORE;</span>
+  private final Page currentPage;
+  private final Component currentComponent;
+  private final Resource resource;
+  private final ResourceResolverFactory resourceResolverFactory;
+  private ResourceResolver componentsResourceResolver;
+  private boolean initComponentsResourceResolverFailed;
+
+  private static final String SERVICEUSER_SUBSERVICE = &quot;component-properties&quot;;
+
+<span class="fc" id="L79">  private static final Logger log = LoggerFactory.getLogger(ComponentPropertyResolver.class);</span>
+
+  /**
+   * This constructor is for internal use only, please use {@link ComponentPropertyResolverFactory}.
+   * @param page Content page
+   * @param resourceResolverFactory Resource resolver factory
+   */
+  public ComponentPropertyResolver(@NotNull Page page,
+      @Nullable ResourceResolverFactory resourceResolverFactory) {
+<span class="fc" id="L88">    this(page.getContentResource(), resourceResolverFactory);</span>
+<span class="fc" id="L89">  }</span>
+
+  /**
+   * This constructor is for internal use only, please use {@link ComponentPropertyResolverFactory}.
+   * @param resource Content resource
+   * @param resourceResolverFactory Resource resolver factory
+   */
+  public ComponentPropertyResolver(@NotNull Resource resource,
+      @Nullable ResourceResolverFactory resourceResolverFactory) {
+<span class="fc" id="L98">    this(resource, false, resourceResolverFactory);</span>
+<span class="fc" id="L99">  }</span>
+
+  /**
+   * This constructor is for internal use only, please use {@link ComponentPropertyResolverFactory}.
+   * @param resource Content resource
+   * @param ensureResourceType Ensure the given resource has a resource type.
+   *          If this is not the case, try to find the closest parent resource which has a resource type.
+   * @param resourceResolverFactory Resource resolver factory
+   */
+  public ComponentPropertyResolver(@NotNull Resource resource, boolean ensureResourceType,
+<span class="fc" id="L109">      @Nullable ResourceResolverFactory resourceResolverFactory) {</span>
+<span class="fc" id="L110">    Resource contextResource = null;</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">    if (ensureResourceType) {</span>
+      // find closest parent resource that has a resource type (and not nt:unstructured)
+<span class="fc" id="L113">      contextResource = getResourceWithResourceType(resource);</span>
+    }
+<span class="fc bfc" id="L115" title="All 2 branches covered.">    if (contextResource == null) {</span>
+<span class="fc" id="L116">      contextResource = resource;</span>
+    }
+
+<span class="fc" id="L119">    ResourceResolver resourceResolver = contextResource.getResourceResolver();</span>
+<span class="fc" id="L120">    PageManager pageManager = AdaptTo.notNull(resourceResolver, PageManager.class);</span>
+<span class="fc" id="L121">    this.currentPage = pageManager.getContainingPage(contextResource);</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">    if (hasResourceType(contextResource)) {</span>
+<span class="fc" id="L123">      ComponentManager componentManager = AdaptTo.notNull(resourceResolver, ComponentManager.class);</span>
+<span class="fc" id="L124">      this.currentComponent = componentManager.getComponentOfResource(contextResource);</span>
+<span class="fc" id="L125">    }</span>
+    else {
+<span class="fc" id="L127">      this.currentComponent = null;</span>
+    }
+<span class="fc" id="L129">    this.resource = contextResource;</span>
+<span class="fc" id="L130">    this.resourceResolverFactory = resourceResolverFactory;</span>
+<span class="fc" id="L131">  }</span>
+
+  /**
+   * This constructor is for internal use only, please use {@link ComponentPropertyResolverFactory}.
+   * @param wcmComponentContext WCM component context
+   * @param resourceResolverFactory Resource resolver factory
+   */
+  public ComponentPropertyResolver(@NotNull ComponentContext wcmComponentContext,
+<span class="fc" id="L139">      @Nullable ResourceResolverFactory resourceResolverFactory) {</span>
+<span class="fc" id="L140">    this.currentPage = wcmComponentContext.getPage();</span>
+<span class="fc" id="L141">    this.currentComponent = wcmComponentContext.getComponent();</span>
+<span class="fc" id="L142">    this.resource = wcmComponentContext.getResource();</span>
+<span class="fc" id="L143">    this.resourceResolverFactory = resourceResolverFactory;</span>
+<span class="fc" id="L144">  }</span>
+
+  /**
+   * Lookup for content resource associated with the page component (resource type).
+   * @param page Content page
+   * @deprecated Please use {@link ComponentPropertyResolverFactory}.
+   */
+  @Deprecated
+  public ComponentPropertyResolver(@NotNull Page page) {
+<span class="nc" id="L153">    this(page, null);</span>
+<span class="nc" id="L154">  }</span>
+
+  /**
+   * Lookup for content resource associated with a component (resource type).
+   * @param resource Content resource
+   * @deprecated Please use {@link ComponentPropertyResolverFactory}.
+   */
+  @Deprecated
+  public ComponentPropertyResolver(@NotNull Resource resource) {
+<span class="fc" id="L163">    this(resource, null);</span>
+<span class="fc" id="L164">  }</span>
+
+  /**
+   * Lookup for content resource associated with a component (resource type).
+   * @param resource Content resource
+   * @param ensureResourceType Ensure the given resource has a resource type.
+   *          If this is not the case, try to find the closest parent resource which has a resource type.
+   * @deprecated Please use {@link ComponentPropertyResolverFactory}.
+   */
+  @Deprecated
+  public ComponentPropertyResolver(@NotNull Resource resource, boolean ensureResourceType) {
+<span class="fc" id="L175">    this(resource, ensureResourceType, null);</span>
+<span class="fc" id="L176">  }</span>
+
+  /**
+   * Lookup with content resource associated with a component (resource type).
+   * @param wcmComponentContext WCM component context
+   * @deprecated Please use {@link ComponentPropertyResolverFactory}.
+   */
+  @Deprecated
+  public ComponentPropertyResolver(@NotNull ComponentContext wcmComponentContext) {
+<span class="fc" id="L185">    this(wcmComponentContext, null);</span>
+<span class="fc" id="L186">  }</span>
+
+  private static boolean hasResourceType(@NotNull Resource resource) {
+<span class="fc" id="L189">    return StringUtils.isNotEmpty(resource.getResourceType());</span>
+  }
+
+  @SuppressWarnings(&quot;null&quot;)
+  private static @Nullable Resource getResourceWithResourceType(@Nullable Resource resource) {
+<span class="pc bpc" id="L194" title="1 of 2 branches missed.">    if (resource == null) {</span>
+<span class="nc" id="L195">      return null;</span>
+    }
+<span class="fc" id="L197">    String resourceType = resource.getResourceType();</span>
+<span class="pc bpc" id="L198" title="1 of 4 branches missed.">    if (resourceType != null &amp;&amp; isPathBasedResourceType(resourceType)) {</span>
+<span class="fc" id="L199">      return resource;</span>
+    }
+<span class="fc" id="L201">    return getResourceWithResourceType(resource.getParent());</span>
+  }
+
+  /**
+   * Checks if the resource type is a path pointing to a component resource in the repository
+   * (where we can lookup properties to inherit from).
+   * @param resourceType Resource type
+   * @return true for path-based resource types
+   */
+  private static boolean isPathBasedResourceType(@NotNull String resourceType) {
+<span class="fc" id="L211">    return StringUtils.contains(resourceType, &quot;/&quot;);</span>
+  }
+
+  /**
+   * Configure if properties should be resolved in component properties, and with or without inheritance.
+   * Default mode is {@link ComponentPropertyResolution#RESOLVE_INHERIT}.
+   * @param resolution Resolution mode
+   * @return this
+   */
+  public ComponentPropertyResolver componentPropertiesResolution(@NotNull ComponentPropertyResolution resolution) {
+<span class="fc" id="L221">    this.componentPropertiesResolution = resolution;</span>
+<span class="fc" id="L222">    return this;</span>
+  }
+
+  /**
+   * Configure if properties should be resolved in content page properties, and with or without inheritance.
+   * Default mode is {@link ComponentPropertyResolution#IGNORE}.
+   * @param resolution Resolution mode
+   * @return this
+   */
+  public ComponentPropertyResolver pagePropertiesResolution(@NotNull ComponentPropertyResolution resolution) {
+<span class="fc" id="L232">    this.pagePropertiesResolution = resolution;</span>
+<span class="fc" id="L233">    return this;</span>
+  }
+
+  /**
+   * Configure if properties should be resolved from content policies mapped for the given resource.
+   * No explicit inheritance mode is supported, so {@link ComponentPropertyResolution#RESOLVE_INHERIT}
+   * has the same effect as {@link ComponentPropertyResolution#RESOLVE} in this case.
+   * Default mode is {@link ComponentPropertyResolution#IGNORE}.
+   * @param resolution Resolution mode
+   * @return this
+   */
+  public ComponentPropertyResolver contentPolicyResolution(@NotNull ComponentPropertyResolution resolution) {
+<span class="fc" id="L245">    this.contentPolicyResolution = resolution;</span>
+<span class="fc" id="L246">    return this;</span>
+  }
+
+  /**
+   * Get property.
+   * @param name Property name
+   * @param type Property type
+   * @param &lt;T&gt; Parameter type
+   * @return Property value or null if not set
+   */
+  public @Nullable &lt;T&gt; T get(@NotNull String name, @NotNull Class&lt;T&gt; type) {
+    @Nullable
+<span class="fc" id="L258">    T value = getPageProperty(currentPage, name, type);</span>
+<span class="fc bfc" id="L259" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L260">      value = getContentPolicyProperty(name, type);</span>
+    }
+<span class="fc bfc" id="L262" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L263">      value = getComponentProperty(currentComponent, name, type);</span>
+    }
+<span class="fc" id="L265">    return value;</span>
+  }
+
+  /**
+   * Get property.
+   * @param name Property name
+   * @param defaultValue Default value
+   * @param &lt;T&gt; Parameter type
+   * @return Property value or default value if not set
+   */
+  public @NotNull &lt;T&gt; T get(@NotNull String name, @NotNull T defaultValue) {
+    @Nullable
+    @SuppressWarnings(&quot;unchecked&quot;)
+<span class="fc" id="L278">    T value = get(name, (Class&lt;T&gt;)defaultValue.getClass());</span>
+<span class="fc bfc" id="L279" title="All 2 branches covered.">    if (value != null) {</span>
+<span class="fc" id="L280">      return value;</span>
+    }
+    else {
+<span class="fc" id="L283">      return defaultValue;</span>
+    }
+  }
+
+  private @Nullable &lt;T&gt; T getComponentProperty(@Nullable Component component,
+      @NotNull String name, @NotNull Class&lt;T&gt; type) {
+<span class="fc bfc" id="L289" title="All 4 branches covered.">    if (componentPropertiesResolution == ComponentPropertyResolution.IGNORE || component == null) {</span>
+<span class="fc" id="L290">      return null;</span>
+    }
+    @Nullable
+    T result;
+<span class="fc bfc" id="L294" title="All 2 branches covered.">    if (StringUtils.contains(name, &quot;/&quot;)) {</span>
+      // if a property in child resource is addressed get property value via local resource
+      // because the map behind the getProperties() method does not support child resource access
+<span class="fc" id="L297">      String childResourcePath = StringUtils.substringBeforeLast(name, &quot;/&quot;);</span>
+<span class="fc" id="L298">      String localPropertyName = StringUtils.substringAfterLast(name, &quot;/&quot;);</span>
+<span class="fc" id="L299">      Resource childResource = getLocalComponentResource(component, childResourcePath);</span>
+<span class="fc" id="L300">      result = ResourceUtil.getValueMap(childResource).get(localPropertyName, type);</span>
+<span class="fc" id="L301">    }</span>
+    else {
+<span class="fc" id="L303">      result = component.getProperties().get(name, type);</span>
+    }
+<span class="fc bfc" id="L305" title="All 4 branches covered.">    if (result == null &amp;&amp; componentPropertiesResolution == ComponentPropertyResolution.RESOLVE_INHERIT) {</span>
+<span class="fc" id="L306">      result = getComponentProperty(component.getSuperComponent(), name, type);</span>
+    }
+<span class="fc" id="L308">    return result;</span>
+  }
+
+  private @Nullable &lt;T&gt; T getPageProperty(@Nullable Page page,
+      @NotNull String name, @NotNull Class&lt;T&gt; type) {
+<span class="fc bfc" id="L313" title="All 4 branches covered.">    if (pagePropertiesResolution == ComponentPropertyResolution.IGNORE || page == null) {</span>
+<span class="fc" id="L314">      return null;</span>
+    }
+    @Nullable
+<span class="fc" id="L317">    T result = page.getProperties().get(name, type);</span>
+<span class="fc bfc" id="L318" title="All 4 branches covered.">    if (result == null &amp;&amp; pagePropertiesResolution == ComponentPropertyResolution.RESOLVE_INHERIT) {</span>
+<span class="fc" id="L319">      result = getPageProperty(page.getParent(), name, type);</span>
+    }
+<span class="fc" id="L321">    return result;</span>
+  }
+
+  private @Nullable &lt;T&gt; T getContentPolicyProperty(@NotNull String name, @NotNull Class&lt;T&gt; type) {
+<span class="pc bpc" id="L325" title="1 of 4 branches missed.">    if (contentPolicyResolution == ComponentPropertyResolution.IGNORE || resource == null) {</span>
+<span class="fc" id="L326">      return null;</span>
+    }
+<span class="fc" id="L328">    ContentPolicy policy = getPolicy(resource);</span>
+<span class="fc bfc" id="L329" title="All 2 branches covered.">    if (policy != null) {</span>
+<span class="fc" id="L330">      return policy.getProperties().get(name, type);</span>
+    }
+<span class="fc" id="L332">    return null;</span>
+  }
+
+  /**
+   * Get list of child resources.
+   * @param name Child node name
+   * @return List of child resources or null if not set.
+   */
+  public @Nullable Collection&lt;Resource&gt; getResources(@NotNull String name) {
+<span class="fc" id="L341">    Collection&lt;Resource&gt; list = getPageResources(currentPage, name);</span>
+<span class="fc bfc" id="L342" title="All 2 branches covered.">    if (list == null) {</span>
+<span class="fc" id="L343">      list = getContentPolicyResources(name);</span>
+    }
+<span class="fc bfc" id="L345" title="All 2 branches covered.">    if (list == null) {</span>
+<span class="fc" id="L346">      list = getComponentResources(currentComponent, name);</span>
+    }
+<span class="fc" id="L348">    return list;</span>
+  }
+
+  private @Nullable Collection&lt;Resource&gt; getComponentResources(@Nullable Component component, @NotNull String name) {
+<span class="fc bfc" id="L352" title="All 4 branches covered.">    if (componentPropertiesResolution == ComponentPropertyResolution.IGNORE || component == null) {</span>
+<span class="fc" id="L353">      return null;</span>
+    }
+<span class="fc" id="L355">    Collection&lt;Resource&gt; result = getResources(getLocalComponentResource(component, name));</span>
+<span class="fc bfc" id="L356" title="All 4 branches covered.">    if (result == null &amp;&amp; componentPropertiesResolution == ComponentPropertyResolution.RESOLVE_INHERIT) {</span>
+<span class="fc" id="L357">      result = getComponentResources(component.getSuperComponent(), name);</span>
+    }
+<span class="fc" id="L359">    return result;</span>
+  }
+
+  private @Nullable Collection&lt;Resource&gt; getPageResources(@Nullable Page page, @NotNull String name) {
+<span class="fc bfc" id="L363" title="All 4 branches covered.">    if (pagePropertiesResolution == ComponentPropertyResolution.IGNORE || page == null) {</span>
+<span class="fc" id="L364">      return null;</span>
+    }
+<span class="fc" id="L366">    Collection&lt;Resource&gt; result = getResources(page.getContentResource(name));</span>
+<span class="fc bfc" id="L367" title="All 4 branches covered.">    if (result == null &amp;&amp; pagePropertiesResolution == ComponentPropertyResolution.RESOLVE_INHERIT) {</span>
+<span class="fc" id="L368">      result = getPageResources(page.getParent(), name);</span>
+    }
+<span class="fc" id="L370">    return result;</span>
+  }
+
+  private @Nullable Collection&lt;Resource&gt; getContentPolicyResources(@NotNull String name) {
+<span class="pc bpc" id="L374" title="1 of 4 branches missed.">    if (contentPolicyResolution == ComponentPropertyResolution.IGNORE || resource == null) {</span>
+<span class="fc" id="L375">      return null;</span>
+    }
+<span class="fc" id="L377">    ContentPolicy policy = getPolicy(resource);</span>
+<span class="fc bfc" id="L378" title="All 2 branches covered.">    if (policy != null) {</span>
+<span class="fc" id="L379">      Resource policyResource = policy.adaptTo(Resource.class);</span>
+<span class="pc bpc" id="L380" title="1 of 2 branches missed.">      if (policyResource != null) {</span>
+<span class="fc" id="L381">        return getResources(policyResource.getChild(name));</span>
+      }
+    }
+<span class="fc" id="L384">    return null;</span>
+  }
+
+  private @Nullable Collection&lt;Resource&gt; getResources(@Nullable Resource parent) {
+<span class="fc bfc" id="L388" title="All 2 branches covered.">    if (parent == null) {</span>
+<span class="fc" id="L389">      return null;</span>
+    }
+<span class="fc" id="L391">    Collection&lt;Resource&gt; children = ImmutableList.copyOf(parent.getChildren());</span>
+<span class="pc bpc" id="L392" title="1 of 2 branches missed.">    if (children.isEmpty()) {</span>
+<span class="nc" id="L393">      return null;</span>
+    }
+<span class="fc" id="L395">    return children;</span>
+  }
+
+  /**
+   * Get content policy via policy manager.
+   * @param resource Content resource
+   * @return Policy or null
+   */
+  private static @Nullable ContentPolicy getPolicy(@NotNull Resource resource) {
+<span class="fc" id="L404">    ContentPolicyManager policyManager = AdaptTo.notNull(resource.getResourceResolver(), ContentPolicyManager.class);</span>
+<span class="fc" id="L405">    return policyManager.getPolicy(resource);</span>
+  }
+
+  /**
+   * Get local child resource for component, with a special handling for publish environments where
+   * the local child resources for components below /apps are not accessible for everyone.
+   * @param component Component
+   * @param childResourcePath Child resource path
+   * @return Resource or null
+   */
+  private @Nullable Resource getLocalComponentResource(@NotNull Component component,
+      @NotNull String childResourcePath) {
+<span class="pc bpc" id="L417" title="1 of 6 branches missed.">    if (componentsResourceResolver == null</span>
+        &amp;&amp; resourceResolverFactory != null
+        &amp;&amp; !initComponentsResourceResolverFailed) {
+      try {
+<span class="fc" id="L421">        componentsResourceResolver = resourceResolverFactory.getServiceResourceResolver(</span>
+<span class="fc" id="L422">            ImmutableMap.of(ResourceResolverFactory.SUBSERVICE, SERVICEUSER_SUBSERVICE));</span>
+      }
+<span class="nc" id="L424">      catch (LoginException ex) {</span>
+<span class="nc" id="L425">        initComponentsResourceResolverFailed = true;</span>
+<span class="nc bnc" id="L426" title="All 2 branches missed.">        if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L427">          log.debug(&quot;Unable to get resource resolver for accessing local component resource, &quot;</span>
+              + &quot;please make sure to grant access to system user 'sling-scripting' for &quot;
+              + &quot;bundle 'io.wcm.wcm.commons', subservice '{}'.&quot;, SERVICEUSER_SUBSERVICE, ex);
+        }
+<span class="fc" id="L431">      }</span>
+    }
+<span class="fc bfc" id="L433" title="All 2 branches covered.">    if (componentsResourceResolver != null) {</span>
+<span class="fc" id="L434">      String resourcePath = component.getPath() + &quot;/&quot; + childResourcePath;</span>
+<span class="fc" id="L435">      return componentsResourceResolver.getResource(resourcePath);</span>
+    }
+    // fallback implementation for previous behavior - this will usually not work in publish instances
+<span class="fc" id="L438">    return component.getLocalResource(childResourcePath);</span>
+  }
+
+  @Override
+  public void close() {
+<span class="fc bfc" id="L443" title="All 2 branches covered.">    if (componentsResourceResolver != null) {</span>
+<span class="fc" id="L444">      componentsResourceResolver.close();</span>
+    }
+<span class="fc" id="L446">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

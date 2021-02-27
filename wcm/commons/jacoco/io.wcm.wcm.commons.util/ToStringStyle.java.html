@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ToStringStyle.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.commons.util</a> &gt; <span class="el_source">ToStringStyle.java</span></div><h1>ToStringStyle.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.commons.util;
+
+import org.apache.sling.api.resource.Resource;
+import org.osgi.annotation.versioning.ProviderType;
+
+import com.day.cq.wcm.api.Page;
+
+/**
+ * Custom styles for {@link org.apache.commons.lang3.builder.ToStringBuilder} from Apache Commons.
+ */
+@ProviderType
+public final class ToStringStyle {
+
+  /**
+   * Same as {@link org.apache.commons.lang3.builder.ToStringStyle#SHORT_PREFIX_STYLE}, but
+   * omits all entries that have null values. Additional it implements special toString() rules
+   * for common Sling/AEM objects like {@link Resource} and {@link Page}.
+   */
+<span class="fc" id="L38">  public static final org.apache.commons.lang3.builder.ToStringStyle SHORT_PREFIX_OMIT_NULL_STYLE = new DefaultToStringStyle();</span>
+
+  private ToStringStyle() {
+    // constants only
+  }
+
+  private static class DefaultToStringStyle extends org.apache.commons.lang3.builder.ToStringStyle {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Constructor.
+     */
+<span class="fc" id="L51">    DefaultToStringStyle() {</span>
+<span class="fc" id="L52">      this.setUseShortClassName(true);</span>
+<span class="fc" id="L53">      this.setUseIdentityHashCode(false);</span>
+<span class="fc" id="L54">    }</span>
+
+    @Override
+    public void append(StringBuffer buffer, String fieldName, Object value, Boolean fullDetail) {
+<span class="fc bfc" id="L58" title="All 2 branches covered.">      if (value != null) {</span>
+<span class="fc" id="L59">        super.append(buffer, fieldName, preprocessToString(value), fullDetail);</span>
+      }
+<span class="fc" id="L61">    }</span>
+
+    @Override
+    public void append(StringBuffer buffer, String fieldName, Object[] array, Boolean fullDetail) {
+<span class="nc bnc" id="L65" title="All 2 branches missed.">      if (array != null) {</span>
+<span class="nc" id="L66">        super.append(buffer, fieldName, preprocessToString(array), fullDetail);</span>
+      }
+<span class="nc" id="L68">    }</span>
+
+    private Object preprocessToString(Object object) {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">      if (object instanceof Object[]) {</span>
+<span class="fc" id="L72">        return preprocessToString((Object[])object);</span>
+      }
+<span class="fc bfc" id="L74" title="All 2 branches covered.">      if (object instanceof Resource) {</span>
+<span class="fc" id="L75">        return ((Resource)object).getPath();</span>
+      }
+<span class="fc bfc" id="L77" title="All 2 branches covered.">      if (object instanceof Page) {</span>
+<span class="fc" id="L78">        return ((Page)object).getPath();</span>
+      }
+<span class="fc" id="L80">      return object;</span>
+    }
+
+    private Object[] preprocessToString(Object[] array) {
+<span class="fc" id="L84">      Object[] convertedArray = new Object[array.length];</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">      for (int i = 0; i &lt; array.length; i++) {</span>
+<span class="fc" id="L86">        convertedArray[i] = preprocessToString(array[i]);</span>
+      }
+<span class="fc" id="L88">      return convertedArray;</span>
+    }
+
+    /**
+     * Ensure &lt;code&gt;Singleton&lt;/code&gt; after serialization.
+     * @return the singleton
+     */
+    private Object readResolve() {
+<span class="nc" id="L96">      return ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE;</span>
+    }
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

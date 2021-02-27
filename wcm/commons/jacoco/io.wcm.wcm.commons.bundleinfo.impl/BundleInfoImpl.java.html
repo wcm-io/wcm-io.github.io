@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BundleInfoImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.commons.bundleinfo.impl</a> &gt; <span class="el_source">BundleInfoImpl.java</span></div><h1>BundleInfoImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.commons.bundleinfo.impl;
+
+import java.util.Date;
+import java.util.Dictionary;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.Constants;
+
+import io.wcm.wcm.commons.bundleinfo.BundleInfo;
+import io.wcm.wcm.commons.bundleinfo.BundleState;
+
+/**
+ * Provides meta-information about a installed bundle.
+ */
+class BundleInfoImpl implements BundleInfo {
+
+  private final String symbolicName;
+  private final Bundle bundle;
+  private final Dictionary headers;
+  private final BundleState state;
+
+<span class="fc" id="L44">  BundleInfoImpl(Bundle bundle) {</span>
+<span class="fc" id="L45">    this.symbolicName = bundle.getSymbolicName();</span>
+<span class="fc" id="L46">    this.bundle = bundle;</span>
+<span class="fc" id="L47">    this.headers = bundle.getHeaders();</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">    if (isFragment()) {</span>
+<span class="fc" id="L49">      this.state = BundleState.FRAGMENT;</span>
+    }
+    else {
+<span class="fc" id="L52">      this.state = BundleState.valueOf(bundle.getState());</span>
+    }
+<span class="fc" id="L54">  }</span>
+
+  @Override
+  public @NotNull Bundle getBundle() {
+<span class="nc" id="L58">    return bundle;</span>
+  }
+
+  @Override
+  public @NotNull String getSymbolicName() {
+<span class="fc" id="L63">    return symbolicName;</span>
+  }
+
+  @Override
+  public @NotNull String getName() {
+<span class="fc" id="L68">    return StringUtils.defaultString((String)headers.get(Constants.BUNDLE_NAME), getSymbolicName());</span>
+  }
+
+  @Override
+  public @NotNull String getVersion() {
+<span class="fc" id="L73">    return StringUtils.defaultString((String)headers.get(Constants.BUNDLE_VERSION));</span>
+  }
+
+  @Override
+  public @NotNull BundleState getState() {
+<span class="fc" id="L78">    return state;</span>
+  }
+
+  @Override
+  public @Nullable Date getLastModified() {
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">    if (bundle.getLastModified() == 0) {</span>
+<span class="nc" id="L84">      return null;</span>
+    }
+<span class="fc" id="L86">    return new Date(bundle.getLastModified());</span>
+  }
+
+  @Override
+  public boolean isFragment() {
+<span class="fc" id="L91">    String fragmentHost = (String)headers.get(Constants.FRAGMENT_HOST);</span>
+<span class="fc" id="L92">    return StringUtils.isNotBlank(fragmentHost);</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L97">    return symbolicName;</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="nc" id="L102">    return symbolicName.hashCode();</span>
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+<span class="nc bnc" id="L107" title="All 2 branches missed.">    if (!(obj instanceof BundleInfoImpl)) {</span>
+<span class="nc" id="L108">      return false;</span>
+    }
+<span class="nc" id="L110">    BundleInfoImpl other = (BundleInfoImpl)obj;</span>
+<span class="nc" id="L111">    return symbolicName.equals(other.symbolicName);</span>
+  }
+
+  @Override
+  public int compareTo(BundleInfo obj) {
+<span class="fc" id="L116">    return getSymbolicName().compareTo(obj.getSymbolicName());</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

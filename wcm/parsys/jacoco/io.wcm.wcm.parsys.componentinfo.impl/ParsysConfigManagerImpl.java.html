@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ParsysConfigManagerImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Parsys</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.parsys.componentinfo.impl</a> &gt; <span class="el_source">ParsysConfigManagerImpl.java</span></div><h1>ParsysConfigManagerImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.parsys.componentinfo.impl;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.commons.osgi.Order;
+import org.apache.sling.commons.osgi.RankedServices;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+
+import io.wcm.sling.commons.resource.ResourceType;
+import io.wcm.wcm.parsys.componentinfo.ParsysConfig;
+import io.wcm.wcm.parsys.componentinfo.ParsysConfigManager;
+
+/**
+ * Collects paragraph system configurations from repository and OSGi configuration.
+ * Apply super resource type based inheritance to both configuration types.
+ */
+@Component(service = ParsysConfigManager.class, immediate = true, reference = {
+    @Reference(service = ParsysConfig.class, name = &quot;parsysConfig&quot;,
+        bind = &quot;bindParsysConfig&quot;, unbind = &quot;unbindParsysConfig&quot;,
+        cardinality = ReferenceCardinality.MULTIPLE, policy = ReferencePolicy.DYNAMIC)
+})
+<span class="fc" id="L57">public final class ParsysConfigManagerImpl implements ParsysConfigManager {</span>
+
+<span class="fc" id="L59">  private final RankedServices&lt;ParsysConfig&gt; osgiParsysConfigs = new RankedServices&lt;&gt;(Order.ASCENDING);</span>
+
+  @Override
+  public @NotNull Iterable&lt;ParsysConfig&gt; getParsysConfigs(@NotNull String pageComponentPath, @NotNull ResourceResolver resolver) {
+<span class="fc" id="L63">    Resource pageComponentResource = resolver.getResource(pageComponentPath);</span>
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">    if (pageComponentResource != null) {</span>
+<span class="fc" id="L65">      return ImmutableList.copyOf(getParsysConfigsWithInheritance(pageComponentResource, resolver));</span>
+    }
+    else {
+<span class="nc" id="L68">      return ImmutableList.&lt;ParsysConfig&gt;of();</span>
+    }
+  }
+
+  @Override
+  public @NotNull Iterable&lt;ParsysConfig&gt; getParsysConfigs(@NotNull final String pageComponentPath, @NotNull final String relativePath,
+      @NotNull final ResourceResolver resolver) {
+<span class="fc" id="L75">    Iterable&lt;ParsysConfig&gt; configs = getParsysConfigs(pageComponentPath, resolver);</span>
+<span class="fc" id="L76">    return Iterables.filter(configs, new Predicate&lt;ParsysConfig&gt;() {</span>
+      @Override
+      public boolean apply(@Nullable ParsysConfig parsysConfig) {
+        // sanity check
+<span class="pc bpc" id="L80" title="2 of 4 branches missed.">        if (parsysConfig == null || parsysConfig.getPathPattern() == null) {</span>
+<span class="nc" id="L81">          return false;</span>
+        }
+<span class="fc" id="L83">        Pattern pathPattern = parsysConfig.getPathPattern();</span>
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        if (pathPattern == null) {</span>
+<span class="nc" id="L85">          return false;</span>
+        }
+<span class="fc" id="L87">        return pathPattern.matcher(relativePath).matches();</span>
+      }
+    });
+  }
+
+  private Collection&lt;ParsysConfig&gt; getParsysConfigs(Resource pageComponentResource) {
+<span class="fc" id="L93">    List&lt;ParsysConfig&gt; configs = new ArrayList&lt;&gt;();</span>
+
+    // get first jcr parsys configurations for this page component
+<span class="fc" id="L96">    ResourceParsysConfigProvider resourceParsysConfigProvider = new ResourceParsysConfigProvider(pageComponentResource);</span>
+<span class="fc" id="L97">    configs.addAll(resourceParsysConfigProvider.getPathDefs());</span>
+
+    // add osgi parsys configurations
+<span class="fc bfc" id="L100" title="All 2 branches covered.">    for (ParsysConfig osgiParsysConfig : osgiParsysConfigs) {</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">      if (ResourceType.equals(pageComponentResource.getPath(), osgiParsysConfig.getPageComponentPath(), pageComponentResource.getResourceResolver())) {</span>
+<span class="fc" id="L102">        configs.add(osgiParsysConfig);</span>
+      }
+<span class="fc" id="L104">    }</span>
+
+<span class="fc" id="L106">    return configs;</span>
+  }
+
+  @SuppressWarnings(&quot;null&quot;)
+  private Collection&lt;ParsysConfig&gt; getParsysConfigsWithInheritance(Resource pageComponentResource, ResourceResolver resolver) {
+<span class="fc" id="L111">    List&lt;ParsysConfig&gt; configs = new ArrayList&lt;&gt;();</span>
+
+    // get path definitions from this page component
+<span class="fc" id="L114">    configs.addAll(getParsysConfigs(pageComponentResource));</span>
+
+    // add path definitions from for super page components
+<span class="fc" id="L117">    String resourceSuperType = pageComponentResource.getResourceSuperType();</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(resourceSuperType)) {</span>
+<span class="fc" id="L119">      Resource superResource = resolver.getResource(resourceSuperType);</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">      if (superResource != null) {</span>
+<span class="fc" id="L121">        Collection&lt;ParsysConfig&gt; configsFromSupertype = getParsysConfigsWithInheritance(superResource, resolver);</span>
+<span class="fc" id="L122">        List&lt;ParsysConfig&gt; inheritedConfigs = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        for (ParsysConfig configFromSupertype : configsFromSupertype) {</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">          if (existingPathParentConfigAllowsInheritance(configFromSupertype, configs)) {</span>
+<span class="fc" id="L125">            inheritedConfigs.add(configFromSupertype);</span>
+          }
+<span class="fc" id="L127">        }</span>
+<span class="fc" id="L128">        configs.addAll(inheritedConfigs);</span>
+      }
+    }
+
+<span class="fc" id="L132">    return configs;</span>
+  }
+
+  private boolean existingPathParentConfigAllowsInheritance(ParsysConfig item, List&lt;ParsysConfig&gt; existingItems) {
+<span class="fc bfc" id="L136" title="All 2 branches covered.">    for (ParsysConfig existingItem : existingItems) {</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">      if (matchesPathParent(item, existingItem)) {</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">        if (!existingItem.isInherit()) {</span>
+<span class="fc" id="L139">          return false;</span>
+        }
+      }
+<span class="fc" id="L142">    }</span>
+<span class="fc" id="L143">    return true;</span>
+  }
+
+  private boolean matchesPathParent(ParsysConfig item1, ParsysConfig item2) {
+<span class="fc" id="L147">    Pattern pattern1 = item1.getPathPattern();</span>
+<span class="fc" id="L148">    Pattern pattern2 = item2.getPathPattern();</span>
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">    String pathPattern1 = pattern1 != null ? pattern1.pattern() : &quot;&quot;;</span>
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">    String pathPattern2 = pattern2 != null ? pattern2.pattern() : &quot;&quot;;</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">    return pathPattern1.equals(pathPattern2)</span>
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">        &amp;&amp; item1.getParentAncestorLevel() == item2.getParentAncestorLevel()</span>
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">        &amp;&amp; item1.getAllowedParents().equals(item2.getAllowedParents());</span>
+  }
+
+  void bindParsysConfig(ParsysConfig service, Map&lt;String, Object&gt; props) {
+<span class="fc" id="L157">    osgiParsysConfigs.bind(service, props);</span>
+<span class="fc" id="L158">  }</span>
+
+  void unbindParsysConfig(ParsysConfig service, Map&lt;String, Object&gt; props) {
+<span class="nc" id="L161">    osgiParsysConfigs.unbind(service, props);</span>
+<span class="nc" id="L162">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

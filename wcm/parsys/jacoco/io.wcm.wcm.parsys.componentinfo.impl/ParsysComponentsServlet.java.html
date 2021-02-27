@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ParsysComponentsServlet.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Parsys</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.parsys.componentinfo.impl</a> &gt; <span class="el_source">ParsysComponentsServlet.java</span></div><h1>ParsysComponentsServlet.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.parsys.componentinfo.impl;
+
+import java.io.IOException;
+import java.util.Set;
+import java.util.TreeSet;
+
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.settings.SlingSettingsService;
+import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageManager;
+
+import io.wcm.sling.commons.adapter.AdaptTo;
+import io.wcm.sling.commons.request.RequestParam;
+import io.wcm.sling.commons.resource.ResourceType;
+import io.wcm.wcm.commons.contenttype.ContentType;
+import io.wcm.wcm.commons.contenttype.FileExtension;
+import io.wcm.wcm.commons.util.RunMode;
+import io.wcm.wcm.parsys.componentinfo.AllowedComponentsProvider;
+
+/**
+ * Handles AJAX calls for updateComponentListHandler JS method to update list of allowed component lists dynamically.
+ */
+@Component(service = Servlet.class, immediate = true, property = {
+    &quot;sling.servlet.extensions=&quot; + FileExtension.JSON,
+    &quot;sling.servlet.selectors=&quot; + ParsysComponentsServlet.SELECTOR,
+    &quot;sling.servlet.resourceTypes=sling/servlet/default&quot;,
+    &quot;sling.servlet.methods=&quot; + HttpConstants.METHOD_GET
+})
+<span class="fc" id="L64">public final class ParsysComponentsServlet extends SlingSafeMethodsServlet {</span>
+  private static final long serialVersionUID = 1L;
+
+  static final String RP_PATH = &quot;path&quot;;
+  static final String RP_RESOURCE_TYPE = &quot;resourceType&quot;;
+  static final String SELECTOR = &quot;wcmio-parsys-components&quot;;
+
+<span class="fc" id="L71">  private static final Logger log = LoggerFactory.getLogger(ParsysComponentsServlet.class);</span>
+
+  @Reference
+  private AllowedComponentsProvider allowedComponentsProvider;
+
+  @Reference
+  private SlingSettingsService slingSettings;
+
+  private boolean enabled;
+
+  @Activate
+  @SuppressWarnings(&quot;deprecation&quot;)
+  protected void activate(ComponentContext componentContext) {
+    // Activate only in author mode
+<span class="fc bfc" id="L85" title="All 2 branches covered.">    enabled = !RunMode.disableIfNotAuthor(slingSettings.getRunModes(), componentContext, log);</span>
+<span class="fc" id="L86">  }</span>
+
+  @SuppressWarnings({ &quot;null&quot;, &quot;deprecation&quot; })
+  @Override
+  protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (!enabled) {</span>
+<span class="fc" id="L92">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="fc" id="L93">      return;</span>
+    }
+
+<span class="fc" id="L96">    ResourceResolver resolver = request.getResourceResolver();</span>
+<span class="fc" id="L97">    PageManager pageManager = AdaptTo.notNull(resolver, PageManager.class);</span>
+<span class="fc" id="L98">    Page currentPage = pageManager.getContainingPage(request.getResource());</span>
+
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">    if (currentPage == null) {</span>
+<span class="nc" id="L101">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="nc" id="L102">      return;</span>
+    }
+
+<span class="fc" id="L105">    long startTime = 0;</span>
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L107">      startTime = System.currentTimeMillis();</span>
+    }
+
+<span class="fc" id="L110">    response.setContentType(ContentType.JSON);</span>
+
+<span class="fc" id="L112">    org.apache.sling.commons.json.JSONArray allowedComponents = new org.apache.sling.commons.json.JSONArray();</span>
+
+<span class="fc" id="L114">    String relativePath = RequestParam.get(request, RP_PATH);</span>
+<span class="fc" id="L115">    String resourceType = RequestParam.get(request, RP_RESOURCE_TYPE);</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(relativePath)) {</span>
+      // get resource from paragraph system
+<span class="fc" id="L118">      Set&lt;String&gt; allowed = allowedComponentsProvider.getAllowedComponents(currentPage, relativePath, resourceType, resolver);</span>
+
+      // create set with relative resource type paths
+<span class="fc" id="L121">      Set&lt;String&gt; allowedComponentsRelative = new TreeSet&lt;String&gt;();</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">      for (String allowedResourceType : allowed) {</span>
+<span class="fc" id="L123">        allowedComponentsRelative.add(ResourceType.makeAbsolute(allowedResourceType, resolver));</span>
+<span class="fc" id="L124">      }</span>
+
+<span class="fc" id="L126">      allowedComponents = new org.apache.sling.commons.json.JSONArray(allowedComponentsRelative);</span>
+    }
+
+<span class="fc" id="L129">    response.getWriter().write(allowedComponents.toString());</span>
+
+    // output profiling info in DEBUG mode
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L133">      long endTime = System.currentTimeMillis();</span>
+<span class="nc" id="L134">      long duration = endTime - startTime;</span>
+<span class="nc" id="L135">      log.debug(&quot;ParsysComponentsServlet for &quot; + currentPage.getPath() + &quot;/&quot; + relativePath + &quot; took &quot; + duration + &quot;ms&quot;);</span>
+    }
+<span class="fc" id="L137">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

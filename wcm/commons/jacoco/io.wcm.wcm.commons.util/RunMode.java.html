@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RunMode.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.commons.util</a> &gt; <span class="el_source">RunMode.java</span></div><h1>RunMode.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.commons.util;
+
+import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.osgi.annotation.versioning.ProviderType;
+import org.osgi.service.component.ComponentConstants;
+import org.osgi.service.component.ComponentContext;
+import org.slf4j.Logger;
+
+/**
+ * Sling run mode utility methods.
+ */
+@ProviderType
+public final class RunMode {
+
+  /**
+   * Runmode for author instance
+   */
+  public static final String AUTHOR = &quot;author&quot;;
+
+  /**
+   * Runmode for publish instance
+   */
+  public static final String PUBLISH = &quot;publish&quot;;
+
+  private RunMode() {
+    // static methods only
+  }
+
+  /**
+   * Checks if given run mode is active.
+   * @param runModes Run modes for current instance
+   * @param expectedRunModes Run mode(s) to check for
+   * @return true if any of the given run modes is active
+   * @deprecated Instead of directly using the run modes, it is better to make the component in question require a
+   *             configuration (see OSGI Declarative Services Spec: configuration policy). In this case, a component
+   *             gets only active if a configuration is available. Such a configuration can be put into the repository
+   *             for the specific run mode.
+   */
+  @Deprecated
+  public static boolean is(Set&lt;String&gt; runModes, String... expectedRunModes) {
+<span class="fc bfc" id="L62" title="All 4 branches covered.">    if (runModes != null &amp;&amp; expectedRunModes != null) {</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">      for (String expectedRunMode : expectedRunModes) {</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (runModes.contains(expectedRunMode)) {</span>
+<span class="fc" id="L65">          return true;</span>
+        }
+      }
+    }
+<span class="fc" id="L69">    return false;</span>
+  }
+
+  /**
+   * Checks if context is running on author instance.
+   * @param runModes Run modes
+   * @return true if &quot;author&quot; run mode is active
+   * @deprecated Instead of directly using the run modes, it is better to make the component in question require a
+   *             configuration (see OSGI Declarative Services Spec: configuration policy). In this case, a component
+   *             gets only active if a configuration is available. Such a configuration can be put into the repository
+   *             for the specific run mode.
+   */
+  @Deprecated
+  public static boolean isAuthor(Set&lt;String&gt; runModes) {
+<span class="fc" id="L83">    return RunMode.is(runModes, AUTHOR);</span>
+  }
+
+  /**
+   * Checks if context is running on publish instance.
+   * @param runModes Run modes
+   * @return true if &quot;publish&quot; run mode is active
+   * @deprecated Instead of directly using the run modes, it is better to make the component in question require a
+   *             configuration (see OSGI Declarative Services Spec: configuration policy). In this case, a component
+   *             gets only active if a configuration is available. Such a configuration can be put into the repository
+   *             for the specific run mode.
+   */
+  @Deprecated
+  public static boolean isPublish(Set&lt;String&gt; runModes) {
+<span class="fc" id="L97">    return RunMode.is(runModes, PUBLISH);</span>
+  }
+
+  /**
+   * Use this to disable a component if none of its run modes are active. Component activation status is logged
+   * with DEBUG level.
+   * This method is a replacement for the
+   * &lt;code&gt;com.day.cq.commons.RunModeUtil#disableIfNoRunModeActive(RunMode, String[], ComponentContext, Logger)&lt;/code&gt;
+   * method which is deprecated.
+   * @param runModes Run modes
+   * @param allowedRunModes Allowed run modes
+   * @param componentContext OSGI component context
+   * @param log Logger
+   * @return true if component was disabled
+   * @deprecated Instead of directly using the run modes, it is better to make the component in question require a
+   *             configuration (see OSGI Declarative Services Spec: configuration policy). In this case, a component
+   *             gets only active if a configuration is available. Such a configuration can be put into the repository
+   *             for the specific run mode.
+   */
+  @Deprecated
+  public static boolean disableIfNoRunModeActive(Set&lt;String&gt; runModes, String[] allowedRunModes,
+      ComponentContext componentContext, Logger log) {
+
+<span class="fc" id="L120">    final String name = (String)componentContext.getProperties().get(ComponentConstants.COMPONENT_NAME);</span>
+<span class="fc" id="L121">    boolean result = false;</span>
+
+<span class="fc" id="L123">    boolean isActive = false;</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">    for (String runMode : allowedRunModes) {</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">      if (runModes.contains(runMode)) {</span>
+<span class="fc" id="L126">        isActive = true;</span>
+<span class="fc" id="L127">        break;</span>
+      }
+    }
+<span class="fc bfc" id="L130" title="All 2 branches covered.">    if (!isActive) {</span>
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">      if (log.isDebugEnabled()) {</span>
+<span class="fc" id="L132">        log.debug(&quot;Component '&quot; + name + &quot;' &quot;</span>
+<span class="fc" id="L133">            + &quot;disabled as none of its run modes (&quot; + StringUtils.join(allowedRunModes, &quot;,&quot;) + &quot;) &quot;</span>
+<span class="fc" id="L134">            + &quot;are currently active (&quot; + StringUtils.join(runModes, &quot;,&quot;) + &quot;).&quot;</span>
+            );
+      }
+<span class="fc" id="L137">      componentContext.disableComponent(name);</span>
+<span class="fc" id="L138">      result = true;</span>
+    }
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">    else if (log.isDebugEnabled()) {</span>
+<span class="fc" id="L141">      log.debug(&quot;Component '&quot; + name + &quot;' &quot;</span>
+<span class="fc" id="L142">          + &quot;enabled as at least one of its run modes (&quot; + StringUtils.join(allowedRunModes, &quot;,&quot;) + &quot;) &quot;</span>
+<span class="fc" id="L143">          + &quot;are currently active (&quot; + StringUtils.join(runModes, &quot;,&quot;) + &quot;).&quot;</span>
+          );
+    }
+
+<span class="fc" id="L147">    return result;</span>
+  }
+
+  /**
+   * Use this to disable a component if the runmode &quot;author&quot; is not active. Component activation status is logged
+   * with DEBUG level.
+   * This method is a replacement for the
+   * &lt;code&gt;com.day.cq.commons.RunModeUtil#disableIfNoRunModeActive(RunMode, String[], ComponentContext, Logger)&lt;/code&gt;
+   * method which is deprecated.
+   * @param runModes Run modes
+   * @param componentContext OSGI component context
+   * @param log Logger
+   * @return true if component was disabled
+   * @deprecated Instead of directly using the run modes, it is better to make the component in question require a
+   *             configuration (see OSGI Declarative Services Spec: configuration policy). In this case, a component
+   *             gets only active if a configuration is available. Such a configuration can be put into the repository
+   *             for the specific run mode.
+   */
+  @Deprecated
+  public static boolean disableIfNotAuthor(Set&lt;String&gt; runModes, ComponentContext componentContext, Logger log) {
+<span class="fc" id="L167">    return disableIfNoRunModeActive(runModes, new String[] {</span>
+        AUTHOR
+    }, componentContext, log);
+  }
+
+  /**
+   * Use this to disable a component if the runmode &quot;publish&quot; is not active. Component activation status is logged
+   * with DEBUG level.
+   * This method is a replacement for the
+   * &lt;code&gt;com.day.cq.commons.RunModeUtil#disableIfNoRunModeActive(RunMode, String[], ComponentContext, Logger)&lt;/code&gt;
+   * method which is deprecated.
+   * @param runModes Run modes
+   * @param componentContext OSGI component context
+   * @param log Logger
+   * @return true if component was disabled
+   * @deprecated Instead of directly using the run modes, it is better to make the component in question require a
+   *             configuration (see OSGI Declarative Services Spec: configuration policy). In this case, a component
+   *             gets only active if a configuration is available. Such a configuration can be put into the repository
+   *             for the specific run mode.
+   */
+  @Deprecated
+  public static boolean disableIfNotPublish(Set&lt;String&gt; runModes, ComponentContext componentContext, Logger log) {
+<span class="fc" id="L189">    return disableIfNoRunModeActive(runModes, new String[] {</span>
+        PUBLISH
+    }, componentContext, log);
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

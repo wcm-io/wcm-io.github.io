@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EmulatorProviderImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Granite UI Extensions</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.ui.granite.emulator.impl</a> &gt; <span class="el_source">EmulatorProviderImpl.java</span></div><h1>EmulatorProviderImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2015 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.ui.granite.emulator.impl;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.Resource;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.wcm.api.NameConstants;
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.emulator.Emulator;
+import com.day.cq.wcm.emulator.EmulatorGroup;
+import com.day.cq.wcm.emulator.EmulatorProvider;
+import com.day.cq.wcm.mobile.api.device.DeviceGroup;
+import com.day.cq.wcm.mobile.api.device.DeviceGroupList;
+import com.google.common.collect.ImmutableList;
+
+/**
+ * Simple implementation of {@link EmulatorProvider} to activate AEM 6.1 responsive mode for this application.
+ * To work it needs a property &quot;cq:deviceGroups[]&quot; set to &quot;/etc/mobile/groups/responsive&quot; in the site root page.
+ */
+@Component(service = EmulatorProvider.class, property = {
+    &quot;webconsole.configurationFactory.nameHint={templatePathPatterns}&quot;
+})
+@Designate(ocd = EmulatorProviderImpl.Config.class, factory = true)
+<span class="fc" id="L55">public class EmulatorProviderImpl implements EmulatorProvider {</span>
+
+  @ObjectClassDefinition(name = &quot;wcm.io Emulator Provider&quot;,
+      description = &quot;Provides emulators based on device groups in the pages with a configurable set of templates.&quot;)
+  @interface Config {
+
+    @AttributeDefinition(name = &quot;Template Patterns&quot;,
+        description = &quot;List of regular expressions to match template paths this emulator provider should apply to.&quot;)
+    String[] templatePathPatterns();
+
+  }
+
+  private List&lt;Pattern&gt; templatePathPatterns;
+
+<span class="fc" id="L69">  private static final Logger log = LoggerFactory.getLogger(EmulatorProviderImpl.class);</span>
+
+  @Activate
+  void activate(Config config) {
+<span class="fc" id="L73">    templatePathPatterns = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">    for (String pattern : config.templatePathPatterns()) {</span>
+      try {
+<span class="fc" id="L76">        templatePathPatterns.add(Pattern.compile(pattern));</span>
+      }
+<span class="nc" id="L78">      catch (PatternSyntaxException ex) {</span>
+<span class="nc" id="L79">        log.warn(&quot;Ignoring invalid template path pattern: {}&quot;, pattern, ex);</span>
+<span class="fc" id="L80">      }</span>
+    }
+<span class="fc" id="L82">  }</span>
+
+  @Override
+  public boolean handles(Resource resource) {
+    // check if resource is a page, and if the page uses a configured template
+<span class="fc" id="L87">    Page page = resource.adaptTo(Page.class);</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">    if (page != null) {</span>
+<span class="fc" id="L89">      String templatePath = page.getProperties().get(NameConstants.PN_TEMPLATE, String.class);</span>
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">      if (StringUtils.isNotEmpty(templatePath)) {</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        for (Pattern pattern : templatePathPatterns) {</span>
+<span class="fc" id="L92">          Matcher matcher = pattern.matcher(templatePath);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">          if (matcher.matches()) {</span>
+<span class="fc" id="L94">            return true;</span>
+          }
+<span class="fc" id="L96">        }</span>
+      }
+    }
+<span class="fc" id="L99">    return false;</span>
+  }
+
+  @Override
+  public List&lt;Emulator&gt; getEmulators(Resource resource) {
+    // return all emulators from all groups
+<span class="fc" id="L105">    List&lt;Emulator&gt; emulators = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">    for (EmulatorGroup group : getEmulatorGroups(resource)) {</span>
+<span class="fc" id="L107">      emulators.addAll(group.getEmulators());</span>
+<span class="fc" id="L108">    }</span>
+<span class="fc" id="L109">    return emulators;</span>
+  }
+
+  @Override
+  public List&lt;EmulatorGroup&gt; getEmulatorGroups(Resource resource) {
+    // convert device groups defined in page props to emulator groups
+<span class="fc" id="L115">    Page page = resource.adaptTo(Page.class);</span>
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">    if (page != null) {</span>
+<span class="fc" id="L117">      DeviceGroupList deviceGroups = page.adaptTo(DeviceGroupList.class);</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">      if (deviceGroups != null) {</span>
+<span class="fc" id="L119">        List&lt;EmulatorGroup&gt; emulatorGroups = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">        for (DeviceGroup deviceGroup : deviceGroups) {</span>
+<span class="fc" id="L121">          emulatorGroups.add(new EmulatorGroupImpl(deviceGroup));</span>
+<span class="fc" id="L122">        }</span>
+<span class="fc" id="L123">        return emulatorGroups;</span>
+      }
+    }
+<span class="nc" id="L126">    return ImmutableList.of();</span>
+  }
+
+
+  /**
+   * Delegates all calls to the given DeviceGroup.
+   */
+  private static final class EmulatorGroupImpl implements EmulatorGroup {
+
+    private final DeviceGroup deviceGroup;
+
+<span class="fc" id="L137">    EmulatorGroupImpl(DeviceGroup deviceGroup) {</span>
+<span class="fc" id="L138">      this.deviceGroup = deviceGroup;</span>
+<span class="fc" id="L139">    }</span>
+
+    @Override
+    public String getTitle() {
+<span class="nc" id="L143">      return deviceGroup.getTitle();</span>
+    }
+
+    @Override
+    public String getDescription() {
+<span class="nc" id="L148">      return deviceGroup.getDescription();</span>
+    }
+
+    @Override
+    public String getPath() {
+<span class="nc" id="L153">      return deviceGroup.getPath();</span>
+    }
+
+    @Override
+    public String getName() {
+<span class="nc" id="L158">      return deviceGroup.getName();</span>
+    }
+
+    @Override
+    public List&lt;Emulator&gt; getEmulators() {
+<span class="fc" id="L163">      return deviceGroup.getEmulators();</span>
+    }
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

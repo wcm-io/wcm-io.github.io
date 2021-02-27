@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AllowedComponentsProviderImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Parsys</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.parsys.componentinfo.impl</a> &gt; <span class="el_source">AllowedComponentsProviderImpl.java</span></div><h1>AllowedComponentsProviderImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.parsys.componentinfo.impl;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+
+import com.day.cq.commons.jcr.JcrConstants;
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageManager;
+import com.google.common.collect.ImmutableSet;
+
+import io.wcm.sling.commons.adapter.AdaptTo;
+import io.wcm.wcm.parsys.componentinfo.AllowedComponentsProvider;
+import io.wcm.wcm.parsys.componentinfo.ParsysConfig;
+import io.wcm.wcm.parsys.componentinfo.ParsysConfigManager;
+
+/**
+ * Detects allowed components for authoring for a given page/resource context.
+ */
+@Component(service = AllowedComponentsProvider.class, immediate = true)
+<span class="fc" id="L49">public final class AllowedComponentsProviderImpl implements AllowedComponentsProvider {</span>
+
+  @Reference
+  private ParsysConfigManager parsysConfigManager;
+
+  /**
+   * Get allowed components for given resource path
+   * @param resourcePath Resource path inside content page
+   * @return Set of component paths (absolute resource types)
+   */
+  @Override
+  public @NotNull Set&lt;String&gt; getAllowedComponents(@NotNull String resourcePath, @NotNull ResourceResolver resolver) {
+<span class="fc" id="L61">    PageManager pageManager = AdaptTo.notNull(resolver, PageManager.class);</span>
+<span class="fc" id="L62">    Page page = pageManager.getContainingPage(resourcePath);</span>
+<span class="pc bpc" id="L63" title="1 of 4 branches missed.">    if (page == null &amp;&amp; StringUtils.contains(resourcePath, &quot;/&quot; + JcrConstants.JCR_CONTENT)) {</span>
+      // if resource does not exist (e.g. inherited parsys) get page from resource path manually
+<span class="fc" id="L65">      page = pageManager.getPage(StringUtils.substringBefore(resourcePath, &quot;/&quot; + JcrConstants.JCR_CONTENT));</span>
+    }
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">    if (page == null) {</span>
+<span class="nc" id="L68">      return ImmutableSet.of();</span>
+    }
+<span class="fc" id="L70">    String relativePath = StringUtils.substringAfter(resourcePath, page.getPath() + &quot;/&quot;);</span>
+<span class="fc" id="L71">    return getAllowedComponents(page, relativePath, null, resolver);</span>
+  }
+
+  /**
+   * Get allowed components for a specific resource path inside a page.
+   * @param page Page
+   * @param relativeResourcePath Relative resource path inside the page
+   * @param resourceType Resource type of the paragraph system
+   * @param resolver Resource resolver
+   * @return Component paths
+   */
+  @Override
+  public @NotNull Set&lt;String&gt; getAllowedComponents(@NotNull Page page, @NotNull String relativeResourcePath,
+      @Nullable String resourceType, @NotNull ResourceResolver resolver) {
+<span class="fc" id="L85">    Set&lt;String&gt; allowedComponents = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L86">    Set&lt;String&gt; deniedComponents = new HashSet&lt;&gt;();</span>
+
+<span class="fc" id="L88">    String pageComponentPath = page.getContentResource().getResourceType();</span>
+
+<span class="fc" id="L90">    Iterable&lt;ParsysConfig&gt; parSysConfigs = parsysConfigManager.getParsysConfigs(pageComponentPath, relativeResourcePath, resolver);</span>
+
+<span class="fc" id="L92">    Resource parentResource = null;</span>
+<span class="fc" id="L93">    Resource grandParentResource = null;</span>
+
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    for (ParsysConfig pathDef : parSysConfigs) {</span>
+
+<span class="fc" id="L97">      boolean includePathDef = false;</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">      if (pathDef.getAllowedParents().size() == 0) {</span>
+<span class="fc" id="L99">        includePathDef = true;</span>
+      }
+      else {
+<span class="fc" id="L102">        String checkResourceType = null;</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        if (pathDef.getParentAncestorLevel() == 1) {</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">          if (resourceType != null) {</span>
+<span class="fc" id="L105">            checkResourceType = resourceType;</span>
+          }
+<span class="fc bfc" id="L107" title="All 2 branches covered.">          else if (parentResource == null) {</span>
+<span class="fc" id="L108">            parentResource = resolver.getResource(page.getPath() + &quot;/&quot; + relativeResourcePath);</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">            if (parentResource != null) {</span>
+<span class="fc" id="L110">              checkResourceType = parentResource.getResourceType();</span>
+            }
+          }
+        }
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">        else if (pathDef.getParentAncestorLevel() == 2) {</span>
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">          if (grandParentResource == null) {</span>
+<span class="fc" id="L116">            grandParentResource = resolver.getResource(page.getPath() + &quot;/&quot; + relativeResourcePath + &quot;/..&quot;);</span>
+          }
+<span class="fc bfc" id="L118" title="All 2 branches covered.">          if (grandParentResource != null) {</span>
+<span class="fc" id="L119">            checkResourceType = grandParentResource.getResourceType();</span>
+          }
+        }
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        if (checkResourceType != null) {</span>
+<span class="fc" id="L123">          includePathDef = pathDef.getAllowedParents().contains(checkResourceType);</span>
+        }
+      }
+
+<span class="fc bfc" id="L127" title="All 2 branches covered.">      if (includePathDef) {</span>
+<span class="fc" id="L128">        allowedComponents.addAll(pathDef.getAllowedChildren());</span>
+<span class="fc" id="L129">        deniedComponents.addAll(pathDef.getDeniedChildren());</span>
+      }
+
+<span class="fc" id="L132">    }</span>
+
+    // filter out denied components
+<span class="fc" id="L135">    allowedComponents.removeAll(deniedComponents);</span>
+
+<span class="fc" id="L137">    return allowedComponents;</span>
+  }
+
+  /**
+   * Get all allowed components for a template (not respecting any path constraints)
+   * @param pageComponentPath Path of template's page component
+   * @return Set of component paths (absolute resource types)
+   */
+  @Override
+  public @NotNull Set&lt;String&gt; getAllowedComponentsForTemplate(@NotNull String pageComponentPath, @NotNull ResourceResolver resolver) {
+<span class="fc" id="L147">    Resource pageComponentResource = resolver.getResource(pageComponentPath);</span>
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">    if (pageComponentResource != null) {</span>
+<span class="fc" id="L149">      Iterable&lt;ParsysConfig&gt; parSysConfigs = parsysConfigManager.getParsysConfigs(pageComponentResource.getPath(), resolver);</span>
+
+<span class="fc" id="L151">      SortedSet&lt;String&gt; allowedChildren = new TreeSet&lt;&gt;();</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">      for (ParsysConfig parSysConfig : parSysConfigs) {</span>
+<span class="fc" id="L153">        allowedChildren.addAll(parSysConfig.getAllowedChildren());</span>
+<span class="fc" id="L154">      }</span>
+
+<span class="fc" id="L156">      return allowedChildren;</span>
+    }
+    // fallback
+<span class="nc" id="L159">    return ImmutableSet.of();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

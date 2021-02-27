@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PathFieldChildrenDatasourceServlet.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Granite UI Extensions</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.ui.granite.pathfield.impl</a> &gt; <span class="el_source">PathFieldChildrenDatasourceServlet.java</span></div><h1>PathFieldChildrenDatasourceServlet.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.ui.granite.pathfield.impl;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+
+import org.apache.commons.collections.IteratorUtils;
+import org.apache.commons.collections.Predicate;
+import org.apache.commons.collections.PredicateUtils;
+import org.apache.commons.collections.Transformer;
+import org.apache.commons.collections.iterators.FilterIterator;
+import org.apache.commons.collections.iterators.TransformIterator;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.adobe.granite.ui.components.Config;
+import com.adobe.granite.ui.components.ExpressionHelper;
+import com.adobe.granite.ui.components.ExpressionResolver;
+import com.adobe.granite.ui.components.PagingIterator;
+import com.adobe.granite.ui.components.ds.AbstractDataSource;
+import com.adobe.granite.ui.components.ds.DataSource;
+import com.adobe.granite.ui.components.ds.EmptyDataSource;
+import com.day.cq.commons.predicate.PredicateProvider;
+
+import io.wcm.wcm.ui.granite.pathfield.impl.predicate.HideInternalContentPathsPredicate;
+import io.wcm.wcm.ui.granite.pathfield.impl.util.DummyPageContext;
+import io.wcm.wcm.ui.granite.pathfield.impl.util.PredicatedResourceWrapper;
+
+/**
+ * Servlet implementing the data source for the path field widget.
+ */
+@Component(service = Servlet.class)
+@SlingServletResourceTypes(
+    resourceTypes = PathFieldChildrenDatasourceServlet.RESOURCE_TYPE)
+<span class="fc" id="L75">public class PathFieldChildrenDatasourceServlet extends SlingSafeMethodsServlet {</span>
+  private static final long serialVersionUID = 1L;
+
+  static final String RESOURCE_TYPE = &quot;wcm-io/wcm/ui/granite/components/form/pathfield/datasources/children&quot;;
+
+  @Reference
+  private ExpressionResolver expressionResolver;
+  @Reference
+  private PredicateProvider predicateProvider;
+
+<span class="fc" id="L85">  private static final Logger log = LoggerFactory.getLogger(PathFieldChildrenDatasourceServlet.class);</span>
+
+  @Override
+  @SuppressWarnings(&quot;null&quot;)
+  protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response)
+      throws ServletException, IOException {
+
+<span class="fc" id="L92">    final ExpressionHelper ex = new ExpressionHelper(expressionResolver, new DummyPageContext(request, response));</span>
+<span class="fc" id="L93">    final Config cfg = new Config(request.getResource().getChild(Config.DATASOURCE));</span>
+
+<span class="fc" id="L95">    final String query = ex.getString(cfg.get(&quot;query&quot;, String.class));</span>
+
+    final String parentPath;
+    final String searchName;
+
+<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (query != null) {</span>
+<span class="fc" id="L101">      final String rootPath = ex.getString(cfg.get(&quot;rootPath&quot;, &quot;/&quot;));</span>
+
+<span class="fc" id="L103">      final int slashIndex = query.lastIndexOf('/');</span>
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">      if (slashIndex &lt; 0) {</span>
+<span class="fc" id="L105">        parentPath = rootPath;</span>
+<span class="fc" id="L106">        searchName = query.toLowerCase();</span>
+      }
+<span class="nc bnc" id="L108" title="All 2 branches missed.">      else if (!query.startsWith(rootPath)) {</span>
+<span class="nc" id="L109">        parentPath = rootPath;</span>
+<span class="nc" id="L110">        searchName = null;</span>
+      }
+<span class="nc bnc" id="L112" title="All 2 branches missed.">      else if (slashIndex == query.length() - 1) {</span>
+<span class="nc" id="L113">        parentPath = query;</span>
+<span class="nc" id="L114">        searchName = null;</span>
+      }
+      else {
+<span class="nc" id="L117">        parentPath = query.substring(0, slashIndex + 1);</span>
+<span class="nc" id="L118">        searchName = query.substring(slashIndex + 1).toLowerCase();</span>
+      }
+<span class="fc" id="L120">    }</span>
+    else {
+<span class="fc" id="L122">      parentPath = ex.getString(cfg.get(&quot;path&quot;, String.class));</span>
+<span class="fc" id="L123">      searchName = null;</span>
+    }
+
+<span class="fc" id="L126">    final Resource parent = request.getResourceResolver().getResource(parentPath);</span>
+
+    final DataSource ds;
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">    if (parent == null) {</span>
+<span class="nc" id="L130">      ds = EmptyDataSource.instance();</span>
+    }
+    else {
+<span class="fc" id="L133">      final Integer offset = ex.get(cfg.get(&quot;offset&quot;, String.class), Integer.class);</span>
+<span class="fc" id="L134">      final Integer limit = ex.get(cfg.get(&quot;limit&quot;, String.class), Integer.class);</span>
+<span class="fc" id="L135">      final String itemResourceType = cfg.get(&quot;itemResourceType&quot;, String.class);</span>
+<span class="fc" id="L136">      final String[] filter = new String[] { ex.get(cfg.get(&quot;filter&quot;, &quot;hierarchyNotFile&quot;), String.class) };</span>
+
+<span class="fc" id="L138">      final Collection&lt;Predicate&gt; predicates = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L139">      predicates.add(new HideInternalContentPathsPredicate());</span>
+<span class="fc" id="L140">      predicates.addAll(toPredicates(filter));</span>
+
+<span class="fc bfc" id="L142" title="All 2 branches covered.">      if (searchName != null) {</span>
+<span class="fc" id="L143">        final Pattern searchNamePattern = Pattern.compile(Pattern.quote(searchName), Pattern.CASE_INSENSITIVE);</span>
+<span class="fc" id="L144">        predicates.add(new Predicate() {</span>
+          @Override
+          public boolean evaluate(Object obj) {
+<span class="fc" id="L147">            Resource r = (Resource)obj;</span>
+<span class="fc" id="L148">            return searchNamePattern.matcher(r.getName()).lookingAt();</span>
+          }
+        });
+      }
+
+<span class="fc" id="L153">      final Predicate predicate = PredicateUtils.allPredicate(predicates);</span>
+<span class="fc" id="L154">      final Transformer transformer = createTransformer(itemResourceType, predicate);</span>
+
+<span class="fc" id="L156">      DataSource datasource = new AbstractDataSource() {</span>
+        @Override
+        @SuppressWarnings(&quot;unchecked&quot;)
+        public Iterator&lt;Resource&gt; iterator() {
+<span class="fc" id="L160">          List&lt;Resource&gt; list = IteratorUtils.toList(new FilterIterator(parent.listChildren(), predicate));</span>
+
+          // sort result set alphabetically - but only if parent node does not have orderable child nodes
+<span class="fc bfc" id="L163" title="All 2 branches covered.">          if (!isOrderableChildNodes(parent)) {</span>
+<span class="fc" id="L164">            Collections.sort(list, new Comparator&lt;Resource&gt;() {</span>
+              @Override
+              public int compare(Resource r1, Resource r2) {
+<span class="fc" id="L167">                return r1.getName().compareTo(r2.getName());</span>
+              }
+            });
+          }
+
+<span class="fc" id="L172">          return new TransformIterator(new PagingIterator&lt;&gt;(list.iterator(), offset, limit), transformer);</span>
+        }
+      };
+
+<span class="fc" id="L176">      ds = datasource;</span>
+    }
+
+<span class="fc" id="L179">    request.setAttribute(DataSource.class.getName(), ds);</span>
+<span class="fc" id="L180">  }</span>
+
+  private List&lt;Predicate&gt; toPredicates(@NotNull String[] filter) {
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">    if (filter == null) {</span>
+<span class="nc" id="L184">      return Collections.emptyList();</span>
+    }
+<span class="fc" id="L186">    return Arrays.asList(filter).stream()</span>
+<span class="fc" id="L187">        .filter(Objects::nonNull)</span>
+<span class="fc" id="L188">        .map(item -&gt; {</span>
+<span class="fc" id="L189">          Predicate predicate = predicateProvider.getPredicate(item);</span>
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">          if (predicate != null) {</span>
+<span class="fc" id="L191">            return predicate;</span>
+          }
+          else {
+<span class="nc" id="L194">            log.warn(&quot;Unable to find predicate implementation for filter: {}&quot;, item);</span>
+<span class="nc" id="L195">            return null;</span>
+          }
+        })
+<span class="fc" id="L198">        .filter(Objects::nonNull)</span>
+<span class="fc" id="L199">        .collect(Collectors.toList());</span>
+  }
+
+  private static Transformer createTransformer(final String itemResourceType, final Predicate predicate) {
+<span class="fc" id="L203">    return new Transformer() {</span>
+      @Override
+      public Resource transform(Object r) {
+<span class="fc" id="L206">        return new PredicatedResourceWrapper((Resource)r, predicate) {</span>
+          @Override
+          public String getResourceType() {
+<span class="nc bnc" id="L209" title="All 2 branches missed.">            if (itemResourceType == null) {</span>
+<span class="nc" id="L210">              return super.getResourceType();</span>
+            }
+<span class="nc" id="L212">            return itemResourceType;</span>
+          }
+        };
+      }
+    };
+  }
+
+  private static boolean isOrderableChildNodes(Resource resource) {
+<span class="fc" id="L220">    Node node = resource.adaptTo(Node.class);</span>
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">    if (node != null) {</span>
+      try {
+<span class="fc" id="L223">        return node.getPrimaryNodeType().hasOrderableChildNodes();</span>
+      }
+<span class="nc" id="L225">      catch (RepositoryException ex) {</span>
+<span class="nc" id="L226">        return false;</span>
+      }
+    }
+<span class="nc" id="L229">    return false;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OsgiParsysConfigProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Parsys</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.parsys.componentinfo.impl</a> &gt; <span class="el_source">OsgiParsysConfigProvider.java</span></div><h1>OsgiParsysConfigProvider.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.parsys.componentinfo.impl;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.osgi.service.metatype.annotations.Option;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.commons.jcr.JcrConstants;
+import com.google.common.collect.ImmutableSet;
+
+import io.wcm.wcm.parsys.componentinfo.ParsysConfig;
+
+/**
+ * Factory configuration provider for OSGi parsys configuration.
+ */
+@Component(service = ParsysConfig.class, immediate = true, configurationPolicy = ConfigurationPolicy.REQUIRE, property = {
+    &quot;webconsole.configurationFactory.nameHint={pageComponentPath}&quot;
+})
+@Designate(ocd = OsgiParsysConfigProvider.Config.class, factory = true)
+<span class="fc" id="L50">public final class OsgiParsysConfigProvider implements ParsysConfig {</span>
+
+<span class="fc" id="L52">  private static final Logger log = LoggerFactory.getLogger(OsgiParsysConfigProvider.class);</span>
+
+  static final int DEFAULT_PARENT_ANCESTOR_LEVEL = 1;
+
+  @ObjectClassDefinition(name = &quot;wcm.io Paragraph System Configuration Extension&quot;,
+      description = &quot;Extends configurations of allowed components for wcm.io paragraph systems.&quot;)
+  @interface Config {
+
+    @AttributeDefinition(name = &quot;Page Component Path&quot;,
+        description = &quot;Resource type of the page component for this parsys config (required).&quot;,
+        required = true)
+    String pageComponentPath();
+
+    @AttributeDefinition(name = &quot;Path&quot;,
+        description = &quot;Parsys node name (e.g. 'content') or parsys path relative to page &quot;
+            + &quot;(should start with 'jcr:content/'). Path will be ignored if a pattern is defined.&quot;)
+    String path();
+
+    @AttributeDefinition(name = &quot;Path Pattern&quot;,
+        description = &quot;Regular expression that matches parsys path within the page, &quot;
+            + &quot;e.g. '^jcr:content/.*$'. Leave empty if you want to use the Path property.&quot;)
+    String pathPattern();
+
+    @AttributeDefinition(name = &quot;Allowed Children&quot;,
+        description = &quot;Resource types of the allowed components in this paragraph system&quot;)
+    String[] allowedChildren();
+
+    @AttributeDefinition(name = &quot;Denied Children&quot;,
+        description = &quot;Resource types of the denied components in this paragraph system&quot;)
+    String[] deniedChildren();
+
+    @AttributeDefinition(name = &quot;Allowed Parents&quot;,
+        description = &quot;(optional) Resource types of parsys parent components. &quot;
+            + &quot;You can limit the context of parsys where child components can be added by configuratiion of allowed parent components.&quot;)
+    String[] allowedParents();
+
+    @AttributeDefinition(name = &quot;Parent Ancestor Level&quot;,
+        description = &quot;(optional) Indicates the ancestor level, where allowed parents should match.&quot;,
+        options = {
+            @Option(value = &quot;1&quot;, label = &quot;Direct Parent (1)&quot;),
+            @Option(value = &quot;2&quot;, label = &quot;Grand Parent (2)&quot;)
+    })
+    int parentAncestorLevel() default DEFAULT_PARENT_ANCESTOR_LEVEL;
+
+    @AttributeDefinition(name = &quot;Inherit&quot;,
+        description = &quot;Inherit paragraph system configurations from super resource types.&quot;)
+    boolean inherit() default true;
+
+  }
+
+  private String pageComponentPath;
+  private Pattern pathPattern;
+  private int parentAncestorLevel;
+  private Set&lt;String&gt; allowedParents;
+  private Set&lt;String&gt; allowedChildren;
+  private Set&lt;String&gt; deniedChildren;
+  private boolean inherit;
+
+  @Override
+  public @NotNull String getPageComponentPath() {
+<span class="fc" id="L112">    return this.pageComponentPath;</span>
+  }
+
+  @Override
+  public Pattern getPathPattern() {
+<span class="fc" id="L117">    return this.pathPattern;</span>
+  }
+
+  @Override
+  public int getParentAncestorLevel() {
+<span class="fc" id="L122">    return this.parentAncestorLevel;</span>
+  }
+
+  @Override
+  public @NotNull Set&lt;String&gt; getAllowedParents() {
+<span class="fc" id="L127">    return this.allowedParents;</span>
+  }
+
+  @Override
+  public @NotNull Set&lt;String&gt; getAllowedChildren() {
+<span class="fc" id="L132">    return this.allowedChildren;</span>
+  }
+
+  @Override
+  public @NotNull Set&lt;String&gt; getDeniedChildren() {
+<span class="fc" id="L137">    return this.deniedChildren;</span>
+  }
+
+  @Override
+  public boolean isInherit() {
+<span class="fc" id="L142">    return this.inherit;</span>
+  }
+
+  // --- SCR Integration ---
+
+  @Activate
+  private void activate(Config config) {
+
+<span class="fc" id="L150">    this.pageComponentPath = config.pageComponentPath();</span>
+<span class="fc" id="L151">    this.parentAncestorLevel = config.parentAncestorLevel();</span>
+
+    // set path pattern if any
+<span class="fc" id="L154">    String pathPatternString = config.pathPattern();</span>
+<span class="fc" id="L155">    String path = config.path();</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(pathPatternString)) {</span>
+<span class="fc" id="L157">      this.pathPattern = Pattern.compile(pathPatternString);</span>
+    }
+    // alternative: use path to build a pattern
+<span class="fc bfc" id="L160" title="All 2 branches covered.">    else if (StringUtils.isNotBlank(path)) {</span>
+      // path may also contain a simple node name
+<span class="pc bpc" id="L162" title="1 of 2 branches missed.">      if (!StringUtils.startsWith(path, JcrConstants.JCR_CONTENT + &quot;/&quot;)) {</span>
+<span class="fc" id="L163">        path = JcrConstants.JCR_CONTENT + &quot;/&quot; + path; //NOPMD</span>
+      }
+<span class="fc" id="L165">      this.pathPattern = Pattern.compile(&quot;^&quot; + Pattern.quote(path) + &quot;$&quot;);</span>
+    }
+
+    // set allowed children
+<span class="fc" id="L169">    Set&lt;String&gt; allowedChildrenSet = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">    if (config.allowedChildren() != null) {</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">      for (String resourceType : config.allowedChildren()) {</span>
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
+<span class="fc" id="L173">          allowedChildrenSet.add(resourceType);</span>
+        }
+      }
+    }
+<span class="fc" id="L177">    this.allowedChildren = ImmutableSet.copyOf(allowedChildrenSet);</span>
+
+    // set denied children
+<span class="fc" id="L180">    Set&lt;String&gt; deniedChildrenSet = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">    if (config.deniedChildren() != null) {</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">      for (String resourceType : config.deniedChildren()) {</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
+<span class="fc" id="L184">          deniedChildrenSet.add(resourceType);</span>
+        }
+      }
+    }
+<span class="fc" id="L188">    this.deniedChildren = ImmutableSet.copyOf(deniedChildrenSet);</span>
+
+    // set allowed parents
+<span class="fc" id="L191">    Set&lt;String&gt; allowedParentsSet = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">    if (config.allowedParents() != null) {</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">      for (String resourceType : config.allowedParents()) {</span>
+<span class="pc bpc" id="L194" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
+<span class="fc" id="L195">          allowedParentsSet.add(resourceType);</span>
+        }
+      }
+    }
+<span class="fc" id="L199">    this.allowedParents = ImmutableSet.copyOf(allowedParentsSet);</span>
+
+<span class="fc" id="L201">    this.inherit = config.inherit();</span>
+
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L204">      log.debug(getClass().getSimpleName() + &quot;: &quot;</span>
+          + &quot;pageComponentPath={}, &quot;
+          + &quot;path={}, &quot;
+          + &quot;pathPattern={}, &quot;
+          + &quot;allowedChildren={}, &quot;
+          + &quot;deniedChildren={}, &quot;
+          + &quot;allowedParents={}, &quot;
+          + &quot;parentAncestorLevel={},&quot;
+          + &quot;inherit={}&quot;,
+          new Object[] {
+              this.pageComponentPath,
+              path,
+              this.pathPattern,
+              this.allowedChildren,
+              this.deniedChildren,
+              this.allowedParents,
+<span class="nc" id="L220">              this.parentAncestorLevel,</span>
+<span class="nc" id="L221">              this.inherit</span>
+          }
+      );
+    }
+
+    // validation messages
+<span class="fc bfc" id="L227" title="All 2 branches covered.">    if (StringUtils.isBlank(this.pageComponentPath)) {</span>
+<span class="fc" id="L228">      log.warn(&quot;pageComponentPath cannot be null or empty. This configuration will be ignored.&quot;);</span>
+    }
+<span class="fc bfc" id="L230" title="All 2 branches covered.">    if (this.pathPattern == null) {</span>
+<span class="fc" id="L231">      log.warn(&quot;Path pattern cannot be null. Please set the property pathPattern or path.&quot;);</span>
+    }
+<span class="fc" id="L233">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

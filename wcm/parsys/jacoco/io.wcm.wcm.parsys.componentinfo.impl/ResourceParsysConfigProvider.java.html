@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResourceParsysConfigProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Parsys</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.parsys.componentinfo.impl</a> &gt; <span class="el_source">ResourceParsysConfigProvider.java</span></div><h1>ResourceParsysConfigProvider.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.parsys.componentinfo.impl;
+
+import static io.wcm.wcm.parsys.ParsysNameConstants.NN_PARSYS_CONFIG;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.util.Text;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ValueMap;
+import org.jetbrains.annotations.NotNull;
+
+import com.day.cq.commons.jcr.JcrConstants;
+import com.google.common.collect.ImmutableSet;
+
+import io.wcm.wcm.parsys.componentinfo.ParsysConfig;
+
+/**
+ * Reads paragraph system configuration from page component resource type definition in repository.
+ * TODO: add caching for resolved parsys config from resource?
+ */
+final class ResourceParsysConfigProvider {
+
+  private static final String NN_PATHS = &quot;paths&quot;;
+  private static final String PN_PATH = &quot;path&quot;;
+  private static final String PN_PATTERN = &quot;pattern&quot;;
+  private static final String PN_ALLOWEDCHILDREN = &quot;allowedChildren&quot;;
+  private static final String PN_DENIEDDCHILDREN = &quot;deniedChildren&quot;;
+  private static final String PN_ALLOWEDPARENTS = &quot;allowedParents&quot;;
+  private static final String PN_PARENTANCESTORLEVEL = &quot;parentAncestorLevel&quot;;
+  private static final String PN_INHERIT = &quot;inherit&quot;;
+
+  private final List&lt;ParsysConfig&gt; pathDefs;
+
+  /**
+   * @param pageComponentResource Page component resource
+   */
+<span class="fc" id="L63">  ResourceParsysConfigProvider(Resource pageComponentResource) {</span>
+<span class="fc" id="L64">    this.pathDefs = getPathDefs(pageComponentResource);</span>
+<span class="fc" id="L65">  }</span>
+
+  private static List&lt;ParsysConfig&gt; getPathDefs(Resource pageComponentResource) {
+<span class="fc" id="L68">    List&lt;ParsysConfig&gt; pathDefs = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L70">    ResourceResolver resourceResolver = pageComponentResource.getResourceResolver();</span>
+<span class="fc" id="L71">    Resource pathsResource = resourceResolver.getResource(pageComponentResource, &quot;./&quot; + NN_PARSYS_CONFIG + &quot;/&quot; + NN_PATHS);</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (pathsResource != null) {</span>
+<span class="fc" id="L73">      Iterator&lt;Resource&gt; pathDefResources = resourceResolver.listChildren(pathsResource);</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">      while (pathDefResources.hasNext()) {</span>
+<span class="fc" id="L75">        Resource pathDefResource = pathDefResources.next();</span>
+<span class="fc" id="L76">        pathDefs.add(new PathDef(pathDefResource, pageComponentResource.getResourceType()));</span>
+<span class="fc" id="L77">      }</span>
+    }
+
+<span class="fc" id="L80">    return pathDefs;</span>
+  }
+
+  /**
+   * @return All path definitions
+   */
+  public List&lt;ParsysConfig&gt; getPathDefs() {
+<span class="fc" id="L87">    return this.pathDefs;</span>
+  }
+
+  /**
+   * Paragraph System configuration path definition.
+   */
+  private static class PathDef implements ParsysConfig {
+
+    private final String pageComponentPath;
+    private final Pattern pathPattern;
+    private final Set&lt;String&gt; allowedChildren;
+    private final Set&lt;String&gt; deniedChildren;
+    private final Set&lt;String&gt; allowedParents;
+    private final int parentAncestorLevel;
+    private final boolean inheritFromSuperType;
+
+    /**
+     * @param pathDefResource Path definition resource
+     * @param pageComponentPath resource type of page component
+     */
+<span class="fc" id="L107">    PathDef(Resource pathDefResource, String pageComponentPath) {</span>
+<span class="fc" id="L108">      this.pageComponentPath = pageComponentPath;</span>
+<span class="fc" id="L109">      ValueMap pathDefProps = pathDefResource.getValueMap();</span>
+
+      // resolve path/path pattern
+<span class="fc" id="L112">      String path = pathDefProps.get(PN_PATH, String.class);</span>
+<span class="fc" id="L113">      String patternString = pathDefProps.get(PN_PATTERN, String.class);</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(patternString)) {</span>
+<span class="fc" id="L115">        this.pathPattern = Pattern.compile(patternString);</span>
+      }
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">      else if (StringUtils.isNotBlank(path)) {</span>
+<span class="nc" id="L118">        this.pathPattern = Pattern.compile(&quot;^&quot; + Pattern.quote(path) + &quot;$&quot;);</span>
+      }
+      else {
+<span class="fc" id="L121">        String name = Text.getName(pathDefResource.getPath());</span>
+<span class="fc" id="L122">        this.pathPattern = Pattern.compile(&quot;^&quot; + Pattern.quote(JcrConstants.JCR_CONTENT + &quot;/&quot; + name) + &quot;$&quot;);</span>
+      }
+
+      // get allowed children/denied children/parents
+<span class="fc" id="L126">      this.allowedChildren = ImmutableSet.copyOf(pathDefProps.get(PN_ALLOWEDCHILDREN, ArrayUtils.EMPTY_STRING_ARRAY));</span>
+<span class="fc" id="L127">      this.deniedChildren = ImmutableSet.copyOf(pathDefProps.get(PN_DENIEDDCHILDREN, ArrayUtils.EMPTY_STRING_ARRAY));</span>
+<span class="fc" id="L128">      this.allowedParents = ImmutableSet.copyOf(pathDefProps.get(PN_ALLOWEDPARENTS, ArrayUtils.EMPTY_STRING_ARRAY));</span>
+
+      // ancestor level
+<span class="fc" id="L131">      this.parentAncestorLevel = pathDefProps.get(PN_PARENTANCESTORLEVEL, 1);</span>
+
+      // inherit from supertype
+<span class="fc" id="L134">      this.inheritFromSuperType = pathDefProps.get(PN_INHERIT, true);</span>
+
+<span class="fc" id="L136">    }</span>
+
+    @Override
+    public @NotNull String getPageComponentPath() {
+<span class="nc" id="L140">      return this.pageComponentPath;</span>
+    }
+
+    @Override
+    public Pattern getPathPattern() {
+<span class="fc" id="L145">      return this.pathPattern;</span>
+    }
+
+    @Override
+    public @NotNull Set&lt;String&gt; getAllowedChildren() {
+<span class="fc" id="L150">      return this.allowedChildren;</span>
+    }
+
+    @Override
+    public @NotNull Set&lt;String&gt; getDeniedChildren() {
+<span class="fc" id="L155">      return this.deniedChildren;</span>
+    }
+
+    @Override
+    public @NotNull Set&lt;String&gt; getAllowedParents() {
+<span class="fc" id="L160">      return this.allowedParents;</span>
+    }
+
+    @Override
+    public int getParentAncestorLevel() {
+<span class="fc" id="L165">      return this.parentAncestorLevel;</span>
+    }
+
+    @Override
+    public boolean isInherit() {
+<span class="fc" id="L170">      return this.inheritFromSuperType;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L175">      return this.pathPattern.toString() + &quot;, &quot;</span>
+<span class="nc" id="L176">          + &quot;allowedChildren=[&quot; + StringUtils.join(this.allowedChildren, &quot;,&quot;) + &quot;], &quot;</span>
+<span class="nc" id="L177">          + &quot;deniedChildren=[&quot; + StringUtils.join(this.deniedChildren, &quot;,&quot;) + &quot;], &quot;</span>
+<span class="nc" id="L178">          + &quot;allowedParents=[&quot; + StringUtils.join(this.allowedParents, &quot;,&quot;) + &quot;], &quot;</span>
+          + &quot;parentAncestorLevel=&quot; + this.parentAncestorLevel + &quot;,&quot;
+          + &quot;inheritFromSuperType=&quot; + this.inheritFromSuperType;
+    }
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

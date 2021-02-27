@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ColumnView.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Granite UI Extensions</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.ui.granite.components.pathfield</a> &gt; <span class="el_source">ColumnView.java</span></div><h1>ColumnView.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.ui.granite.components.pathfield;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import javax.annotation.PostConstruct;
+import javax.servlet.ServletException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.api.wrappers.ValueMapDecorator;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.SlingObject;
+import org.osgi.annotation.versioning.ProviderType;
+
+import com.adobe.granite.ui.components.ComponentHelper;
+import com.adobe.granite.ui.components.Config;
+import com.adobe.granite.ui.components.ExpressionHelper;
+import com.adobe.granite.ui.components.ds.DataSource;
+import com.google.common.collect.ImmutableMap;
+
+import io.wcm.wcm.ui.granite.pathfield.impl.util.DummyPageContext;
+import io.wcm.wcm.ui.granite.resource.GraniteUiSyntheticResource;
+
+/**
+ * Model for customized columnview Granite UI component for path field.
+ */
+@Model(adaptables = SlingHttpServletRequest.class)
+@ProviderType
+<span class="fc" id="L55">public final class ColumnView {</span>
+
+  private static final String FALLBACK_ROOT_RESOURCE = &quot;/&quot;;
+
+  @SlingObject
+  private SlingHttpServletRequest request;
+  @SlingObject
+  private SlingHttpServletResponse response;
+  @SlingObject
+  private ResourceResolver resourceResolver;
+
+  private Resource currentResource;
+<span class="fc" id="L67">  private final List&lt;Column&gt; columns = new ArrayList&lt;&gt;();</span>
+
+  @PostConstruct
+  @SuppressWarnings(&quot;null&quot;)
+  private void activate() {
+<span class="fc" id="L72">    ComponentHelper cmp = new ComponentHelper(new DummyPageContext(request, response));</span>
+<span class="fc" id="L73">    Config cfg = cmp.getConfig();</span>
+<span class="fc" id="L74">    ExpressionHelper ex = cmp.getExpressionHelper();</span>
+
+<span class="fc" id="L76">    Integer size = ex.get(cfg.get(&quot;size&quot;, String.class), Integer.class);</span>
+<span class="fc" id="L77">    String itemResourceType = cfg.get(&quot;itemResourceType&quot;);</span>
+<span class="fc" id="L78">    boolean showRoot = cfg.get(&quot;showRoot&quot;, false);</span>
+<span class="fc" id="L79">    boolean loadAncestors = cfg.get(&quot;loadAncestors&quot;, false);</span>
+
+    // make sure we always have a valid root resource
+<span class="fc" id="L82">    Resource rootResource = resourceResolver.getResource(ex.getString(cfg.get(&quot;rootPath&quot;, FALLBACK_ROOT_RESOURCE)));</span>
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">    if (rootResource == null) {</span>
+<span class="nc" id="L84">      rootResource = resourceResolver.getResource(FALLBACK_ROOT_RESOURCE);</span>
+    }
+
+    // if current resource is invalid or not same or descendant of root resource, set it to root resource
+<span class="fc" id="L88">    String path = ex.getString(cfg.get(&quot;path&quot;, rootResource.getPath()));</span>
+<span class="fc" id="L89">    currentResource = resourceResolver.getResource(path);</span>
+<span class="pc bpc" id="L90" title="1 of 4 branches missed.">    if (currentResource == null || !isSameResourceOrChild(rootResource, currentResource)) {</span>
+<span class="fc" id="L91">      currentResource = rootResource;</span>
+    }
+
+    // generate column for root
+<span class="fc bfc" id="L95" title="All 6 branches covered.">    if (showRoot &amp;&amp; (StringUtils.equals(currentResource.getPath(), rootResource.getPath()) || loadAncestors)) {</span>
+<span class="fc" id="L96">      columns.add(getRootColumn(rootResource, itemResourceType));</span>
+    }
+
+    // generate columns for ancestors
+<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (loadAncestors) {</span>
+<span class="fc" id="L101">      columns.addAll(getAncestorColumns(currentResource, rootResource));</span>
+    }
+
+    // generate columns for items
+<span class="fc" id="L105">    DataSource dataSource = getDataSource(cmp, currentResource);</span>
+<span class="fc" id="L106">    columns.add(getCurrentResourceColumn(dataSource, size, currentResource, itemResourceType));</span>
+<span class="fc" id="L107">  }</span>
+
+  private boolean isSameResourceOrChild(Resource rootResource, Resource resource) {
+<span class="fc bfc" id="L110" title="All 2 branches covered.">    if (StringUtils.equals(rootResource.getPath(), resource.getPath())) {</span>
+<span class="fc" id="L111">      return true;</span>
+    }
+    else {
+<span class="fc" id="L114">      return StringUtils.startsWith(resource.getPath(), rootResource.getPath() + &quot;/&quot;);</span>
+    }
+  }
+
+  public Resource getCurrentResource() {
+<span class="nc" id="L119">    return this.currentResource;</span>
+  }
+
+  public List&lt;Column&gt; getColumns() {
+<span class="fc" id="L123">    return this.columns;</span>
+  }
+
+  /**
+   * Get data source to list children of given resource.
+   * @param cmp Component helper
+   * @param resource Given resource
+   * @return Data source
+   */
+  private DataSource getDataSource(ComponentHelper cmp, Resource resource) {
+    try {
+      /*
+       * by default the path is read from request &quot;path&quot; parameter
+       * here we overwrite it via a synthetic resource because the path may be overwritten by validation logic
+       * to ensure the path is not beyond the configured root path
+       */
+<span class="fc" id="L139">      ValueMap overwriteProperties = new ValueMapDecorator(ImmutableMap.&lt;String, Object&gt;of(&quot;path&quot;, resource.getPath()));</span>
+<span class="fc" id="L140">      Resource dataSourceResourceWrapper = GraniteUiSyntheticResource.wrapMerge(request.getResource(), overwriteProperties);</span>
+<span class="fc" id="L141">      return cmp.getItemDataSource(dataSourceResourceWrapper);</span>
+    }
+<span class="nc" id="L143">    catch (ServletException | IOException ex) {</span>
+<span class="nc" id="L144">      throw new RuntimeException(&quot;Unable to get data source.&quot;, ex);</span>
+    }
+  }
+
+  /**
+   * Generate column for data source items for current resource.
+   * @param dataSource Data source
+   * @param size Size limit
+   * @param currentResource Current resource
+   * @param itemResourceType Item resource type
+   * @return Column
+   */
+  private static Column getCurrentResourceColumn(DataSource dataSource, Integer size,
+      Resource currentResource, String itemResourceType) {
+
+<span class="fc" id="L159">    Iterator&lt;Resource&gt; items = dataSource.iterator();</span>
+
+<span class="fc" id="L161">    boolean hasMore = false;</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">    if (size != null) {</span>
+<span class="fc" id="L163">      List&lt;Resource&gt; list = new ArrayList&lt;Resource&gt;();</span>
+<span class="pc bpc" id="L164" title="1 of 4 branches missed.">      while (items.hasNext() &amp;&amp; list.size() &lt; size) {</span>
+<span class="fc" id="L165">        list.add(items.next());</span>
+      }
+<span class="fc" id="L167">      hasMore = items.hasNext();</span>
+<span class="fc" id="L168">      items = list.iterator();</span>
+    }
+
+<span class="fc" id="L171">    Column column = new Column()</span>
+<span class="fc" id="L172">        .columnId(currentResource.getPath())</span>
+<span class="fc" id="L173">        .hasMore(hasMore)</span>
+<span class="fc" id="L174">        .metaElement(true);</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">    while (items.hasNext()) {</span>
+<span class="fc" id="L176">      Resource item = items.next();</span>
+<span class="fc" id="L177">      column.addItem(new ColumnItem(item)</span>
+<span class="fc" id="L178">          .resourceType(itemResourceType));</span>
+<span class="fc" id="L179">    }</span>
+
+<span class="fc" id="L181">    return column;</span>
+  }
+
+  /**
+   * Generate extra column representing the root resource.
+   * @param rootResource Root resource
+   * @param itemResourceType Item resource type
+   * @return Column
+   */
+  private static Column getRootColumn(Resource rootResource, String itemResourceType) {
+    /*
+     * Put a special path for columnId to avoid having the same columnId with the next column to avoid breaking the contract of columnId.
+     * The contract of columnId is that it should be a path of the current column, i.e. the path should be a path representing a parent.
+     * e.g. When columnId = &quot;/&quot;, then the column will show the children of this path, such as &quot;/a&quot;, &quot;/b&quot;.
+     * So for showRoot scenario, if we want to show the item with path = &quot;/&quot;, we need to generate the column having a columnId with value of the parent of &quot;/&quot;.
+     * Since the cannot have a parent of &quot;/&quot;, then we decide to just use a special convention (&quot;parentof:&lt;path&gt;&quot;) to indicate this.
+     * Other component (e.g. `.granite-collection-navigator`) reading the columnId can then understand this convention and handle it accordingly.
+     */
+<span class="fc" id="L199">    String columnId = &quot;parentof:&quot; + rootResource.getPath();</span>
+
+<span class="fc" id="L201">    Column column = new Column()</span>
+<span class="fc" id="L202">        .columnId(columnId)</span>
+<span class="fc" id="L203">        .hasMore(false);</span>
+<span class="fc" id="L204">    column.addItem(new ColumnItem(rootResource)</span>
+<span class="fc" id="L205">        .resourceType(itemResourceType)</span>
+<span class="fc" id="L206">        .active(true));</span>
+<span class="fc" id="L207">    return column;</span>
+  }
+
+  /**
+   * Generate column for each ancestor.
+   * @param currentResource Current resource
+   * @param rootResource Root resource
+   * @return Columns
+   */
+  private static List&lt;Column&gt; getAncestorColumns(Resource currentResource, Resource rootResource) {
+<span class="fc" id="L217">    List&lt;Column&gt; columns = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L218">    List&lt;Resource&gt; ancestors = getAncestors(currentResource, rootResource);</span>
+<span class="fc bfc" id="L219" title="All 2 branches covered.">    for (int i = 0; i &lt; ancestors.size(); i++) {</span>
+<span class="fc" id="L220">      Resource r = ancestors.get(i);</span>
+
+      String activeId;
+<span class="fc bfc" id="L223" title="All 2 branches covered.">      if (i &lt; ancestors.size() - 1) {</span>
+<span class="fc" id="L224">        activeId = ancestors.get(i + 1).getPath();</span>
+      }
+      else {
+<span class="fc" id="L227">        activeId = currentResource.getPath();</span>
+      }
+
+<span class="fc" id="L230">      Column column = new Column()</span>
+<span class="fc" id="L231">          .columnId(r.getPath())</span>
+<span class="fc" id="L232">          .lazy(true)</span>
+<span class="fc" id="L233">          .activeId(activeId);</span>
+<span class="fc" id="L234">      columns.add(column);</span>
+    }
+<span class="fc" id="L236">    return columns;</span>
+  }
+
+  /**
+   * Returns the ancestors of the current resource (inclusive) up to the root.
+   * The result is ordered with the root as the first item.
+   */
+  private static List&lt;Resource&gt; getAncestors(Resource currentResource, Resource rootResource) {
+<span class="fc" id="L244">    List&lt;Resource&gt; results = new ArrayList&lt;Resource&gt;();</span>
+
+<span class="pc bpc" id="L246" title="2 of 6 branches missed.">    if (currentResource == null || rootResource == null || StringUtils.equals(currentResource.getPath(), rootResource.getPath())) {</span>
+<span class="fc" id="L247">      return results;</span>
+    }
+
+<span class="fc" id="L250">    Resource parent = currentResource.getParent();</span>
+<span class="pc bpc" id="L251" title="1 of 2 branches missed.">    while (parent != null) {</span>
+<span class="fc" id="L252">      results.add(0, parent);</span>
+<span class="fc bfc" id="L253" title="All 2 branches covered.">      if (parent.getPath().equals(rootResource.getPath())) {</span>
+<span class="fc" id="L254">        break;</span>
+      }
+<span class="fc" id="L256">      parent = parent.getParent();</span>
+    }
+<span class="fc" id="L258">    return results;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>
