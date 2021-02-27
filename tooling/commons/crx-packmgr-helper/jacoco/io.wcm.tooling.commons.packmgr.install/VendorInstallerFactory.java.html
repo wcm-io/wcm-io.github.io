@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VendorInstallerFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CRX Package Manager Helper</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.packmgr.install</a> &gt; <span class="el_source">VendorInstallerFactory.java</span></div><h1>VendorInstallerFactory.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2017 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.packmgr.install;
+
+import io.wcm.tooling.commons.packmgr.Logger;
+import io.wcm.tooling.commons.packmgr.PackageManagerException;
+import io.wcm.tooling.commons.packmgr.install.composum.ComposumPackageInstaller;
+import io.wcm.tooling.commons.packmgr.install.crx.CrxPackageInstaller;
+
+/**
+ * This factory provides Package Manager specific handling
+ * provided by different vendors like CRX Package Manager and Composum.
+ */
+public final class VendorInstallerFactory {
+
+  /**
+   * Base URL for CRX package manager.
+   */
+  public static final String CRX_URL = &quot;/crx/packmgr/service&quot;;
+
+  /**
+   * Base URL for componsum package manager.
+   */
+  public static final String COMPOSUM_URL = &quot;/bin/cpm/&quot;;
+
+  /**
+   * Pagckage manager services
+   */
+<span class="nc" id="L46">  public enum Service {</span>
+
+    /**
+     * CRX
+     */
+<span class="nc" id="L51">    CRX,</span>
+
+    /**
+     * Composum
+     */
+<span class="nc" id="L56">    COMPOSUM,</span>
+
+    /**
+     * Unsupported
+     */
+<span class="nc" id="L61">    UNSUPPORTED</span>
+  }
+
+  private VendorInstallerFactory() {
+    // static methods only
+  }
+
+  /**
+   * Identifies the Service Vendor based on the given URL
+   * @param url Base URL to check
+   * @return Service Enum found or unsupported
+   */
+  public static Service identify(String url) {
+<span class="nc" id="L74">    Service answer = Service.UNSUPPORTED;</span>
+<span class="nc" id="L75">    int index = url.indexOf(COMPOSUM_URL);</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">    if (index &gt; 0) {</span>
+<span class="nc" id="L77">      answer = Service.COMPOSUM;</span>
+    }
+    else {
+<span class="nc" id="L80">      index = url.indexOf(CRX_URL);</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">      if (index &gt; 0) {</span>
+<span class="nc" id="L82">        answer = Service.CRX;</span>
+      }
+    }
+<span class="nc" id="L85">    return answer;</span>
+  }
+
+  /**
+   * Returns the Base Url of a given URL with
+   * based on its Vendors from the URL
+   * @param url Service URL
+   * @param logger Logger
+   * @return Base URL if service vendor was found otherwise the given URL
+   */
+  @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
+  public static String getBaseUrl(String url, Logger logger) {
+<span class="nc" id="L97">    String answer = url;</span>
+<span class="nc bnc" id="L98" title="All 3 branches missed.">    switch (identify(url)) {</span>
+      case COMPOSUM:
+<span class="nc" id="L100">        answer = url.substring(0, url.indexOf(COMPOSUM_URL));</span>
+<span class="nc" id="L101">        break;</span>
+      case CRX:
+<span class="nc" id="L103">        answer = url.substring(0, url.indexOf(CRX_URL));</span>
+<span class="nc" id="L104">        break;</span>
+      default:
+<span class="nc" id="L106">        logger.error(&quot;Given URL is not supported: &quot; + url);</span>
+        break;
+    }
+<span class="nc" id="L109">    return answer;</span>
+  }
+
+  /**
+   * Provides the Installer of the Service Vendor
+   * @param url Base URL of the service
+   * @return Installer if URL is supported otherwise null
+   * @throws PackageManagerException Package manager exception
+   */
+  public static VendorPackageInstaller getPackageInstaller(String url) throws PackageManagerException {
+    VendorPackageInstaller answer;
+<span class="nc bnc" id="L120" title="All 3 branches missed.">    switch (identify(url)) {</span>
+      case COMPOSUM:
+<span class="nc" id="L122">        answer = new ComposumPackageInstaller(url);</span>
+<span class="nc" id="L123">        break;</span>
+      case CRX:
+<span class="nc" id="L125">        answer = new CrxPackageInstaller(url);</span>
+<span class="nc" id="L126">        break;</span>
+      default:
+<span class="nc" id="L128">        throw new PackageManagerException(&quot;Given URL is not supported: &quot; + url);</span>
+    }
+<span class="nc" id="L130">    return answer;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

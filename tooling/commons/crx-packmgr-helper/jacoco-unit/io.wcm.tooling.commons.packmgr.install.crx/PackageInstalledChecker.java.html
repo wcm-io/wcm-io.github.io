@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PackageInstalledChecker.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CRX Package Manager Helper</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.packmgr.install.crx</a> &gt; <span class="el_source">PackageInstalledChecker.java</span></div><h1>PackageInstalledChecker.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2018 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.packmgr.install.crx;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import io.wcm.tooling.commons.packmgr.PackageManagerException;
+
+/**
+ * Check if given package and version is already installed by inspecting the JSON result of
+ * &lt;code&gt;/crx/packmgr/list.jsp&lt;/code&gt;.
+ */
+class PackageInstalledChecker {
+
+  private final JSONArray results;
+
+  static final String PACKMGR_LIST_URL = &quot;/crx/packmgr/list.jsp&quot;;
+
+  private static final long NOT_FOUND_DATE = -1;
+  private static final long NOT_UNPACKED_DATE = 0;
+
+<span class="fc" id="L45">  PackageInstalledChecker(JSONObject result) {</span>
+    try {
+<span class="fc" id="L47">      this.results = result.getJSONArray(&quot;results&quot;);</span>
+    }
+<span class="nc" id="L49">    catch (JSONException ex) {</span>
+<span class="nc" id="L50">      throw new PackageManagerException(&quot;JSON response from &quot; + PACKMGR_LIST_URL + &quot; does not contain 'results' array.&quot;, ex);</span>
+<span class="fc" id="L51">    }</span>
+<span class="fc" id="L52">  }</span>
+
+  public PackageInstalledStatus getStatus(String group, String name, String version) {
+<span class="fc" id="L55">    Map&lt;String, Long&gt; map = getVersionUnpackedDates(group, name);</span>
+
+<span class="fc bfc" id="L57" title="All 2 branches covered.">    if (map.isEmpty()) {</span>
+<span class="fc" id="L58">      return PackageInstalledStatus.NOT_FOUND;</span>
+    }
+
+<span class="fc" id="L61">    long versionUnpackDate = getVersionUnpackDate(map, version);</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">    if (versionUnpackDate == NOT_FOUND_DATE) {</span>
+<span class="fc" id="L63">      return PackageInstalledStatus.NOT_FOUND;</span>
+    }
+<span class="fc bfc" id="L65" title="All 2 branches covered.">    if (versionUnpackDate == NOT_UNPACKED_DATE) {</span>
+<span class="fc" id="L66">      return PackageInstalledStatus.UPLOADED;</span>
+    }
+
+<span class="fc" id="L69">    long lastUnpackDate = getLastUnpackDate(map);</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (lastUnpackDate &gt; versionUnpackDate) {</span>
+<span class="fc" id="L71">      return PackageInstalledStatus.INSTALLED_OTHER_VERSION;</span>
+    }
+    else {
+<span class="fc" id="L74">      return PackageInstalledStatus.INSTALLED;</span>
+    }
+  }
+
+  private Map&lt;String, Long&gt; getVersionUnpackedDates(String group, String name) {
+<span class="fc" id="L79">    Map&lt;String, Long&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">    for (int i = 0; i &lt; results.length(); i++) {</span>
+<span class="fc" id="L81">      JSONObject item = results.getJSONObject(i);</span>
+<span class="fc" id="L82">      String itemGroup = item.optString(&quot;group&quot;);</span>
+<span class="fc" id="L83">      String itemName = item.optString(&quot;name&quot;);</span>
+<span class="fc" id="L84">      String itemVersion = item.optString(&quot;version&quot;);</span>
+<span class="fc" id="L85">      long itemLastUnpacked = item.optLong(&quot;lastUnpacked&quot;, NOT_UNPACKED_DATE);</span>
+<span class="pc bpc" id="L86" title="1 of 6 branches missed.">      if (StringUtils.equals(group, itemGroup) &amp;&amp; StringUtils.equals(name, itemName) &amp;&amp; StringUtils.isNotBlank(itemVersion)) {</span>
+<span class="fc" id="L87">        map.put(itemVersion, itemLastUnpacked);</span>
+      }
+    }
+<span class="fc" id="L90">    return map;</span>
+  }
+
+  private long getVersionUnpackDate(Map&lt;String, Long&gt; map, String version) {
+<span class="fc" id="L94">    Long value = map.get(version);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L96">      return NOT_FOUND_DATE;</span>
+    }
+    else {
+<span class="fc" id="L99">      return value;</span>
+    }
+  }
+
+  private long getLastUnpackDate(Map&lt;String, Long&gt; map) {
+<span class="fc" id="L104">    long last = 0;</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">    for (Long date : map.values()) {</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">      if (date &gt; last) {</span>
+<span class="fc" id="L107">        last = date;</span>
+      }
+<span class="fc" id="L109">    }</span>
+<span class="fc" id="L110">    return last;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

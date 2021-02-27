@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>XmlContentBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">AEM Content Package Builder</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.contentpackagebuilder</a> &gt; <span class="el_source">XmlContentBuilder.java</span></div><h1>XmlContentBuilder.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2015 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.contentpackagebuilder;
+
+import static io.wcm.tooling.commons.contentpackagebuilder.XmlNamespaces.NS_JCR;
+
+import java.util.List;
+import java.util.Map;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.util.ISO9075;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+import io.wcm.tooling.commons.contentpackagebuilder.element.ContentElement;
+
+/**
+ * Builds CMS content packages.
+ */
+final class XmlContentBuilder {
+
+  private final DocumentBuilder documentBuilder;
+  private final Map&lt;String, String&gt; xmlNamespaces;
+<span class="fc" id="L45">  private final ValueConverter valueConverter = new ValueConverter();</span>
+
+  static final String PN_PRIMARY_TYPE = &quot;jcr:primaryType&quot;;
+  static final String NT_PAGE = &quot;cq:Page&quot;;
+  static final String NT_PAGE_CONTENT = &quot;cq:PageContent&quot;;
+  static final String NT_UNSTRUCTURED = &quot;nt:unstructured&quot;;
+  static final String NT_FILE = &quot;nt:file&quot;;
+  static final String NT_RESOURCE = &quot;nt:resource&quot;;
+
+<span class="fc" id="L54">  XmlContentBuilder(Map&lt;String, String&gt; xmlNamespaces) {</span>
+<span class="fc" id="L55">    DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();</span>
+<span class="fc" id="L56">    documentBuilderFactory.setNamespaceAware(true);</span>
+    try {
+<span class="fc" id="L58">      this.documentBuilder = documentBuilderFactory.newDocumentBuilder();</span>
+<span class="fc" id="L59">      this.documentBuilder.setEntityResolver(new PropertiesEntityResolver());</span>
+    }
+<span class="nc" id="L61">    catch (ParserConfigurationException ex) {</span>
+<span class="nc" id="L62">      throw new RuntimeException(&quot;Failed to set up XML document builder: &quot; + ex.getMessage(), ex);</span>
+<span class="fc" id="L63">    }</span>
+<span class="fc" id="L64">    this.xmlNamespaces = xmlNamespaces;</span>
+<span class="fc" id="L65">  }</span>
+
+  /**
+   * Build XML for cq:Page.
+   * @param content Hierarchy of content elements.
+   * @return cq:Page JCR XML
+   */
+  public Document buildPage(ContentElement content) {
+<span class="fc" id="L73">    Document doc = documentBuilder.newDocument();</span>
+<span class="fc" id="L74">    Element jcrRoot = createJcrRoot(doc, NT_PAGE);</span>
+<span class="fc" id="L75">    Element jcrContent = createJcrContent(doc, jcrRoot, NT_PAGE_CONTENT);</span>
+
+<span class="fc" id="L77">    exportPayload(doc, jcrContent, content);</span>
+
+<span class="fc" id="L79">    return doc;</span>
+  }
+
+  /**
+   * Build XML for cq:Page.
+   * @param content Content with page properties and nested nodes
+   * @return cq:Page JCR XML
+   */
+  public Document buildPage(Map&lt;String, Object&gt; content) {
+<span class="fc" id="L88">    Document doc = documentBuilder.newDocument();</span>
+<span class="fc" id="L89">    Element jcrRoot = createJcrRoot(doc, NT_PAGE);</span>
+<span class="fc" id="L90">    Element jcrContent = createJcrContent(doc, jcrRoot, NT_PAGE_CONTENT);</span>
+
+<span class="fc" id="L92">    exportPayload(doc, jcrContent, content);</span>
+
+<span class="fc" id="L94">    return doc;</span>
+  }
+
+  /**
+   * Build XML for any JCR content.
+   * @param content Hierarchy of content elements.
+   * @return JCR XML
+   */
+  public Document buildContent(ContentElement content) {
+<span class="fc" id="L103">    Document doc = documentBuilder.newDocument();</span>
+
+<span class="fc" id="L105">    String primaryType = StringUtils.defaultString((String)content.getProperties().get(PN_PRIMARY_TYPE), NT_UNSTRUCTURED);</span>
+<span class="fc" id="L106">    Element jcrRoot = createJcrRoot(doc, primaryType);</span>
+
+<span class="fc" id="L108">    exportPayload(doc, jcrRoot, content);</span>
+
+<span class="fc" id="L110">    return doc;</span>
+  }
+
+  /**
+   * Build XML for any JCR content.
+   * @param content Content with properties and nested nodes
+   * @return JCR XML
+   */
+  public Document buildContent(Map&lt;String, Object&gt; content) {
+<span class="fc" id="L119">    Document doc = documentBuilder.newDocument();</span>
+
+<span class="fc" id="L121">    String primaryType = StringUtils.defaultString((String)content.get(PN_PRIMARY_TYPE), NT_UNSTRUCTURED);</span>
+<span class="fc" id="L122">    Element jcrRoot = createJcrRoot(doc, primaryType);</span>
+
+<span class="fc" id="L124">    exportPayload(doc, jcrRoot, content);</span>
+
+<span class="fc" id="L126">    return doc;</span>
+  }
+
+  /**
+   * Build XML for nt:file
+   * @param mimeType Mime type
+   * @param encoding Encoding
+   * @return nt:file XML
+   */
+  public Document buildNtFile(String mimeType, String encoding) {
+<span class="fc" id="L136">    Document doc = documentBuilder.newDocument();</span>
+<span class="fc" id="L137">    Element jcrRoot = createJcrRoot(doc, NT_FILE);</span>
+<span class="fc" id="L138">    Element jcrContent = createJcrContent(doc, jcrRoot, NT_RESOURCE);</span>
+
+<span class="fc bfc" id="L140" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(mimeType)) {</span>
+<span class="fc" id="L141">      setAttributeNamespaceAware(jcrContent, &quot;jcr:mimeType&quot;, mimeType);</span>
+    }
+<span class="fc bfc" id="L143" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(encoding)) {</span>
+<span class="fc" id="L144">      setAttributeNamespaceAware(jcrContent, &quot;jcr:encoding&quot;, encoding);</span>
+    }
+
+<span class="fc" id="L147">    return doc;</span>
+  }
+
+  /**
+   * Build filter XML for package metadata files.
+   * @param filters Filters
+   * @return Filter XML
+   */
+  public Document buildFilter(List&lt;PackageFilter&gt; filters) {
+<span class="fc" id="L156">    Document doc = documentBuilder.newDocument();</span>
+
+<span class="fc" id="L158">    Element workspaceFilterElement = doc.createElement(&quot;workspaceFilter&quot;);</span>
+<span class="fc" id="L159">    workspaceFilterElement.setAttribute(&quot;version&quot;, &quot;1.0&quot;);</span>
+<span class="fc" id="L160">    doc.appendChild(workspaceFilterElement);</span>
+
+<span class="fc bfc" id="L162" title="All 2 branches covered.">    for (PackageFilter filter : filters) {</span>
+<span class="fc" id="L163">      Element filterElement = doc.createElement(&quot;filter&quot;);</span>
+<span class="fc" id="L164">      filterElement.setAttribute(&quot;root&quot;, filter.getRootPath());</span>
+<span class="fc" id="L165">      workspaceFilterElement.appendChild(filterElement);</span>
+
+<span class="fc bfc" id="L167" title="All 2 branches covered.">      for (PackageFilterRule rule : filter.getRules()) {</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        Element ruleElement = doc.createElement(rule.isInclude() ? &quot;include&quot; : &quot;exclude&quot;);</span>
+<span class="fc" id="L169">        ruleElement.setAttribute(&quot;pattern&quot;, rule.getPattern());</span>
+<span class="fc" id="L170">        filterElement.appendChild(ruleElement);</span>
+<span class="fc" id="L171">      }</span>
+<span class="fc" id="L172">    }</span>
+
+<span class="fc" id="L174">    return doc;</span>
+  }
+
+  private Element createJcrRoot(Document doc, String primaryType) {
+<span class="fc" id="L178">    Element jcrRoot = doc.createElementNS(NS_JCR, &quot;jcr:root&quot;);</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">    for (Map.Entry&lt;String, String&gt; namespace : xmlNamespaces.entrySet()) {</span>
+<span class="fc" id="L180">      jcrRoot.setAttribute(&quot;xmlns:&quot; + namespace.getKey(), namespace.getValue());</span>
+<span class="fc" id="L181">    }</span>
+<span class="fc" id="L182">    setAttributeNamespaceAware(jcrRoot, PN_PRIMARY_TYPE, primaryType);</span>
+<span class="fc" id="L183">    doc.appendChild(jcrRoot);</span>
+<span class="fc" id="L184">    return jcrRoot;</span>
+  }
+
+  private Element createJcrContent(Document doc, Element jcrRoot, String primaryType) {
+<span class="fc" id="L188">    Element jcrContent = doc.createElementNS(NS_JCR, &quot;jcr:content&quot;);</span>
+<span class="fc" id="L189">    setAttributeNamespaceAware(jcrContent, PN_PRIMARY_TYPE, primaryType);</span>
+<span class="fc" id="L190">    jcrRoot.appendChild(jcrContent);</span>
+<span class="fc" id="L191">    return jcrContent;</span>
+  }
+
+  private void exportPayload(Document doc, Element element, ContentElement content) {
+<span class="fc bfc" id="L195" title="All 2 branches covered.">    for (Map.Entry&lt;String, Object&gt; entry : content.getProperties().entrySet()) {</span>
+<span class="fc" id="L196">      Object value = entry.getValue();</span>
+<span class="pc bpc" id="L197" title="1 of 2 branches missed.">      if (value == null) {</span>
+<span class="nc" id="L198">        continue;</span>
+      }
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">      if (!hasAttributeNamespaceAware(element, entry.getKey())) {</span>
+<span class="fc" id="L201">        String stringValue = valueConverter.toString(entry.getKey(), value);</span>
+<span class="fc" id="L202">        setAttributeNamespaceAware(element, entry.getKey(), stringValue);</span>
+      }
+<span class="fc" id="L204">    }</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">    for (Map.Entry&lt;String, ContentElement&gt; entry : content.getChildren().entrySet()) {</span>
+<span class="fc" id="L206">      ContentElement child = entry.getValue();</span>
+<span class="fc" id="L207">      Element subElement = doc.createElement(validateAndEncodeName(entry.getKey()));</span>
+<span class="pc bpc" id="L208" title="1 of 4 branches missed.">      if (!hasAttributeNamespaceAware(subElement, PN_PRIMARY_TYPE) &amp;&amp; !child.getProperties().containsKey(PN_PRIMARY_TYPE)) {</span>
+<span class="fc" id="L209">        setAttributeNamespaceAware(subElement, PN_PRIMARY_TYPE, NT_UNSTRUCTURED);</span>
+      }
+<span class="fc" id="L211">      element.appendChild(subElement);</span>
+<span class="fc" id="L212">      exportPayload(doc, subElement, child);</span>
+<span class="fc" id="L213">    }</span>
+<span class="fc" id="L214">  }</span>
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  private void exportPayload(Document doc, Element element, Map&lt;String, Object&gt; content) {
+<span class="fc bfc" id="L218" title="All 2 branches covered.">    for (Map.Entry&lt;String,Object&gt; entry : content.entrySet()) {</span>
+<span class="fc" id="L219">      Object value = entry.getValue();</span>
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">      if (value == null) {</span>
+<span class="nc" id="L221">        continue;</span>
+      }
+<span class="fc bfc" id="L223" title="All 2 branches covered.">      if (value instanceof Map) {</span>
+<span class="fc" id="L224">        Map&lt;String, Object&gt; childMap = (Map&lt;String, Object&gt;)value;</span>
+<span class="fc" id="L225">        Element subElement = doc.createElement(validateAndEncodeName(entry.getKey()));</span>
+<span class="pc bpc" id="L226" title="1 of 4 branches missed.">        if (!hasAttributeNamespaceAware(subElement, PN_PRIMARY_TYPE) &amp;&amp; !childMap.containsKey(PN_PRIMARY_TYPE)) {</span>
+<span class="fc" id="L227">          setAttributeNamespaceAware(subElement, PN_PRIMARY_TYPE, NT_UNSTRUCTURED);</span>
+        }
+<span class="fc" id="L229">        element.appendChild(subElement);</span>
+<span class="fc" id="L230">        exportPayload(doc, subElement, childMap);</span>
+<span class="fc" id="L231">      }</span>
+<span class="pc bpc" id="L232" title="1 of 2 branches missed.">      else if (!hasAttributeNamespaceAware(element, entry.getKey())) {</span>
+<span class="fc" id="L233">        String stringValue = valueConverter.toString(entry.getKey(), value);</span>
+<span class="fc" id="L234">        setAttributeNamespaceAware(element, entry.getKey(), stringValue);</span>
+      }
+<span class="fc" id="L236">    }</span>
+<span class="fc" id="L237">  }</span>
+
+  private void setAttributeNamespaceAware(Element element, String key, String value) {
+<span class="fc" id="L240">    String namespace = getNamespace(key);</span>
+<span class="fc bfc" id="L241" title="All 2 branches covered.">    if (namespace == null) {</span>
+<span class="fc" id="L242">      element.setAttribute(validateAndEncodeName(key), value);</span>
+    }
+    else {
+<span class="fc" id="L245">      element.setAttributeNS(namespace, validateAndEncodeName(key), value);</span>
+    }
+<span class="fc" id="L247">  }</span>
+
+  private boolean hasAttributeNamespaceAware(Element element, String key) {
+<span class="fc" id="L250">    String namespace = getNamespace(key);</span>
+<span class="fc bfc" id="L251" title="All 2 branches covered.">    if (namespace == null) {</span>
+<span class="fc" id="L252">      return element.hasAttribute(key);</span>
+    }
+    else {
+<span class="fc" id="L255">      return element.hasAttributeNS(namespace, key);</span>
+    }
+  }
+
+  private String getNamespace(String key) {
+<span class="fc bfc" id="L260" title="All 2 branches covered.">    if (!StringUtils.contains(key, &quot;:&quot;)) {</span>
+<span class="fc" id="L261">      return null;</span>
+    }
+<span class="fc" id="L263">    String nsPrefix = StringUtils.substringBefore(key, &quot;:&quot;);</span>
+<span class="fc" id="L264">    return xmlNamespaces.get(nsPrefix);</span>
+  }
+
+  private String validateAndEncodeName(String name) {
+<span class="fc bfc" id="L268" title="All 2 branches covered.">    if (!NameUtil.isValidName(name)) {</span>
+<span class="fc" id="L269">      throw new IllegalArgumentException(&quot;Illegal name (not following JCR standards): &quot; + name);</span>
+    }
+<span class="fc" id="L271">    return ISO9075.encode(name);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

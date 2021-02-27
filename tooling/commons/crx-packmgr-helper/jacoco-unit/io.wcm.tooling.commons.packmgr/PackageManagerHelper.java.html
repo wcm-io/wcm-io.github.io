@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PackageManagerHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CRX Package Manager Helper</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.packmgr</a> &gt; <span class="el_source">PackageManagerHelper.java</span></div><h1>PackageManagerHelper.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.packmgr;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.util.List;
+import java.util.regex.Pattern;
+
+import javax.net.ssl.SSLContext;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
+import org.apache.http.HttpException;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpRequestInterceptor;
+import org.apache.http.HttpResponse;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.AuthState;
+import org.apache.http.auth.Credentials;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.conn.ConnectionKeepAliveStrategy;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.protocol.HttpContext;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.jdom2.Document;
+import org.json.JSONObject;
+
+import io.wcm.tooling.commons.packmgr.httpaction.BundleStatus;
+import io.wcm.tooling.commons.packmgr.httpaction.BundleStatusCall;
+import io.wcm.tooling.commons.packmgr.httpaction.HttpCall;
+import io.wcm.tooling.commons.packmgr.httpaction.PackageManagerHtmlCall;
+import io.wcm.tooling.commons.packmgr.httpaction.PackageManagerHtmlMessageCall;
+import io.wcm.tooling.commons.packmgr.httpaction.PackageManagerJsonCall;
+import io.wcm.tooling.commons.packmgr.httpaction.PackageManagerStatusCall;
+import io.wcm.tooling.commons.packmgr.httpaction.PackageManagerXmlCall;
+import io.wcm.tooling.commons.packmgr.util.HttpClientUtil;
+
+/**
+ * Common functionality for all mojos.
+ */
+public final class PackageManagerHelper {
+
+  /**
+   * Prefix or error message from CRX HTTP interfaces when uploading a package that already exists.
+   */
+  public static final String CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX = &quot;Package already exists: &quot;;
+
+  private final PackageManagerProperties props;
+  private final Logger log;
+
+  /**
+   * @param props Package manager properties
+   * @param log Logger
+   */
+<span class="nc" id="L88">  public PackageManagerHelper(PackageManagerProperties props, Logger log) {</span>
+<span class="nc" id="L89">    this.props = props;</span>
+<span class="nc" id="L90">    this.log = log;</span>
+<span class="nc" id="L91">  }</span>
+
+  /**
+   * Set up http client with credentials
+   * @return Http client
+   */
+  public CloseableHttpClient getPackageManagerHttpClient() {
+<span class="nc" id="L98">    return getHttpClient(props.getUserId(), props.getPassword());</span>
+  }
+
+  /**
+   * Set up http client with credentials
+   * @return Http client
+   */
+  public CloseableHttpClient getConsoleHttpClient() {
+<span class="nc" id="L106">    return getHttpClient(props.getConsoleUserId(), props.getConsolePassword());</span>
+  }
+
+  private CloseableHttpClient getHttpClient(String userId, String password) {
+    try {
+<span class="nc" id="L111">      URI crxUri = new URI(props.getPackageManagerUrl());</span>
+
+<span class="nc" id="L113">      final AuthScope authScope = new AuthScope(crxUri.getHost(), crxUri.getPort());</span>
+<span class="nc" id="L114">      final Credentials credentials = new UsernamePasswordCredentials(userId, password);</span>
+<span class="nc" id="L115">      final CredentialsProvider credsProvider = new BasicCredentialsProvider();</span>
+<span class="nc" id="L116">      credsProvider.setCredentials(authScope, credentials);</span>
+
+<span class="nc" id="L118">      HttpClientBuilder httpClientBuilder = HttpClients.custom()</span>
+<span class="nc" id="L119">          .setDefaultCredentialsProvider(credsProvider)</span>
+<span class="nc" id="L120">          .addInterceptorFirst(new HttpRequestInterceptor() {</span>
+            @Override
+            public void process(HttpRequest request, HttpContext context) throws HttpException, IOException {
+              // enable preemptive authentication
+<span class="nc" id="L124">              AuthState authState = (AuthState)context.getAttribute(HttpClientContext.TARGET_AUTH_STATE);</span>
+<span class="nc" id="L125">              authState.update(new BasicScheme(), credentials);</span>
+<span class="nc" id="L126">            }</span>
+          })
+<span class="nc" id="L128">          .setKeepAliveStrategy(new ConnectionKeepAliveStrategy() {</span>
+            @Override
+            public long getKeepAliveDuration(HttpResponse response, HttpContext context) {
+              // keep reusing connections to a minimum - may conflict when instance is restarting and responds in unexpected manner
+<span class="nc" id="L132">              return 1;</span>
+            }
+          });
+
+      // timeout settings
+<span class="nc" id="L137">      httpClientBuilder.setDefaultRequestConfig(HttpClientUtil.buildRequestConfig(props));</span>
+
+      // relaxed SSL check
+<span class="nc bnc" id="L140" title="All 2 branches missed.">      if (props.isRelaxedSSLCheck()) {</span>
+<span class="nc" id="L141">        SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustSelfSignedStrategy()).build();</span>
+<span class="nc" id="L142">        SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new NoopHostnameVerifier());</span>
+<span class="nc" id="L143">        httpClientBuilder.setSSLSocketFactory(sslsf);</span>
+      }
+
+      // proxy support
+<span class="nc" id="L147">      Proxy proxy = getProxyForUrl(props.getPackageManagerUrl());</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">      if (proxy != null) {</span>
+<span class="nc" id="L149">        httpClientBuilder.setProxy(new HttpHost(proxy.getHost(), proxy.getPort(), proxy.getProtocol()));</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        if (proxy.useAuthentication()) {</span>
+<span class="nc" id="L151">          AuthScope proxyAuthScope = new AuthScope(proxy.getHost(), proxy.getPort());</span>
+<span class="nc" id="L152">          Credentials proxyCredentials = new UsernamePasswordCredentials(proxy.getUsername(), proxy.getPassword());</span>
+<span class="nc" id="L153">          credsProvider.setCredentials(proxyAuthScope, proxyCredentials);</span>
+        }
+      }
+
+<span class="nc" id="L157">      return httpClientBuilder.build();</span>
+    }
+<span class="nc" id="L159">    catch (URISyntaxException ex) {</span>
+<span class="nc" id="L160">      throw new PackageManagerException(&quot;Invalid url: &quot; + props.getPackageManagerUrl(), ex);</span>
+    }
+<span class="nc" id="L162">    catch (KeyManagementException | KeyStoreException | NoSuchAlgorithmException ex) {</span>
+<span class="nc" id="L163">      throw new PackageManagerException(&quot;Could not set relaxedSSLCheck&quot;, ex);</span>
+    }
+  }
+
+  /**
+   * Get proxy for given URL
+   * @param requestUrl Request URL
+   * @return Proxy or null if none matching found
+   */
+  private Proxy getProxyForUrl(String requestUrl) {
+<span class="nc" id="L173">    List&lt;Proxy&gt; proxies = props.getProxies();</span>
+<span class="nc bnc" id="L174" title="All 4 branches missed.">    if (proxies == null || proxies.isEmpty()) {</span>
+<span class="nc" id="L175">      return null;</span>
+    }
+<span class="nc" id="L177">    final URI uri = URI.create(requestUrl);</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">    for (Proxy proxy : proxies) {</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">      if (!proxy.isNonProxyHost(uri.getHost())) {</span>
+<span class="nc" id="L180">        return proxy;</span>
+      }
+<span class="nc" id="L182">    }</span>
+<span class="nc" id="L183">    return null;</span>
+  }
+
+
+  /**
+   * Execute HTTP call with automatic retry as configured for the MOJO.
+   * @param call HTTP call
+   * @param runCount Number of runs this call was already executed
+   */
+  @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
+  private &lt;T&gt; T executeHttpCallWithRetry(HttpCall&lt;T&gt; call, int runCount) {
+    try {
+<span class="nc" id="L195">      return call.execute();</span>
+    }
+<span class="nc" id="L197">    catch (PackageManagerHttpActionException ex) {</span>
+      // retry again if configured so...
+<span class="nc bnc" id="L199" title="All 2 branches missed.">      if (runCount &lt; props.getRetryCount()) {</span>
+<span class="nc" id="L200">        log.info(&quot;ERROR: &quot; + ex.getMessage());</span>
+<span class="nc" id="L201">        log.debug(&quot;HTTP call failed.&quot;, ex);</span>
+<span class="nc" id="L202">        log.info(&quot;---------------&quot;);</span>
+
+<span class="nc" id="L204">        StringBuilder msg = new StringBuilder();</span>
+<span class="nc" id="L205">        msg.append(&quot;HTTP call failed, try again (&quot; + (runCount + 1) + &quot;/&quot; + props.getRetryCount() + &quot;)&quot;);</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">        if (props.getRetryDelaySec() &gt; 0) {</span>
+<span class="nc" id="L207">          msg.append(&quot; after &quot; + props.getRetryDelaySec() + &quot; second(s)&quot;);</span>
+        }
+<span class="nc" id="L209">        msg.append(&quot;...&quot;);</span>
+<span class="nc" id="L210">        log.info(msg);</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">        if (props.getRetryDelaySec() &gt; 0) {</span>
+          try {
+<span class="nc" id="L213">            Thread.sleep(props.getRetryDelaySec() * DateUtils.MILLIS_PER_SECOND);</span>
+          }
+<span class="nc" id="L215">          catch (InterruptedException ex1) {</span>
+            // ignore
+<span class="nc" id="L217">          }</span>
+        }
+<span class="nc" id="L219">        return executeHttpCallWithRetry(call, runCount + 1);</span>
+      }
+      else {
+<span class="nc" id="L222">        throw ex;</span>
+      }
+    }
+  }
+
+  /**
+   * Execute CRX HTTP Package manager method and parse JSON response.
+   * @param httpClient Http client
+   * @param method Get or Post method
+   * @return JSON object
+   */
+  public JSONObject executePackageManagerMethodJson(CloseableHttpClient httpClient, HttpRequestBase method) {
+<span class="nc" id="L234">    PackageManagerJsonCall call = new PackageManagerJsonCall(httpClient, method, log);</span>
+<span class="nc" id="L235">    return executeHttpCallWithRetry(call, 0);</span>
+  }
+
+  /**
+   * Execute CRX HTTP Package manager method and parse XML response.
+   * @param httpClient Http client
+   * @param method Get or Post method
+   * @return XML document
+   */
+  public Document executePackageManagerMethodXml(CloseableHttpClient httpClient, HttpRequestBase method) {
+<span class="nc" id="L245">    PackageManagerXmlCall call = new PackageManagerXmlCall(httpClient, method, log);</span>
+<span class="nc" id="L246">    return executeHttpCallWithRetry(call, 0);</span>
+  }
+
+  /**
+   * Execute CRX HTTP Package manager method and get HTML response.
+   * @param httpClient Http client
+   * @param method Get or Post method
+   * @return Response from HTML server
+   */
+  public String executePackageManagerMethodHtml(CloseableHttpClient httpClient, HttpRequestBase method) {
+<span class="nc" id="L256">    PackageManagerHtmlCall call = new PackageManagerHtmlCall(httpClient, method, log);</span>
+<span class="nc" id="L257">    String message = executeHttpCallWithRetry(call, 0);</span>
+<span class="nc" id="L258">    return message;</span>
+  }
+
+  /**
+   * Execute CRX HTTP Package manager method and output HTML response.
+   * @param httpClient Http client
+   * @param method Get or Post method
+   */
+  public void executePackageManagerMethodHtmlOutputResponse(CloseableHttpClient httpClient, HttpRequestBase method) {
+<span class="nc" id="L267">    PackageManagerHtmlMessageCall call = new PackageManagerHtmlMessageCall(httpClient, method, log);</span>
+<span class="nc" id="L268">    executeHttpCallWithRetry(call, 0);</span>
+<span class="nc" id="L269">  }</span>
+
+  /**
+   * Execute CRX HTTP Package manager method and checks response status. If the response status is not 200 the call
+   * fails (after retrying).
+   * @param httpClient Http client
+   * @param method Get or Post method
+   */
+  public void executePackageManagerMethodStatus(CloseableHttpClient httpClient, HttpRequestBase method) {
+<span class="nc" id="L278">    PackageManagerStatusCall call = new PackageManagerStatusCall(httpClient, method, log);</span>
+<span class="nc" id="L279">    executeHttpCallWithRetry(call, 0);</span>
+<span class="nc" id="L280">  }</span>
+
+  /**
+   * Wait for bundles to become active.
+   * @param httpClient Http client
+   */
+  @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
+  public void waitForBundlesActivation(CloseableHttpClient httpClient) {
+<span class="nc bnc" id="L288" title="All 2 branches missed.">    if (StringUtils.isBlank(props.getBundleStatusUrl())) {</span>
+<span class="nc" id="L289">      log.debug(&quot;Skipping check for bundle activation state because no bundleStatusURL is defined.&quot;);</span>
+<span class="nc" id="L290">      return;</span>
+    }
+
+<span class="nc" id="L293">    final int WAIT_INTERVAL_SEC = 3;</span>
+<span class="nc" id="L294">    final long CHECK_RETRY_COUNT = props.getBundleStatusWaitLimitSec() / WAIT_INTERVAL_SEC;</span>
+
+<span class="nc" id="L296">    log.info(&quot;Check bundle activation status...&quot;);</span>
+<span class="nc bnc" id="L297" title="All 2 branches missed.">    for (int i = 1; i &lt;= CHECK_RETRY_COUNT; i++) {</span>
+<span class="nc" id="L298">      BundleStatusCall call = new BundleStatusCall(httpClient, props.getBundleStatusUrl(),</span>
+<span class="nc" id="L299">          props.getBundleStatusWhitelistBundleNames(), log);</span>
+<span class="nc" id="L300">      BundleStatus bundleStatus = executeHttpCallWithRetry(call, 0);</span>
+
+<span class="nc" id="L302">      boolean instanceReady = true;</span>
+
+      // check if bundles are still stopping/staring
+<span class="nc bnc" id="L305" title="All 2 branches missed.">      if (!bundleStatus.isAllBundlesRunning()) {</span>
+<span class="nc" id="L306">        log.info(&quot;Bundles starting/stopping: &quot; + bundleStatus.getStatusLineCompact()</span>
+            + &quot; - wait &quot; + WAIT_INTERVAL_SEC + &quot; sec &quot;
+<span class="nc" id="L308">            + &quot;(max. &quot; + props.getBundleStatusWaitLimitSec() + &quot; sec) ...&quot;);</span>
+<span class="nc" id="L309">        sleep(WAIT_INTERVAL_SEC);</span>
+<span class="nc" id="L310">        instanceReady = false;</span>
+      }
+
+      // check if any of the blacklisted bundles is still present
+<span class="nc bnc" id="L314" title="All 2 branches missed.">      if (instanceReady) {</span>
+<span class="nc bnc" id="L315" title="All 2 branches missed.">        for (Pattern blacklistBundleNamePattern : props.getBundleStatusBlacklistBundleNames()) {</span>
+<span class="nc" id="L316">          String bundleSymbolicName = bundleStatus.getMatchingBundle(blacklistBundleNamePattern);</span>
+<span class="nc bnc" id="L317" title="All 2 branches missed.">          if (bundleSymbolicName != null) {</span>
+<span class="nc" id="L318">            log.info(&quot;Bundle '&quot; + bundleSymbolicName + &quot;' is still deployed &quot;</span>
+                + &quot; - wait &quot; + WAIT_INTERVAL_SEC + &quot; sec &quot;
+<span class="nc" id="L320">                + &quot;(max. &quot; + props.getBundleStatusWaitLimitSec() + &quot; sec) ...&quot;);</span>
+<span class="nc" id="L321">            sleep(WAIT_INTERVAL_SEC);</span>
+<span class="nc" id="L322">            instanceReady = false;</span>
+<span class="nc" id="L323">            break;</span>
+          }
+<span class="nc" id="L325">        }</span>
+      }
+
+      // instance is ready
+<span class="nc bnc" id="L329" title="All 2 branches missed.">      if (instanceReady) {</span>
+<span class="nc" id="L330">        break;</span>
+      }
+    }
+<span class="nc" id="L333">  }</span>
+
+  private void sleep(int sec) {
+    try {
+<span class="nc" id="L337">      Thread.sleep(sec * DateUtils.MILLIS_PER_SECOND);</span>
+    }
+<span class="nc" id="L339">    catch (InterruptedException e) {</span>
+      // ignore
+<span class="nc" id="L341">    }</span>
+<span class="nc" id="L342">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>XmlI18nReader.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">i18n Maven Plugin</a> &gt; <a href="index.source.html" class="el_package">io.wcm.maven.plugins.i18n.readers</a> &gt; <span class="el_source">XmlI18nReader.java</span></div><h1>XmlI18nReader.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.maven.plugins.i18n.readers;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
+
+/**
+ * Reads i18n resources from XML files.
+ */
+<span class="fc" id="L36">public class XmlI18nReader implements I18nReader {</span>
+
+  @Override
+  public Map&lt;String, String&gt; read(File sourceFile) throws IOException {
+    try {
+<span class="fc" id="L41">      SAXBuilder builder = new SAXBuilder();</span>
+<span class="fc" id="L42">      Document doc = builder.build(sourceFile);</span>
+<span class="fc" id="L43">      Map&lt;String, String&gt; map = new HashMap&lt;String, String&gt;();</span>
+<span class="fc" id="L44">      parseXml(doc.getRootElement(), map, &quot;&quot;);</span>
+<span class="fc" id="L45">      return map;</span>
+    }
+<span class="nc" id="L47">    catch (JDOMException ex) {</span>
+<span class="nc" id="L48">      throw new IOException(&quot;Unable to read XML from &quot; + sourceFile.getAbsolutePath(), ex);</span>
+    }
+  }
+
+  private void parseXml(Element node, Map&lt;String, String&gt; map, String prefix) {
+<span class="fc" id="L53">    List&lt;Element&gt; children = node.getChildren();</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">    for (Element child : children) {</span>
+<span class="fc" id="L55">      String key = child.getName();</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">      if (child.getChildren().size() &gt; 0) {</span>
+<span class="fc" id="L57">        parseXml(child, map, prefix + key + &quot;.&quot;);</span>
+      }
+      else {
+<span class="fc" id="L60">        map.put(prefix + key, child.getText());</span>
+      }
+<span class="fc" id="L62">    }</span>
+<span class="fc" id="L63">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

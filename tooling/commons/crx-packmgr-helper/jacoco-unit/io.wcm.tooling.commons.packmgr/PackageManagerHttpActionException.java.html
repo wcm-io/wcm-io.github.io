@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PackageManagerHttpActionException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CRX Package Manager Helper</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.packmgr</a> &gt; <span class="el_source">PackageManagerHttpActionException.java</span></div><h1>PackageManagerHttpActionException.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2017 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.packmgr;
+
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.StatusLine;
+import org.json.JSONException;
+
+/**
+ * Exception during package manager HTTP actions.
+ */
+public final class PackageManagerHttpActionException extends RuntimeException {
+  private static final long serialVersionUID = 1L;
+
+  /**
+   * @param message Message
+   * @param cause Cause
+   */
+  public PackageManagerHttpActionException(String message, Throwable cause) {
+<span class="nc" id="L40">    super(message, cause);</span>
+<span class="nc" id="L41">  }</span>
+
+  /**
+   * @param message Message
+   */
+  public PackageManagerHttpActionException(String message) {
+<span class="nc" id="L47">    super(message);</span>
+<span class="nc" id="L48">  }</span>
+
+  /**
+   * Create exception instance for I/O exception.
+   * @param url HTTP url called
+   * @param ex I/O exception
+   * @return Exception instance
+   */
+  @SuppressWarnings(&quot;PMD.UseStringBufferForStringAppends&quot;)
+  public static PackageManagerHttpActionException forIOException(String url, IOException ex) {
+<span class="nc" id="L58">    String message = &quot;HTTP call to &quot; + url + &quot; failed: &quot;</span>
+<span class="nc" id="L59">        + StringUtils.defaultString(ex.getMessage(), ex.getClass().getSimpleName());</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">    if (ex instanceof SocketTimeoutException) {</span>
+<span class="nc" id="L61">      message += &quot; (consider to increase the socket timeout using -Dvault.httpSocketTimeoutSec)&quot;;</span>
+    }
+<span class="nc" id="L63">    return new PackageManagerHttpActionException(message, ex);</span>
+  }
+
+  /**
+   * Create exception instance for JSON exception.
+   * @param url HTTP url called
+   * @param responseString Response string
+   * @param ex JSON exception
+   * @return Exception instance
+   */
+  @SuppressWarnings(&quot;PMD.UseStringBufferForStringAppends&quot;)
+  public static PackageManagerHttpActionException forJSONException(String url,
+      String responseString, JSONException ex) {
+<span class="nc" id="L76">    String message = &quot;HTTP call to &quot; + url + &quot; failed: JSON parse failure - &quot;</span>
+<span class="nc" id="L77">        + ex.getMessage() + &quot;\n&quot;</span>
+<span class="nc" id="L78">        + StringUtils.abbreviate(responseString, 200);</span>
+<span class="nc" id="L79">    return new PackageManagerHttpActionException(message, ex);</span>
+  }
+
+  /**
+   * Create exception instance for I/O exception.
+   * @param url HTTP url called
+   * @param statusLine HTTP status line
+   * @param responseString Response string or null
+   * @return Exception instance
+   */
+  public static PackageManagerHttpActionException forHttpError(String url, StatusLine statusLine,
+      String responseString) {
+<span class="nc" id="L91">    String message = &quot;HTTP call to &quot; + url + &quot; failed with status &quot; + statusLine.getStatusCode()</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        + &quot; &quot; + statusLine.getReasonPhrase()</span>
+        + (responseString != null ? &quot;\n&quot; + responseString : &quot;&quot;);
+<span class="nc" id="L94">    return new PackageManagerHttpActionException(message);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

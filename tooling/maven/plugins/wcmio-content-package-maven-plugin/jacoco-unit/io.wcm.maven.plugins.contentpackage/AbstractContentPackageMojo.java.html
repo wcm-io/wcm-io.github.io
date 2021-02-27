@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractContentPackageMojo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Content Package Maven Plugin</a> &gt; <a href="index.source.html" class="el_package">io.wcm.maven.plugins.contentpackage</a> &gt; <span class="el_source">AbstractContentPackageMojo.java</span></div><h1>AbstractContentPackageMojo.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.maven.plugins.contentpackage;
+
+import static io.wcm.tooling.commons.packmgr.install.VendorInstallerFactory.COMPOSUM_URL;
+import static io.wcm.tooling.commons.packmgr.install.VendorInstallerFactory.CRX_URL;
+
+import java.io.File;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.maven.execution.MavenSession;
+import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.settings.crypto.SettingsDecrypter;
+
+import com.google.common.collect.ImmutableList;
+
+import io.wcm.tooling.commons.packmgr.Logger;
+import io.wcm.tooling.commons.packmgr.PackageManagerProperties;
+import io.wcm.tooling.commons.packmgr.install.VendorInstallerFactory;
+
+/**
+ * Common functionality for all mojos.
+ */
+<span class="nc" id="L44">abstract class AbstractContentPackageMojo extends AbstractMojo {</span>
+
+  /**
+   * The name of the content package file to install on the target system.
+   * If not set, the primary artifact of the project is considered the content package to be installed.
+   */
+  @Parameter(property = &quot;vault.file&quot;, defaultValue = &quot;${project.build.directory}/${project.build.finalName}.zip&quot;)
+  private File packageFile;
+
+  /**
+   * &lt;p&gt;
+   * The URL of the HTTP service API of the CRX package manager.
+   * &lt;/p&gt;
+   * &lt;p&gt;
+   * See &lt;a href=
+   * &quot;http://dev.day.com/docs/en/crx/current/how_to/package_manager.html#Managing%20Packages%20on%20the%20Command%20Line&quot;
+   * &gt;CRX HTTP service Interface&lt;/a&gt; for details on this interface.
+   * &lt;/p&gt;
+   */
+  @Parameter(property = &quot;vault.serviceURL&quot;, required = true, defaultValue = &quot;http://localhost:4502/crx/packmgr/service&quot;)
+  private String serviceURL;
+
+  /**
+   * The user name to authenticate as against the remote CRX system (package manager).
+   */
+  @Parameter(property = &quot;vault.userId&quot;, required = true, defaultValue = &quot;admin&quot;)
+  private String userId;
+
+  /**
+   * The password to authenticate against the remote CRX system (package manager).
+   */
+  @Parameter(property = &quot;vault.password&quot;, required = true, defaultValue = &quot;admin&quot;)
+  private String password;
+
+  /**
+   * The user name to authenticate as against the remote CRX system (Felix console).
+   * Defaults to the value from &lt;code&gt;userId&lt;/code&gt;.
+   */
+  @Parameter(property = &quot;console.userId&quot;)
+  private String consoleUserId;
+
+  /**
+   * The password to authenticate against the remote CRX system (Felix console).
+   * Defaults to the value from &lt;code&gt;password&lt;/code&gt;.
+   */
+  @Parameter(property = &quot;console.password&quot;)
+  private String consolePassword;
+
+  /**
+   * Set this to &quot;true&quot; to skip installing packages to CRX although configured in the POM.
+   */
+  @Parameter(property = &quot;vault.skip&quot;, defaultValue = &quot;false&quot;)
+  private boolean skip;
+
+  /**
+   * Number of times to retry upload and install via CRX HTTP interface if it fails.
+   */
+  @Parameter(property = &quot;vault.retryCount&quot;, defaultValue = &quot;24&quot;)
+  private int retryCount;
+
+  /**
+   * Number of seconds between retry attempts.
+   */
+  @Parameter(property = &quot;vault.retryDelay&quot;, defaultValue = &quot;5&quot;)
+  private int retryDelay;
+
+  /**
+   * &lt;p&gt;
+   * Bundle status JSON URL. If an URL is configured the activation status of all bundles in the system is checked
+   * before it is tried to upload and install a new package and after each upload.
+   * &lt;/p&gt;
+   * &lt;p&gt;
+   * If not all packages are installed the upload is delayed up to 10 minutes, every 5 seconds the
+   * activation status is checked anew.
+   * &lt;/p&gt;
+   * &lt;p&gt;
+   * Expected is an URL like: http://localhost:4502/system/console/bundles/.json
+   * &lt;/p&gt;
+   * &lt;p&gt;
+   * If the URL is not set it is derived from serviceURL. Set to &quot;-&quot; to explicitly disable the status check.
+   * &lt;/p&gt;
+   */
+  @Parameter(property = &quot;vault.bundleStatusURL&quot;, required = false)
+  private String bundleStatusURL;
+
+  /**
+   * Number of seconds to wait as maximum for a positive bundle status check.
+   * If this limit is reached and the bundle status is still not positive the install of the package proceeds anyway.
+   */
+  @Parameter(property = &quot;vault.bundleStatusWaitLimit&quot;, defaultValue = &quot;360&quot;)
+  private int bundleStatusWaitLimit;
+
+  /**
+   * Patterns for symbolic names of bundles that are expected to be not present in bundle list.
+   * If any of these bundles are found in the bundle list, this system is assumed as not ready for installing further
+   * packages because a previous installation (e.g. of AEM service pack) is still in progress.
+   */
+  @Parameter(property = &quot;vault.bundleStatusBlacklistBundleNames&quot;, defaultValue = &quot;^updater\\.aem.*$&quot;)
+  private String[] bundleStatusBlacklistBundleNames;
+
+  /**
+   * Patterns for symbolic names of bundles that are ignored in bundle list.
+   * The state of these bundles has no effect on the bundle status check.
+   */
+  @Parameter(property = &quot;vault.bundleStatusWhitelistBundleNames&quot;,
+      defaultValue = &quot;^com\\.day\\.crx\\.crxde-support$,&quot;
+          + &quot;^com\\.adobe\\.granite\\.crx-explorer$,&quot;
+          + &quot;^com\\.adobe\\.granite\\.crxde-lite$,&quot;
+          + &quot;^org\\.apache\\.sling\\.jcr\\.webdav$,&quot;
+          + &quot;^org\\.apache\\.sling\\.jcr\\.davex$&quot;)
+  private String[] bundleStatusWhitelistBundleNames;
+
+  /**
+   * If set to true also self-signed certificates are accepted.
+   */
+  @Parameter(property = &quot;vault.relaxedSSLCheck&quot;, defaultValue = &quot;false&quot;)
+  private boolean relaxedSSLCheck;
+
+  /**
+   * HTTP connection timeout (in seconds).
+   */
+  @Parameter(property = &quot;vault.httpConnectTimeoutSec&quot;, defaultValue = &quot;10&quot;)
+  private int httpConnectTimeoutSec;
+
+  /**
+   * HTTP socket timeout (in seconds).
+   */
+  @Parameter(property = &quot;vault.httpSocketTimeoutSec&quot;, defaultValue = &quot;60&quot;)
+  private int httpSocketTimeout;
+
+  @Parameter(property = &quot;session&quot;, defaultValue = &quot;${session}&quot;, readonly = true)
+  private MavenSession session;
+
+  @Component(role = SettingsDecrypter.class)
+  private SettingsDecrypter decrypter;
+
+  protected final File getPackageFile() {
+<span class="nc" id="L181">    return this.packageFile;</span>
+  }
+
+  protected final boolean isSkip() {
+<span class="nc" id="L185">    return this.skip;</span>
+  }
+
+  protected PackageManagerProperties getPackageManagerProperties() throws MojoExecutionException {
+<span class="nc" id="L189">    PackageManagerProperties props = new PackageManagerProperties();</span>
+
+<span class="nc" id="L191">    props.setPackageManagerUrl(buildPackageManagerUrl());</span>
+<span class="nc" id="L192">    props.setUserId(this.userId);</span>
+<span class="nc" id="L193">    props.setPassword(this.password);</span>
+<span class="nc" id="L194">    props.setConsoleUserId(this.consoleUserId);</span>
+<span class="nc" id="L195">    props.setConsolePassword(this.consolePassword);</span>
+<span class="nc" id="L196">    props.setRetryCount(this.retryCount);</span>
+<span class="nc" id="L197">    props.setRetryDelaySec(this.retryDelay);</span>
+<span class="nc" id="L198">    props.setBundleStatusUrl(buildBundleStatusUrl());</span>
+<span class="nc" id="L199">    props.setBundleStatusWaitLimitSec(this.bundleStatusWaitLimit);</span>
+<span class="nc" id="L200">    props.setBundleStatusBlacklistBundleNames(ImmutableList.copyOf(this.bundleStatusBlacklistBundleNames));</span>
+<span class="nc" id="L201">    props.setBundleStatusWhitelistBundleNames(ImmutableList.copyOf(this.bundleStatusWhitelistBundleNames));</span>
+<span class="nc" id="L202">    props.setRelaxedSSLCheck(this.relaxedSSLCheck);</span>
+<span class="nc" id="L203">    props.setHttpConnectTimeoutSec(this.httpConnectTimeoutSec);</span>
+<span class="nc" id="L204">    props.setHttpSocketTimeoutSec(this.httpSocketTimeout);</span>
+<span class="nc" id="L205">    props.setProxies(ProxySupport.getMavenProxies(session, decrypter));</span>
+
+<span class="nc" id="L207">    return props;</span>
+  }
+
+  private String buildPackageManagerUrl() throws MojoExecutionException {
+<span class="nc" id="L211">    String serviceUrl = this.serviceURL;</span>
+<span class="nc bnc" id="L212" title="All 3 branches missed.">    switch (VendorInstallerFactory.identify(serviceUrl)) {</span>
+      case CRX:
+<span class="nc" id="L214">        serviceUrl = VendorInstallerFactory.getBaseUrl(serviceUrl, getLoggerWrapper()) + CRX_URL;</span>
+<span class="nc" id="L215">        break;</span>
+      case COMPOSUM:
+<span class="nc" id="L217">        serviceUrl = VendorInstallerFactory.getBaseUrl(serviceUrl, getLoggerWrapper()) + COMPOSUM_URL;</span>
+<span class="nc" id="L218">        break;</span>
+      default:
+<span class="nc" id="L220">        throw new MojoExecutionException(&quot;Unsupporte service URL: &quot; + serviceUrl);</span>
+    }
+<span class="nc" id="L222">    return serviceUrl;</span>
+  }
+
+  private String buildBundleStatusUrl() throws MojoExecutionException {
+<span class="nc bnc" id="L226" title="All 2 branches missed.">    if (StringUtils.equals(this.bundleStatusURL, &quot;-&quot;)) {</span>
+<span class="nc" id="L227">      return null;</span>
+    }
+<span class="nc bnc" id="L229" title="All 2 branches missed.">    if (this.bundleStatusURL != null) {</span>
+<span class="nc" id="L230">      return this.bundleStatusURL;</span>
+    }
+    // if not set use hostname from serviceURL and add default path to bundle status
+<span class="nc" id="L233">    String baseUrl = VendorInstallerFactory.getBaseUrl(buildPackageManagerUrl(), getLoggerWrapper());</span>
+<span class="nc" id="L234">    return baseUrl + &quot;/system/console/bundles/.json&quot;;</span>
+  }
+
+  protected Logger getLoggerWrapper() {
+<span class="nc" id="L238">    return new Logger() {</span>
+      @Override
+      public void warn(CharSequence message, Throwable t) {
+<span class="nc" id="L241">        getLog().warn(message, t);</span>
+<span class="nc" id="L242">      }</span>
+      @Override
+      public void warn(CharSequence message) {
+<span class="nc" id="L245">        getLog().warn(message);</span>
+<span class="nc" id="L246">      }</span>
+      @Override
+      public boolean isWarnEnabled() {
+<span class="nc" id="L249">        return getLog().isWarnEnabled();</span>
+      }
+      @Override
+      public boolean isInfoEnabled() {
+<span class="nc" id="L253">        return getLog().isInfoEnabled();</span>
+      }
+      @Override
+      public boolean isErrorEnabled() {
+<span class="nc" id="L257">        return getLog().isErrorEnabled();</span>
+      }
+      @Override
+      public boolean isDebugEnabled() {
+<span class="nc" id="L261">        return getLog().isDebugEnabled();</span>
+      }
+      @Override
+      public void info(CharSequence message, Throwable t) {
+<span class="nc" id="L265">        getLog().info(message, t);</span>
+<span class="nc" id="L266">      }</span>
+      @Override
+      public void info(CharSequence message) {
+<span class="nc" id="L269">        getLog().info(message);</span>
+<span class="nc" id="L270">      }</span>
+      @Override
+      public void error(CharSequence message, Throwable t) {
+<span class="nc" id="L273">        getLog().error(message, t);</span>
+<span class="nc" id="L274">      }</span>
+      @Override
+      public void error(CharSequence message) {
+<span class="nc" id="L277">        getLog().error(message);</span>
+<span class="nc" id="L278">      }</span>
+      @Override
+      public void debug(CharSequence message, Throwable t) {
+<span class="nc" id="L281">        getLog().debug(message, t);</span>
+<span class="nc" id="L282">      }</span>
+      @Override
+      public void debug(CharSequence message) {
+<span class="nc" id="L285">        getLog().debug(message);</span>
+<span class="nc" id="L286">      }</span>
+    };
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

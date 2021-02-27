@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContentPackageProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CRX Package Manager Helper</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.packmgr.util</a> &gt; <span class="el_source">ContentPackageProperties.java</span></div><h1>ContentPackageProperties.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2017 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.packmgr.util;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.TreeMap;
+
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipFile;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
+
+/**
+ * Reads package properties from AEM content package file.
+ */
+public final class ContentPackageProperties {
+
+  private static final String ZIP_ENTRY_PROPERTIES = &quot;META-INF/vault/properties.xml&quot;;
+
+  private ContentPackageProperties() {
+    // constants only
+  }
+
+  /**
+   * Get properties of AEM package.
+   * @param packageFile AEM package file.
+   * @return Map with properties or empty map if none found.
+   * @throws IOException I/O exception
+   */
+  public static Map&lt;String, Object&gt; get(File packageFile) throws IOException {
+<span class="fc" id="L56">    ZipFile zipFile = null;</span>
+    try {
+<span class="fc" id="L58">      zipFile = new ZipFile(packageFile);</span>
+<span class="fc" id="L59">      ZipArchiveEntry entry = zipFile.getEntry(ZIP_ENTRY_PROPERTIES);</span>
+<span class="pc bpc" id="L60" title="1 of 4 branches missed.">      if (entry != null &amp;&amp; !entry.isDirectory()) {</span>
+<span class="fc" id="L61">        Map&lt;String, Object&gt; props = getPackageProperties(zipFile, entry);</span>
+<span class="fc" id="L62">        return new TreeMap&lt;&gt;(transformPropertyTypes(props));</span>
+      }
+<span class="fc" id="L64">      return Collections.emptyMap();</span>
+    }
+    finally {
+<span class="fc" id="L67">      IOUtils.closeQuietly(zipFile);</span>
+    }
+  }
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  private static Map&lt;String, Object&gt; getPackageProperties(ZipFile zipFile, ZipArchiveEntry entry) throws IOException {
+<span class="fc" id="L73">    InputStream entryStream = null;</span>
+    try {
+<span class="fc" id="L75">      entryStream = zipFile.getInputStream(entry);</span>
+<span class="fc" id="L76">      Properties props = new Properties();</span>
+<span class="fc" id="L77">      props.loadFromXML(entryStream);</span>
+<span class="fc" id="L78">      return (Map)props;</span>
+    }
+    finally {
+<span class="fc" id="L81">      IOUtils.closeQuietly(entryStream);</span>
+    }
+  }
+
+  private static Map&lt;String, Object&gt; transformPropertyTypes(Map&lt;String, Object&gt; props) {
+<span class="fc" id="L86">    Map&lt;String, Object&gt; transformedProps = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">    for (Map.Entry&lt;String, Object&gt; entry : props.entrySet()) {</span>
+<span class="fc" id="L88">      transformedProps.put(entry.getKey(), transformType(entry.getValue()));</span>
+<span class="fc" id="L89">    }</span>
+<span class="fc" id="L90">    return transformedProps;</span>
+  }
+
+  /**
+   * Detects if string values are boolean or integer and transforms them to correct types.
+   * @param value Value
+   * @return Transformed value
+   */
+  private static Object transformType(Object value) {
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">    if (value == null) {</span>
+<span class="nc" id="L100">      return null;</span>
+    }
+<span class="fc" id="L102">    String valueString = value.toString();</span>
+
+    // check for boolean
+<span class="fc" id="L105">    boolean boolValue = BooleanUtils.toBoolean(valueString);</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">    if (StringUtils.equals(valueString, Boolean.toString(boolValue))) {</span>
+<span class="fc" id="L107">      return boolValue;</span>
+    }
+
+    // check for integer
+<span class="fc" id="L111">    int intValue = NumberUtils.toInt(valueString);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (StringUtils.equals(valueString, Integer.toString(intValue))) {</span>
+<span class="fc" id="L113">      return intValue;</span>
+    }
+
+<span class="fc" id="L116">    return value;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContentPackageBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">AEM Content Package Builder</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.contentpackagebuilder</a> &gt; <span class="el_source">ContentPackageBuilder.java</span></div><h1>ContentPackageBuilder.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2015 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.contentpackagebuilder;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Date;
+
+import org.apache.commons.io.IOUtils;
+
+/**
+ * Builds a {@link ContentPackage} instance with metadata.
+ * This class is not thread-safe.
+ */
+<span class="fc" id="L35">public final class ContentPackageBuilder {</span>
+
+<span class="fc" id="L37">  private final PackageMetadata metadata = new PackageMetadata();</span>
+
+  /**
+   * Set content package name.
+   * @param value Package name
+   * @return this
+   */
+  public ContentPackageBuilder name(String value) {
+<span class="fc" id="L45">    metadata.setName(value);</span>
+<span class="fc" id="L46">    return this;</span>
+  }
+
+  /**
+   * Set content package group.
+   * @param value Package group
+   * @return this
+   */
+  public ContentPackageBuilder group(String value) {
+<span class="fc" id="L55">    metadata.setGroup(value);</span>
+<span class="fc" id="L56">    return this;</span>
+  }
+
+  /**
+   * Set content package description.
+   * @param value Package description
+   * @return this
+   */
+  public ContentPackageBuilder description(String value) {
+<span class="fc" id="L65">    metadata.setDescription(value);</span>
+<span class="fc" id="L66">    return this;</span>
+  }
+
+  /**
+   * Set use name who created the package.
+   * @param value Created by user name (default: 'admin')
+   * @return this
+   */
+  public ContentPackageBuilder createdBy(String value) {
+<span class="fc" id="L75">    metadata.setCreatedBy(value);</span>
+<span class="fc" id="L76">    return this;</span>
+  }
+
+  /**
+   * Set timestamp for package creation.
+   * @param value Creation timestamp (default: now)
+   * @return this
+   */
+  public ContentPackageBuilder created(Date value) {
+<span class="nc" id="L85">    metadata.setCreated(value);</span>
+<span class="nc" id="L86">    return this;</span>
+  }
+
+  /**
+   * Set package version.
+   * @param value Package version
+   * @return this
+   */
+  public ContentPackageBuilder version(String value) {
+<span class="fc" id="L95">    metadata.setVersion(value);</span>
+<span class="fc" id="L96">    return this;</span>
+  }
+
+  /**
+   * Set access control handling.
+   * @param value Access control handling mode
+   * @return this
+   */
+  public ContentPackageBuilder acHandling(AcHandling value) {
+<span class="fc" id="L105">    metadata.setAcHandling(value);</span>
+<span class="fc" id="L106">    return this;</span>
+  }
+
+  /**
+   * Set package type.
+   * @param value Package type.
+   * @return this
+   */
+  public ContentPackageBuilder packageType(String value) {
+<span class="fc" id="L115">    metadata.setPackageType(value);</span>
+<span class="fc" id="L116">    return this;</span>
+  }
+
+  /**
+   * Set requires root status
+   * @param value Requires root status
+   * @return this
+   */
+  public ContentPackageBuilder requiresRoot(boolean value) {
+<span class="fc" id="L125">    metadata.setRequiresRoot(value);</span>
+<span class="fc" id="L126">    return this;</span>
+  }
+
+  /**
+   * Set requires restart status
+   * @param value Requires restart status
+   * @return this
+   */
+  public ContentPackageBuilder requiresRestart(boolean value) {
+<span class="fc" id="L135">    metadata.setRequiresRestart(value);</span>
+<span class="fc" id="L136">    return this;</span>
+  }
+
+  /**
+   * Set allow index definitions root status
+   * @param value allow index definitions status
+   * @return this
+   */
+  public ContentPackageBuilder allowIndexDefinitions(boolean value) {
+<span class="fc" id="L145">    metadata.setAllowIndexDefinitions(value);</span>
+<span class="fc" id="L146">    return this;</span>
+  }
+
+  /**
+   * Creates a package filter with this root path.
+   * This implicitly adds a {@link PackageFilter} with this pah and no further rules.
+   * If this is executed multiple times multiple filters are addded.
+   * @param value Root path for package
+   * @return this
+   */
+  public ContentPackageBuilder rootPath(String value) {
+<span class="fc" id="L157">    metadata.addFilter(new PackageFilter(value));</span>
+<span class="fc" id="L158">    return this;</span>
+  }
+
+  /**
+   * Add package filter.
+   * If this is executed multiple times multiple filters are added.
+   * @param value Package filter optionally with include/exclude rules.
+   * @return this
+   */
+  public ContentPackageBuilder filter(PackageFilter value) {
+<span class="fc" id="L168">    metadata.addFilter(value);</span>
+<span class="fc" id="L169">    return this;</span>
+  }
+
+  /**
+   * Add custom package metadata property.
+   * @param property Property name
+   * @param value Property value
+   * @return this
+   */
+  public ContentPackageBuilder property(String property, Object value) {
+<span class="fc" id="L179">    metadata.addProperty(property, value);</span>
+<span class="fc" id="L180">    return this;</span>
+  }
+
+  /**
+   * Register a XML namespace that is used by your content added to the JCR XML.
+   * This method can be called multiple times to register multiple namespaces.
+   * The JCR namespaces &quot;jcr&quot;, &quot;nt&quot;, &quot;cq&quot; and &quot;sling&quot; are registered by default.
+   * @param prefix Namespace prefix
+   * @param uri Namespace URI
+   * @return this
+   */
+  public ContentPackageBuilder xmlNamespace(String prefix, String uri) {
+<span class="fc" id="L192">    metadata.addXmlNamespace(prefix, uri);</span>
+<span class="fc" id="L193">    return this;</span>
+  }
+
+  /**
+   * Set thumbnail PNG image.
+   * @param is Input stream with Thumbnail PNG image binary data
+   * @return this
+   * @throws IOException I/O exception
+   */
+  public ContentPackageBuilder thumbnailImage(InputStream is) throws IOException {
+<span class="fc" id="L203">    metadata.setThumbnailImage(IOUtils.toByteArray(is));</span>
+<span class="fc" id="L204">    return this;</span>
+  }
+
+  /**
+   * Build {@link ContentPackage} to which additional content (Pages or binary files) can be added.
+   * Please make sure you call the {@link ContentPackage#close()} method when all content was added.
+   * @param outputStream Output stream
+   * @return Content package
+   * @throws IOException I/O exception
+   */
+  public ContentPackage build(OutputStream outputStream) throws IOException {
+<span class="fc" id="L215">    return new ContentPackage(metadata, outputStream);</span>
+  }
+
+  /**
+   * Build {@link ContentPackage} to which additional content (Pages or binary files) can be added.
+   * Please make sure you call the {@link ContentPackage#close()} method when all content was added.
+   * @param file Output file
+   * @return Content package
+   * @throws IOException I/O exception
+   */
+  public ContentPackage build(File file) throws IOException {
+<span class="fc" id="L226">    return build(new FileOutputStream(file));</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

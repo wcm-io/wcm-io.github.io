@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PackageFile.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CRX Package Manager Helper</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.packmgr.install</a> &gt; <span class="el_source">PackageFile.java</span></div><h1>PackageFile.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.packmgr.install;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+
+import io.wcm.tooling.commons.packmgr.util.ContentPackageProperties;
+
+/**
+ * References a content package file for uploading.
+ */
+<span class="nc" id="L33">public final class PackageFile {</span>
+
+  private File file;
+  private int delayAfterInstallSec;
+<span class="nc" id="L37">  private boolean install = true;</span>
+  private Boolean force;
+<span class="nc" id="L39">  private boolean recursive = true;</span>
+  private Integer httpSocketTimeoutSec;
+
+  private static final int DEFAULT_DELAY_AFTER_CONTAINER_PACKAGE_SEC = 3;
+
+  /**
+   * Content package file.
+   * @return File
+   */
+  public File getFile() {
+<span class="nc" id="L49">    return this.file;</span>
+  }
+
+  public void setFile(File file) {
+<span class="nc" id="L53">    this.file = file;</span>
+<span class="nc" id="L54">  }</span>
+
+  /**
+   * Delay further steps after package installation by this amount of seconds
+   * @return Delay time
+   */
+  public int getDelayAfterInstallSec() {
+<span class="nc" id="L61">    return this.delayAfterInstallSec;</span>
+  }
+
+  public void setDelayAfterInstallSec(int delayAfterInstallSec) {
+<span class="nc" id="L65">    this.delayAfterInstallSec = delayAfterInstallSec;</span>
+<span class="nc" id="L66">  }</span>
+
+  /**
+   * If not delay was configured try to detect a sensible default value:
+   * A few secs for container/mixed packages, 0 sec for others.
+   */
+  public void setDelayAfterInstallSecAutoDetect() {
+    try {
+<span class="nc" id="L74">      Map&lt;String, Object&gt; props = ContentPackageProperties.get(file);</span>
+<span class="nc" id="L75">      String packageType = StringUtils.defaultString((String)props.get(&quot;packageType&quot;), &quot;content&quot;);</span>
+<span class="nc bnc" id="L76" title="All 4 branches missed.">      if (StringUtils.equals(packageType, &quot;container&quot;) || StringUtils.equals(packageType, &quot;mixed&quot;)) {</span>
+<span class="nc" id="L77">        this.delayAfterInstallSec = DEFAULT_DELAY_AFTER_CONTAINER_PACKAGE_SEC;</span>
+      }
+    }
+<span class="nc" id="L80">    catch (IOException ex) {</span>
+      // ignore
+<span class="nc" id="L82">    }</span>
+<span class="nc" id="L83">  }</span>
+
+  /**
+   * Whether to install (unpack) the uploaded package automatically or not.
+   * @return Install/unpack
+   */
+  public boolean isInstall() {
+<span class="nc" id="L90">    return this.install;</span>
+  }
+
+  public void setInstall(boolean install) {
+<span class="nc" id="L94">    this.install = install;</span>
+<span class="nc" id="L95">  }</span>
+
+  /**
+   * Force upload and install of content package. If set to false a package is not uploaded or installed
+   * if it was already uploaded before.
+   * @return Force
+   */
+  public boolean isForce() {
+    // if no force parameter was set auto-detect best-matching force mode from file name
+<span class="nc bnc" id="L104" title="All 2 branches missed.">    if (this.force == null) {</span>
+<span class="nc" id="L105">      return StringUtils.contains(file.getName(), &quot;-SNAPSHOT&quot;);</span>
+    }
+<span class="nc" id="L107">    return this.force;</span>
+  }
+
+  public void setForce(Boolean force) {
+<span class="nc" id="L111">    this.force = force;</span>
+<span class="nc" id="L112">  }</span>
+
+  // keep signature for backwards compatibility
+  public void setForce(boolean force) {
+<span class="nc" id="L116">    this.force = force;</span>
+<span class="nc" id="L117">  }</span>
+
+  /**
+   * If set to true nested packages get installed as well.
+   * @return Recursive
+   */
+  public boolean isRecursive() {
+<span class="nc" id="L124">    return this.recursive;</span>
+  }
+
+  public void setRecursive(boolean recursive) {
+<span class="nc" id="L128">    this.recursive = recursive;</span>
+<span class="nc" id="L129">  }</span>
+
+  /**
+   * HTTP socket timeout (in seconds).
+   * @return Timeout
+   */
+  public Integer getHttpSocketTimeoutSec() {
+<span class="nc" id="L136">    return this.httpSocketTimeoutSec;</span>
+  }
+
+  public void setHttpSocketTimeoutSec(Integer httpSocketTimeoutSec) {
+<span class="nc" id="L140">    this.httpSocketTimeoutSec = httpSocketTimeoutSec;</span>
+<span class="nc" id="L141">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BundleStatus.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CRX Package Manager Helper</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.packmgr.httpaction</a> &gt; <span class="el_source">BundleStatus.java</span></div><h1>BundleStatus.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.packmgr.httpaction;
+
+import java.util.Set;
+import java.util.regex.Pattern;
+
+/**
+ * Wrapper for Status summary from Web Console Bundles Status info JSON.
+ */
+public final class BundleStatus {
+
+  private final String statusLine;
+  private final int total;
+  private final int active;
+  private final int activeFragment;
+  private final int resolved;
+  private final int installed;
+  private final int ignored;
+  private final Set&lt;String&gt; bundleSymbolicNames;
+
+  BundleStatus(String statusLine, int total, int active, int activeFragment,
+      int resolved, int installed, int ignored,
+<span class="fc" id="L41">      Set&lt;String&gt; bundleSymbolicNames) {</span>
+<span class="fc" id="L42">    this.statusLine = statusLine;</span>
+<span class="fc" id="L43">    this.total = total;</span>
+<span class="fc" id="L44">    this.active = active;</span>
+<span class="fc" id="L45">    this.activeFragment = activeFragment;</span>
+<span class="fc" id="L46">    this.resolved = resolved;</span>
+<span class="fc" id="L47">    this.installed = installed;</span>
+<span class="fc" id="L48">    this.ignored = ignored;</span>
+<span class="fc" id="L49">    this.bundleSymbolicNames = bundleSymbolicNames;</span>
+<span class="fc" id="L50">  }</span>
+
+  /**
+   * @return Status Line from JSON string
+   * @deprecated Please use {@link #getStatusLineCompact()}
+   */
+  @Deprecated
+  public String getStatusLine() {
+<span class="nc" id="L58">    return this.statusLine;</span>
+  }
+
+  /**
+   * @return Compact version of status line.
+   */
+  public String getStatusLineCompact() {
+<span class="fc" id="L65">    StringBuilder sb = new StringBuilder();</span>
+<span class="fc" id="L66">    sb.append(total).append(&quot; total&quot;);</span>
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">    if (active &gt; 0) {</span>
+<span class="fc" id="L68">      sb.append(&quot;, &quot;).append(active).append(&quot; active&quot;);</span>
+    }
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">    if (activeFragment &gt; 0) {</span>
+<span class="fc" id="L71">      sb.append(&quot;, &quot;).append(activeFragment).append(&quot; fragment&quot;);</span>
+    }
+<span class="fc bfc" id="L73" title="All 2 branches covered.">    if (resolved &gt; 0) {</span>
+<span class="fc" id="L74">      sb.append(&quot;, &quot;).append(resolved).append(&quot; resolved&quot;);</span>
+    }
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">    if (installed &gt; 0) {</span>
+<span class="nc" id="L77">      sb.append(&quot;, &quot;).append(installed).append(&quot; installed&quot;);</span>
+    }
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    if (ignored &gt; 0) {</span>
+<span class="fc" id="L80">      sb.append(&quot;, &quot;).append(ignored).append(&quot; ignored&quot;);</span>
+    }
+<span class="fc" id="L82">    return sb.toString();</span>
+  }
+
+  public int getTotal() {
+<span class="fc" id="L86">    return this.total;</span>
+  }
+
+  public int getActive() {
+<span class="fc" id="L90">    return this.active;</span>
+  }
+
+  public int getActiveFragment() {
+<span class="fc" id="L94">    return this.activeFragment;</span>
+  }
+
+  public int getResolved() {
+<span class="fc" id="L98">    return this.resolved;</span>
+  }
+
+  public int getInstalled() {
+<span class="fc" id="L102">    return this.installed;</span>
+  }
+
+  public int getIgnored() {
+<span class="fc" id="L106">    return ignored;</span>
+  }
+
+  /**
+   * @return true if no bundles are in &quot;installed&quot; or &quot;resolved&quot; state.
+   */
+  public boolean isAllBundlesRunning() {
+<span class="fc bfc" id="L113" title="All 2 branches covered.">    return getInstalled() + getResolved() == 0;</span>
+  }
+
+  /**
+   * @param symbolicName Bundle symbolic name
+   * @return true if the given bundle is contained in the bundle list
+   */
+  public boolean containsBundle(String symbolicName) {
+<span class="fc" id="L121">    return bundleSymbolicNames.contains(symbolicName);</span>
+  }
+
+  /**
+   * Checks if a bundle with the given pattern exists in the bundle list.
+   * @param symbolicNamePattern Bundle symbolic name pattern
+   * @return Bundle name if a bundle was found, null otherwise
+   */
+  public String getMatchingBundle(Pattern symbolicNamePattern) {
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">    for (String bundleSymbolicName : bundleSymbolicNames) {</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">      if (symbolicNamePattern.matcher(bundleSymbolicName).matches()) {</span>
+<span class="fc" id="L132">        return bundleSymbolicName;</span>
+      }
+<span class="fc" id="L134">    }</span>
+<span class="nc" id="L135">    return null;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

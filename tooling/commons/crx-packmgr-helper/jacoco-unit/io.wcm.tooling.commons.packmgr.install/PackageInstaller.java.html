@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PackageInstaller.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CRX Package Manager Helper</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.packmgr.install</a> &gt; <span class="el_source">PackageInstaller.java</span></div><h1>PackageInstaller.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2017 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.packmgr.install;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Collection;
+
+import org.apache.http.impl.client.CloseableHttpClient;
+
+import io.wcm.tooling.commons.packmgr.Logger;
+import io.wcm.tooling.commons.packmgr.PackageManagerException;
+import io.wcm.tooling.commons.packmgr.PackageManagerHelper;
+import io.wcm.tooling.commons.packmgr.PackageManagerProperties;
+
+/**
+ * Installs a list of AEM content packages via Package Manager.
+ */
+public final class PackageInstaller {
+
+  private final PackageManagerProperties props;
+  private final PackageManagerHelper pkgmgr;
+  private final Logger log;
+
+  /**
+   * @param props Package manager configuration properties.
+   * @param log Logger
+   */
+<span class="nc" id="L46">  public PackageInstaller(PackageManagerProperties props, Logger log) {</span>
+<span class="nc" id="L47">    this.props = props;</span>
+<span class="nc" id="L48">    this.pkgmgr = new PackageManagerHelper(props, log);</span>
+<span class="nc" id="L49">    this.log = log;</span>
+<span class="nc" id="L50">  }</span>
+
+  /**
+   * Deploy files via package manager.
+   * @param packageFiles AEM content packages
+   */
+  public void installFiles(Collection&lt;PackageFile&gt; packageFiles) {
+<span class="nc bnc" id="L57" title="All 2 branches missed.">    for (PackageFile packageFile : packageFiles) {</span>
+<span class="nc" id="L58">      installFile(packageFile);</span>
+<span class="nc" id="L59">    }</span>
+<span class="nc" id="L60">  }</span>
+
+  /**
+   * Deploy file via package manager.
+   * @param packageFile AEM content package
+   */
+  @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
+  public void installFile(PackageFile packageFile) {
+<span class="nc" id="L68">    File file = packageFile.getFile();</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">    if (!file.exists()) {</span>
+<span class="nc" id="L70">      throw new PackageManagerException(&quot;File does not exist: &quot; + file.getAbsolutePath());</span>
+    }
+
+<span class="nc" id="L73">    try (CloseableHttpClient packageManagerHttpClient = pkgmgr.getPackageManagerHttpClient();</span>
+<span class="nc" id="L74">        CloseableHttpClient consoleHttpClient = pkgmgr.getConsoleHttpClient()) {</span>
+
+      // before install: if bundles are still stopping/starting, wait for completion
+<span class="nc" id="L77">      pkgmgr.waitForBundlesActivation(consoleHttpClient);</span>
+
+<span class="nc bnc" id="L79" title="All 2 branches missed.">      if (packageFile.isInstall()) {</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        log.info(&quot;Upload and install &quot; + (packageFile.isForce() ? &quot;(force) &quot; : &quot;&quot;) + file.getName() + &quot; to &quot; + props.getPackageManagerUrl());</span>
+      }
+      else {
+<span class="nc" id="L83">        log.info(&quot;Upload &quot; + file.getName() + &quot; to &quot; + props.getPackageManagerUrl());</span>
+      }
+
+<span class="nc" id="L86">      VendorPackageInstaller installer = VendorInstallerFactory.getPackageInstaller(props.getPackageManagerUrl());</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">      if (installer != null) {</span>
+<span class="nc" id="L88">        installer.installPackage(packageFile, pkgmgr, packageManagerHttpClient, consoleHttpClient, props, log);</span>
+      }
+    }
+<span class="nc" id="L91">    catch (IOException ex) {</span>
+<span class="nc" id="L92">      throw new PackageManagerException(&quot;Install operation failed.&quot;, ex);</span>
+<span class="nc" id="L93">    }</span>
+<span class="nc" id="L94">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

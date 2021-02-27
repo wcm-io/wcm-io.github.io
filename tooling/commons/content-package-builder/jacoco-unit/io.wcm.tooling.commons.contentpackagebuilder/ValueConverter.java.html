@@ -1,0 +1,495 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ValueConverter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">AEM Content Package Builder</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.contentpackagebuilder</a> &gt; <span class="el_source">ValueConverter.java</span></div><h1>ValueConverter.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2015 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.contentpackagebuilder;
+
+import java.io.InputStream;
+import java.lang.reflect.Array;
+import java.math.BigDecimal;
+import java.net.URI;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.UUID;
+
+import javax.jcr.Binary;
+import javax.jcr.Item;
+import javax.jcr.ItemVisitor;
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.PropertyDefinition;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.util.ISO8601;
+import org.apache.jackrabbit.vault.util.DocViewProperty;
+
+/**
+ * Converts an value to string for a content property in XML including type prefix.
+ */
+<span class="fc" id="L50">final class ValueConverter {</span>
+
+  static final String PN_PRIVILEGES = &quot;rep:privileges&quot;;
+
+  /**
+   * Converts an object to a string representation.
+   * Supported are String, Boolean, Integer, Long, Double, BigDecimal, Date, Calendar and arrays of them.
+   * @param value value
+   * @return Converted value
+   */
+  public String toString(String propertyName, Object value) {
+<span class="fc bfc" id="L61" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L62">      return &quot;&quot;;</span>
+    }
+
+    Value[] values;
+<span class="fc" id="L66">    boolean multiple = value.getClass().isArray();</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">    if (multiple) {</span>
+<span class="fc" id="L68">      values = new Value[Array.getLength(value)];</span>
+<span class="fc" id="L69">      int lastPropertyType = PropertyType.UNDEFINED;</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">      for (int i = 0; i &lt; values.length; i++) {</span>
+<span class="fc" id="L71">        values[i] = toValue(propertyName, Array.get(value, i));</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        if (lastPropertyType == PropertyType.UNDEFINED) {</span>
+<span class="fc" id="L73">          lastPropertyType = values[i].getType();</span>
+        }
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">        else if (lastPropertyType != values[i].getType()) {</span>
+<span class="nc" id="L76">          throw new RuntimeException(&quot;Mixing different value types within array not allowed: &quot; +</span>
+<span class="nc" id="L77">              PropertyType.nameFromValue(lastPropertyType) + &quot;, &quot; + PropertyType.nameFromValue(values[i].getType())</span>
+              + &quot;, propertyName=&quot; + propertyName + &quot;, value=&quot; + value);
+        }
+      }
+<span class="fc" id="L81">    }</span>
+    else {
+<span class="fc" id="L83">      values = new Value[] { toValue(propertyName, value) };</span>
+    }
+
+<span class="fc" id="L86">    Property prop = new MockProperty(propertyName, multiple, values);</span>
+    try {
+<span class="fc" id="L88">      return DocViewProperty.format(prop);</span>
+    }
+<span class="nc" id="L90">    catch (RepositoryException ex) {</span>
+<span class="nc" id="L91">      throw new RuntimeException(&quot;Unable to format property value (&quot; + propertyName + &quot;): &quot; + value, ex);</span>
+    }
+  }
+
+  private Value toValue(String propertyName, Object value) {
+<span class="fc bfc" id="L96" title="All 2 branches covered.">    if (value instanceof String) {</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">      if (StringUtils.equals(propertyName, PN_PRIVILEGES)) {</span>
+<span class="fc" id="L98">        return new MockValue(value.toString(), PropertyType.NAME);</span>
+      }
+      else {
+<span class="fc" id="L101">        return new MockValue(value.toString(), PropertyType.STRING);</span>
+      }
+    }
+<span class="fc bfc" id="L104" title="All 2 branches covered.">    if (value instanceof Boolean) {</span>
+<span class="fc" id="L105">      return new MockValue(((Boolean)value).toString(), PropertyType.BOOLEAN);</span>
+    }
+<span class="fc bfc" id="L107" title="All 4 branches covered.">    if (value instanceof Integer || value instanceof Long) {</span>
+<span class="fc" id="L108">      return new MockValue(Long.toString(((Number)value).longValue()), PropertyType.LONG);</span>
+    }
+<span class="pc bpc" id="L110" title="1 of 4 branches missed.">    if (value instanceof Float || value instanceof Double) {</span>
+<span class="fc" id="L111">      return new MockValue(Double.toString(((Number)value).doubleValue()), PropertyType.DECIMAL);</span>
+    }
+<span class="fc bfc" id="L113" title="All 2 branches covered.">    if (value instanceof BigDecimal) {</span>
+<span class="fc" id="L114">      return new MockValue(((BigDecimal)value).toString(), PropertyType.DECIMAL);</span>
+    }
+<span class="fc bfc" id="L116" title="All 2 branches covered.">    if (value instanceof Date) {</span>
+<span class="fc" id="L117">      Calendar calendar = Calendar.getInstance();</span>
+<span class="fc" id="L118">      calendar.setTime((Date)value);</span>
+<span class="fc" id="L119">      return new MockValue(ISO8601.format(calendar), PropertyType.DATE);</span>
+    }
+<span class="fc bfc" id="L121" title="All 2 branches covered.">    if (value instanceof Calendar) {</span>
+<span class="fc" id="L122">      return new MockValue(ISO8601.format((Calendar)value), PropertyType.DATE);</span>
+    }
+<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (value instanceof UUID) {</span>
+<span class="fc" id="L125">      return new MockValue(((UUID)value).toString(), PropertyType.REFERENCE);</span>
+    }
+<span class="fc bfc" id="L127" title="All 2 branches covered.">    if (value instanceof URI) {</span>
+<span class="fc" id="L128">      return new MockValue(((URI)value).toString(), PropertyType.URI);</span>
+    }
+<span class="fc" id="L130">    throw new IllegalArgumentException(&quot;Type not supported: &quot; + value.getClass().getName());</span>
+  }
+
+
+  /**
+   * Mock implementations of JCR property and value to be handed over to {@link DocViewProperty#format(Property)}
+   * method.
+   */
+  private static class MockProperty implements Property, PropertyDefinition {
+
+    private final String name;
+    private final boolean multiple;
+    private final Value[] values;
+
+<span class="fc" id="L144">    MockProperty(String name, boolean multiple, Value[] values) {</span>
+<span class="fc" id="L145">      this.name = name;</span>
+<span class="fc" id="L146">      this.multiple = multiple;</span>
+<span class="fc" id="L147">      this.values = values;</span>
+<span class="fc" id="L148">    }</span>
+
+    @Override
+    public String getName() {
+<span class="fc" id="L152">      return name;</span>
+    }
+
+    @Override
+    public int getType() {
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">      if (values.length &gt; 0) {</span>
+<span class="fc" id="L158">        return values[0].getType();</span>
+      }
+<span class="nc" id="L160">      return PropertyType.UNDEFINED;</span>
+    }
+
+    @Override
+    public boolean isMultiple() {
+<span class="fc" id="L165">      return multiple;</span>
+    }
+
+    @Override
+    public Value getValue() throws ValueFormatException {
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">      if (multiple) {</span>
+<span class="nc" id="L171">        throw new ValueFormatException(&quot;Property is multiple.&quot;);</span>
+      }
+<span class="fc" id="L173">      return values[0];</span>
+    }
+
+    @Override
+    public Value[] getValues() throws ValueFormatException {
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">      if (!multiple) {</span>
+<span class="nc" id="L179">        throw new ValueFormatException(&quot;Property is not multiple.&quot;);</span>
+      }
+<span class="fc" id="L181">      return values;</span>
+    }
+
+    @Override
+    public PropertyDefinition getDefinition() {
+<span class="fc" id="L186">      return this;</span>
+    }
+
+
+    // -- unsupported methods --
+
+    @Override
+    public String getPath() {
+<span class="nc" id="L194">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Item getAncestor(int depth) {
+<span class="nc" id="L199">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Node getParent() {
+<span class="nc" id="L204">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public int getDepth() {
+<span class="nc" id="L209">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Session getSession() {
+<span class="nc" id="L214">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isNode() {
+<span class="nc" id="L219">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isNew() {
+<span class="nc" id="L224">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isModified() {
+<span class="nc" id="L229">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isSame(Item otherItem) {
+<span class="nc" id="L234">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void accept(ItemVisitor visitor) {
+<span class="nc" id="L239">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void save() {
+<span class="nc" id="L244">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void refresh(boolean keepChanges) {
+<span class="nc" id="L249">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void remove() {
+<span class="nc" id="L254">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(Value value) {
+<span class="nc" id="L259">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(Value[] value) {
+<span class="nc" id="L264">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(String value) {
+<span class="nc" id="L269">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(String[] value) {
+<span class="nc" id="L274">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(InputStream value) {
+<span class="nc" id="L279">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(Binary value) {
+<span class="nc" id="L284">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(long value) {
+<span class="nc" id="L289">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(double value) {
+<span class="nc" id="L294">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(BigDecimal value) {
+<span class="nc" id="L299">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(Calendar value) {
+<span class="nc" id="L304">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(boolean value) {
+<span class="nc" id="L309">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(Node value) {
+<span class="nc" id="L314">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public String getString() {
+<span class="nc" id="L319">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public InputStream getStream() {
+<span class="nc" id="L324">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Binary getBinary() {
+<span class="nc" id="L329">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public long getLong() {
+<span class="nc" id="L334">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public double getDouble() {
+<span class="nc" id="L339">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public BigDecimal getDecimal() {
+<span class="nc" id="L344">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Calendar getDate() {
+<span class="nc" id="L349">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean getBoolean() {
+<span class="nc" id="L354">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Node getNode() {
+<span class="nc" id="L359">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Property getProperty() {
+<span class="nc" id="L364">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public long getLength() {
+<span class="nc" id="L369">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public long[] getLengths() {
+<span class="nc" id="L374">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public NodeType getDeclaringNodeType() {
+<span class="nc" id="L379">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isAutoCreated() {
+<span class="nc" id="L384">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isMandatory() {
+<span class="nc" id="L389">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public int getOnParentVersion() {
+<span class="nc" id="L394">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isProtected() {
+<span class="nc" id="L399">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public int getRequiredType() {
+<span class="nc" id="L404">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public String[] getValueConstraints() {
+<span class="nc" id="L409">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Value[] getDefaultValues() {
+<span class="nc" id="L414">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public String[] getAvailableQueryOperators() {
+<span class="nc" id="L419">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isFullTextSearchable() {
+<span class="nc" id="L424">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isQueryOrderable() {
+<span class="nc" id="L429">      throw new UnsupportedOperationException();</span>
+    }
+
+  }
+
+  private static class MockValue implements Value {
+
+    private final String value;
+    private final int type;
+
+<span class="fc" id="L439">    MockValue(String value, int type) {</span>
+<span class="fc" id="L440">      this.value = value;</span>
+<span class="fc" id="L441">      this.type = type;</span>
+<span class="fc" id="L442">    }</span>
+
+    @Override
+    public String getString() throws ValueFormatException, IllegalStateException, RepositoryException {
+<span class="fc" id="L446">      return value;</span>
+    }
+
+    @Override
+    public int getType() {
+<span class="fc" id="L451">      return type;</span>
+    }
+
+
+    // -- unsupported methods --
+
+    @Override
+    public InputStream getStream() {
+<span class="nc" id="L459">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Binary getBinary() {
+<span class="nc" id="L464">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public long getLong() {
+<span class="nc" id="L469">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public double getDouble() {
+<span class="nc" id="L474">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public BigDecimal getDecimal() {
+<span class="nc" id="L479">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Calendar getDate() {
+<span class="nc" id="L484">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean getBoolean() {
+<span class="nc" id="L489">      throw new UnsupportedOperationException();</span>
+    }
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

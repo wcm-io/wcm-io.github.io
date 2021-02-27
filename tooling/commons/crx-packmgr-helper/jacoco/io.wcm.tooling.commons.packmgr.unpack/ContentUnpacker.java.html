@@ -1,0 +1,857 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContentUnpacker.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CRX Package Manager Helper</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.packmgr.unpack</a> &gt; <span class="el_source">ContentUnpacker.java</span></div><h1>ContentUnpacker.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.packmgr.unpack;
+
+import static org.apache.jackrabbit.vault.util.Constants.DOT_CONTENT_XML;
+import static org.apache.jackrabbit.vault.util.Constants.ROOT_DIR;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import javax.jcr.Binary;
+import javax.jcr.Item;
+import javax.jcr.ItemVisitor;
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.PropertyDefinition;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipFile;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.util.ISO8601;
+import org.apache.jackrabbit.vault.util.DocViewProperty;
+import org.apache.jackrabbit.vault.util.PlatformNameFormat;
+import org.jdom2.Attribute;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.Namespace;
+import org.jdom2.input.SAXBuilder;
+import org.jdom2.output.Format;
+import org.jdom2.output.LineSeparator;
+import org.jdom2.output.XMLOutputter;
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.wcm.tooling.commons.packmgr.PackageManagerException;
+
+/**
+ * Manages unpacking ZIP file content applying exclude patterns.
+ */
+public final class ContentUnpacker {
+
+  private static final String MIXINS_PROPERTY = &quot;jcr:mixinTypes&quot;;
+  private static final String PRIMARYTYPE_PROPERTY = &quot;jcr:primaryType&quot;;
+<span class="fc" id="L93">  private static final Namespace JCR_NAMESPACE = Namespace.getNamespace(&quot;jcr&quot;, &quot;http://www.jcp.org/jcr/1.0&quot;);</span>
+<span class="fc" id="L94">  private static final Namespace CQ_NAMESPACE = Namespace.getNamespace(&quot;cq&quot;, &quot;http://www.day.com/jcr/cq/1.0&quot;);</span>
+<span class="fc" id="L95">  private static final Pattern FILENAME_NAMESPACE_PATTERN = Pattern.compile(&quot;^([^:]+):(.+)$&quot;);</span>
+
+  private static final SAXParserFactory SAX_PARSER_FACTORY;
+  static {
+<span class="fc" id="L99">    SAX_PARSER_FACTORY = SAXParserFactory.newInstance();</span>
+<span class="fc" id="L100">    SAX_PARSER_FACTORY.setNamespaceAware(true);</span>
+<span class="fc" id="L101">  }</span>
+
+  private final Pattern[] excludeFiles;
+  private final Pattern[] excludeNodes;
+  private final Pattern[] excludeProperties;
+  private final Pattern[] excludeMixins;
+  private final boolean markReplicationActivated;
+  private final Pattern[] markReplicationActivatedIncludeNodes;
+  private final String dateLastReplicated;
+
+  /**
+   * @param properties Configuration properties
+   */
+<span class="fc" id="L114">  public ContentUnpacker(ContentUnpackerProperties properties) {</span>
+<span class="fc" id="L115">    this.excludeFiles = toPatternArray(properties.getExcludeFiles());</span>
+<span class="fc" id="L116">    this.excludeNodes = toPatternArray(properties.getExcludeNodes());</span>
+<span class="fc" id="L117">    this.excludeProperties = toPatternArray(properties.getExcludeProperties());</span>
+<span class="fc" id="L118">    this.excludeMixins = toPatternArray(properties.getExcludeMixins());</span>
+<span class="fc" id="L119">    this.markReplicationActivated = properties.isMarkReplicationActivated();</span>
+<span class="fc" id="L120">    this.markReplicationActivatedIncludeNodes = toPatternArray(properties.getMarkReplicationActivatedIncludeNodes());</span>
+
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">    if (StringUtils.isNotBlank(properties.getDateLastReplicated())) {</span>
+<span class="nc" id="L123">      this.dateLastReplicated = properties.getDateLastReplicated();</span>
+    }
+    else {
+      // set to current date
+<span class="fc" id="L127">      Calendar cal = Calendar.getInstance();</span>
+<span class="fc" id="L128">      cal.set(Calendar.HOUR_OF_DAY, 0);</span>
+<span class="fc" id="L129">      cal.set(Calendar.MINUTE, 0);</span>
+<span class="fc" id="L130">      cal.set(Calendar.SECOND, 0);</span>
+<span class="fc" id="L131">      cal.set(Calendar.MILLISECOND, 0);</span>
+<span class="fc" id="L132">      this.dateLastReplicated = ISO8601.format(cal);</span>
+    }
+<span class="fc" id="L134">  }</span>
+
+  private static Pattern[] toPatternArray(String[] patternStrings) {
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (patternStrings == null) {</span>
+<span class="fc" id="L138">      return new Pattern[0];</span>
+    }
+<span class="fc" id="L140">    Pattern[] patterns = new Pattern[patternStrings.length];</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">    for (int i = 0; i &lt; patternStrings.length; i++) {</span>
+      try {
+<span class="fc" id="L143">        patterns[i] = Pattern.compile(patternStrings[i]);</span>
+      }
+<span class="nc" id="L145">      catch (PatternSyntaxException ex) {</span>
+<span class="nc" id="L146">        throw new PackageManagerException(&quot;Invalid regexp pattern: &quot; + patternStrings[i], ex);</span>
+<span class="fc" id="L147">      }</span>
+    }
+<span class="fc" id="L149">    return patterns;</span>
+  }
+
+  private static boolean matches(String name, Pattern[] patterns, boolean defaultIfNotPatternsDefined) {
+<span class="fc bfc" id="L153" title="All 2 branches covered.">    if (patterns.length == 0) {</span>
+<span class="fc" id="L154">      return defaultIfNotPatternsDefined;</span>
+    }
+<span class="fc bfc" id="L156" title="All 2 branches covered.">    for (Pattern pattern : patterns) {</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">      if (pattern.matcher(name).matches()) {</span>
+<span class="fc" id="L158">        return true;</span>
+      }
+    }
+<span class="fc" id="L161">    return false;</span>
+  }
+
+  private boolean applyXmlExcludes(String name) {
+<span class="pc bpc" id="L165" title="3 of 6 branches missed.">    if (this.excludeNodes.length == 0 &amp; this.excludeProperties.length == 0) {</span>
+<span class="nc" id="L166">      return false;</span>
+    }
+<span class="fc" id="L168">    return StringUtils.endsWith(name, &quot;.xml&quot;);</span>
+  }
+
+  /**
+   * Unpacks file
+   * @param file File
+   * @param outputDirectory Output directory
+   */
+  public void unpack(File file, File outputDirectory) {
+<span class="fc" id="L177">    ZipFile zipFile = null;</span>
+    try {
+<span class="fc" id="L179">      zipFile = new ZipFile(file);</span>
+<span class="fc" id="L180">      Enumeration&lt;ZipArchiveEntry&gt; entries = zipFile.getEntries();</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">      while (entries.hasMoreElements()) {</span>
+<span class="fc" id="L182">        ZipArchiveEntry entry = entries.nextElement();</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">        if (!matches(entry.getName(), excludeFiles, false)) {</span>
+<span class="fc" id="L184">          unpackEntry(zipFile, entry, outputDirectory);</span>
+        }
+<span class="fc" id="L186">      }</span>
+    }
+<span class="nc" id="L188">    catch (IOException ex) {</span>
+<span class="nc" id="L189">      throw new PackageManagerException(&quot;Error reading content package &quot; + file.getAbsolutePath(), ex);</span>
+    }
+    finally {
+<span class="fc" id="L192">      IOUtils.closeQuietly(zipFile);</span>
+    }
+<span class="fc" id="L194">  }</span>
+
+  @SuppressFBWarnings(&quot;RV_RETURN_VALUE_IGNORED_BAD_PRACTICE&quot;)
+  private void unpackEntry(ZipFile zipFile, ZipArchiveEntry entry, File outputDirectory) throws IOException {
+<span class="fc bfc" id="L198" title="All 2 branches covered.">    if (entry.isDirectory()) {</span>
+<span class="fc" id="L199">      File directory = FileUtils.getFile(outputDirectory, entry.getName());</span>
+<span class="fc" id="L200">      directory.mkdirs();</span>
+<span class="fc" id="L201">    }</span>
+    else {
+<span class="fc" id="L203">      InputStream entryStream = null;</span>
+<span class="fc" id="L204">      FileOutputStream fos = null;</span>
+      try {
+<span class="fc" id="L206">        Set&lt;String&gt; namespacePrefixes = null;</span>
+<span class="pc bpc" id="L207" title="1 of 2 branches missed.">        if (applyXmlExcludes(entry.getName())) {</span>
+<span class="fc" id="L208">          namespacePrefixes = getNamespacePrefixes(zipFile, entry);</span>
+        }
+
+<span class="fc" id="L211">        entryStream = zipFile.getInputStream(entry);</span>
+<span class="fc" id="L212">        File outputFile = FileUtils.getFile(outputDirectory, entry.getName());</span>
+<span class="pc bpc" id="L213" title="1 of 2 branches missed.">        if (outputFile.exists()) {</span>
+<span class="nc" id="L214">          outputFile.delete();</span>
+        }
+<span class="fc" id="L216">        File directory = outputFile.getParentFile();</span>
+<span class="fc" id="L217">        directory.mkdirs();</span>
+<span class="fc" id="L218">        fos = new FileOutputStream(outputFile);</span>
+<span class="pc bpc" id="L219" title="2 of 4 branches missed.">        if (applyXmlExcludes(entry.getName()) &amp;&amp; namespacePrefixes != null) {</span>
+          // write file with XML filtering
+          try {
+<span class="fc" id="L222">            writeXmlWithExcludes(entry, entryStream, fos, namespacePrefixes);</span>
+          }
+<span class="nc" id="L224">          catch (JDOMException ex) {</span>
+<span class="nc" id="L225">            throw new PackageManagerException(&quot;Unable to parse XML file: &quot; + entry.getName(), ex);</span>
+<span class="fc" id="L226">          }</span>
+        }
+        else {
+          // write file directly without XML filtering
+<span class="nc" id="L230">          IOUtils.copy(entryStream, fos);</span>
+        }
+      }
+      finally {
+<span class="fc" id="L234">        IOUtils.closeQuietly(entryStream);</span>
+<span class="fc" id="L235">        IOUtils.closeQuietly(fos);</span>
+      }
+    }
+<span class="fc" id="L238">  }</span>
+
+  /**
+   * Parses XML file with namespace-aware SAX parser to get defined namespaces prefixes in order of appearance
+   * (to keep the same order when outputting the XML file again).
+   * @param zipFile ZIP file
+   * @param entry ZIP entry
+   * @return Ordered set with namespace prefixes in correct order.
+   *         Returns null if given XML file does not contain FileVault XML content.
+   */
+  private Set&lt;String&gt; getNamespacePrefixes(ZipFile zipFile, ZipArchiveEntry entry) throws IOException {
+<span class="fc" id="L249">    try (InputStream entryStream = zipFile.getInputStream(entry)) {</span>
+<span class="fc" id="L250">      SAXParser parser = SAX_PARSER_FACTORY.newSAXParser();</span>
+<span class="fc" id="L251">      final Set&lt;String&gt; prefixes = new LinkedHashSet&lt;&gt;();</span>
+
+<span class="fc" id="L253">      final AtomicBoolean foundRootElement = new AtomicBoolean(false);</span>
+<span class="fc" id="L254">      DefaultHandler handler = new DefaultHandler() {</span>
+        @Override
+        public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
+          // validate that XML file contains FileVault XML content
+<span class="fc bfc" id="L258" title="All 4 branches covered.">          if (StringUtils.equals(uri, JCR_NAMESPACE.getURI()) &amp;&amp; StringUtils.equals(localName, &quot;root&quot;)) {</span>
+<span class="fc" id="L259">            foundRootElement.set(true);</span>
+          }
+<span class="fc" id="L261">        }</span>
+        @Override
+        public void startPrefixMapping(String prefix, String uri) throws SAXException {
+<span class="pc bpc" id="L264" title="1 of 2 branches missed.">          if (StringUtils.isNotBlank(prefix)) {</span>
+<span class="fc" id="L265">            prefixes.add(prefix);</span>
+          }
+<span class="fc" id="L267">        }</span>
+      };
+<span class="fc" id="L269">      parser.parse(entryStream, handler);</span>
+
+<span class="pc bpc" id="L271" title="1 of 2 branches missed.">      if (!foundRootElement.get()) {</span>
+<span class="nc" id="L272">        return null;</span>
+      }
+      else {
+<span class="fc" id="L275">        return prefixes;</span>
+      }
+    }
+<span class="nc" id="L278">    catch (IOException | SAXException | ParserConfigurationException ex) {</span>
+<span class="nc" id="L279">      throw new IOException(&quot;Error parsing &quot; + entry.getName(), ex);</span>
+    }
+  }
+
+  private void writeXmlWithExcludes(ZipArchiveEntry entry, InputStream inputStream, OutputStream outputStream, Set&lt;String&gt; namespacePrefixes)
+      throws IOException, JDOMException {
+<span class="fc" id="L285">    SAXBuilder saxBuilder = new SAXBuilder();</span>
+<span class="fc" id="L286">    Document doc = saxBuilder.build(inputStream);</span>
+
+<span class="fc" id="L288">    Set&lt;String&gt; namespacePrefixesActuallyUsed = new HashSet&lt;&gt;();</span>
+
+    // check for namespace prefix in file name
+<span class="fc" id="L291">    String namespacePrefix = getNamespacePrefix(entry.getName());</span>
+<span class="pc bpc" id="L292" title="1 of 2 branches missed.">    if (namespacePrefix != null) {</span>
+<span class="nc" id="L293">      namespacePrefixesActuallyUsed.add(namespacePrefix);</span>
+    }
+
+<span class="fc" id="L296">    applyXmlExcludes(doc.getRootElement(), getParentPath(entry), namespacePrefixesActuallyUsed, false);</span>
+
+<span class="fc" id="L298">    XMLOutputter outputter = new XMLOutputter(Format.getPrettyFormat()</span>
+<span class="fc" id="L299">        .setIndent(&quot;    &quot;)</span>
+<span class="fc" id="L300">        .setLineSeparator(LineSeparator.UNIX));</span>
+<span class="fc" id="L301">    outputter.setXMLOutputProcessor(new OneAttributePerLineXmlProcessor(namespacePrefixes, namespacePrefixesActuallyUsed));</span>
+<span class="fc" id="L302">    outputter.output(doc, outputStream);</span>
+<span class="fc" id="L303">    outputStream.flush();</span>
+<span class="fc" id="L304">  }</span>
+
+  static String getNamespacePrefix(String path) {
+<span class="fc" id="L307">    String fileName = FilenameUtils.getName(path);</span>
+<span class="fc bfc" id="L308" title="All 2 branches covered.">    if (StringUtils.equals(DOT_CONTENT_XML, fileName)) {</span>
+<span class="fc" id="L309">      String parentFolderName = FilenameUtils.getName(FilenameUtils.getPathNoEndSeparator(path));</span>
+<span class="pc bpc" id="L310" title="1 of 2 branches missed.">      if (parentFolderName != null) {</span>
+<span class="fc" id="L311">        String nodeName = PlatformNameFormat.getRepositoryName(parentFolderName);</span>
+<span class="fc" id="L312">        Matcher matcher = FILENAME_NAMESPACE_PATTERN.matcher(nodeName);</span>
+<span class="fc bfc" id="L313" title="All 2 branches covered.">        if (matcher.matches()) {</span>
+<span class="fc" id="L314">          return matcher.group(1);</span>
+        }
+      }
+    }
+<span class="fc" id="L318">    return null;</span>
+  }
+
+  private String getParentPath(ZipArchiveEntry entry) {
+<span class="fc" id="L322">    String path = StringUtils.removeEnd(StringUtils.removeStart(entry.getName(), ROOT_DIR), &quot;/&quot; + DOT_CONTENT_XML);</span>
+<span class="fc" id="L323">    return path;</span>
+  }
+
+  private String buildElementPath(Element element, String parentPath) {
+<span class="fc" id="L327">    StringBuilder path = new StringBuilder(parentPath);</span>
+<span class="fc bfc" id="L328" title="All 2 branches covered.">    if (!StringUtils.equals(element.getQualifiedName(), &quot;jcr:root&quot;)) {</span>
+<span class="fc" id="L329">      path.append(&quot;/&quot;).append(element.getQualifiedName());</span>
+    }
+<span class="fc" id="L331">    return path.toString();</span>
+  }
+
+  private void applyXmlExcludes(Element element, String parentPath, Set&lt;String&gt; namespacePrefixesActuallyUsed,
+      boolean insideReplicationElement) {
+<span class="fc" id="L336">    String path = buildElementPath(element, parentPath);</span>
+<span class="fc bfc" id="L337" title="All 2 branches covered.">    if (matches(path, this.excludeNodes, false)) {</span>
+<span class="fc" id="L338">      element.detach();</span>
+<span class="fc" id="L339">      return;</span>
+    }
+<span class="fc" id="L341">    collectNamespacePrefix(namespacePrefixesActuallyUsed, element.getNamespacePrefix());</span>
+
+<span class="fc" id="L343">    String jcrPrimaryType = element.getAttributeValue(&quot;primaryType&quot;, JCR_NAMESPACE);</span>
+<span class="pc bpc" id="L344" title="2 of 4 branches missed.">    boolean isRepositoryUserGroup = StringUtils.equals(jcrPrimaryType, &quot;rep:User&quot;) || StringUtils.equals(jcrPrimaryType, &quot;rep:Group&quot;);</span>
+<span class="pc bpc" id="L345" title="1 of 4 branches missed.">    boolean isReplicationElement = StringUtils.equals(jcrPrimaryType, &quot;cq:Page&quot;) || StringUtils.equals(jcrPrimaryType, &quot;cq:Template&quot;);</span>
+<span class="fc bfc" id="L346" title="All 4 branches covered.">    boolean isContent = insideReplicationElement &amp;&amp; StringUtils.equals(element.getQualifiedName(), &quot;jcr:content&quot;);</span>
+<span class="fc bfc" id="L347" title="All 4 branches covered.">    boolean setReplicationAttributes = isContent &amp;&amp; markReplicationActivated;</span>
+
+<span class="fc" id="L349">    List&lt;Attribute&gt; attributes = new ArrayList&lt;&gt;(element.getAttributes());</span>
+<span class="fc bfc" id="L350" title="All 2 branches covered.">    for (Attribute attribute : attributes) {</span>
+<span class="fc" id="L351">      boolean excluded = false;</span>
+<span class="fc bfc" id="L352" title="All 2 branches covered.">      if (matches(attribute.getQualifiedName(), this.excludeProperties, false)) {</span>
+<span class="pc bpc" id="L353" title="3 of 4 branches missed.">        if (isRepositoryUserGroup &amp;&amp; StringUtils.equals(attribute.getQualifiedName(), JcrConstants.JCR_UUID)) {</span>
+          // keep jcr:uuid property for groups and users, otherwise they cannot be imported again
+        }
+        else {
+<span class="fc" id="L357">          attribute.detach();</span>
+<span class="fc" id="L358">          excluded = true;</span>
+        }
+      }
+<span class="fc bfc" id="L361" title="All 2 branches covered.">      else if (StringUtils.equals(attribute.getQualifiedName(), PRIMARYTYPE_PROPERTY)) {</span>
+<span class="fc" id="L362">        String namespacePrefix = StringUtils.substringBefore(attribute.getValue(), &quot;:&quot;);</span>
+<span class="fc" id="L363">        collectNamespacePrefix(namespacePrefixesActuallyUsed, namespacePrefix);</span>
+<span class="fc" id="L364">      }</span>
+<span class="fc bfc" id="L365" title="All 2 branches covered.">      else if (StringUtils.equals(attribute.getQualifiedName(), MIXINS_PROPERTY)) {</span>
+<span class="fc" id="L366">        String filteredValue = filterMixinsPropertyValue(attribute.getValue(), namespacePrefixesActuallyUsed);</span>
+<span class="pc bpc" id="L367" title="1 of 2 branches missed.">        if (StringUtils.isBlank(filteredValue)) {</span>
+<span class="nc" id="L368">          attribute.detach();</span>
+        }
+        else {
+<span class="fc" id="L371">          attribute.setValue(filteredValue);</span>
+        }
+<span class="fc" id="L373">      }</span>
+<span class="pc bpc" id="L374" title="1 of 2 branches missed.">      else if (StringUtils.startsWith(attribute.getValue(), &quot;{Name}&quot;)) {</span>
+<span class="nc" id="L375">        collectNamespacePrefixNameArray(namespacePrefixesActuallyUsed, attribute.getQualifiedName(), attribute.getValue());</span>
+        // alphabetically sort name values
+<span class="nc" id="L377">        attribute.setValue(sortReferenceValues(attribute.getQualifiedName(), attribute.getValue(), PropertyType.NAME));</span>
+      }
+<span class="pc bpc" id="L379" title="1 of 2 branches missed.">      else if (StringUtils.startsWith(attribute.getValue(), &quot;{WeakReference}&quot;)) {</span>
+        // alphabetically sort weak reference values
+<span class="nc" id="L381">        attribute.setValue(sortReferenceValues(attribute.getQualifiedName(), attribute.getValue(), PropertyType.WEAKREFERENCE));</span>
+      }
+<span class="fc bfc" id="L383" title="All 2 branches covered.">      if (!excluded) {</span>
+<span class="fc" id="L384">        collectNamespacePrefix(namespacePrefixesActuallyUsed, attribute.getNamespacePrefix());</span>
+      }
+<span class="fc" id="L386">    }</span>
+
+    // set replication status for jcr:content nodes inside cq:Page nodes
+<span class="fc bfc" id="L389" title="All 4 branches covered.">    if (setReplicationAttributes &amp;&amp; matches(path, markReplicationActivatedIncludeNodes, true)) {</span>
+<span class="fc" id="L390">      addMixin(element, &quot;cq:ReplicationStatus&quot;);</span>
+<span class="fc" id="L391">      element.setAttribute(&quot;lastReplicated&quot;, &quot;{Date}&quot; + dateLastReplicated, CQ_NAMESPACE);</span>
+<span class="fc" id="L392">      element.setAttribute(&quot;lastReplicationAction&quot;, &quot;Activate&quot;, CQ_NAMESPACE);</span>
+    }
+
+<span class="fc" id="L395">    List&lt;Element&gt; children = new ArrayList&lt;&gt;(element.getChildren());</span>
+<span class="fc bfc" id="L396" title="All 2 branches covered.">    for (Element child : children) {</span>
+<span class="fc bfc" id="L397" title="All 6 branches covered.">      applyXmlExcludes(child, path, namespacePrefixesActuallyUsed, (insideReplicationElement || isReplicationElement) &amp;&amp; !isContent);</span>
+<span class="fc" id="L398">    }</span>
+<span class="fc" id="L399">  }</span>
+
+  private String filterMixinsPropertyValue(String value, Set&lt;String&gt; namespacePrefixesActuallyUsed) {
+<span class="pc bpc" id="L402" title="3 of 4 branches missed.">    if (this.excludeMixins.length == 0 || StringUtils.isBlank(value)) {</span>
+<span class="fc" id="L403">      return value;</span>
+    }
+
+<span class="nc" id="L406">    DocViewProperty prop = DocViewProperty.parse(MIXINS_PROPERTY, value);</span>
+<span class="nc" id="L407">    List&lt;Value&gt; mixins = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L408" title="All 2 branches missed.">    for (int i = 0; i &lt; prop.values.length; i++) {</span>
+<span class="nc" id="L409">      String mixin = prop.values[i];</span>
+<span class="nc bnc" id="L410" title="All 2 branches missed.">      if (!matches(mixin, this.excludeMixins, false)) {</span>
+<span class="nc" id="L411">        String namespacePrefix = StringUtils.substringBefore(mixin, &quot;:&quot;);</span>
+<span class="nc" id="L412">        collectNamespacePrefix(namespacePrefixesActuallyUsed, namespacePrefix);</span>
+<span class="nc" id="L413">        mixins.add(new MockValue(mixin, PropertyType.STRING));</span>
+      }
+    }
+
+<span class="nc bnc" id="L417" title="All 2 branches missed.">    if (mixins.isEmpty()) {</span>
+<span class="nc" id="L418">      return null;</span>
+    }
+
+    try {
+<span class="nc" id="L422">      return DocViewProperty.format(new MockProperty(MIXINS_PROPERTY, true, mixins.toArray(new Value[0])));</span>
+    }
+<span class="nc" id="L424">    catch (RepositoryException ex) {</span>
+<span class="nc" id="L425">      throw new RuntimeException(&quot;Unable to format value for &quot; + MIXINS_PROPERTY, ex);</span>
+    }
+  }
+
+  private void addMixin(Element element, String mixin) {
+<span class="fc" id="L430">    String mixinsString = element.getAttributeValue(&quot;mixinTypes&quot;, JCR_NAMESPACE);</span>
+
+<span class="fc" id="L432">    List&lt;String&gt; mixins = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L433" title="1 of 2 branches missed.">    if (!StringUtils.isBlank(mixinsString)) {</span>
+<span class="nc" id="L434">      DocViewProperty prop = DocViewProperty.parse(MIXINS_PROPERTY, mixinsString);</span>
+<span class="nc bnc" id="L435" title="All 2 branches missed.">      for (int i = 0; i &lt; prop.values.length; i++) {</span>
+<span class="nc" id="L436">        mixins.add(prop.values[i]);</span>
+      }
+    }
+<span class="pc bpc" id="L439" title="1 of 2 branches missed.">    if (!mixins.contains(mixin)) {</span>
+<span class="fc" id="L440">      mixins.add(mixin);</span>
+    }
+
+    try {
+<span class="fc" id="L444">      Value[] values = mixins.stream()</span>
+<span class="fc" id="L445">          .map(item -&gt; new MockValue(item, PropertyType.STRING))</span>
+<span class="fc" id="L446">          .toArray(size -&gt; new Value[size]);</span>
+<span class="fc" id="L447">      mixinsString = DocViewProperty.format(new MockProperty(MIXINS_PROPERTY, true, values));</span>
+<span class="fc" id="L448">      element.setAttribute(&quot;mixinTypes&quot;, mixinsString, JCR_NAMESPACE);</span>
+    }
+<span class="nc" id="L450">    catch (RepositoryException ex) {</span>
+<span class="nc" id="L451">      throw new RuntimeException(&quot;Unable to format value for &quot; + MIXINS_PROPERTY, ex);</span>
+<span class="fc" id="L452">    }</span>
+<span class="fc" id="L453">  }</span>
+
+  private void collectNamespacePrefix(Set&lt;String&gt; prefixes, String prefix) {
+<span class="fc bfc" id="L456" title="All 2 branches covered.">    if (StringUtils.isNotBlank(prefix)) {</span>
+<span class="fc" id="L457">      prefixes.add(prefix);</span>
+    }
+<span class="fc" id="L459">  }</span>
+
+  private void collectNamespacePrefixNameArray(Set&lt;String&gt; prefixes, String name, String value) {
+<span class="nc" id="L462">    DocViewProperty prop = DocViewProperty.parse(name, value);</span>
+<span class="nc bnc" id="L463" title="All 2 branches missed.">    for (int i = 0; i &lt; prop.values.length; i++) {</span>
+<span class="nc" id="L464">      String item = prop.values[i];</span>
+<span class="nc" id="L465">      String namespacePrefix = StringUtils.substringBefore(item, &quot;:&quot;);</span>
+<span class="nc" id="L466">      collectNamespacePrefix(prefixes, namespacePrefix);</span>
+    }
+<span class="nc" id="L468">  }</span>
+
+  /**
+   * Sort weak reference values alphabetically to ensure consistent ordering.
+   * @param name Property name
+   * @param value Property value
+   * @param propertyType Property type from {@link PropertyType}
+   * @return Property value with sorted references
+   */
+  private String sortReferenceValues(String name, String value, int propertyType) {
+<span class="nc" id="L478">    Set&lt;String&gt; refs = new TreeSet&lt;&gt;();</span>
+<span class="nc" id="L479">    DocViewProperty prop = DocViewProperty.parse(name, value);</span>
+<span class="nc bnc" id="L480" title="All 2 branches missed.">    for (int i = 0; i &lt; prop.values.length; i++) {</span>
+<span class="nc" id="L481">      refs.add(prop.values[i]);</span>
+    }
+<span class="nc" id="L483">    List&lt;Value&gt; values = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L484" title="All 2 branches missed.">    for (String ref : refs) {</span>
+<span class="nc" id="L485">      values.add(new MockValue(ref, propertyType));</span>
+<span class="nc" id="L486">    }</span>
+    try {
+<span class="nc" id="L488">      String sortedValues = DocViewProperty.format(new MockProperty(name, true, values.toArray(new Value[0])));</span>
+<span class="nc" id="L489">      return sortedValues;</span>
+    }
+<span class="nc" id="L491">    catch (RepositoryException ex) {</span>
+<span class="nc" id="L492">      throw new RuntimeException(&quot;Unable to format value for &quot; + name, ex);</span>
+    }
+  }
+
+  /**
+   * Mock implementations of JCR property and value to be handed over to {@link DocViewProperty#format(Property)}
+   * method.
+   */
+  private static class MockProperty implements Property, PropertyDefinition {
+
+    private final String name;
+    private final boolean multiple;
+    private final Value[] values;
+
+<span class="fc" id="L506">    MockProperty(String name, boolean multiple, Value[] values) {</span>
+<span class="fc" id="L507">      this.name = name;</span>
+<span class="fc" id="L508">      this.multiple = multiple;</span>
+<span class="fc" id="L509">      this.values = values;</span>
+<span class="fc" id="L510">    }</span>
+
+    @Override
+    public String getName() {
+<span class="nc" id="L514">      return name;</span>
+    }
+
+    @Override
+    public int getType() {
+<span class="pc bpc" id="L519" title="1 of 2 branches missed.">      if (values.length &gt; 0) {</span>
+<span class="fc" id="L520">        return values[0].getType();</span>
+      }
+<span class="nc" id="L522">      return PropertyType.UNDEFINED;</span>
+    }
+
+    @Override
+    public boolean isMultiple() {
+<span class="fc" id="L527">      return multiple;</span>
+    }
+
+    @Override
+    public Value getValue() throws ValueFormatException {
+<span class="nc bnc" id="L532" title="All 2 branches missed.">      if (multiple) {</span>
+<span class="nc" id="L533">        throw new ValueFormatException(&quot;Property is multiple.&quot;);</span>
+      }
+<span class="nc" id="L535">      return values[0];</span>
+    }
+
+    @Override
+    public Value[] getValues() throws ValueFormatException {
+<span class="pc bpc" id="L540" title="1 of 2 branches missed.">      if (!multiple) {</span>
+<span class="nc" id="L541">        throw new ValueFormatException(&quot;Property is not multiple.&quot;);</span>
+      }
+<span class="fc" id="L543">      return values;</span>
+    }
+
+    @Override
+    public PropertyDefinition getDefinition() {
+<span class="fc" id="L548">      return this;</span>
+    }
+
+
+    // -- unsupported methods --
+
+    @Override
+    public String getPath() {
+<span class="nc" id="L556">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Item getAncestor(int depth) {
+<span class="nc" id="L561">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Node getParent() {
+<span class="nc" id="L566">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public int getDepth() {
+<span class="nc" id="L571">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Session getSession() {
+<span class="nc" id="L576">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isNode() {
+<span class="nc" id="L581">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isNew() {
+<span class="nc" id="L586">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isModified() {
+<span class="nc" id="L591">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isSame(Item otherItem) {
+<span class="nc" id="L596">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void accept(ItemVisitor visitor) {
+<span class="nc" id="L601">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void save() {
+<span class="nc" id="L606">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void refresh(boolean keepChanges) {
+<span class="nc" id="L611">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void remove() {
+<span class="nc" id="L616">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(Value value) {
+<span class="nc" id="L621">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(Value[] value) {
+<span class="nc" id="L626">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(String value) {
+<span class="nc" id="L631">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(String[] value) {
+<span class="nc" id="L636">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(InputStream value) {
+<span class="nc" id="L641">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(Binary value) {
+<span class="nc" id="L646">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(long value) {
+<span class="nc" id="L651">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(double value) {
+<span class="nc" id="L656">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(BigDecimal value) {
+<span class="nc" id="L661">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(Calendar value) {
+<span class="nc" id="L666">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(boolean value) {
+<span class="nc" id="L671">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public void setValue(Node value) {
+<span class="nc" id="L676">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public String getString() {
+<span class="nc" id="L681">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public InputStream getStream() {
+<span class="nc" id="L686">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Binary getBinary() {
+<span class="nc" id="L691">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public long getLong() {
+<span class="nc" id="L696">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public double getDouble() {
+<span class="nc" id="L701">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public BigDecimal getDecimal() {
+<span class="nc" id="L706">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Calendar getDate() {
+<span class="nc" id="L711">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean getBoolean() {
+<span class="nc" id="L716">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Node getNode() {
+<span class="nc" id="L721">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Property getProperty() {
+<span class="nc" id="L726">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public long getLength() {
+<span class="nc" id="L731">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public long[] getLengths() {
+<span class="nc" id="L736">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public NodeType getDeclaringNodeType() {
+<span class="nc" id="L741">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isAutoCreated() {
+<span class="nc" id="L746">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isMandatory() {
+<span class="nc" id="L751">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public int getOnParentVersion() {
+<span class="nc" id="L756">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isProtected() {
+<span class="nc" id="L761">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public int getRequiredType() {
+<span class="nc" id="L766">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public String[] getValueConstraints() {
+<span class="nc" id="L771">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Value[] getDefaultValues() {
+<span class="nc" id="L776">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public String[] getAvailableQueryOperators() {
+<span class="nc" id="L781">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isFullTextSearchable() {
+<span class="nc" id="L786">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean isQueryOrderable() {
+<span class="nc" id="L791">      throw new UnsupportedOperationException();</span>
+    }
+
+  }
+
+  private static class MockValue implements Value {
+
+    private final String value;
+    private final int type;
+
+<span class="fc" id="L801">    MockValue(String value, int type) {</span>
+<span class="fc" id="L802">      this.value = value;</span>
+<span class="fc" id="L803">      this.type = type;</span>
+<span class="fc" id="L804">    }</span>
+
+    @Override
+    public String getString() {
+<span class="fc" id="L808">      return value;</span>
+    }
+
+    @Override
+    public int getType() {
+<span class="fc" id="L813">      return type;</span>
+    }
+
+
+    // -- unsupported methods --
+
+    @Override
+    public InputStream getStream() {
+<span class="nc" id="L821">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Binary getBinary() {
+<span class="nc" id="L826">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public long getLong() {
+<span class="nc" id="L831">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public double getDouble() {
+<span class="nc" id="L836">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public BigDecimal getDecimal() {
+<span class="nc" id="L841">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Calendar getDate() {
+<span class="nc" id="L846">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean getBoolean() {
+<span class="nc" id="L851">      throw new UnsupportedOperationException();</span>
+    }
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

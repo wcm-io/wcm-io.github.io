@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ArtifactHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Content Package Maven Plugin</a> &gt; <a href="index.source.html" class="el_package">io.wcm.maven.plugins.contentpackage</a> &gt; <span class="el_source">ArtifactHelper.java</span></div><h1>ArtifactHelper.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.maven.plugins.contentpackage;
+
+import java.io.File;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.repository.ArtifactRepository;
+import org.apache.maven.artifact.resolver.ArtifactResolutionRequest;
+import org.apache.maven.artifact.resolver.ArtifactResolutionResult;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.repository.RepositorySystem;
+
+class ArtifactHelper {
+
+  private final RepositorySystem repository;
+  private final ArtifactRepository localRepository;
+  private final List&lt;ArtifactRepository&gt; remoteRepositories;
+
+<span class="nc" id="L40">  ArtifactHelper(RepositorySystem repository, ArtifactRepository localRepository, List&lt;ArtifactRepository&gt; remoteRepositories) {</span>
+<span class="nc" id="L41">    this.repository = repository;</span>
+<span class="nc" id="L42">    this.localRepository = localRepository;</span>
+<span class="nc" id="L43">    this.remoteRepositories = remoteRepositories;</span>
+<span class="nc" id="L44">  }</span>
+
+  @SuppressWarnings(&quot;PMD.UseObjectForClearerAPI&quot;)
+  public File getArtifactFile(final String artifactId, final String groupId, final String version,
+      final String packaging, final String classifier, final String artifact) throws MojoFailureException, MojoExecutionException {
+    // check if artifact was specified
+<span class="nc bnc" id="L50" title="All 6 branches missed.">    if ((StringUtils.isEmpty(artifactId) || StringUtils.isEmpty(groupId) || StringUtils.isEmpty(version))</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        &amp;&amp; StringUtils.isEmpty(artifact)) {</span>
+<span class="nc" id="L52">      return null;</span>
+    }
+
+    // split up artifact string
+    Artifact artifactObject;
+<span class="nc bnc" id="L57" title="All 2 branches missed.">    if (StringUtils.isEmpty(artifactId)) {</span>
+<span class="nc" id="L58">      artifactObject = getArtifactFromMavenCoordinates(artifact);</span>
+    }
+    else {
+<span class="nc" id="L61">      artifactObject = createArtifact(artifactId, groupId, version, packaging, classifier);</span>
+    }
+
+    // resolve artifact
+<span class="nc" id="L65">    ArtifactResolutionRequest request = new ArtifactResolutionRequest();</span>
+<span class="nc" id="L66">    request.setArtifact(artifactObject);</span>
+<span class="nc" id="L67">    request.setLocalRepository(localRepository);</span>
+<span class="nc" id="L68">    request.setRemoteRepositories(remoteRepositories);</span>
+<span class="nc" id="L69">    ArtifactResolutionResult result = repository.resolve(request);</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">    if (result.isSuccess()) {</span>
+<span class="nc" id="L71">      return artifactObject.getFile();</span>
+    }
+    else {
+<span class="nc" id="L74">      throw new MojoExecutionException(&quot;Unable to download artifact: &quot; + artifactObject.toString());</span>
+    }
+  }
+
+  /**
+   * Parse coordinates following definition from https://maven.apache.org/pom.html#Maven_Coordinates
+   * @param artifact Artifact coordinates
+   * @return Artifact object
+   * @throws MojoFailureException if coordinates are semantically invalid
+   */
+  private Artifact getArtifactFromMavenCoordinates(final String artifact) throws MojoFailureException {
+
+<span class="nc" id="L86">    String[] parts = StringUtils.split(artifact, &quot;:&quot;);</span>
+
+    String version;
+<span class="nc" id="L89">    String packaging = null;</span>
+<span class="nc" id="L90">    String classifier = null;</span>
+
+<span class="nc bnc" id="L92" title="All 4 branches missed.">    switch (parts.length) {</span>
+      case 3:
+        // groupId:artifactId:version
+<span class="nc" id="L95">        version = parts[2];</span>
+<span class="nc" id="L96">        break;</span>
+
+      case 4:
+        // groupId:artifactId:packaging:version
+<span class="nc" id="L100">        packaging = parts[2];</span>
+<span class="nc" id="L101">        version = parts[3];</span>
+<span class="nc" id="L102">        break;</span>
+
+      case 5:
+        // groupId:artifactId:packaging:classifier:version
+<span class="nc" id="L106">        packaging = parts[2];</span>
+<span class="nc" id="L107">        classifier = parts[3];</span>
+<span class="nc" id="L108">        version = parts[4];</span>
+<span class="nc" id="L109">        break;</span>
+
+      default:
+<span class="nc" id="L112">        throw new MojoFailureException(&quot;Invalid artifact: &quot; + artifact);</span>
+    }
+
+<span class="nc" id="L115">    String groupId = parts[0];</span>
+<span class="nc" id="L116">    String artifactId = parts[1];</span>
+
+<span class="nc" id="L118">    return createArtifact(artifactId, groupId, version, packaging, classifier);</span>
+  }
+
+  private Artifact createArtifact(final String artifactId, final String groupId, final String version, final String packaging, String classifier) {
+<span class="nc bnc" id="L122" title="All 2 branches missed.">    if (StringUtils.isEmpty(classifier)) {</span>
+<span class="nc" id="L123">      return repository.createArtifact(groupId, artifactId, version, packaging);</span>
+    }
+
+<span class="nc" id="L126">    return repository.createArtifactWithClassifier(groupId, artifactId, version, packaging, classifier);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

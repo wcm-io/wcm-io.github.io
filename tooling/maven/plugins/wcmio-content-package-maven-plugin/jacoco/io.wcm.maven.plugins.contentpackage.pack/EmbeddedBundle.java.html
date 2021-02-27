@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EmbeddedBundle.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Content Package Maven Plugin</a> &gt; <a href="index.source.html" class="el_package">io.wcm.maven.plugins.contentpackage.pack</a> &gt; <span class="el_source">EmbeddedBundle.java</span></div><h1>EmbeddedBundle.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2017 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.maven.plugins.contentpackage.pack;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
+
+/**
+ * The &lt;code&gt;EmbeddedBundle&lt;/code&gt; class represents an embedded bundle dependency
+ * from the project descriptor. An embedded bundle is declared as child &lt;code&gt;&amp;lt;embedded&amp;gt;&lt;/code&gt;
+ * in the parent &lt;code&gt;&amp;lt;embeddeds&amp;gt;&lt;/code&gt; like this:
+ *
+ * &lt;pre&gt;
+ * &amp;lt;embedded&amp;gt;
+ *   &amp;lt;groupId&amp;gt;artifact.groupId&amp;lt;/groupId&amp;gt;
+ *   &amp;lt;artifactId&amp;gt;artifact.artifactId&amp;lt;/artifactId&amp;gt;
+ *   &amp;lt;scope&amp;gt;compile&amp;lt;/scope&amp;gt;
+ *   &amp;lt;type&amp;gt;jar&amp;lt;/type&amp;gt;
+ *   &amp;lt;classifier&amp;gt;sources&amp;lt;/classifier&amp;gt;
+ *   &amp;lt;filter&amp;gt;true&amp;lt;/filter&amp;gt;
+ *   &amp;lt;target&amp;gt;/libs/sling/install&amp;lt;/target&amp;gt;
+ * &amp;lt;/embedded&amp;gt;
+ * &lt;/pre&gt;
+ */
+<span class="nc" id="L48">public final class EmbeddedBundle extends AbstractAddition {</span>
+
+  /**
+   * JCR Location where the Bundle will be installed in.
+   */
+  @Parameter
+  private String target;
+
+  /**
+   * Name to use for the bundle in the destination
+   */
+  @Parameter
+  private String destFileName;
+
+  /**
+   * @return Name to use for the bundle in the destination
+   */
+  public String getDestFileName() {
+<span class="nc" id="L66">    return destFileName;</span>
+  }
+
+  /**
+   * @param destFileName Name to use for the bundle in the destination
+   */
+  public void setDestFileName(String destFileName) {
+<span class="nc" id="L73">    this.destFileName = destFileName;</span>
+<span class="nc" id="L74">  }</span>
+
+  /**
+   * @param target JCR Location where the Bundle will be installed in
+   */
+  public void setTarget(String target) {
+    // need trailing slash
+<span class="nc bnc" id="L81" title="All 2 branches missed.">    if (StringUtils.endsWith(target, &quot;/&quot;)) {</span>
+<span class="nc" id="L82">      this.target = target;</span>
+    }
+    else {
+<span class="nc" id="L85">      this.target = target + &quot;/&quot;;</span>
+    }
+<span class="nc" id="L87">  }</span>
+
+  /**
+   * @return JCR Location where the Bundle will be installed in
+   */
+  public String getTarget() {
+<span class="nc" id="L93">    return target;</span>
+  }
+
+  List&lt;Artifact&gt; getMatchingArtifacts(final MavenProject project) {
+    // get artifacts depending on whether we exclude transitives or not
+    final Set&lt;Artifact&gt; dependencies;
+<span class="nc bnc" id="L99" title="All 2 branches missed.">    if (excludeTransitive) {</span>
+      // only direct dependencies, transitives excluded
+<span class="nc" id="L101">      dependencies = project.getDependencyArtifacts();</span>
+    }
+    else {
+      // all dependencies, transitives included
+<span class="nc" id="L105">      dependencies = project.getArtifacts();</span>
+    }
+
+<span class="nc" id="L108">    final List&lt;Artifact&gt; matches = new ArrayList&lt;Artifact&gt;();</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">    for (Artifact artifact : dependencies) {</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">      if (groupId.contains(artifact.getGroupId())</span>
+<span class="nc bnc" id="L111" title="All 4 branches missed.">          &amp;&amp; artifactId.contains(artifact.getArtifactId())</span>
+<span class="nc bnc" id="L112" title="All 4 branches missed.">          &amp;&amp; (scope == null || scope.include(artifact))</span>
+<span class="nc bnc" id="L113" title="All 4 branches missed.">          &amp;&amp; (type == null || type.equals(artifact.getType()))</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">          &amp;&amp; (classifier == null || classifier.equals(artifact.getClassifier()))) {</span>
+<span class="nc" id="L115">        matches.add(artifact);</span>
+      }
+<span class="nc" id="L117">    }</span>
+<span class="nc" id="L118">    return matches;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L123">    return &quot;EmbeddedBundle{&quot; +</span>
+        &quot;groupId='&quot; + groupId + '\'' +
+        &quot;, artifactId='&quot; + artifactId + '\'' +
+        &quot;, scope=&quot; + scope +
+        &quot;, type='&quot; + type + '\'' +
+        &quot;, classifier='&quot; + classifier + '\'' +
+        &quot;, generateFilter=&quot; + generateFilter +
+        &quot;, target='&quot; + target + '\'' +
+        &quot;, destFileName='&quot; + destFileName + '\'' +
+        &quot;, excludeTransitive=&quot; + excludeTransitive +
+        '}';
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

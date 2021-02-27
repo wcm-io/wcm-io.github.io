@@ -1,0 +1,700 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PackageMojo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Content Package Maven Plugin</a> &gt; <a href="index.source.html" class="el_package">io.wcm.maven.plugins.contentpackage.pack</a> &gt; <span class="el_source">PackageMojo.java</span></div><h1>PackageMojo.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2017 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.maven.plugins.contentpackage.pack;
+
+import static org.apache.jackrabbit.vault.util.Constants.CONFIG_XML;
+import static org.apache.jackrabbit.vault.util.Constants.FILTER_XML;
+import static org.apache.jackrabbit.vault.util.Constants.META_DIR;
+import static org.apache.jackrabbit.vault.util.Constants.PACKAGE_DEFINITION_XML;
+import static org.apache.jackrabbit.vault.util.Constants.PROPERTIES_XML;
+import static org.apache.jackrabbit.vault.util.Constants.SETTINGS_XML;
+
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.vault.fs.api.PathFilterSet;
+import org.apache.jackrabbit.vault.fs.config.ConfigurationException;
+import org.apache.jackrabbit.vault.fs.config.DefaultWorkspaceFilter;
+import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.apache.maven.archiver.ManifestConfiguration;
+import org.apache.maven.archiver.MavenArchiveConfiguration;
+import org.apache.maven.archiver.MavenArchiver;
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.handler.manager.ArtifactHandlerManager;
+import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.FileUtils;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+/**
+ * Creates a JCR Content Package with embedded Bundles and Packages.
+ * @deprecated Please switch to &lt;a href=&quot;http://jackrabbit.apache.org/filevault-package-maven-plugin/&quot;&gt;Jackrabbit
+ *             filevault-package-maven-plugin&lt;/a&gt; - see
+ *             &lt;a href=&quot;https://wcm-io.atlassian.net/wiki/x/GYB1BQ&quot;&gt;this migration guide&lt;/a&gt;.
+ */
+@Mojo(
+    name = &quot;package&quot;,
+    defaultPhase = LifecyclePhase.PACKAGE,
+    requiresDependencyResolution = ResolutionScope.COMPILE)
+@Deprecated
+<span class="nc" id="L83">public final class PackageMojo extends AbstractMojo {</span>
+
+  private static final String ETC_PACKAGES = &quot;/etc/packages&quot;;
+
+  private static final String JCR_ROOT = &quot;jcr_root/&quot;;
+  private static final String PACKAGE_TYPE = &quot;zip&quot;;
+  private static final String PACKAGE_EXT = &quot;.&quot; + PACKAGE_TYPE;
+  private static final String DEFINITION_FOLDER = &quot;definition&quot;;
+  private static final String THUMBNAIL_FILE = &quot;thumbnail.png&quot;;
+
+  private static final String PROPERTY_GROUP = &quot;group&quot;;
+  private static final String PROPERTY_NAME = &quot;name&quot;;
+  private static final String PROPERTY_VERSION = &quot;version&quot;;
+  private static final String PROPERTY_GROUP_ID = &quot;groupId&quot;;
+  private static final String PROPERTY_ARTIFACT_ID = &quot;artifactId&quot;;
+  private static final String PROPERTY_DEPENDENCIES = &quot;dependencies&quot;;
+  private static final String PROPERTY_CREATED_BY = &quot;createdBy&quot;;
+  private static final String PROPERTY_CREATED = &quot;created&quot;;
+  private static final String PROPERTY_REQUIRES_ROOT = &quot;requiresRoot&quot;;
+  private static final String PROPERTY_ALLOW_INDEX_DEFINITIONS = &quot;allowIndexDefinitions&quot;;
+  private static final String PROPERTY_PATH = &quot;path&quot;;
+  private static final String PROPERTY_AC_HANDLING = &quot;acHandling&quot;;
+
+  @Component
+  private ArtifactHandlerManager artifactHandlerManager;
+
+  /**
+   * The Maven project.
+   */
+  @Parameter(property = &quot;project&quot;, readonly = true, required = true)
+  private MavenProject project;
+
+  /**
+   * The archive configuration to use. See &lt;a
+   * href=&quot;http://maven.apache.org/shared/maven-archiver/index.html&quot;&gt;the
+   * documentation for Maven Archiver&lt;/a&gt;.
+   */
+  @Parameter
+  private MavenArchiveConfiguration archive;
+
+  /**
+   * The directory containing the content to be packaged up into the content
+   * package. For now any content here is disregarded. Please copy the content
+   * into the workDirectory.
+   */
+  @Parameter(
+      defaultValue = &quot;${project.build.outputDirectory}&quot;,
+      required = true)
+  private File builtContentDirectory;
+
+  /**
+   * The name of the generated package ZIP file without the &quot;.zip&quot; file
+   * extension.
+   */
+  @Parameter(
+      property = &quot;vault.finalName&quot;,
+      defaultValue = &quot;${project.build.finalName}&quot;,
+      required = true)
+  private String finalName;
+
+  /**
+   * Directory in which the built content package will be output.
+   */
+  @Parameter(
+      defaultValue = &quot;${project.build.directory}&quot;,
+      required = true)
+  private File outputDirectory;
+
+  /**
+   * The directory containing the content to be packaged up into the content
+   * package.
+   */
+  @Parameter(
+      defaultValue = &quot;${project.build.directory}/vault-work&quot;,
+      required = true)
+  private File workDirectory;
+
+  //TODO: Prefix not supported yet
+  //  /**
+  //   * Adds a path prefix to all resources useful for shallower source trees.
+  //   */
+  //  @Parameter(property = &quot;vault.prefix&quot;)
+  //  private String prefix;
+
+  /**
+   * The group of the package (location where the package is installed)
+   */
+  @Parameter(
+      property = &quot;vault.group&quot;,
+      defaultValue = &quot;${project.groupId}&quot;,
+      required = true)
+  private String group;
+
+  /**
+   * The name of the deployed package on the target server
+   */
+  @Parameter(
+      property = &quot;vault.name&quot;,
+      defaultValue = &quot;${project.artifactId}&quot;,
+      required = true)
+  private String name;
+
+  /**
+   * The version of the artifact to install.
+   */
+  @Parameter(
+      property = &quot;vault.version&quot;,
+      defaultValue = &quot;${project.version}&quot;,
+      required = true)
+  private String version;
+
+  /**
+   * Defines whether the package requires root. This will become the
+   * &lt;code&gt;requiresRoot&lt;/code&gt; property of the properties.xml file.
+   */
+  @Parameter(
+      property = &quot;vault.requiresRoot&quot;,
+      defaultValue = &quot;false&quot;,
+      required = true)
+  private boolean requiresRoot;
+
+  /**
+   * Defines whether the package is allowed to contain index definitions. This will become the
+   * &lt;code&gt;allowIndexDefinitions&lt;/code&gt; property of the properties.xml file.
+   * As of now there is no check if any files contain index definitions if this is set to false
+   */
+  @Parameter(
+      property = &quot;vault.allowIndexDefinitions&quot;,
+      defaultValue = &quot;false&quot;,
+      required = true)
+  private boolean allowIndexDefinitions;
+
+  /**
+   * Defines the AC Handling (see vault properties.xml file). It must be
+   * a String representation of the AccessControlHandling enum otherwise
+   * the packaging will fail.
+   * &lt;p&gt;
+   * Possible values
+   * &lt;/p&gt;
+   * &lt;ul&gt;
+   * &lt;li&gt;&lt;code&gt;ignore&lt;/code&gt;: Ignores the packaged access control and leaves the target unchanged.&lt;/li&gt;
+   * &lt;li&gt;&lt;code&gt;overwrite&lt;/code&gt;: Applies the access control provided with the package to the target. this also removes
+   * existing access control.&lt;/li&gt;
+   * &lt;li&gt;&lt;code&gt;merge&lt;/code&gt;: Merge access control provided with the package with the one in the content by replacing the
+   * access control entries of corresponding principals (i.e. package first). It never alters access control entries of
+   * principals not present in the package.&lt;/li&gt;
+   * &lt;li&gt;&lt;code&gt;merge_preserve&lt;/code&gt;: Merge access control in the content with the one provided with the package by
+   * adding the access control entries of principals not present in the content (i.e. content first). It never alters
+   * access control entries already existing in the content.&lt;/li&gt;
+   * &lt;li&gt;&lt;code&gt;clear&lt;/code&gt;: Clears all access control on the target system.&lt;/li&gt;
+   * &lt;/ul&gt;
+   */
+  @Parameter(
+      property = &quot;vault.acHandling&quot;,
+      defaultValue = &quot;ignore&quot;,
+      required = false)
+  private String acHandling;
+
+  /**
+   * Optional file that specifies the source of the workspace filter. The filters specified in the configuration
+   * and injected via embeddeds or subpackages are merged into it.
+   */
+  @Parameter(defaultValue = &quot;src/main/package-definition/&quot; + FILTER_XML)
+  private File filterSource;
+
+  /**
+   * Defines the content of the filter.xml file
+   */
+<span class="nc" id="L251">  @Parameter</span>
+  private final Filters filters = new Filters();
+
+  /**
+   * Optional reference to PNG image that should be used as thumbnail for the content package.
+   */
+  @Parameter(defaultValue = &quot;src/main/package-definition/&quot; + THUMBNAIL_FILE)
+  private File thumbnailImage;
+
+  /**
+   * list of embedded bundles
+   */
+<span class="nc" id="L263">  @Parameter</span>
+  private final List&lt;EmbeddedBundle&gt; embeddeds = new ArrayList&lt;EmbeddedBundle&gt;();
+
+  /**
+   * Defines whether to fail the build when an embedded artifact is not
+   * found in the project's dependencies
+   */
+  @Parameter(
+      property = &quot;vault.failOnMissingEmbed&quot;,
+      defaultValue = &quot;false&quot;,
+      required = true)
+  private boolean failOnMissingEmbed;
+
+  /**
+   * Defines the list of dependencies
+   */
+<span class="nc" id="L279">  @Parameter</span>
+  private final List&lt;Dependency&gt; dependencies = new ArrayList&lt;Dependency&gt;();
+
+  /**
+   * Defines the list of nested packages.
+   */
+<span class="nc" id="L285">  @Parameter</span>
+  private final List&lt;NestedPackage&gt; subPackages = new ArrayList&lt;NestedPackage&gt;();
+
+  /**
+   * Specifies additional properties to be set in the properties.xml file.
+   * These properties cannot overwrite the following predefined properties:
+   * &lt;table&gt;
+   * &lt;tr&gt;
+   * &lt;td&gt;group&lt;/td&gt;
+   * &lt;td&gt;Use &lt;i&gt;group&lt;/i&gt; parameter to set&lt;/td&gt;
+   * &lt;/tr&gt;
+   * &lt;tr&gt;
+   * &lt;td&gt;name&lt;/td&gt;
+   * &lt;td&gt;Use &lt;i&gt;name&lt;/i&gt; parameter to set&lt;/td&gt;
+   * &lt;/tr&gt;
+   * &lt;tr&gt;
+   * &lt;td&gt;version&lt;/td&gt;
+   * &lt;td&gt;Use &lt;i&gt;version&lt;/i&gt; parameter to set&lt;/td&gt;
+   * &lt;/tr&gt;
+   * &lt;tr&gt;
+   * &lt;td&gt;groupId&lt;/td&gt;
+   * &lt;td&gt;&lt;i&gt;groupId&lt;/i&gt; of the Maven project descriptor&lt;/td&gt;
+   * &lt;/tr&gt;
+   * &lt;tr&gt;
+   * &lt;td&gt;artifactId&lt;/td&gt;
+   * &lt;td&gt;&lt;i&gt;artifactId&lt;/i&gt; of the Maven project descriptor&lt;/td&gt;
+   * &lt;/tr&gt;
+   * &lt;tr&gt;
+   * &lt;td&gt;dependencies&lt;/td&gt;
+   * &lt;td&gt;Use &lt;i&gt;dependencies&lt;/i&gt; parameter to set&lt;/td&gt;
+   * &lt;/tr&gt;
+   * &lt;tr&gt;
+   * &lt;td&gt;createdBy&lt;/td&gt;
+   * &lt;td&gt;The value of the &lt;i&gt;user.name&lt;/i&gt; system property&lt;/td&gt;
+   * &lt;/tr&gt;
+   * &lt;tr&gt;
+   * &lt;td&gt;created&lt;/td&gt;
+   * &lt;td&gt;The current system time&lt;/td&gt;
+   * &lt;/tr&gt;
+   * &lt;tr&gt;
+   * &lt;td&gt;requiresRoot&lt;/td&gt;
+   * &lt;td&gt;Use &lt;i&gt;requiresRoot&lt;/i&gt; parameter to set&lt;/td&gt;
+   * &lt;/tr&gt;
+   * &lt;tr&gt;
+   * &lt;td&gt;allowIndexDefinitions&lt;/td&gt;
+   * &lt;td&gt;Use &lt;i&gt;allowIndexDefinitions&lt;/i&gt; parameter to set&lt;/td&gt;
+   * &lt;/tr&gt;
+   * &lt;tr&gt;
+   * &lt;td&gt;packagePath&lt;/td&gt;
+   * &lt;td&gt;Automatically generated from the group and package name&lt;/td&gt;
+   * &lt;/tr&gt;
+   * &lt;tr&gt;
+   * &lt;td&gt;acHandling&lt;/td&gt;
+   * &lt;td&gt;Use &lt;i&gt;acHandling&lt;/i&gt; parameter to set it&lt;/td&gt;
+   * &lt;/tr&gt;
+   * &lt;/table&gt;
+   */
+<span class="nc" id="L342">  @Parameter</span>
+  private final Properties properties = new Properties();
+
+  /**
+   * Defines the path under which the embedded bundles are placed. defaults to '/apps/bundles/install'
+   */
+  @Parameter(property = &quot;vault.embeddedTarget&quot;)
+  private String embeddedTarget;
+
+  /**
+   * @param embeddedBundle Embedded bundle
+   */
+  public void addEmbedded(final EmbeddedBundle embeddedBundle) {
+<span class="nc" id="L355">    embeddeds.add(embeddedBundle);</span>
+<span class="nc" id="L356">  }</span>
+
+  /**
+   * @param dependency Dependency
+   */
+  public void addDependency(final Dependency dependency) {
+<span class="nc" id="L362">    dependencies.add(dependency);</span>
+<span class="nc" id="L363">  }</span>
+
+  /**
+   * @param nestedPackage Nested package
+   */
+  public void addPackage(final NestedPackage nestedPackage) {
+<span class="nc" id="L369">    subPackages.add(nestedPackage);</span>
+<span class="nc" id="L370">  }</span>
+
+  /**
+   * @param embeddedTarget Embedded target
+   */
+  public void setEmbeddedTarget(final String embeddedTarget) {
+<span class="nc bnc" id="L376" title="All 2 branches missed.">    if (embeddedTarget.endsWith(&quot;/&quot;)) {</span>
+<span class="nc" id="L377">      this.embeddedTarget = embeddedTarget;</span>
+    }
+    else {
+<span class="nc" id="L380">      this.embeddedTarget = embeddedTarget + &quot;/&quot;;</span>
+    }
+<span class="nc" id="L382">  }</span>
+
+  private MavenArchiveConfiguration getMavenArchiveConfiguration() {
+<span class="nc bnc" id="L385" title="All 2 branches missed.">    if (archive == null) {</span>
+<span class="nc" id="L386">      archive = new MavenArchiveConfiguration();</span>
+<span class="nc" id="L387">      archive.setManifest(new ManifestConfiguration());</span>
+
+<span class="nc" id="L389">      archive.setAddMavenDescriptor(true);</span>
+<span class="nc" id="L390">      archive.setCompress(true);</span>
+<span class="nc" id="L391">      archive.setIndex(false);</span>
+<span class="nc" id="L392">      archive.getManifest().setAddDefaultSpecificationEntries(true);</span>
+<span class="nc" id="L393">      archive.getManifest().setAddDefaultImplementationEntries(true);</span>
+    }
+
+<span class="nc" id="L396">    return archive;</span>
+  }
+
+  @Override
+  @SuppressFBWarnings({ &quot;RV_RETURN_VALUE_IGNORED_BAD_PRACTICE&quot;, &quot;REC_CATCH_EXCEPTION&quot; })
+  public void execute() throws MojoExecutionException, MojoFailureException {
+
+    // show deprecation warning
+<span class="nc" id="L404">    getLog().warn(&quot;Please switch to Jackrabbit filevault-package-maven-plugin - see https://wcm-io.atlassian.net/wiki/x/GYB1BQ&quot;);</span>
+
+    try {
+<span class="nc" id="L407">      final File finalFile = new File(outputDirectory, finalName + PACKAGE_EXT);</span>
+<span class="nc" id="L408">      final File vaultFolder = new File(workDirectory, META_DIR);</span>
+<span class="nc" id="L409">      final File vaultDefinitionFolder = new File(vaultFolder, DEFINITION_FOLDER);</span>
+<span class="nc" id="L410">      vaultFolder.mkdirs();</span>
+<span class="nc" id="L411">      vaultDefinitionFolder.mkdirs();</span>
+
+<span class="nc" id="L413">      JcrContentPackageArchiver jcrContentPackageArchiver = new JcrContentPackageArchiver();</span>
+<span class="nc" id="L414">      Map&lt;String, File&gt; additionalFiles = new HashMap&lt;&gt;();</span>
+
+      // get filter definition from file system
+<span class="nc" id="L417">      DefaultWorkspaceFilter filter = null;</span>
+<span class="nc bnc" id="L418" title="All 6 branches missed.">      if (filterSource != null &amp;&amp; filterSource.exists() &amp;&amp; !filterSource.isDirectory()) {</span>
+<span class="nc" id="L419">        filter = loadFilter(filterSource);</span>
+      }
+      else {
+<span class="nc" id="L422">        filter = loadFilterInFolder(vaultFolder);</span>
+      }
+
+      // merge with filters applied via plugin properties
+<span class="nc bnc" id="L426" title="All 2 branches missed.">      if (this.filters != null) {</span>
+<span class="nc" id="L427">        this.filters.merge(filter);</span>
+      }
+
+<span class="nc" id="L430">      obtainEmbeddedBundles(embeddeds, additionalFiles, filter);</span>
+<span class="nc" id="L431">      obtainNestedPackages(subPackages, additionalFiles, filter);</span>
+
+<span class="nc" id="L433">      File filterFile = new File(vaultFolder, FILTER_XML);</span>
+      // Reset the Filter to make sure the output is adjusted to any changes
+<span class="nc" id="L435">      filter.resetSource();</span>
+<span class="nc" id="L436">      FileUtils.fileWrite(filterFile.getAbsolutePath(), filter.getSourceAsString());</span>
+
+<span class="nc" id="L438">      writePropertiesFile(vaultFolder);</span>
+<span class="nc" id="L439">      checkAndCopy(vaultFolder, CONFIG_XML);</span>
+<span class="nc" id="L440">      checkAndCopy(vaultFolder, SETTINGS_XML);</span>
+<span class="nc" id="L441">      checkAndCopy(vaultFolder, PACKAGE_DEFINITION_XML);</span>
+<span class="nc bnc" id="L442" title="All 4 branches missed.">      if (thumbnailImage != null &amp;&amp; thumbnailImage.exists()) {</span>
+<span class="nc" id="L443">        FileUtils.copyFile(thumbnailImage, new File(vaultDefinitionFolder, THUMBNAIL_FILE));</span>
+      }
+<span class="nc" id="L445">      jcrContentPackageArchiver.addDirectory(workDirectory);</span>
+
+      // add content from builtContentDirectory
+<span class="nc bnc" id="L448" title="All 2 branches missed.">      if (builtContentDirectory.exists()) {</span>
+<span class="nc" id="L449">        jcrContentPackageArchiver.addDirectory(builtContentDirectory, FileUtils.normalize(JCR_ROOT));</span>
+      }
+
+      // ensure that empty directories are included
+<span class="nc" id="L453">      jcrContentPackageArchiver.setIncludeEmptyDirs(true);</span>
+      // Add additional files
+<span class="nc bnc" id="L455" title="All 2 branches missed.">      for (Map.Entry&lt;String, File&gt; entry : additionalFiles.entrySet()) {</span>
+<span class="nc" id="L456">        jcrContentPackageArchiver.addFile(entry.getValue(), entry.getKey());</span>
+<span class="nc" id="L457">      }</span>
+
+<span class="nc" id="L459">      MavenArchiver mavenArchiver = new MavenArchiver();</span>
+<span class="nc" id="L460">      mavenArchiver.setArchiver(jcrContentPackageArchiver);</span>
+<span class="nc" id="L461">      mavenArchiver.setOutputFile(finalFile);</span>
+<span class="nc" id="L462">      mavenArchiver.createArchive(null, project, getMavenArchiveConfiguration());</span>
+
+<span class="nc" id="L464">      final Artifact projectArtifact = project.getArtifact();</span>
+<span class="nc" id="L465">      projectArtifact.setFile(finalFile);</span>
+<span class="nc" id="L466">      projectArtifact.setArtifactHandler(artifactHandlerManager.getArtifactHandler(PACKAGE_TYPE));</span>
+    }
+<span class="nc" id="L468">    /*CHECKSTYLE:OFF*/catch (Exception ex) { /*CHECKSTYLE:ON*/</span>
+<span class="nc" id="L469">      throw new MojoExecutionException(ex.getMessage(), ex);</span>
+<span class="nc" id="L470">    }</span>
+<span class="nc" id="L471">  }</span>
+
+  @SuppressWarnings(&quot;PMD.UseStringBufferForStringAppends&quot;)
+  private void obtainEmbeddedBundles(List&lt;EmbeddedBundle&gt; embeddedBundleList, Map&lt;String, File&gt; resultList, DefaultWorkspaceFilter filter)
+      throws MojoFailureException {
+<span class="nc bnc" id="L476" title="All 2 branches missed.">    for (EmbeddedBundle embeddedBundle : embeddedBundleList) {</span>
+<span class="nc" id="L477">      final List&lt;Artifact&gt; artifacts = embeddedBundle.getMatchingArtifacts(project);</span>
+<span class="nc bnc" id="L478" title="All 2 branches missed.">      if (artifacts.isEmpty()) {</span>
+<span class="nc bnc" id="L479" title="All 2 branches missed.">        if (failOnMissingEmbed) {</span>
+<span class="nc" id="L480">          throw new MojoFailureException(</span>
+              &quot;Embedded artifact: '&quot; + embeddedBundle + &quot;' but no dependency artifact found. Add the missing dependency or adjust the embedded definition.&quot;);
+        }
+        else {
+<span class="nc" id="L484">          getLog().warn(&quot;No matching artifacts found for '&quot; + embeddedBundle + &quot;'&quot;);</span>
+<span class="nc" id="L485">          continue;</span>
+        }
+      }
+<span class="nc bnc" id="L488" title="All 4 branches missed.">      if (embeddedBundle.getDestFileName() != null &amp;&amp; artifacts.size() &gt; 1) {</span>
+<span class="nc" id="L489">        getLog().warn(&quot;Destination File Name defined but several artifacts match the '&quot; + embeddedBundle + &quot;'&quot;);</span>
+      }
+
+<span class="nc" id="L492">      String embeddedTargetPath = embeddedBundle.getTarget();</span>
+<span class="nc bnc" id="L493" title="All 2 branches missed.">      if (embeddedTargetPath == null) {</span>
+<span class="nc" id="L494">        embeddedTargetPath = embeddedTarget;</span>
+<span class="nc bnc" id="L495" title="All 2 branches missed.">        if (embeddedTargetPath == null) {</span>
+<span class="nc" id="L496">          embeddedTargetPath = &quot;/apps/bundles/install/&quot;;</span>
+<span class="nc" id="L497">          getLog().info(</span>
+              &quot;No target path set for '&quot; + embeddedBundle + &quot;'. Using default '&quot; + embeddedTargetPath + &quot;'&quot;);
+        }
+      }
+<span class="nc" id="L501">      embeddedTargetPath = resolvePath(embeddedTargetPath);</span>
+
+<span class="nc" id="L503">      embeddedTargetPath = JCR_ROOT + embeddedTargetPath;</span>
+<span class="nc" id="L504">      embeddedTargetPath = FileUtils.normalize(embeddedTargetPath);</span>
+
+<span class="nc" id="L506">      getLog().info(&quot;Embedding Bundle '&quot; + embeddedBundle + &quot;'&quot;);</span>
+<span class="nc bnc" id="L507" title="All 2 branches missed.">      for (final Artifact artifact : artifacts) {</span>
+<span class="nc" id="L508">        final File source = artifact.getFile();</span>
+<span class="nc" id="L509">        String destinationFileName = embeddedBundle.getDestFileName();</span>
+<span class="nc bnc" id="L510" title="All 2 branches missed.">        if (destinationFileName == null) {</span>
+<span class="nc" id="L511">          destinationFileName = source.getName();</span>
+        }
+<span class="nc" id="L513">        final String targetPathName = embeddedTargetPath + destinationFileName;</span>
+<span class="nc" id="L514">        resultList.put(targetPathName, source);</span>
+<span class="nc" id="L515">        final String targetNodePathName = targetPathName.substring(JCR_ROOT.length() - 1);</span>
+<span class="nc bnc" id="L516" title="All 2 branches missed.">        if (embeddedBundle.isGenerateFilter()) {</span>
+<span class="nc" id="L517">          filter.add(new PathFilterSet(targetNodePathName));</span>
+        }
+<span class="nc" id="L519">      }</span>
+<span class="nc" id="L520">    }</span>
+<span class="nc" id="L521">  }</span>
+
+  private void obtainNestedPackages(List&lt;NestedPackage&gt; nestedPackageList, Map&lt;String, File&gt; resultList, DefaultWorkspaceFilter filter) throws IOException {
+<span class="nc bnc" id="L524" title="All 2 branches missed.">    for (NestedPackage nestedPackage : nestedPackageList) {</span>
+<span class="nc" id="L525">      final List&lt;Artifact&gt; artifacts = nestedPackage.getMatchingArtifacts(project);</span>
+<span class="nc bnc" id="L526" title="All 2 branches missed.">      if (artifacts.isEmpty()) {</span>
+<span class="nc" id="L527">        getLog().warn(&quot;No matching artifacts for nested package: '&quot; + nestedPackage + &quot;'&quot;);</span>
+<span class="nc" id="L528">        continue;</span>
+      }
+
+      // get the package path
+<span class="nc" id="L532">      getLog().info(&quot;Adding Nested Package '&quot; + nestedPackage + &quot;'&quot;);</span>
+<span class="nc bnc" id="L533" title="All 2 branches missed.">      for (Artifact artifact : artifacts) {</span>
+<span class="nc" id="L534">        final File source = artifact.getFile();</span>
+
+        // load properties
+<span class="nc" id="L537">        ZipFile zipFile = null;</span>
+<span class="nc" id="L538">        InputStream in = null;</span>
+<span class="nc" id="L539">        Properties props = new Properties();</span>
+        try {
+<span class="nc" id="L541">          zipFile = new ZipFile(source, ZipFile.OPEN_READ);</span>
+<span class="nc" id="L542">          ZipEntry zipEntry = zipFile.getEntry(&quot;META-INF/vault/properties.xml&quot;);</span>
+<span class="nc bnc" id="L543" title="All 2 branches missed.">          if (zipEntry == null) {</span>
+<span class="nc" id="L544">            getLog().error(&quot;Package is invalid as it does not contain properties.xml&quot;);</span>
+<span class="nc" id="L545">            throw new IOException(&quot;properties.xml missing in nested package: &quot; + source.getName());</span>
+          }
+<span class="nc" id="L547">          in = zipFile.getInputStream(zipEntry);</span>
+<span class="nc" id="L548">          props.loadFromXML(in);</span>
+        }
+        finally {
+<span class="nc" id="L551">          IOUtils.closeQuietly(in);</span>
+<span class="nc bnc" id="L552" title="All 2 branches missed.">          if (zipFile != null) {</span>
+<span class="nc" id="L553">            zipFile.close();</span>
+          }
+        }
+<span class="nc" id="L556">        PackageId pid = new PackageId(</span>
+<span class="nc" id="L557">            props.getProperty(&quot;group&quot;),</span>
+<span class="nc" id="L558">            props.getProperty(&quot;name&quot;),</span>
+<span class="nc" id="L559">            props.getProperty(&quot;version&quot;));</span>
+<span class="nc" id="L560">        final String targetNodePathName = pid.getInstallationPath() + &quot;.zip&quot;;</span>
+<span class="nc" id="L561">        final String targetPathName = &quot;jcr_root&quot; + targetNodePathName;</span>
+
+<span class="nc" id="L563">        resultList.put(targetPathName, source);</span>
+<span class="nc" id="L564">        getLog().info(&quot;Embedding &quot; + artifact.getId() + &quot; -&gt; &quot; + targetPathName);</span>
+<span class="nc bnc" id="L565" title="All 2 branches missed.">        if (nestedPackage.isGenerateFilter()) {</span>
+<span class="nc" id="L566">          filter.add(new PathFilterSet(targetNodePathName));</span>
+        }
+<span class="nc" id="L568">      }</span>
+<span class="nc" id="L569">    }</span>
+<span class="nc" id="L570">  }</span>
+
+  /**
+   * Build Package Properties XML file.
+   * @param vaultFolder Folder in where the properties.xml file is written to
+   */
+  @SuppressFBWarnings(&quot;WMI_WRONG_MAP_ITERATOR&quot;)
+  private void writePropertiesFile(File vaultFolder)
+      throws IOException {
+<span class="nc" id="L579">    final DateFormat dateFormat = new SimpleDateFormat(&quot;yyyy-MM-dd'T'HH:mm:ss.SSSZ&quot;, Locale.US);</span>
+<span class="nc" id="L580">    final Properties vaultProperties = new Properties();</span>
+
+<span class="nc" id="L582">    String description = project.getDescription();</span>
+<span class="nc bnc" id="L583" title="All 2 branches missed.">    if (description == null) {</span>
+<span class="nc" id="L584">      description = project.getName();</span>
+<span class="nc bnc" id="L585" title="All 2 branches missed.">      if (description == null) {</span>
+<span class="nc" id="L586">        description = project.getArtifactId();</span>
+      }
+    }
+<span class="nc" id="L589">    vaultProperties.put(&quot;description&quot;, description);</span>
+
+    // Add User Values first
+<span class="nc bnc" id="L592" title="All 2 branches missed.">    for (Object propertyKey : properties.keySet()) {</span>
+<span class="nc bnc" id="L593" title="All 2 branches missed.">      if (properties.get(propertyKey) == null) {</span>
+<span class="nc" id="L594">        properties.put(propertyKey, &quot;&quot;);</span>
+      }
+<span class="nc" id="L596">    }</span>
+
+<span class="nc" id="L598">    vaultProperties.putAll(properties);</span>
+
+    // Package Descriptions
+<span class="nc" id="L601">    vaultProperties.put(PROPERTY_GROUP, group);</span>
+<span class="nc" id="L602">    vaultProperties.put(PROPERTY_NAME, name);</span>
+<span class="nc" id="L603">    vaultProperties.put(PROPERTY_VERSION, version);</span>
+
+    // Artifact Description
+<span class="nc" id="L606">    vaultProperties.put(PROPERTY_GROUP_ID, project.getGroupId());</span>
+<span class="nc" id="L607">    vaultProperties.put(PROPERTY_ARTIFACT_ID, project.getArtifactId());</span>
+
+    // Package Dependencies
+<span class="nc bnc" id="L610" title="All 2 branches missed.">    if (!dependencies.isEmpty()) {</span>
+<span class="nc" id="L611">      vaultProperties.put(PROPERTY_DEPENDENCIES, Dependency.toString(dependencies));</span>
+    }
+
+    // User and Timestamp
+<span class="nc bnc" id="L615" title="All 2 branches missed.">    if (!vaultProperties.containsKey(PROPERTY_CREATED_BY)) {</span>
+<span class="nc" id="L616">      vaultProperties.put(PROPERTY_CREATED_BY, System.getProperty(&quot;user.name&quot;));</span>
+    }
+<span class="nc" id="L618">    vaultProperties.put(PROPERTY_CREATED, dateFormat.format(new Date()));</span>
+
+    // configurable properties
+<span class="nc" id="L621">    vaultProperties.put(PROPERTY_REQUIRES_ROOT, String.valueOf(requiresRoot));</span>
+<span class="nc" id="L622">    vaultProperties.put(PROPERTY_ALLOW_INDEX_DEFINITIONS, String.valueOf(allowIndexDefinitions));</span>
+<span class="nc" id="L623">    vaultProperties.put(PROPERTY_PATH, ETC_PACKAGES + &quot;/&quot; + group + &quot;/&quot; + name + PACKAGE_EXT);</span>
+<span class="nc" id="L624">    vaultProperties.put(PROPERTY_AC_HANDLING, StringUtils.lowerCase(acHandling));</span>
+
+<span class="nc" id="L626">    try (FileOutputStream fos = new FileOutputStream(new File(vaultFolder, PROPERTIES_XML));</span>
+<span class="nc" id="L627">        BufferedOutputStream bos = new BufferedOutputStream(fos)) {</span>
+<span class="nc" id="L628">      vaultProperties.storeToXML(bos, project.getName());</span>
+    }
+<span class="nc" id="L630">  }</span>
+
+  private String resolvePath(final String path) {
+<span class="nc" id="L633">    String answer = path;</span>
+<span class="nc bnc" id="L634" title="All 2 branches missed.">    if (!answer.startsWith(&quot;/&quot;)) {</span>
+<span class="nc" id="L635">      answer = &quot;/&quot; + path;</span>
+<span class="nc" id="L636">      getLog().info(&quot;Relative path resolved to &quot; + answer);</span>
+    }
+
+<span class="nc" id="L639">    return answer;</span>
+  }
+
+  private File getFileFromFolder(File folder, final String fileName) {
+<span class="nc" id="L643">    File answer = null;</span>
+<span class="nc" id="L644">    File[] files = folder.listFiles(</span>
+<span class="nc" id="L645">        new FilenameFilter() {</span>
+          @Override
+          public boolean accept(File dir, String itemName) {
+<span class="nc" id="L648">            return itemName.equals(fileName);</span>
+          }
+        });
+<span class="nc bnc" id="L651" title="All 4 branches missed.">    if (files != null &amp;&amp; files.length &gt; 0) {</span>
+<span class="nc" id="L652">      answer = files[0];</span>
+    }
+<span class="nc" id="L654">    return answer;</span>
+  }
+
+  private void checkAndCopy(File vaultFolder, String fileName) throws IOException {
+<span class="nc bnc" id="L658" title="All 2 branches missed.">    if (getFileFromFolder(vaultFolder, fileName) == null) {</span>
+<span class="nc" id="L659">      InputStream ios = getClass().getResourceAsStream(&quot;/vault-file-templates/&quot; + fileName);</span>
+<span class="nc bnc" id="L660" title="All 2 branches missed.">      if (ios != null) {</span>
+<span class="nc" id="L661">        FileOutputStream fos = new FileOutputStream(new File(vaultFolder, fileName));</span>
+<span class="nc" id="L662">        IOUtils.copy(ios, fos);</span>
+<span class="nc" id="L663">        IOUtils.closeQuietly(ios);</span>
+<span class="nc" id="L664">        IOUtils.closeQuietly(fos);</span>
+      }
+    }
+<span class="nc" id="L667">  }</span>
+
+  private DefaultWorkspaceFilter loadFilterInFolder(File vaultFolder)
+      throws IOException, ConfigurationException {
+<span class="nc bnc" id="L671" title="All 2 branches missed.">    return loadFilter(</span>
+<span class="nc bnc" id="L672" title="All 4 branches missed.">        vaultFolder != null &amp;&amp; vaultFolder.exists() &amp;&amp; vaultFolder.isDirectory() ? new File(vaultFolder, FILTER_XML) : null);</span>
+  }
+
+  private DefaultWorkspaceFilter loadFilter(File filterFile)
+      throws IOException, ConfigurationException {
+<span class="nc" id="L677">    DefaultWorkspaceFilter answer = null;</span>
+<span class="nc" id="L678">    InputStream in = null;</span>
+    try {
+<span class="nc bnc" id="L680" title="All 6 branches missed.">      if (filterFile != null &amp;&amp; filterFile.exists() &amp;&amp; !filterFile.isDirectory()) {</span>
+<span class="nc" id="L681">        in = new FileInputStream(filterFile);</span>
+      }
+<span class="nc bnc" id="L683" title="All 2 branches missed.">      if (in != null) {</span>
+<span class="nc" id="L684">        answer = new DefaultWorkspaceFilter();</span>
+<span class="nc" id="L685">        answer.load(in);</span>
+      }
+    }
+    finally {
+<span class="nc bnc" id="L689" title="All 2 branches missed.">      if (in != null) {</span>
+<span class="nc" id="L690">        IOUtils.closeQuietly(in);</span>
+      }
+    }
+<span class="nc bnc" id="L693" title="All 2 branches missed.">    if (answer == null) {</span>
+<span class="nc" id="L694">      answer = new DefaultWorkspaceFilter();</span>
+    }
+<span class="nc" id="L696">    return answer;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

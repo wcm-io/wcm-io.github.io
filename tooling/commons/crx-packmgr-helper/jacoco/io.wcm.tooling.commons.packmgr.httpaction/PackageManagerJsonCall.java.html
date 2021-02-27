@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PackageManagerJsonCall.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CRX Package Manager Helper</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.packmgr.httpaction</a> &gt; <span class="el_source">PackageManagerJsonCall.java</span></div><h1>PackageManagerJsonCall.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.packmgr.httpaction;
+
+import java.io.IOException;
+
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import io.wcm.tooling.commons.packmgr.Logger;
+import io.wcm.tooling.commons.packmgr.PackageManagerHttpActionException;
+
+/**
+ * Call to package manager HTTP JSON interface.
+ */
+public final class PackageManagerJsonCall implements HttpCall&lt;JSONObject&gt; {
+
+  private final CloseableHttpClient httpClient;
+  private final HttpRequestBase method;
+  private final Logger log;
+
+  /**
+   * @param httpClient HTTP client
+   * @param method HTTP method
+   * @param log Logger
+   */
+<span class="nc" id="L49">  public PackageManagerJsonCall(CloseableHttpClient httpClient, HttpRequestBase method, Logger log) {</span>
+<span class="nc" id="L50">    this.httpClient = httpClient;</span>
+<span class="nc" id="L51">    this.method = method;</span>
+<span class="nc" id="L52">    this.log = log;</span>
+<span class="nc" id="L53">  }</span>
+
+  @Override
+  public JSONObject execute() {
+<span class="nc bnc" id="L57" title="All 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L58">      log.debug(&quot;Call URL: &quot; + method.getURI());</span>
+    }
+
+<span class="nc" id="L61">    try (CloseableHttpResponse response = httpClient.execute(method)) {</span>
+<span class="nc" id="L62">      JSONObject jsonResponse = null;</span>
+
+<span class="nc" id="L64">      String responseString = EntityUtils.toString(response.getEntity());</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">      if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {</span>
+
+        // get response JSON
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        if (responseString != null) {</span>
+          try {
+<span class="nc" id="L70">            jsonResponse = new JSONObject(responseString);</span>
+          }
+<span class="nc" id="L72">          catch (JSONException ex) {</span>
+<span class="nc" id="L73">            throw PackageManagerHttpActionException.forJSONException(method.getURI().toString(), responseString, ex);</span>
+<span class="nc" id="L74">          }</span>
+        }
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        if (jsonResponse == null) {</span>
+<span class="nc" id="L77">          jsonResponse = new JSONObject();</span>
+<span class="nc" id="L78">          jsonResponse.put(&quot;success&quot;, false);</span>
+<span class="nc" id="L79">          jsonResponse.put(&quot;msg&quot;, &quot;Invalid response (null).&quot;);</span>
+        }
+
+      }
+      else {
+<span class="nc" id="L84">        throw PackageManagerHttpActionException.forHttpError(method.getURI().toString(), response.getStatusLine(), responseString);</span>
+      }
+
+<span class="nc" id="L87">      return jsonResponse;</span>
+    }
+<span class="nc" id="L89">    catch (IOException ex) {</span>
+<span class="nc" id="L90">      throw PackageManagerHttpActionException.forIOException(method.getURI().toString(), ex);</span>
+    }
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>
