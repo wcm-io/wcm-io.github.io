@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImageWidthProxyServlet.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Core Components</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.core.components.impl.servlets</a> &gt; <span class="el_source">ImageWidthProxyServlet.java</span></div><h1>ImageWidthProxyServlet.java</h1><pre class="source lang-java linenums">package io.wcm.wcm.core.components.impl.servlets;
+
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.commons.mime.MimeTypeService;
+import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.MediaBuilder;
+import io.wcm.handler.media.MediaHandler;
+import io.wcm.handler.media.impl.ImageFileServlet;
+import io.wcm.sling.commons.adapter.AdaptTo;
+import io.wcm.wcm.commons.contenttype.ContentType;
+import io.wcm.wcm.commons.contenttype.FileExtension;
+import io.wcm.wcm.core.components.impl.models.v2.ImageImpl;
+
+/**
+ * This servlet acts as a &quot;proxy&quot; for the {@link io.wcm.handler.media.impl.ImageFileServlet}
+ * that emulates support for the &quot;widths&quot; attributes of the core component and maps them
+ * to media handler-URLs internally.
+ * &lt;p&gt;
+ * Expected selectors:
+ * &lt;/p&gt;
+ * &lt;ol&gt;
+ * &lt;li&gt;imgwidth&lt;/li&gt;
+ * &lt;li&gt;{width}&lt;/li&gt;
+ * &lt;/ol&gt;
+ */
+@Component(service = Servlet.class)
+@SlingServletResourceTypes(
+    resourceTypes = ImageImpl.RESOURCE_TYPE,
+    selectors = ImageWidthProxyServlet.SELECTOR,
+    extensions = { FileExtension.JPEG, FileExtension.PNG, FileExtension.GIF },
+    methods = &quot;GET&quot;)
+<span class="fc" id="L54">public class ImageWidthProxyServlet extends SlingSafeMethodsServlet {</span>
+
+  private static final long serialVersionUID = 1L;
+
+  @Reference
+  private MimeTypeService mimeTypeService;
+
+  /**
+   * Selector
+   */
+  public static final String SELECTOR = &quot;imgwidth&quot;;
+
+<span class="fc" id="L66">  private static final Logger log = LoggerFactory.getLogger(ImageWidthProxyServlet.class);</span>
+
+  @Override
+  protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
+<span class="fc" id="L70">    long width = getWidth(request);</span>
+
+    // build media URL and validate it
+<span class="fc" id="L73">    Media media = buildMedia(request, width);</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">    if (!media.isValid()) {</span>
+<span class="fc" id="L75">      log.debug(&quot;Unable to resolve media: {}, width={}&quot;, media.getMediaRequest().getMediaRef(), width);</span>
+<span class="fc" id="L76">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="fc" id="L77">      return;</span>
+    }
+
+    // if media url used ImageFileServlet forward request
+<span class="fc bfc" id="L81" title="All 2 branches covered.">    if (usesImageFileServlet(media.getUrl())) {</span>
+<span class="fc" id="L82">      log.debug(&quot;Forward to {}&quot;, media.getUrl());</span>
+<span class="fc" id="L83">      request.getRequestDispatcher(media.getUrl()).forward(request, response);</span>
+    }
+    else {
+      // otherwise it points directly to a binary in repository, stream it directly
+<span class="fc" id="L87">      log.debug(&quot;Stream binary content from {}&quot;, media.getRendition().getPath());</span>
+<span class="fc" id="L88">      response.setContentType(getMimeType(request));</span>
+<span class="fc" id="L89">      Resource resource = AdaptTo.notNull(media.getRendition(), Resource.class);</span>
+<span class="fc" id="L90">      try (InputStream is = resource.adaptTo(InputStream.class)) {</span>
+<span class="fc" id="L91">        BufferedOutputStream bos = new BufferedOutputStream(response.getOutputStream());</span>
+<span class="fc" id="L92">        IOUtils.copy(is, bos);</span>
+<span class="fc" id="L93">        bos.flush();</span>
+      }
+    }
+<span class="fc" id="L96">  }</span>
+
+  private long getWidth(SlingHttpServletRequest request) {
+<span class="fc" id="L99">    String[] selectors = request.getRequestPathInfo().getSelectors();</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (selectors.length &gt;= 2) {</span>
+<span class="fc" id="L101">      return NumberUtils.toLong(selectors[1]);</span>
+    }
+<span class="fc" id="L103">    return 0;</span>
+  }
+
+  private Media buildMedia(SlingHttpServletRequest request, long width) {
+<span class="fc" id="L107">    Resource resource = request.getResource();</span>
+<span class="fc" id="L108">    MediaHandler mediaHandler = AdaptTo.notNull(request, MediaHandler.class);</span>
+<span class="fc" id="L109">    MediaBuilder builder = mediaHandler.get(resource);</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">    if (width &gt; 0) {</span>
+<span class="fc" id="L111">      builder.args(new MediaArgs().fixedWidth(width));</span>
+    }
+<span class="fc" id="L113">    return builder.build();</span>
+  }
+
+  private boolean usesImageFileServlet(String mediaUrl) {
+<span class="fc" id="L117">    return StringUtils.contains(mediaUrl, &quot;.&quot; + ImageFileServlet.SELECTOR + &quot;.&quot;);</span>
+  }
+
+  private String getMimeType(SlingHttpServletRequest request) {
+<span class="fc" id="L121">    String mimeType = mimeTypeService.getMimeType(request.getRequestPathInfo().getExtension());</span>
+<span class="fc" id="L122">    return StringUtils.defaultString(mimeType, ContentType.OCTET_STREAM);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LinkListItemImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Core Components</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.core.components.impl.models.helpers</a> &gt; <span class="el_source">LinkListItemImpl.java</span></div><h1>LinkListItemImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.core.components.impl.models.helpers;
+
+import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.adobe.cq.wcm.core.components.models.ListItem;
+import com.adobe.cq.wcm.core.components.models.datalayer.PageData;
+import com.adobe.cq.wcm.core.components.models.datalayer.builder.DataLayerBuilder;
+import com.day.cq.wcm.api.components.Component;
+
+import io.wcm.handler.link.Link;
+import io.wcm.handler.link.SyntheticLinkResource;
+import io.wcm.wcm.core.components.models.mixin.LinkMixin;
+
+/**
+ * {@link ListItem} implementation for any links.
+ */
+public class LinkListItemImpl extends AbstractListItemImpl implements ListItem, LinkMixin {
+
+  private final String title;
+  private final Link link;
+
+  /**
+   * @param title Title
+   * @param link Link
+   * @param parentId Parent Id
+   * @param parentComponent The component that contains this list item
+   * @param contextResource Resource in context of which this link item is used
+   */
+  public LinkListItemImpl(@NotNull String title, @NotNull Link link, @Nullable String parentId,
+      @Nullable Component parentComponent, @NotNull Resource contextResource) {
+<span class="fc" id="L52">    super(getLinkRequestResource(link, contextResource), parentId, parentComponent);</span>
+<span class="fc" id="L53">    this.title = title;</span>
+<span class="fc" id="L54">    this.link = link;</span>
+<span class="fc" id="L55">  }</span>
+
+  private static @NotNull Resource getLinkRequestResource(@NotNull Link link, @NotNull Resource contextResource) {
+<span class="fc" id="L58">    Resource resource = link.getLinkRequest().getResource();</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    if (resource == null) {</span>
+<span class="fc" id="L60">      resource = new SyntheticLinkResource(contextResource.getResourceResolver(), contextResource.getPath());</span>
+    }
+<span class="fc" id="L62">    return resource;</span>
+  }
+
+  @Override
+  @NotNull
+  public Link getLinkObject() {
+<span class="fc" id="L68">    return link;</span>
+  }
+
+  @Override
+  public String getURL() {
+<span class="fc" id="L73">    return link.getUrl();</span>
+  }
+
+  @Override
+  public String getTitle() {
+<span class="fc" id="L78">    return title;</span>
+  }
+
+  // --- data layer ---
+
+  @Override
+  protected @NotNull PageData getComponentData() {
+<span class="nc" id="L85">    return DataLayerBuilder.extending(super.getComponentData()).asPage()</span>
+<span class="nc" id="L86">        .withTitle(this::getTitle)</span>
+<span class="nc" id="L87">        .withLinkUrl(this::getURL)</span>
+<span class="nc" id="L88">        .build();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

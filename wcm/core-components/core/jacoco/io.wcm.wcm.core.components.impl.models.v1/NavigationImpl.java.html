@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NavigationImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Core Components</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.core.components.impl.models.v1</a> &gt; <span class="el_source">NavigationImpl.java</span></div><h1>NavigationImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.core.components.impl.models.v1;
+
+import static com.day.cq.commons.jcr.JcrConstants.NT_UNSTRUCTURED;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+
+import javax.annotation.PostConstruct;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.SyntheticResource;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.models.annotations.Exporter;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
+import org.apache.sling.models.annotations.injectorspecific.Self;
+import org.apache.sling.models.annotations.injectorspecific.SlingObject;
+import org.apache.sling.models.annotations.injectorspecific.ValueMapValue;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.adobe.cq.export.json.ComponentExporter;
+import com.adobe.cq.export.json.ExporterConstants;
+import com.adobe.cq.wcm.core.components.models.Navigation;
+import com.adobe.cq.wcm.core.components.models.NavigationItem;
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageFilter;
+import com.day.cq.wcm.api.PageManager;
+import com.day.cq.wcm.api.designer.Style;
+
+import io.wcm.handler.link.Link;
+import io.wcm.handler.link.LinkHandler;
+import io.wcm.handler.url.UrlHandler;
+import io.wcm.handler.url.ui.SiteRoot;
+import io.wcm.sling.models.annotations.AemObject;
+import io.wcm.wcm.core.components.impl.models.helpers.AbstractComponentImpl;
+import io.wcm.wcm.core.components.impl.models.helpers.NavigationItemImpl;
+
+/**
+ * wcm.io-based enhancements for {@link Navigation}:
+ * &lt;ul&gt;
+ * &lt;li&gt;Detect site root via URL handler&lt;/li&gt;
+ * &lt;li&gt;Build navigation item links using Link handler&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Model(adaptables = SlingHttpServletRequest.class,
+    adapters = { Navigation.class, ComponentExporter.class },
+    resourceType = NavigationImpl.RESOURCE_TYPE)
+@Exporter(
+    name = ExporterConstants.SLING_MODEL_EXPORTER_NAME,
+    extensions = ExporterConstants.SLING_MODEL_EXTENSION)
+<span class="fc" id="L77">public class NavigationImpl extends AbstractComponentImpl implements Navigation {</span>
+
+  static final String RESOURCE_TYPE = &quot;wcm-io/wcm/core/components/navigation/v1/navigation&quot;;
+
+  private static final int NO_STRUCTURE_DEPTH = -1;
+
+  @AemObject
+  private Style currentStyle;
+  @AemObject
+  private PageManager pageManager;
+  @SlingObject
+  private ResourceResolver resourceResolver;
+  @Self
+  private SiteRoot siteRoot;
+  @Self
+  private UrlHandler urlHandler;
+  @Self
+  private LinkHandler linkHandler;
+  private List&lt;NavigationItem&gt; items;
+
+  @ValueMapValue(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private @Nullable String accessibilityLabel;
+
+  private String navigationRootPath;
+  private int structureDepth;
+  private int structureStart;
+
+  @PostConstruct
+  private void activate() {
+<span class="fc" id="L106">    ValueMap properties = resource.getValueMap();</span>
+<span class="fc" id="L107">    navigationRootPath = resource.getValueMap().get(PN_NAVIGATION_ROOT, currentStyle.get(PN_NAVIGATION_ROOT, String.class));</span>
+<span class="fc" id="L108">    structureDepth = properties.get(PN_STRUCTURE_DEPTH, currentStyle.get(PN_STRUCTURE_DEPTH, NO_STRUCTURE_DEPTH));</span>
+<span class="fc" id="L109">    boolean collectAllPages = properties.get(PN_COLLECT_ALL_PAGES, currentStyle.get(PN_COLLECT_ALL_PAGES, true));</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">    if (collectAllPages) {</span>
+<span class="fc" id="L111">      structureDepth = NO_STRUCTURE_DEPTH;</span>
+    }
+
+<span class="fc bfc" id="L114" title="All 4 branches covered.">    if (currentStyle.containsKey(PN_STRUCTURE_START) || properties.containsKey(PN_STRUCTURE_START)) {</span>
+<span class="fc" id="L115">      structureStart = properties.get(PN_STRUCTURE_START, currentStyle.get(PN_STRUCTURE_START, 1));</span>
+    }
+    else {
+      @SuppressWarnings(&quot;deprecation&quot;)
+<span class="fc" id="L119">      boolean skipNavigationRoot = properties.get(PN_SKIP_NAVIGATION_ROOT, currentStyle.get(PN_SKIP_NAVIGATION_ROOT, true));</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">      if (skipNavigationRoot) {</span>
+<span class="fc" id="L121">        structureStart = 1;</span>
+      }
+      else {
+<span class="fc" id="L124">        structureStart = 0;</span>
+      }
+    }
+<span class="fc" id="L127">  }</span>
+
+  @Override
+  public List&lt;NavigationItem&gt; getItems() {
+<span class="fc bfc" id="L131" title="All 2 branches covered.">    if (items == null) {</span>
+<span class="fc" id="L132">      items = createItems();</span>
+    }
+<span class="fc" id="L134">    return items;</span>
+  }
+
+  @Override
+  public String getAccessibilityLabel() {
+<span class="fc" id="L139">    return accessibilityLabel;</span>
+  }
+
+  private List&lt;NavigationItem&gt; createItems() {
+<span class="fc" id="L143">    List&lt;NavigationItem&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L144">    Page rootPage = getNavigationRootPage();</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">    if (rootPage != null) {</span>
+<span class="fc" id="L146">      NavigationRoot navigationRoot = new NavigationRoot(rootPage, structureDepth);</span>
+<span class="fc" id="L147">      result = getNavigationTree(navigationRoot);</span>
+<span class="fc" id="L148">    }</span>
+    else {
+<span class="fc" id="L150">      result = Collections.emptyList();</span>
+    }
+<span class="fc" id="L152">    return Collections.unmodifiableList(result);</span>
+  }
+
+  /**
+   * Get root page for navigation.
+   * @return Root page or null if detection was not possible
+   */
+  private @Nullable Page getNavigationRootPage() {
+<span class="fc" id="L160">    Page navigationRootPage = null;</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">    if (StringUtils.isBlank(navigationRootPath)) {</span>
+      // use site root as configured in URL handler as navigation root
+<span class="fc" id="L163">      navigationRootPage = siteRoot.getRootPage();</span>
+    }
+<span class="fc bfc" id="L165" title="All 2 branches covered.">    else if (StringUtils.startsWith(navigationRootPath, &quot;/&quot;)) {</span>
+      // configured root path is absolute path - rewrite to current context and try to resolve matching page
+<span class="fc" id="L167">      Resource configuredRootResource = new SyntheticResource(resourceResolver, navigationRootPath, NT_UNSTRUCTURED);</span>
+<span class="fc" id="L168">      String rewrittenPath = urlHandler.rewritePathToContext(configuredRootResource);</span>
+<span class="fc" id="L169">      navigationRootPage = pageManager.getPage(rewrittenPath);</span>
+<span class="fc" id="L170">    }</span>
+    else {
+      // configured root path is relative path - try to resolve relative to site root path
+<span class="fc" id="L173">      String siteRootPath = siteRoot.getRootPath();</span>
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">      if (siteRootPath != null) {</span>
+<span class="fc" id="L175">        navigationRootPage = pageManager.getPage(siteRootPath + &quot;/&quot; + navigationRootPath);</span>
+      }
+    }
+<span class="fc" id="L178">    return navigationRootPage;</span>
+  }
+
+  /**
+   * Build navigation tree respecting the configured structure start level.
+   * @param navigationRoot Navigation root
+   * @return Navigation item
+   */
+  private List&lt;NavigationItem&gt; getNavigationTree(NavigationRoot navigationRoot) {
+<span class="fc" id="L187">    List&lt;NavigationItem&gt; itemTree = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L188">    List&lt;NavigationRoot&gt; rootItems = getRootItems(navigationRoot);</span>
+<span class="fc bfc" id="L189" title="All 2 branches covered.">    for (NavigationRoot rootItem : rootItems) {</span>
+<span class="fc" id="L190">      itemTree.addAll(getItems(rootItem, rootItem.page));</span>
+<span class="fc" id="L191">    }</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">    if (structureStart == 0) {</span>
+<span class="fc" id="L193">      Link link = linkHandler.get(navigationRoot.page).build();</span>
+<span class="fc" id="L194">      boolean isSelected = checkSelected(navigationRoot.page, link);</span>
+<span class="fc" id="L195">      NavigationItemImpl root = new NavigationItemImpl(navigationRoot.page, link, isSelected, 0, itemTree,</span>
+<span class="fc" id="L196">          getId(), this.componentContext.getComponent());</span>
+<span class="fc" id="L197">      itemTree = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L198">      itemTree.add(root);</span>
+    }
+<span class="fc" id="L200">    return itemTree;</span>
+  }
+
+  /**
+   * Get navigation root items for the configured structure start.
+   * @param navigationRoot Navigation root.
+   * @return Navigation root items
+   */
+  private List&lt;NavigationRoot&gt; getRootItems(NavigationRoot navigationRoot) {
+<span class="fc" id="L209">    LinkedList&lt;NavigationRoot&gt; rootItems = new LinkedList&lt;&gt;();</span>
+<span class="fc" id="L210">    rootItems.addLast(navigationRoot);</span>
+<span class="fc bfc" id="L211" title="All 2 branches covered.">    if (structureStart &gt; 0) {</span>
+<span class="fc" id="L212">      int level = 1;</span>
+<span class="pc bpc" id="L213" title="1 of 4 branches missed.">      while (level != structureStart &amp;&amp; !rootItems.isEmpty()) {</span>
+<span class="fc" id="L214">        int size = rootItems.size();</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">        while (size &gt; 0) {</span>
+<span class="fc" id="L216">          NavigationRoot item = rootItems.removeFirst();</span>
+<span class="fc" id="L217">          Iterator&lt;Page&gt; it = item.page.listChildren(new PageFilter());</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">          while (it.hasNext()) {</span>
+<span class="fc" id="L219">            rootItems.addLast(new NavigationRoot(it.next(), structureDepth));</span>
+          }
+<span class="fc" id="L221">          size = size - 1;</span>
+<span class="fc" id="L222">        }</span>
+<span class="fc" id="L223">        level = level + 1;</span>
+<span class="fc" id="L224">      }</span>
+    }
+<span class="fc" id="L226">    return rootItems;</span>
+  }
+
+  /**
+   * Builds the navigation tree for a {@code navigationRoot} page.
+   * @param navigationRoot the global navigation tree root (start page)
+   * @param subtreeRoot the current sub-tree root (changes depending on the level of recursion)
+   * @return the list of collected navigation trees
+   */
+  private List&lt;NavigationItem&gt; getItems(NavigationRoot navigationRoot, Page subtreeRoot) {
+<span class="fc" id="L236">    List&lt;NavigationItem&gt; pages = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L237" title="All 4 branches covered.">    if (navigationRoot.structureDepth == NO_STRUCTURE_DEPTH || subtreeRoot.getDepth() &lt; navigationRoot.structureDepth) {</span>
+<span class="fc" id="L238">      Iterator&lt;Page&gt; it = subtreeRoot.listChildren(new PageFilter(false, false));</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">      while (it.hasNext()) {</span>
+<span class="fc" id="L240">        Page page = it.next();</span>
+<span class="fc" id="L241">        int pageLevel = page.getDepth();</span>
+<span class="fc" id="L242">        int level = pageLevel - navigationRoot.startLevel;</span>
+<span class="fc" id="L243">        List&lt;NavigationItem&gt; children = getItems(navigationRoot, page);</span>
+<span class="fc" id="L244">        Link link = linkHandler.get(page).build();</span>
+<span class="fc" id="L245">        boolean isSelected = checkSelected(page, link);</span>
+<span class="fc bfc" id="L246" title="All 2 branches covered.">        if (structureStart == 0) {</span>
+<span class="fc" id="L247">          level = level - 1;</span>
+        }
+<span class="fc" id="L249">        pages.add(new NavigationItemImpl(page, link, isSelected, level, children,</span>
+<span class="fc" id="L250">            getId(), this.componentContext.getComponent()));</span>
+<span class="fc" id="L251">      }</span>
+    }
+<span class="fc" id="L253">    return pages;</span>
+  }
+
+  private boolean checkSelected(@NotNull Page page, @NotNull Link link) {
+<span class="fc bfc" id="L257" title="All 2 branches covered.">    return StringUtils.equals(currentPage.getPath(), page.getPath()) ||</span>
+<span class="fc bfc" id="L258" title="All 2 branches covered.">        StringUtils.startsWith(currentPage.getPath(), page.getPath() + &quot;/&quot;) ||</span>
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">        currentPageIsRedirectTarget(link);</span>
+  }
+
+  private boolean currentPageIsRedirectTarget(@NotNull Link link) {
+<span class="pc bpc" id="L263" title="1 of 2 branches missed.">    return link.getTargetPage() != null</span>
+<span class="pc bpc" id="L264" title="1 of 2 branches missed.">        &amp;&amp; StringUtils.equals(currentPage.getPath(), link.getTargetPage().getPath());</span>
+  }
+
+  private static final class NavigationRoot {
+
+    private final Page page;
+    private final int startLevel;
+    private final int structureDepth;
+
+<span class="fc" id="L273">    private NavigationRoot(@NotNull Page navigationRoot, int configuredStructureDepth) {</span>
+<span class="fc" id="L274">      this.page = navigationRoot;</span>
+<span class="fc" id="L275">      this.startLevel = navigationRoot.getDepth();</span>
+<span class="fc bfc" id="L276" title="All 2 branches covered.">      this.structureDepth = (configuredStructureDepth &gt;= 0) ? configuredStructureDepth + startLevel : NO_STRUCTURE_DEPTH;</span>
+<span class="fc" id="L277">    }</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

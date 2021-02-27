@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ListImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Core Components</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.core.components.impl.models.v2</a> &gt; <span class="el_source">ListImpl.java</span></div><h1>ListImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.core.components.impl.models.v2;
+
+import java.util.Collection;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.models.annotations.Exporter;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.Via;
+import org.apache.sling.models.annotations.injectorspecific.Self;
+import org.apache.sling.models.annotations.via.ResourceSuperType;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.adobe.cq.export.json.ComponentExporter;
+import com.adobe.cq.export.json.ExporterConstants;
+import com.adobe.cq.wcm.core.components.models.List;
+import com.adobe.cq.wcm.core.components.models.ListItem;
+import com.day.cq.wcm.api.Page;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.wcm.handler.link.LinkHandler;
+import io.wcm.wcm.core.components.impl.models.helpers.AbstractComponentImpl;
+import io.wcm.wcm.core.components.impl.models.helpers.PageListItemImpl;
+
+/**
+ * wcm.io-based enhancements for {@link List}:
+ * &lt;ul&gt;
+ * &lt;li&gt;Build link item links using Link handler&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Model(adaptables = SlingHttpServletRequest.class,
+    adapters = { List.class, ComponentExporter.class },
+    resourceType = ListImpl.RESOURCE_TYPE)
+@Exporter(
+    name = ExporterConstants.SLING_MODEL_EXPORTER_NAME,
+    extensions = ExporterConstants.SLING_MODEL_EXTENSION)
+<span class="fc" id="L58">public class ListImpl extends AbstractComponentImpl implements List {</span>
+
+  static final String RESOURCE_TYPE = &quot;wcm-io/wcm/core/components/list/v2/list&quot;;
+
+  @Self
+  @Via(type = ResourceSuperType.class)
+  private List delegate;
+
+  @Self
+  private LinkHandler linkHandler;
+
+  @Override
+  @JsonProperty(&quot;items&quot;)
+  @SuppressWarnings(&quot;null&quot;)
+  public @NotNull Collection&lt;ListItem&gt; getListItems() {
+<span class="fc" id="L73">    return getItems().stream()</span>
+<span class="fc" id="L74">        .filter(Objects::nonNull)</span>
+<span class="fc" id="L75">        .map(page -&gt; (ListItem)new PageListItemImpl(page, linkHandler.get(page).build(),</span>
+<span class="fc" id="L76">            getId(), this.componentContext.getComponent()))</span>
+<span class="fc" id="L77">        .collect(Collectors.toList());</span>
+  }
+
+  // --- delegated methods ---
+
+  @Override
+  public @Nullable String getId() {
+<span class="fc" id="L84">    return this.delegate.getId();</span>
+  }
+
+  @Override
+  @SuppressWarnings(&quot;deprecation&quot;)
+  public Collection&lt;Page&gt; getItems() {
+<span class="fc" id="L90">    return this.delegate.getItems();</span>
+  }
+
+  @Override
+  public boolean linkItems() {
+<span class="nc" id="L95">    return this.delegate.linkItems();</span>
+  }
+
+  @Override
+  public boolean showDescription() {
+<span class="nc" id="L100">    return this.delegate.showDescription();</span>
+  }
+
+  @Override
+  public boolean showModificationDate() {
+<span class="nc" id="L105">    return this.delegate.showModificationDate();</span>
+  }
+
+  @Override
+  public String getDateFormatString() {
+<span class="nc" id="L110">    return this.delegate.getDateFormatString();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>
