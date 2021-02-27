@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AssetRequestServlet.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DAM Asset Service</a> &gt; <a href="index.source.html" class="el_package">io.wcm.dam.assetservice.impl</a> &gt; <span class="el_source">AssetRequestServlet.java</span></div><h1>AssetRequestServlet.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2015 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.dam.assetservice.impl;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.CharEncoding;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.commons.json.JSONArray;
+import org.apache.sling.commons.json.JSONException;
+import org.apache.sling.commons.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.MediaHandler;
+import io.wcm.handler.media.Rendition;
+import io.wcm.wcm.commons.contenttype.ContentType;
+
+/**
+ * Implements a simple REST interface that allows resolving DAM asset paths to URLs.
+ * For image assets resolving to specific dimensions is supported.
+ */
+@SuppressWarnings(&quot;deprecation&quot;)
+class AssetRequestServlet extends SlingSafeMethodsServlet {
+  private static final long serialVersionUID = 1L;
+
+  private final DamPathHandler damPathHandler;
+
+<span class="fc" id="L54">  private static final Logger log = LoggerFactory.getLogger(AssetRequestServlet.class);</span>
+
+<span class="fc" id="L56">  AssetRequestServlet(DamPathHandler damPathHandler) {</span>
+<span class="fc" id="L57">    this.damPathHandler = damPathHandler;</span>
+<span class="fc" id="L58">  }</span>
+
+  @SuppressWarnings(&quot;null&quot;)
+  @Override
+  protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
+<span class="fc" id="L63">    String assetPath = request.getResource().getPath();</span>
+
+    // check if asset path is valid
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">    if (!damPathHandler.isAllowedAssetPath(assetPath)) {</span>
+<span class="nc" id="L67">      log.debug(&quot;Asset path not allowed {}&quot;, assetPath);</span>
+<span class="nc" id="L68">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="nc" id="L69">      return;</span>
+    }
+
+    // get media handler
+<span class="fc" id="L73">    MediaHandler mediaHandler = request.getResource().adaptTo(MediaHandler.class);</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">    if (mediaHandler == null) {</span>
+<span class="nc" id="L75">      log.debug(&quot;Unable to get media handler for {}&quot;, assetPath);</span>
+<span class="nc" id="L76">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="nc" id="L77">      return;</span>
+    }
+
+    // build list of asset service requests with optional input parameters
+<span class="fc" id="L81">    List&lt;AssetRequest&gt; requests = AssetRequestParser.getAssetRequests(assetPath, request);</span>
+
+    // resolve asset service requests
+<span class="fc" id="L84">    List&lt;Media&gt; mediaList = resolveMedia(requests, mediaHandler);</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">    if (mediaList.isEmpty()) {</span>
+<span class="fc" id="L86">      log.debug(&quot;No matching assets/renditions found for {}; requests: {}&quot;, assetPath, requests);</span>
+<span class="fc" id="L87">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="fc" id="L88">      return;</span>
+    }
+
+    // output result json
+    try {
+<span class="fc" id="L93">      JSONArray resultJson = toResultJson(mediaList);</span>
+<span class="fc" id="L94">      response.setContentType(ContentType.JSON);</span>
+<span class="fc" id="L95">      response.setCharacterEncoding(CharEncoding.UTF_8);</span>
+<span class="fc" id="L96">      response.getWriter().write(resultJson.toString());</span>
+    }
+<span class="nc" id="L98">    catch (JSONException ex) {</span>
+<span class="nc" id="L99">      throw new ServletException(&quot;Unable to generate JSON.&quot;, ex);</span>
+<span class="fc" id="L100">    }</span>
+<span class="fc" id="L101">  }</span>
+
+  private List&lt;Media&gt; resolveMedia(List&lt;AssetRequest&gt; requests, MediaHandler mediaHandler) {
+<span class="fc" id="L104">    List&lt;Media&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">    for (AssetRequest request : requests) {</span>
+<span class="fc" id="L106">      Media media = request.resolve(mediaHandler);</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">      if (media.isValid()) {</span>
+<span class="fc" id="L108">        result.add(media);</span>
+      }
+<span class="fc" id="L110">    }</span>
+<span class="fc" id="L111">    return result;</span>
+  }
+
+  private JSONArray toResultJson(List&lt;Media&gt; mediaList) throws JSONException {
+<span class="fc" id="L115">    JSONArray array = new JSONArray();</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">    for (Media media : mediaList) {</span>
+<span class="fc" id="L117">      Rendition rendition = media.getRendition();</span>
+<span class="fc" id="L118">      JSONObject mediaObject = new JSONObject();</span>
+<span class="fc" id="L119">      mediaObject.put(&quot;assetPath&quot;, media.getAsset().getPath());</span>
+<span class="fc" id="L120">      mediaObject.put(&quot;url&quot;, media.getUrl());</span>
+<span class="pc bpc" id="L121" title="1 of 4 branches missed.">      if (rendition.getWidth() &gt; 0 &amp;&amp; rendition.getHeight() &gt; 0) {</span>
+<span class="fc" id="L122">        mediaObject.put(&quot;width&quot;, rendition.getWidth());</span>
+<span class="fc" id="L123">        mediaObject.put(&quot;height&quot;, rendition.getHeight());</span>
+      }
+<span class="fc bfc" id="L125" title="All 2 branches covered.">      if (rendition.getFileSize() &gt; 0) {</span>
+<span class="fc" id="L126">        mediaObject.put(&quot;fileSize&quot;, rendition.getFileSize());</span>
+      }
+<span class="fc" id="L128">      mediaObject.putOpt(&quot;fileExtension&quot;, rendition.getFileExtension());</span>
+<span class="fc" id="L129">      mediaObject.putOpt(&quot;mimeType&quot;, rendition.getMimeType());</span>
+<span class="fc" id="L130">      array.put(mediaObject);</span>
+<span class="fc" id="L131">    }</span>
+<span class="fc" id="L132">    return array;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

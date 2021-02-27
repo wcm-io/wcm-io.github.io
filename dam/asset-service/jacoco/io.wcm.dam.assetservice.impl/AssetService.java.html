@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AssetService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DAM Asset Service</a> &gt; <a href="index.source.html" class="el_package">io.wcm.dam.assetservice.impl</a> &gt; <span class="el_source">AssetService.java</span></div><h1>AssetService.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2015 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.dam.assetservice.impl;
+
+import java.util.Dictionary;
+import java.util.Hashtable;
+
+import javax.servlet.Servlet;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.event.Event;
+import org.osgi.service.event.EventConstants;
+import org.osgi.service.event.EventHandler;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.osgi.service.metatype.annotations.Option;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.dam.api.DamConstants;
+import com.day.cq.dam.api.DamEvent;
+
+import io.wcm.dam.assetservice.impl.dataversion.ChecksumDataVersionStrategy;
+import io.wcm.dam.assetservice.impl.dataversion.TimestampDataVersionStrategy;
+import io.wcm.wcm.commons.contenttype.FileExtension;
+
+/**
+ * Implements a simple REST interface that allows resolving DAM asset paths to URLs.
+ * For image assets resolving to specific dimensions is supported.
+ */
+@Component(immediate = true, service = { AssetService.class, EventHandler.class },
+    property = EventConstants.EVENT_TOPIC + &quot;=&quot; + DamEvent.EVENT_TOPIC)
+@Designate(ocd = AssetService.Config.class)
+<span class="fc" id="L59">public class AssetService implements EventHandler {</span>
+
+  @ObjectClassDefinition(name = &quot;wcm.io DAM Asset Service&quot;,
+      description = &quot;A RESTful service for resolving URLs to DAM assets and renditions.&quot;)
+  static @interface Config {
+
+    @AttributeDefinition(name = &quot;Asset Selector&quot;, description = &quot;Selector for attaching REST service to DAM asset paths.&quot;)
+    String assetServletSelector() default &quot;wcm-io-asset-service&quot;;
+
+    @AttributeDefinition(name = &quot;Data Version Selector&quot;, description = &quot;Selector for attaching REST service to DAM folder for getting data version.&quot;)
+    String dataVersionServletSelector() default &quot;wcm-io-asset-service-dataversion&quot;;
+
+    @AttributeDefinition(name = &quot;Data Version Strategy&quot;, description = &quot;Strategy for building the data versions. See documentation for details.&quot;,
+        options = {
+            @Option(label = TimestampDataVersionStrategy.STRATEGY + &quot;: Timestamp of last DAM event&quot;, value = TimestampDataVersionStrategy.STRATEGY),
+            @Option(label = ChecksumDataVersionStrategy.STRATEGY + &quot;: Aggregated checksum of DAM assets&quot;, value = ChecksumDataVersionStrategy.STRATEGY)
+        })
+    String dataVersionStrategy() default TimestampDataVersionStrategy.STRATEGY;
+
+    @AttributeDefinition(name = &quot;Update Interval (sec)&quot;, description = &quot;Updating interval for calculating data versions in seconds. &quot;
+        + &quot;If multiple changes to the DAM folders contents are detected within this interval they are collected. &quot;
+        + &quot;This is only used by the 'aggregated checksum' strategy.&quot;)
+    int dataVersionUpdateIntervalSec() default 60;
+
+    @AttributeDefinition(name = &quot;DAM paths&quot;, description = &quot;List of DAM paths for which the asset service should be active. &quot;
+        + &quot;If not set, the service is active for all paths.&quot;)
+    String[] damPaths();
+
+  }
+
+  @Reference
+  private ResourceResolverFactory resourceResolverFactory;
+
+  private DamPathHandler damPathHandler;
+  private BundleContext bundleContext;
+  private ServiceRegistration&lt;Servlet&gt; assetRequestServletReg;
+  private ServiceRegistration&lt;Servlet&gt; dataVersionServletReg;
+
+<span class="fc" id="L97">  private static final Logger log = LoggerFactory.getLogger(AssetService.class);</span>
+
+  @Activate
+  protected void activate(BundleContext context, Config config) {
+<span class="fc" id="L101">    log.info(&quot;Start wcm.io DAM Asset Service.&quot;);</span>
+
+<span class="fc" id="L103">    this.bundleContext = context;</span>
+
+<span class="fc" id="L105">    String assetServletSelector = config.assetServletSelector();</span>
+<span class="fc" id="L106">    String dataVersionServletSelector = config.dataVersionServletSelector();</span>
+<span class="fc" id="L107">    int dataVersionUpdateIntervalSec = config.dataVersionUpdateIntervalSec();</span>
+
+<span class="fc" id="L109">    String[] damPaths = config.damPaths();</span>
+<span class="fc" id="L110">    String dataVersionStrategyId = config.dataVersionStrategy();</span>
+<span class="fc" id="L111">    damPathHandler = new DamPathHandler(damPaths, dataVersionStrategyId, dataVersionUpdateIntervalSec, resourceResolverFactory);</span>
+
+    // register servlets to resource types to handle the JSON requests
+    // they are registered dynamically because the selectors are configurable
+<span class="fc" id="L115">    assetRequestServletReg = registerServlet(context, new AssetRequestServlet(damPathHandler),</span>
+        DamConstants.NT_DAM_ASSET, assetServletSelector);
+<span class="fc" id="L117">    dataVersionServletReg = registerServlet(context, new DataVersionServlet(damPathHandler),</span>
+        &quot;sling:OrderedFolder&quot;, dataVersionServletSelector);
+<span class="fc" id="L119">  }</span>
+
+  @Deactivate
+  protected void deactivate() {
+<span class="fc" id="L123">    log.info(&quot;Shutdown wcm.io DAM Asset Service.&quot;);</span>
+
+<span class="fc" id="L125">    assetRequestServletReg.unregister();</span>
+<span class="fc" id="L126">    dataVersionServletReg.unregister();</span>
+<span class="fc" id="L127">    damPathHandler.shutdown();</span>
+<span class="fc" id="L128">  }</span>
+
+  @Override
+  public void handleEvent(Event event) {
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">    if (!StringUtils.equals(event.getTopic(), DamEvent.EVENT_TOPIC)) {</span>
+<span class="nc" id="L133">      return;</span>
+    }
+<span class="fc" id="L135">    DamEvent damEvent = DamEvent.fromEvent(event);</span>
+<span class="fc" id="L136">    damPathHandler.handleDamEvent(damEvent);</span>
+<span class="fc" id="L137">  }</span>
+
+  AssetRequestServlet getAssetRequestServlet() {
+<span class="fc" id="L140">    return (AssetRequestServlet)bundleContext.getService(assetRequestServletReg.getReference());</span>
+  }
+
+  DataVersionServlet getDataVersionServlet() {
+<span class="fc" id="L144">    return (DataVersionServlet)bundleContext.getService(dataVersionServletReg.getReference());</span>
+  }
+
+  @SuppressWarnings(&quot;null&quot;)
+  private static &lt;T extends Servlet&gt; ServiceRegistration&lt;Servlet&gt; registerServlet(BundleContext bundleContext, T servletInstance,
+      String resourceType, String selector) {
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">    if (StringUtils.isEmpty(selector)) {</span>
+<span class="nc" id="L151">      throw new IllegalArgumentException(&quot;No selector defined for &quot; + servletInstance.getClass().getName() + &quot; - skipping servlet registration.&quot;);</span>
+    }
+<span class="fc" id="L153">    Dictionary&lt;String, Object&gt; config = new Hashtable&lt;String, Object&gt;();</span>
+<span class="fc" id="L154">    config.put(&quot;sling.servlet.resourceTypes&quot;, resourceType);</span>
+<span class="fc" id="L155">    config.put(&quot;sling.servlet.selectors&quot;, selector);</span>
+<span class="fc" id="L156">    config.put(&quot;sling.servlet.extensions&quot;, FileExtension.JSON);</span>
+<span class="fc" id="L157">    return bundleContext.registerService(Servlet.class, servletInstance, config);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

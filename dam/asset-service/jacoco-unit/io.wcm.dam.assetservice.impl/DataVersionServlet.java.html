@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DataVersionServlet.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DAM Asset Service</a> &gt; <a href="index.source.html" class="el_package">io.wcm.dam.assetservice.impl</a> &gt; <span class="el_source">DataVersionServlet.java</span></div><h1>DataVersionServlet.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2015 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.dam.assetservice.impl;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.CharEncoding;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.commons.json.JSONException;
+import org.apache.sling.commons.json.JSONObject;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.wcm.wcm.commons.caching.CacheHeader;
+import io.wcm.wcm.commons.contenttype.ContentType;
+
+/**
+ * Returns generated data version if called on the root of an allowed asset path in DAM.
+ */
+@SuppressWarnings(&quot;deprecation&quot;)
+class DataVersionServlet extends SlingSafeMethodsServlet {
+  private static final long serialVersionUID = 1L;
+
+  private final DamPathHandler damPathHandler;
+
+<span class="fc" id="L49">  private static final Logger log = LoggerFactory.getLogger(DataVersionServlet.class);</span>
+
+<span class="fc" id="L51">  DataVersionServlet(DamPathHandler damPathHandler) {</span>
+<span class="fc" id="L52">    this.damPathHandler = damPathHandler;</span>
+<span class="fc" id="L53">  }</span>
+
+  @Override
+  protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
+<span class="fc" id="L57">    String path = request.getResource().getPath();</span>
+
+    // check path is a valid DAM root folder path for asset service
+<span class="fc bfc" id="L60" title="All 2 branches covered.">    if (!damPathHandler.isAllowedDataVersionPath(path)) {</span>
+<span class="fc" id="L61">      log.debug(&quot;Path not allowed to get data version {}&quot;, path);</span>
+<span class="fc" id="L62">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="fc" id="L63">      return;</span>
+    }
+
+    // return data version as JSON
+    try {
+<span class="fc" id="L68">      JSONObject jsonResponse = new JSONObject();</span>
+<span class="fc" id="L69">      jsonResponse.put(&quot;dataVersion&quot;, damPathHandler.getDataVersion(path));</span>
+
+<span class="fc" id="L71">      response.setContentType(ContentType.JSON);</span>
+<span class="fc" id="L72">      response.setCharacterEncoding(CharEncoding.UTF_8);</span>
+<span class="fc" id="L73">      response.getWriter().write(jsonResponse.toString());</span>
+<span class="fc" id="L74">      CacheHeader.setNonCachingHeaders(response);</span>
+    }
+<span class="nc" id="L76">    catch (JSONException ex) {</span>
+<span class="nc" id="L77">      throw new ServletException(&quot;Unable to generate JSON.&quot;, ex);</span>
+<span class="fc" id="L78">    }</span>
+<span class="fc" id="L79">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ChecksumDataVersionStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DAM Asset Service</a> &gt; <a href="index.source.html" class="el_package">io.wcm.dam.assetservice.impl.dataversion</a> &gt; <span class="el_source">ChecksumDataVersionStrategy.java</span></div><h1>ChecksumDataVersionStrategy.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2015 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.dam.assetservice.impl.dataversion;
+
+import java.util.Calendar;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Value;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
+
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.time.DateUtils;
+import org.apache.commons.lang3.time.StopWatch;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.sling.api.resource.LoginException;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+
+import com.day.cq.dam.api.DamConstants;
+import com.day.cq.dam.api.DamEvent;
+
+import io.wcm.sling.commons.adapter.AdaptTo;
+
+/**
+ * Strategy that generates a checksum bases on all DAM asset's path and last modified dates within the DAM asset folder.
+ * The aggregated checksum is built by executing a JCR query using the AEM-predefined OAK index
+ * &lt;code&gt;damAssetLucene&lt;/code&gt;. Executing the query does not touch the JCR content at all, it only reads
+ * JCR path and sha-1 string from the lucene index. This query is executed max. once during the &quot;update interval&quot;,
+ * and only if DAM events occurred since the last checksum generation.
+ */
+public class ChecksumDataVersionStrategy extends DataVersionStrategy {
+
+  /**
+   * Data version strategy id for configuration persistence.
+   */
+  public static final String STRATEGY = &quot;checksum&quot;;
+
+  /**
+   * Default data version that is returned when no data version was yet calculated.
+   */
+  private static final String DATAVERSION_NOT_CALCULATED = &quot;unknown&quot;;
+
+  /**
+   * DAM asset property containing the last modified date.
+   */
+  private static final String LAST_MODIFIED_PROPERTY = JcrConstants.JCR_CONTENT + &quot;/&quot; + JcrConstants.JCR_LASTMODIFIED;
+
+  private final long dataVersionUpdateIntervalMs;
+  private final String dataVersionQueryString;
+  private final ResourceResolverFactory resourceResolverFactory;
+
+  private volatile String dataVersion;
+  private volatile long dataVersionLastUpdate;
+  private volatile long damEventLastOccurence;
+
+  /**
+   * @param damPath DAM root path
+   * @param dataVersionUpdateIntervalSec Data version update interval
+   * @param resourceResolverFactory Resource resolver factory
+   * @param executor Shared executor service instance
+   */
+  public ChecksumDataVersionStrategy(String damPath,
+      int dataVersionUpdateIntervalSec,
+      ResourceResolverFactory resourceResolverFactory,
+      ScheduledExecutorService executor) {
+<span class="fc" id="L90">    super(damPath);</span>
+
+<span class="fc" id="L92">    this.dataVersionUpdateIntervalMs = dataVersionUpdateIntervalSec * DateUtils.MILLIS_PER_SECOND;</span>
+<span class="fc" id="L93">    this.resourceResolverFactory = resourceResolverFactory;</span>
+<span class="fc" id="L94">    this.dataVersionQueryString = buildDataVersionQueryString(damPath);</span>
+
+<span class="fc" id="L96">    this.dataVersion = DATAVERSION_NOT_CALCULATED;</span>
+
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">    if (dataVersionUpdateIntervalSec &lt;= 0) {</span>
+<span class="nc" id="L99">      log.warn(&quot;{} - Invalid data version update interval: {} sec&quot;, damPath, dataVersionUpdateIntervalSec);</span>
+    }
+    else {
+<span class="fc" id="L102">      Runnable task = new UpdateDataVersionTask();</span>
+<span class="fc" id="L103">      executor.scheduleWithFixedDelay(task, 0, dataVersionUpdateIntervalSec, TimeUnit.SECONDS);</span>
+    }
+<span class="fc" id="L105">  }</span>
+
+  /**
+   * Builds query string to fetch properties for all DAM assets lying in on of the configured DAM asset folders.
+   * @param damPath DAM root path
+   * @return SQL2 query string
+   */
+  private static String buildDataVersionQueryString(String damPath) {
+<span class="fc" id="L113">    return &quot;select [&quot; + JcrConstants.JCR_PATH + &quot;], [&quot; + LAST_MODIFIED_PROPERTY + &quot;] &quot;</span>
+        + &quot;from [&quot; + DamConstants.NT_DAM_ASSET + &quot;] as a &quot;
+        + &quot;where isdescendantnode(a, '&quot; + damPath + &quot;') &quot;
+        + &quot;order by [&quot; + JcrConstants.JCR_PATH + &quot;]&quot;;
+  }
+
+  @Override
+  public void handleDamEvent(DamEvent damEvent) {
+<span class="fc" id="L121">    damEventLastOccurence = System.currentTimeMillis();</span>
+<span class="fc" id="L122">  }</span>
+
+  @Override
+  public String getDataVersion() {
+<span class="fc" id="L126">    return dataVersion;</span>
+  }
+
+
+  /**
+   * Scheduled task to generate a new data version via JCR query.
+   */
+<span class="fc" id="L133">  private class UpdateDataVersionTask implements Runnable {</span>
+
+    @Override
+    public void run() {
+<span class="fc bfc" id="L137" title="All 2 branches covered.">      if (!isDataVersionStale()) {</span>
+<span class="fc" id="L138">        log.debug(&quot;{} - Data version '{}' is not stale, skip generation of new data version.&quot;, damPath, dataVersion);</span>
+<span class="fc" id="L139">        return;</span>
+      }
+      try {
+<span class="fc" id="L142">        log.debug(&quot;{} - Data version '{}' is stale, start generation of new data version.&quot;, damPath, dataVersion);</span>
+<span class="fc" id="L143">        generateDataVersion();</span>
+      }
+<span class="nc" id="L145">      catch (LoginException ex) {</span>
+<span class="nc" id="L146">        log.error(&quot;{} - Unable to get service resource resolver, please check service user configuration: {}&quot;, damPath, ex.getMessage());</span>
+      }
+<span class="nc" id="L148">      /*CHECKSTYLE:OFF*/ catch (Exception ex) { /*CHECKSTYLE:ON*/</span>
+<span class="nc" id="L149">        log.error(&quot;{} - Error generating data version: {}&quot;, damPath, ex.getMessage(), ex);</span>
+<span class="pc" id="L150">      }</span>
+<span class="fc" id="L151">    }</span>
+
+    private boolean isDataVersionStale() {
+<span class="fc bfc" id="L154" title="All 2 branches covered.">      if (dataVersionLastUpdate == 0) {</span>
+<span class="fc" id="L155">        return true;</span>
+      }
+      // mark data version is stale if last update was after last DAM event
+      // add an additional interval's length to the comparison because the lucene is updated asynchronously
+      // and thus the DAM event may arrive before the updated properties are available in the index
+<span class="fc bfc" id="L160" title="All 2 branches covered.">      return (dataVersionLastUpdate &lt; damEventLastOccurence + dataVersionUpdateIntervalMs);</span>
+    }
+
+    /**
+     * Generates a data version by fetching all paths and properties from DAM asset folders (lucene index).
+     * The data version is a check sum over all path and selected properties found.
+     */
+    @SuppressWarnings(&quot;null&quot;)
+    private void generateDataVersion() throws LoginException, RepositoryException {
+<span class="fc" id="L169">      log.trace(&quot;{} - Start data version generation.&quot;, damPath);</span>
+<span class="fc" id="L170">      ResourceResolver resourceResolver = resourceResolverFactory.getServiceResourceResolver(null);</span>
+      try {
+<span class="fc" id="L172">        Session session = AdaptTo.notNull(resourceResolver, Session.class);</span>
+<span class="fc" id="L173">        QueryManager queryManager = session.getWorkspace().getQueryManager();</span>
+<span class="fc" id="L174">        Query query = queryManager.createQuery(dataVersionQueryString, Query.JCR_SQL2);</span>
+<span class="fc" id="L175">        QueryResult result = query.execute();</span>
+<span class="fc" id="L176">        RowIterator rows = result.getRows();</span>
+
+<span class="fc" id="L178">        HashCodeBuilder hashCodeBuilder = new HashCodeBuilder();</span>
+<span class="fc" id="L179">        int assetCount = 0;</span>
+<span class="fc" id="L180">        StopWatch stopwatch = new StopWatch();</span>
+<span class="fc" id="L181">        stopwatch.start();</span>
+
+<span class="fc bfc" id="L183" title="All 2 branches covered.">        while (rows.hasNext()) {</span>
+<span class="fc" id="L184">          Row row = rows.nextRow();</span>
+<span class="fc" id="L185">          String path = getStringValue(row, JcrConstants.JCR_PATH);</span>
+<span class="fc" id="L186">          Calendar lastModified = getCalendarValue(row, LAST_MODIFIED_PROPERTY);</span>
+<span class="fc" id="L187">          log.trace(&quot;{} - Found sha-1 at {}: {}&quot;, damPath, path, lastModified);</span>
+
+<span class="fc" id="L189">          hashCodeBuilder.append(path);</span>
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">          if (lastModified != null) {</span>
+<span class="fc" id="L191">            hashCodeBuilder.append(lastModified);</span>
+          }
+          else {
+<span class="nc" id="L194">            log.debug(&quot;{} - No last modified date found for {}&quot;, damPath, path);</span>
+          }
+<span class="fc" id="L196">          assetCount++;</span>
+<span class="fc" id="L197">        }</span>
+
+<span class="fc" id="L199">        dataVersion = Integer.toString(hashCodeBuilder.build());</span>
+<span class="fc" id="L200">        dataVersionLastUpdate = System.currentTimeMillis();</span>
+
+<span class="fc" id="L202">        stopwatch.stop();</span>
+<span class="fc" id="L203">        log.info(&quot;{} - Generated new data version {} for {} assets (duration: {}ms).&quot;,</span>
+<span class="fc" id="L204">            damPath, dataVersion, assetCount, stopwatch.getTime());</span>
+      }
+      finally {
+<span class="fc" id="L207">        resourceResolver.close();</span>
+      }
+<span class="fc" id="L209">    }</span>
+
+    private String getStringValue(Row row, String property) throws RepositoryException {
+<span class="fc" id="L212">      Value value = row.getValue(property);</span>
+<span class="pc bpc" id="L213" title="1 of 2 branches missed.">      if (value != null) {</span>
+<span class="fc" id="L214">        return value.getString();</span>
+      }
+      else {
+<span class="nc" id="L217">        return null;</span>
+      }
+    }
+
+    private Calendar getCalendarValue(Row row, String property) throws RepositoryException {
+<span class="fc" id="L222">      Value value = row.getValue(property);</span>
+<span class="pc bpc" id="L223" title="1 of 2 branches missed.">      if (value != null) {</span>
+<span class="fc" id="L224">        return value.getDate();</span>
+      }
+      else {
+<span class="nc" id="L227">        return null;</span>
+      }
+    }
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

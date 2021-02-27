@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TimestampDataVersionStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DAM Asset Service</a> &gt; <a href="index.source.html" class="el_package">io.wcm.dam.assetservice.impl.dataversion</a> &gt; <span class="el_source">TimestampDataVersionStrategy.java</span></div><h1>TimestampDataVersionStrategy.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2015 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.dam.assetservice.impl.dataversion;
+
+import com.day.cq.dam.api.DamEvent;
+
+/**
+ * Simple strategy to generate data versions - on each DAM event a new timestamp is generated and
+ * returned as data version. Please be aware that this does not produce stable data versions
+ * across a cluster of AEM instances. It should only be used if there is only one AEM instance
+ * generating the data version, or some sort of long-stable stickyness is applied on the load balancer.
+ */
+public class TimestampDataVersionStrategy extends DataVersionStrategy {
+
+  /**
+   * Data version strategy id for configuration persistence.
+   */
+  public static final String STRATEGY = &quot;timestamp&quot;;
+
+  private volatile String dataVersion;
+
+  /**
+   * Generate new data version on first instantiation.
+   * @param damPath DAM root path
+   */
+  public TimestampDataVersionStrategy(String damPath) {
+<span class="fc" id="L44">    super(damPath);</span>
+<span class="fc" id="L45">    generateNewDataVersion();</span>
+<span class="fc" id="L46">  }</span>
+
+  @Override
+  public void handleDamEvent(DamEvent damEvent) {
+    // generate a new data version on any DAM event affecting any of the configured paths
+<span class="fc" id="L51">    generateNewDataVersion();</span>
+<span class="fc" id="L52">  }</span>
+
+  @Override
+  public String getDataVersion() {
+<span class="fc" id="L56">    return dataVersion;</span>
+  }
+
+  /**
+   * Generates a new data version based on current timestamp.
+   */
+  private void generateNewDataVersion() {
+    // use timestamp as data version. clashing of versions if two are generated at exactly the same time point
+    // is not the problem, because the data version can then be the same.
+<span class="fc" id="L65">    dataVersion = Long.toString(System.currentTimeMillis());</span>
+<span class="fc" id="L66">    log.debug(&quot;{} - Generated new data version: {}&quot;, damPath, dataVersion);</span>
+<span class="fc" id="L67">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

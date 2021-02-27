@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AssetRequestParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DAM Asset Service</a> &gt; <a href="index.source.html" class="el_package">io.wcm.dam.assetservice.impl</a> &gt; <span class="el_source">AssetRequestParser.java</span></div><h1>AssetRequestParser.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2015 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.dam.assetservice.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+
+import io.wcm.sling.commons.request.RequestParam;
+
+/**
+ * Parses asset requests from request URL.
+ */
+final class AssetRequestParser {
+
+  static final String RP_MEDIAFORMAT = &quot;mediaFormat&quot;;
+  static final String RP_WIDTH = &quot;width&quot;;
+  static final String RP_HEIGHT = &quot;height&quot;;
+
+  private AssetRequestParser() {
+    // static methods only
+  }
+
+  /**
+   * Reads asset requests from URL. If requests using the new suffix-based approach are provided those are returned.
+   * Otherwise requests defined via URL parameters are parsed and returned.
+   * If no parameters are given at all one single un-parameterized request for the dam asset is generated.
+   * @param assetPath Asset path
+   * @param request Request
+   * @return List of asset requests
+   */
+  public static List&lt;AssetRequest&gt; getAssetRequests(String assetPath, SlingHttpServletRequest request) {
+<span class="fc" id="L56">    List&lt;AssetRequest&gt; requests = getAssetRequestsFromSuffix(assetPath, request);</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">    if (requests.isEmpty()) {</span>
+<span class="fc" id="L58">      requests = getAssetRequestsFromUrlParams(assetPath, request);</span>
+    }
+<span class="fc bfc" id="L60" title="All 2 branches covered.">    if (requests.isEmpty()) {</span>
+<span class="fc" id="L61">      requests.add(new AssetRequest(assetPath, null, 0, 0));</span>
+    }
+<span class="fc" id="L63">    return requests;</span>
+  }
+
+  private static List&lt;AssetRequest&gt; getAssetRequestsFromSuffix(String assetPath, SlingHttpServletRequest request) {
+<span class="fc" id="L67">    List&lt;AssetRequest&gt; requests = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L69">    String suffixWithoutExtension = StringUtils.substringBefore(request.getRequestPathInfo().getSuffix(), &quot;.&quot;);</span>
+<span class="fc" id="L70">    String[] suffixParts = StringUtils.split(suffixWithoutExtension, &quot;/&quot;);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">    if (suffixParts != null) {</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">      for (String suffixPart : suffixParts) {</span>
+<span class="fc" id="L73">        Map&lt;String, String&gt; params = parseSuffixPart(suffixPart);</span>
+<span class="fc" id="L74">        String mediaFormat = params.get(RP_MEDIAFORMAT);</span>
+<span class="fc" id="L75">        long width = NumberUtils.toLong(params.get(RP_WIDTH));</span>
+<span class="fc" id="L76">        long height = NumberUtils.toLong(params.get(RP_HEIGHT));</span>
+<span class="pc bpc" id="L77" title="3 of 6 branches missed.">        if (StringUtils.isNotEmpty(mediaFormat) || width &gt; 0 || height &gt; 0) {</span>
+<span class="fc" id="L78">          requests.add(new AssetRequest(assetPath, mediaFormat, width, height));</span>
+        }
+      }
+    }
+
+<span class="fc" id="L83">    return requests;</span>
+  }
+
+  private static Map&lt;String, String&gt; parseSuffixPart(String suffixPart) {
+<span class="fc" id="L87">    Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L88">    String[] paramPairParts = StringUtils.split(suffixPart, &quot;,&quot;);</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">    if (paramPairParts != null) {</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">      for (String paramPairPart : paramPairParts) {</span>
+<span class="fc" id="L91">        String[] paramParts = StringUtils.split(paramPairPart, &quot;=&quot;);</span>
+<span class="pc bpc" id="L92" title="2 of 4 branches missed.">        if (paramParts != null &amp;&amp; paramParts.length == 2) {</span>
+<span class="fc" id="L93">          params.put(paramParts[0], paramParts[1]);</span>
+        }
+      }
+    }
+<span class="fc" id="L97">    return params;</span>
+  }
+
+  @SuppressWarnings(&quot;null&quot;)
+  private static List&lt;AssetRequest&gt; getAssetRequestsFromUrlParams(String assetPath, SlingHttpServletRequest request) {
+<span class="fc" id="L102">    String[] mediaFormats = ObjectUtils.defaultIfNull(RequestParam.getMultiple(request, RP_MEDIAFORMAT), new String[0]);</span>
+<span class="fc" id="L103">    String[] widthStrings = ObjectUtils.defaultIfNull(RequestParam.getMultiple(request, RP_WIDTH), new String[0]);</span>
+<span class="fc" id="L104">    String[] heightStrings = ObjectUtils.defaultIfNull(RequestParam.getMultiple(request, RP_HEIGHT), new String[0]);</span>
+<span class="fc" id="L105">    int maxParamIndex = NumberUtils.max(mediaFormats.length, widthStrings.length, heightStrings.length);</span>
+
+<span class="fc" id="L107">    List&lt;AssetRequest&gt; requests = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">    for (int i = 0; i &lt; maxParamIndex; i++) {</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">      String mediaFormat = mediaFormats.length &gt; i ? mediaFormats[i] : null;</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">      long width = widthStrings.length &gt; i ? NumberUtils.toLong(widthStrings[i]) : 0;</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">      long height = heightStrings.length &gt; i ? NumberUtils.toLong(heightStrings[i]) : 0;</span>
+<span class="fc" id="L112">      requests.add(new AssetRequest(assetPath, mediaFormat, width, height));</span>
+    }
+<span class="fc" id="L114">    return requests;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

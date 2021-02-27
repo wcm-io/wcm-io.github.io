@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DamPathHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DAM Asset Service</a> &gt; <a href="index.source.html" class="el_package">io.wcm.dam.assetservice.impl</a> &gt; <span class="el_source">DamPathHandler.java</span></div><h1>DamPathHandler.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2015 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.dam.assetservice.impl;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.dam.api.DamConstants;
+import com.day.cq.dam.api.DamEvent;
+import com.google.common.collect.ImmutableSet;
+
+import io.wcm.dam.assetservice.impl.dataversion.ChecksumDataVersionStrategy;
+import io.wcm.dam.assetservice.impl.dataversion.DataVersionStrategy;
+import io.wcm.dam.assetservice.impl.dataversion.TimestampDataVersionStrategy;
+
+/**
+ * Handles list of configured DAM paths and listens to DAM events on this paths to generate
+ * a new data version on each DAM content change relevant for the DAM asset services consumers.
+ * Make sure you call the shutdown method when the instance is no longer needed.
+ */
+public class DamPathHandler {
+
+  /**
+   * Full DAM path is used if not DAM path is given in configuration.
+   */
+  private static final String DEFAULT_DAM_PATH = DamConstants.MOUNTPOINT_ASSETS;
+
+  private final Set&lt;String&gt; damPaths;
+  private final Pattern damPathsPattern;
+  private final ScheduledExecutorService executor;
+  private final Map&lt;String, DataVersionStrategy&gt; dataVersionStrategies;
+
+<span class="fc" id="L61">  private static final Logger log = LoggerFactory.getLogger(DamPathHandler.class);</span>
+
+  /**
+   * @param configuredDamPaths Configured DAM paths
+   * @param dataVersionStrategyId Data version strategy
+   * @param dataVersionUpdateIntervalSec Update interface
+   * @param resourceResolverFactory Resource resolver factory
+   */
+  public DamPathHandler(final String[] configuredDamPaths,
+      String dataVersionStrategyId,
+      int dataVersionUpdateIntervalSec,
+<span class="fc" id="L72">      ResourceResolverFactory resourceResolverFactory) {</span>
+
+
+<span class="fc" id="L75">    this.damPaths = validateDamPaths(configuredDamPaths);</span>
+<span class="fc" id="L76">    this.damPathsPattern = buildDamPathsPattern(this.damPaths);</span>
+
+<span class="fc" id="L78">    log.debug(&quot;Start executor for DamPathHandler&quot;);</span>
+<span class="fc" id="L79">    this.executor = Executors.newSingleThreadScheduledExecutor();</span>
+
+<span class="fc" id="L81">    dataVersionStrategies = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">    for (String damPath : this.damPaths) {</span>
+<span class="fc" id="L83">      DataVersionStrategy dataVersionStrategy = getDataVersionStrategy(damPath, dataVersionStrategyId,</span>
+          dataVersionUpdateIntervalSec, resourceResolverFactory, this.executor);
+<span class="fc" id="L85">      dataVersionStrategies.put(damPath, dataVersionStrategy);</span>
+<span class="fc" id="L86">    }</span>
+<span class="fc" id="L87">  }</span>
+
+  private static DataVersionStrategy getDataVersionStrategy(String damPath, String dataVersionStrategyId,
+      int dataVersionUpdateIntervalSec, ResourceResolverFactory resourceResolverFactory,
+      ScheduledExecutorService executor) {
+<span class="fc bfc" id="L92" title="All 2 branches covered.">    if (StringUtils.equals(dataVersionStrategyId, TimestampDataVersionStrategy.STRATEGY)) {</span>
+<span class="fc" id="L93">      return new TimestampDataVersionStrategy(damPath);</span>
+    }
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">    if (StringUtils.equals(dataVersionStrategyId, ChecksumDataVersionStrategy.STRATEGY)) {</span>
+<span class="fc" id="L96">      return new ChecksumDataVersionStrategy(damPath, dataVersionUpdateIntervalSec, resourceResolverFactory, executor);</span>
+    }
+<span class="nc" id="L98">    throw new IllegalArgumentException(&quot;Invalid data version strategy: &quot; + dataVersionStrategyId);</span>
+  }
+
+  /**
+   * Shuts down the executor service.
+   */
+  public void shutdown() {
+<span class="fc" id="L105">    log.debug(&quot;Shutdown executor for DamPathHandler&quot;);</span>
+<span class="fc" id="L106">    this.executor.shutdownNow();</span>
+<span class="fc" id="L107">  }</span>
+
+  private static Set&lt;String&gt; validateDamPaths(String[] damPaths) {
+<span class="fc" id="L110">    Set&lt;String&gt; paths = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">    if (damPaths != null) {</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">      for (String path : damPaths) {</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        if (StringUtils.isNotBlank(path)) {</span>
+<span class="fc" id="L114">          paths.add(path);</span>
+        }
+      }
+    }
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (paths.isEmpty()) {</span>
+<span class="fc" id="L119">      paths.add(DEFAULT_DAM_PATH);</span>
+    }
+<span class="fc" id="L121">    return ImmutableSet.copyOf(paths);</span>
+  }
+
+  /**
+   * Set DAM paths that should be handled. Only called once by {@link AssetRequestServlet}.
+   * @param damPaths DAM folder paths or empty/null if all should be handled.
+   * @return Regex pattern to match content paths
+   */
+  private static Pattern buildDamPathsPattern(Set&lt;String&gt; damPaths) {
+<span class="fc" id="L130">    StringBuilder pattern = new StringBuilder();</span>
+<span class="fc" id="L131">    pattern.append(&quot;^(&quot;);</span>
+<span class="fc" id="L132">    Iterator&lt;String&gt; paths = damPaths.iterator();</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">    while (paths.hasNext()) {</span>
+<span class="fc" id="L134">      pattern.append(Pattern.quote(paths.next()));</span>
+<span class="fc" id="L135">      pattern.append(&quot;/.*&quot;);</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">      if (paths.hasNext()) {</span>
+<span class="fc" id="L137">        pattern.append(&quot;|&quot;);</span>
+      }
+    }
+<span class="fc" id="L140">    pattern.append(&quot;)$&quot;);</span>
+<span class="fc" id="L141">    return Pattern.compile(pattern.toString());</span>
+  }
+
+  /**
+   * Checks if the given DAM asset is allowed to process.
+   * @param assetPath Asset path
+   * @return true if processing is allowed.
+   */
+  public boolean isAllowedAssetPath(String assetPath) {
+<span class="fc bfc" id="L150" title="All 2 branches covered.">    if (assetPath == null) {</span>
+<span class="fc" id="L151">      return false;</span>
+    }
+<span class="fc" id="L153">    return damPathsPattern.matcher(assetPath).matches();</span>
+  }
+
+  /**
+   * Checks if the given folder path is allowed to get a data version.
+   * @param path DAM folder path
+   * @return true if getting data version is allowed for this path.
+   */
+  public boolean isAllowedDataVersionPath(String path) {
+<span class="fc" id="L162">    return damPaths.contains(path);</span>
+  }
+
+  /**
+   * Get current data version for all allowed assets.
+   * @return Data version
+   */
+  public String getDataVersion(String damPath) {
+<span class="fc" id="L170">    DataVersionStrategy dataVersionStrategy = this.dataVersionStrategies.get(damPath);</span>
+<span class="pc bpc" id="L171" title="1 of 2 branches missed.">    if (dataVersionStrategy != null) {</span>
+<span class="fc" id="L172">      return dataVersionStrategy.getDataVersion();</span>
+    }
+    else {
+<span class="nc" id="L175">      return null;</span>
+    }
+  }
+
+  /**
+   * Handle DAM event.
+   * @param event DAM event
+   */
+  public void handleDamEvent(DamEvent event) {
+<span class="fc bfc" id="L184" title="All 2 branches covered.">    if (isAllowedAssetPath(event.getAssetPath())) {</span>
+      // route event to matching data version strategy instance
+<span class="fc" id="L186">      DataVersionStrategy dataVersionStrategy = getMatchingDataVersionStrategy(event.getAssetPath());</span>
+<span class="pc bpc" id="L187" title="1 of 2 branches missed.">      if (dataVersionStrategy != null) {</span>
+<span class="fc" id="L188">        dataVersionStrategy.handleDamEvent(event);</span>
+      }
+    }
+<span class="fc" id="L191">  }</span>
+
+  private DataVersionStrategy getMatchingDataVersionStrategy(String path) {
+    // shortcut if there is only one path configured
+<span class="fc bfc" id="L195" title="All 2 branches covered.">    if (dataVersionStrategies.size() == 1) {</span>
+<span class="fc" id="L196">      return dataVersionStrategies.values().iterator().next();</span>
+    }
+    // find matching strategy for path
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">    for (DataVersionStrategy dataVersionStrategy : this.dataVersionStrategies.values()) {</span>
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">      if (dataVersionStrategy.matches(path)) {</span>
+<span class="fc" id="L201">        return dataVersionStrategy;</span>
+      }
+<span class="nc" id="L203">    }</span>
+<span class="nc" id="L204">    return null;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>
