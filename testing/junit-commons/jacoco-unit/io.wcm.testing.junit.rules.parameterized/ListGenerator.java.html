@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ListGenerator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JUnit Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.testing.junit.rules.parameterized</a> &gt; <span class="el_source">ListGenerator.java</span></div><h1>ListGenerator.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.testing.junit.rules.parameterized;
+
+/*
+ * (C) 2012 Jens Schauder http://blog.schauderhaft.de/
+ * Code initially published here https://github.com/schauder/parameterizedTestsWithRules
+ * Slightly simplified for wcm.io.
+ */
+import java.util.List;
+
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
+import org.osgi.annotation.versioning.ProviderType;
+
+/**
+ * Parameter generator rule based on a list of values.
+ * @param &lt;T&gt; Parameter type
+ */
+@ProviderType
+public final class ListGenerator&lt;T&gt; implements Generator&lt;T&gt; {
+
+<span class="fc" id="L40">  private final ValueContainer&lt;T&gt; currentValue = new ValueContainer&lt;T&gt;();</span>
+<span class="fc" id="L41">  private final AccessibleErrorCollector errorCollector = new AccessibleErrorCollector();</span>
+  private final List&lt;T&gt; values;
+
+  private final Callback&lt;T&gt; setUpCallback;
+  private final Callback&lt;T&gt; tearDownCallback;
+
+  /**
+   * @param values Parameter values
+   */
+  public ListGenerator(final List&lt;T&gt; values) {
+<span class="fc" id="L51">    this(values, null, null);</span>
+<span class="fc" id="L52">  }</span>
+
+  /**
+   * @param values Parameter values
+   * @param setUpCallback Callback method that is called for each value iteration before test method is executed.
+   * @param tearDownCallback Callback method that is called for each value iteration after test method was executed.
+   */
+<span class="fc" id="L59">  public ListGenerator(final List&lt;T&gt; values, final Callback&lt;T&gt; setUpCallback, final Callback&lt;T&gt; tearDownCallback) {</span>
+<span class="fc" id="L60">    this.values = values;</span>
+<span class="fc" id="L61">    this.setUpCallback = setUpCallback;</span>
+<span class="fc" id="L62">    this.tearDownCallback = tearDownCallback;</span>
+<span class="fc" id="L63">  }</span>
+
+  @Override
+  public T value() {
+<span class="fc" id="L67">    return this.currentValue.get();</span>
+  }
+
+  @Override
+  public Statement apply(final Statement test, final Description description) {
+<span class="fc" id="L72">    return new RepeatedStatement&lt;T&gt;(test,</span>
+        new SyncingIterable&lt;T&gt;(this.values, this.currentValue),
+        this.errorCollector,
+        this.setUpCallback, this.tearDownCallback);
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

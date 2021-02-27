@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RepeatedStatement.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JUnit Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.testing.junit.rules.parameterized</a> &gt; <span class="el_source">RepeatedStatement.java</span></div><h1>RepeatedStatement.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.testing.junit.rules.parameterized;
+
+/*
+ * (C) 2012 Jens Schauder http://blog.schauderhaft.de/
+ * Code initially published here https://github.com/schauder/parameterizedTestsWithRules
+ * Slightly simplified for wcm.io.
+ */
+import org.junit.runners.model.Statement;
+
+class RepeatedStatement&lt;T&gt; extends Statement {
+
+  private final Statement test;
+  private final Iterable&lt;T&gt; values;
+  private final AccessibleErrorCollector errorCollector;
+
+  private final Callback&lt;T&gt; setUpCallback;
+  private final Callback&lt;T&gt; tearDownCallback;
+
+  RepeatedStatement(final Statement test, final Iterable&lt;T&gt; values,
+      final AccessibleErrorCollector errorCollector,
+<span class="fc" id="L40">      final Callback&lt;T&gt; setUpCallback, final Callback&lt;T&gt; tearDownCallback) {</span>
+<span class="fc" id="L41">    this.test = test;</span>
+<span class="fc" id="L42">    this.values = values;</span>
+<span class="fc" id="L43">    this.errorCollector = errorCollector;</span>
+<span class="fc" id="L44">    this.setUpCallback = setUpCallback;</span>
+<span class="fc" id="L45">    this.tearDownCallback = tearDownCallback;</span>
+<span class="fc" id="L46">  }</span>
+
+  @Override
+  // CHECKSTYLE:OFF
+  public void evaluate() throws Throwable {
+    // CHECKSTYLE:ON
+<span class="fc bfc" id="L52" title="All 2 branches covered.">    for (T v : this.values) {</span>
+      try {
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        if (this.setUpCallback != null) {</span>
+<span class="fc" id="L55">          this.setUpCallback.execute(v);</span>
+        }
+<span class="fc" id="L57">        this.test.evaluate();</span>
+      }
+<span class="fc" id="L59">      /*CHECKSTYLE:OFF*/ catch (Exception ex) { /*CHECKSTYLE:ON*/</span>
+<span class="fc" id="L60">        this.errorCollector.addError(new AssertionError(buildAssertionMessage(&quot;For value &quot; + v, ex), ex));</span>
+      }
+      finally {
+        try {
+<span class="fc bfc" id="L64" title="All 2 branches covered.">          if (this.tearDownCallback != null) {</span>
+<span class="fc" id="L65">            this.tearDownCallback.execute(v);</span>
+          }
+        }
+<span class="nc" id="L68">        /*CHECKSTYLE:OFF*/ catch (Exception ex) { /*CHECKSTYLE:ON*/</span>
+<span class="nc" id="L69">          this.errorCollector.addError(new AssertionError(buildAssertionMessage(&quot;For value &quot; + v + &quot; (teardown)&quot;, ex), ex));</span>
+<span class="fc" id="L70">        }</span>
+      }
+<span class="fc" id="L72">    }</span>
+<span class="fc" id="L73">    this.errorCollector.verify();</span>
+<span class="fc" id="L74">  }</span>
+
+  private static String buildAssertionMessage(String msg, Throwable ex) {
+<span class="fc" id="L77">    StringBuilder sb = new StringBuilder()</span>
+<span class="fc" id="L78">        .append(msg)</span>
+<span class="fc" id="L79">        .append(&quot;: &quot;);</span>
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">    if (ex.getMessage() != null) {</span>
+<span class="nc" id="L81">      sb.append(ex.getMessage());</span>
+    }
+    else {
+<span class="fc" id="L84">      sb.append(ex.getClass().getName());</span>
+    }
+<span class="fc" id="L86">    return sb.toString();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

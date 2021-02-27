@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReflectionUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">AEM Mocks JUnit 5</a> &gt; <a href="index.source.html" class="el_package">io.wcm.testing.mock.aem.junit5</a> &gt; <span class="el_source">ReflectionUtil.java</span></div><h1>ReflectionUtil.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2020 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.testing.mock.aem.junit5;
+
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Helper methods for reflection access of test classes.
+ */
+final class ReflectionUtil {
+
+  private ReflectionUtil() {
+    // static methods only
+  }
+
+  /**
+   * Gets declared field of given type (or subtype) of given class or it's superclasses.
+   * The field is made accessible as well.
+   * @param testInstance Test instance
+   * @param type Field type
+   * @return Field or null
+   */
+  static @Nullable Field getField(@NotNull Object testInstance, @NotNull Class&lt;?&gt; type) {
+<span class="fc" id="L47">    return getField(testInstance.getClass(), type);</span>
+  }
+
+  /**
+   * Gets declared field of given type (or subtype) of given class or it's superclasses.
+   * The field is made accessible as well.
+   * @param testClass Test class
+   * @param type Field type
+   * @return Field or null
+   */
+  static @Nullable Field getField(@Nullable Class&lt;?&gt; testClass, @NotNull Class&lt;?&gt; type) {
+<span class="fc bfc" id="L58" title="All 2 branches covered.">    if (testClass == null) {</span>
+<span class="fc" id="L59">      return null;</span>
+    }
+
+<span class="fc" id="L62">    Field field = Arrays.stream(testClass.getDeclaredFields())</span>
+<span class="fc" id="L63">        .filter(item -&gt; type.isAssignableFrom(item.getType()))</span>
+<span class="fc" id="L64">        .findFirst()</span>
+<span class="fc" id="L65">        .orElse(null);</span>
+
+<span class="fc bfc" id="L67" title="All 2 branches covered.">    if (field == null) {</span>
+<span class="fc" id="L68">      return getField(testClass.getSuperclass(), type);</span>
+    }
+
+<span class="fc" id="L71">    field.setAccessible(true);</span>
+<span class="fc" id="L72">    return field;</span>
+  }
+
+  /**
+   * Gets method annotated with given annotation and a parameter of given type of given class or it's superclasses.
+   * @param testClass Test class
+   * @param annotationClass Annotation class
+   * @return Method or null
+   */
+  static &lt;T extends Annotation&gt; @Nullable Method getAnnotatedMethod(@Nullable Class&lt;?&gt; testClass,
+      @NotNull Class&lt;T&gt; annotationClass,
+      @NotNull Class&lt;?&gt; parameterType) {
+<span class="fc bfc" id="L84" title="All 2 branches covered.">    if (testClass == null) {</span>
+<span class="fc" id="L85">      return null;</span>
+    }
+
+<span class="fc" id="L88">    Method method = Arrays.stream(testClass.getDeclaredMethods())</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        .filter(item -&gt; item.getAnnotation(annotationClass) != null)</span>
+<span class="fc" id="L90">        .filter(item -&gt; hasParameter(item, parameterType))</span>
+<span class="fc" id="L91">        .findFirst()</span>
+<span class="fc" id="L92">        .orElse(null);</span>
+
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (method == null) {</span>
+<span class="fc" id="L95">      return getAnnotatedMethod(testClass.getSuperclass(), annotationClass, parameterType);</span>
+    }
+
+<span class="fc" id="L98">    return method;</span>
+  }
+
+  private static boolean hasParameter(Method method, @NotNull Class&lt;?&gt; parameterType) {
+<span class="fc" id="L102">    return Arrays.stream(method.getParameters())</span>
+<span class="fc" id="L103">        .filter(item -&gt; parameterType.isAssignableFrom(item.getType()))</span>
+<span class="fc" id="L104">        .findFirst()</span>
+<span class="fc" id="L105">        .isPresent();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

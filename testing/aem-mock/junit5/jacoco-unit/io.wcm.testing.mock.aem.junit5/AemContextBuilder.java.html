@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AemContextBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">AEM Mocks JUnit 5</a> &gt; <a href="index.source.html" class="el_package">io.wcm.testing.mock.aem.junit5</a> &gt; <span class="el_source">AemContextBuilder.java</span></div><h1>AemContextBuilder.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2018 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.testing.mock.aem.junit5;
+
+import java.util.Map;
+
+import org.apache.sling.testing.mock.osgi.context.ContextCallback;
+import org.apache.sling.testing.mock.osgi.context.ContextPlugin;
+import org.apache.sling.testing.mock.osgi.context.ContextPlugins;
+import org.apache.sling.testing.mock.osgi.context.OsgiContextImpl;
+import org.apache.sling.testing.mock.sling.ResourceResolverType;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
+
+/**
+ * Builder class for creating {@link AemContext} instances with different sets of parameters.
+ */
+@ProviderType
+public final class AemContextBuilder {
+
+<span class="pc" id="L38">  private final @NotNull ContextPlugins plugins = new ContextPlugins();</span>
+  private ResourceResolverType resourceResolverType;
+  private Map&lt;String, Object&gt; resourceResolverFactoryActivatorProps;
+<span class="pc" id="L41">  private boolean registerSlingModelsFromClassPath = true;</span>
+
+  /**
+   * Create builder with default resource resolver type.
+   */
+<span class="fc" id="L46">  public AemContextBuilder() {</span>
+    // use default resource resolver type
+<span class="fc" id="L48">  }</span>
+
+  /**
+   * Create builder with given resource resolver type.
+   * @param resourceResolverType Resource resolver type.
+   */
+<span class="nc" id="L54">  public AemContextBuilder(@NotNull ResourceResolverType resourceResolverType) {</span>
+<span class="nc" id="L55">    this.resourceResolverType(resourceResolverType);</span>
+<span class="nc" id="L56">  }</span>
+
+  /**
+   * @param type Resource resolver type.
+   * @return this
+   */
+  public @NotNull AemContextBuilder resourceResolverType(@NotNull ResourceResolverType type) {
+<span class="nc" id="L63">    this.resourceResolverType = type;</span>
+<span class="nc" id="L64">    return this;</span>
+  }
+
+  /**
+   * @param &lt;T&gt; context type
+   * @param plugin Context plugin which listens to context lifecycle events.
+   * @return this
+   */
+  @SafeVarargs
+  public final &lt;T extends OsgiContextImpl&gt; @NotNull AemContextBuilder plugin(@NotNull ContextPlugin&lt;T&gt; @NotNull... plugin) {
+<span class="nc" id="L74">    plugins.addPlugin(plugin);</span>
+<span class="nc" id="L75">    return this;</span>
+  }
+
+  /**
+   * @param &lt;T&gt; context type
+   * @param beforeSetUpCallback Allows the application to register an own callback function that is called before the
+   *          built-in setup rules are executed.
+   * @return this
+   */
+  @SafeVarargs
+  public final &lt;T extends OsgiContextImpl&gt; @NotNull AemContextBuilder beforeSetUp(@NotNull ContextCallback&lt;T&gt; @NotNull... beforeSetUpCallback) {
+<span class="fc" id="L86">    plugins.addBeforeSetUpCallback(beforeSetUpCallback);</span>
+<span class="fc" id="L87">    return this;</span>
+  }
+
+  /**
+   * @param &lt;T&gt; context type
+   * @param afterSetUpCallback Allows the application to register an own callback function that is called after the
+   *          built-in setup rules are executed.
+   * @return this
+   */
+  @SafeVarargs
+  public final &lt;T extends OsgiContextImpl&gt; @NotNull AemContextBuilder afterSetUp(@NotNull ContextCallback&lt;T&gt; @NotNull... afterSetUpCallback) {
+<span class="fc" id="L98">    plugins.addAfterSetUpCallback(afterSetUpCallback);</span>
+<span class="fc" id="L99">    return this;</span>
+  }
+
+  /**
+   * @param &lt;T&gt; context type
+   * @param beforeTearDownCallback Allows the application to register an own callback function that is called before the
+   *          built-in teardown rules are executed.
+   * @return this
+   */
+  @SafeVarargs
+  public final &lt;T extends OsgiContextImpl&gt; @NotNull AemContextBuilder beforeTearDown(@NotNull ContextCallback&lt;T&gt; @NotNull... beforeTearDownCallback) {
+<span class="fc" id="L110">    plugins.addBeforeTearDownCallback(beforeTearDownCallback);</span>
+<span class="fc" id="L111">    return this;</span>
+  }
+
+  /**
+   * @param &lt;T&gt; context type
+   * @param afterTearDownCallback Allows the application to register an own callback function that is after before the
+   *          built-in teardown rules are executed.
+   * @return this
+   */
+  @SafeVarargs
+  public final &lt;T extends OsgiContextImpl&gt; @NotNull AemContextBuilder afterTearDown(@NotNull ContextCallback&lt;T&gt; @NotNull... afterTearDownCallback) {
+<span class="fc" id="L122">    plugins.addAfterTearDownCallback(afterTearDownCallback);</span>
+<span class="fc" id="L123">    return this;</span>
+  }
+
+  /**
+   * Allows to override OSGi configuration parameters for the Resource Resolver Factory Activator service.
+   * @param props Configuration properties
+   * @return this
+   */
+  public @NotNull AemContextBuilder resourceResolverFactoryActivatorProps(@NotNull Map&lt;String, Object&gt; props) {
+<span class="fc" id="L132">    this.resourceResolverFactoryActivatorProps = props;</span>
+<span class="fc" id="L133">    return this;</span>
+  }
+
+  /**
+   * Automatic registering of all Sling Models found in the classpath on startup (active by default).
+   * @param value If set to false Sling Models are not registered automatically from the classpath on startup.
+   * @return this
+   */
+  public @NotNull AemContextBuilder registerSlingModelsFromClassPath(boolean value) {
+<span class="fc" id="L142">    this.registerSlingModelsFromClassPath = value;</span>
+<span class="fc" id="L143">    return this;</span>
+  }
+
+  /**
+   * @return Build {@link AemContext} instance.
+   */
+  public @NotNull AemContext build() {
+<span class="fc" id="L150">    return new AemContext(this.plugins,</span>
+        this.resourceResolverFactoryActivatorProps,
+        this.registerSlingModelsFromClassPath,
+        this.resourceResolverType);
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>
