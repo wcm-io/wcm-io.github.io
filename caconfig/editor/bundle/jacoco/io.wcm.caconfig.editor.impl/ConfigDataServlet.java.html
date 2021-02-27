@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfigDataServlet.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Context-Aware Configuration Editor</a> &gt; <a href="index.source.html" class="el_package">io.wcm.caconfig.editor.impl</a> &gt; <span class="el_source">ConfigDataServlet.java</span></div><h1>ConfigDataServlet.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2016 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.caconfig.editor.impl;
+
+import static io.wcm.caconfig.editor.impl.NameConstants.RP_COLLECTION;
+import static io.wcm.caconfig.editor.impl.NameConstants.RP_CONFIGNAME;
+
+import java.io.IOException;
+import java.lang.reflect.Array;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.CharEncoding;
+import org.apache.commons.lang3.ClassUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.caconfig.management.ConfigurationCollectionData;
+import org.apache.sling.caconfig.management.ConfigurationData;
+import org.apache.sling.caconfig.management.ConfigurationManager;
+import org.apache.sling.caconfig.management.ValueInfo;
+import org.apache.sling.caconfig.management.multiplexer.ConfigurationPersistenceStrategyMultiplexer;
+import org.apache.sling.caconfig.spi.ConfigurationPersistenceException;
+import org.apache.sling.caconfig.spi.metadata.PropertyMetadata;
+import org.apache.sling.commons.json.JSONArray;
+import org.apache.sling.commons.json.JSONException;
+import org.apache.sling.commons.json.JSONObject;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Read configuration data.
+ */
+@Component(service = Servlet.class, immediate = true, property = {
+    &quot;sling.servlet.resourceTypes=/apps/wcm-io/caconfig/editor/components/page/editor&quot;,
+    &quot;sling.servlet.extensions=json&quot;,
+    &quot;sling.servlet.selectors=&quot; + ConfigDataServlet.SELECTOR,
+    &quot;sling.servlet.methods=GET&quot;
+})
+@SuppressWarnings(&quot;deprecation&quot;)
+<span class="fc" id="L68">public class ConfigDataServlet extends SlingSafeMethodsServlet {</span>
+  private static final long serialVersionUID = 1L;
+
+  /**
+   * Selector
+   */
+  public static final String SELECTOR = &quot;configData&quot;;
+
+<span class="fc" id="L76">  private static final Pattern JSON_STRING_ARRAY_PATTERN = Pattern.compile(&quot;^\\[.*\\]$&quot;);</span>
+<span class="fc" id="L77">  private static final Pattern JSON_STRING_OBJECT_PATTERN = Pattern.compile(&quot;^\\{.*\\}$&quot;);</span>
+
+  @Reference
+  private ConfigurationManager configManager;
+  @Reference
+  private ConfigurationPersistenceStrategyMultiplexer configurationPersistenceStrategy;
+  @Reference
+  private EditorConfig editorConfig;
+
+<span class="fc" id="L86">  private static Logger log = LoggerFactory.getLogger(ConfigDataServlet.class);</span>
+
+  @Override
+  @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
+  protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">    if (!editorConfig.isEnabled()) {</span>
+<span class="nc" id="L92">      response.sendError(HttpServletResponse.SC_FORBIDDEN);</span>
+<span class="nc" id="L93">      return;</span>
+    }
+
+    // get parameters
+<span class="fc" id="L97">    String configName = request.getParameter(RP_CONFIGNAME);</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">    if (StringUtils.isBlank(configName)) {</span>
+<span class="fc" id="L99">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="fc" id="L100">      return;</span>
+    }
+<span class="fc" id="L102">    boolean collection = BooleanUtils.toBoolean(request.getParameter(RP_COLLECTION));</span>
+
+    // output configuration
+    try {
+<span class="fc" id="L106">      JSONObject result = getConfiguration(request.getResource(), configName, collection);</span>
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">      if (result == null) {</span>
+<span class="nc" id="L108">        response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+      }
+      else {
+<span class="fc" id="L111">        response.setContentType(&quot;application/json;charset=&quot; + CharEncoding.UTF_8);</span>
+<span class="fc" id="L112">        response.getWriter().write(result.toString());</span>
+      }
+    }
+<span class="nc" id="L115">    /*CHECKSTYLE:OFF*/ catch (Exception ex) { /*CHECKSTYLE:ON*/</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">      log.error(&quot;Error getting configuration for &quot; + configName + (collection ? &quot;[col]&quot; : &quot;&quot;), ex);</span>
+<span class="nc" id="L117">      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ex.getMessage());</span>
+<span class="fc" id="L118">    }</span>
+<span class="fc" id="L119">  }</span>
+
+  private JSONObject getConfiguration(Resource contextResource, String configName, boolean collection) throws JSONException {
+    JSONObject result;
+<span class="fc bfc" id="L123" title="All 2 branches covered.">    if (collection) {</span>
+<span class="fc" id="L124">      ConfigurationData newItem = configManager.newCollectionItem(contextResource, configName);</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">      if (newItem == null) {</span>
+<span class="nc" id="L126">        throw new ConfigurationPersistenceException(&quot;Invalid configuration name: &quot; + configName);</span>
+      }
+<span class="fc" id="L128">      result = toJson(configManager.getConfigurationCollection(contextResource, configName), newItem, configName);</span>
+<span class="fc" id="L129">    }</span>
+    else {
+<span class="fc" id="L131">      ConfigurationData configData = configManager.getConfiguration(contextResource, configName);</span>
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">      if (configData != null) {</span>
+<span class="fc" id="L133">        result = toJson(configData, configData.isInherited(), configName);</span>
+      }
+      else {
+<span class="nc" id="L136">        result = null;</span>
+      }
+    }
+<span class="fc" id="L139">    return result;</span>
+  }
+
+  private JSONObject toJson(ConfigurationCollectionData configCollection, ConfigurationData newItem, String fullConfigName) throws JSONException {
+<span class="fc" id="L143">    JSONObject result = new JSONObject();</span>
+<span class="fc" id="L144">    result.putOpt(&quot;configName&quot;, configCollection.getConfigName());</span>
+
+<span class="fc bfc" id="L146" title="All 2 branches covered.">    if (!configCollection.getProperties().isEmpty()) {</span>
+<span class="fc" id="L147">      JSONObject properties = new JSONObject();</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">      for (Map.Entry&lt;String, Object&gt; entry : configCollection.getProperties().entrySet()) {</span>
+<span class="fc" id="L149">        properties.putOpt(entry.getKey(), entry.getValue());</span>
+<span class="fc" id="L150">      }</span>
+<span class="fc" id="L151">      result.put(&quot;properties&quot;, properties);</span>
+    }
+
+<span class="fc" id="L154">    JSONArray items = new JSONArray();</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">    for (ConfigurationData configData : configCollection.getItems()) {</span>
+<span class="fc" id="L156">      items.put(toJson(configData, configData.isInherited(), fullConfigName));</span>
+<span class="fc" id="L157">    }</span>
+<span class="fc" id="L158">    result.put(&quot;items&quot;, items);</span>
+
+<span class="fc" id="L160">    result.put(&quot;newItem&quot;, toJson(newItem, null, fullConfigName));</span>
+
+<span class="fc" id="L162">    return result;</span>
+  }
+
+  private JSONObject toJson(ConfigurationData config, Boolean inherited, String fullConfigName) throws JSONException {
+<span class="fc" id="L166">    JSONObject result = new JSONObject();</span>
+
+<span class="fc" id="L168">    result.putOpt(&quot;configName&quot;, config.getConfigName());</span>
+<span class="fc" id="L169">    result.putOpt(&quot;collectionItemName&quot;, config.getCollectionItemName());</span>
+<span class="fc" id="L170">    result.putOpt(&quot;overridden&quot;, config.isOverridden());</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">    if (inherited != null) {</span>
+<span class="fc" id="L172">      result.put(&quot;inherited&quot;, inherited.booleanValue());</span>
+    }
+
+<span class="fc" id="L175">    JSONArray props = new JSONArray();</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">    for (String propertyName : config.getPropertyNames()) {</span>
+<span class="fc" id="L177">      ValueInfo&lt;?&gt; item = config.getValueInfo(propertyName);</span>
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">      if (item == null) {</span>
+<span class="nc" id="L179">        continue;</span>
+      }
+<span class="fc" id="L181">      PropertyMetadata&lt;?&gt; itemMetadata = item.getPropertyMetadata();</span>
+
+<span class="fc" id="L183">      JSONObject prop = new JSONObject();</span>
+<span class="fc" id="L184">      prop.putOpt(&quot;name&quot;, item.getName());</span>
+
+      // special handling for nested configs and nested config collections
+<span class="fc bfc" id="L187" title="All 4 branches covered.">      if (itemMetadata != null &amp;&amp; itemMetadata.isNestedConfiguration()) {</span>
+<span class="fc" id="L188">        JSONObject metadata = new JSONObject();</span>
+<span class="fc" id="L189">        metadata.putOpt(&quot;label&quot;, itemMetadata.getLabel());</span>
+<span class="fc" id="L190">        metadata.putOpt(&quot;description&quot;, itemMetadata.getDescription());</span>
+<span class="fc" id="L191">        metadata.putOpt(&quot;properties&quot;, toJsonWithValueConversion(itemMetadata.getProperties()));</span>
+<span class="fc" id="L192">        prop.put(&quot;metadata&quot;, metadata);</span>
+
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        if (itemMetadata.getType().isArray()) {</span>
+<span class="fc" id="L195">          ConfigurationData[] configDatas = (ConfigurationData[])item.getValue();</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">          if (configDatas != null) {</span>
+<span class="fc" id="L197">            JSONObject nestedConfigCollection = new JSONObject();</span>
+<span class="fc" id="L198">            StringBuilder collectionConfigName = new StringBuilder();</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">            if (config.getCollectionItemName() != null) {</span>
+<span class="fc" id="L200">              collectionConfigName.append(configurationPersistenceStrategy.getCollectionItemConfigName(fullConfigName</span>
+<span class="fc" id="L201">                      + &quot;/&quot; + config.getCollectionItemName(), config.getResourcePath()));</span>
+            }
+            else {
+<span class="fc" id="L204">              collectionConfigName.append(configurationPersistenceStrategy.getConfigName(fullConfigName, config.getResourcePath()));</span>
+            }
+<span class="fc" id="L206">            collectionConfigName.append(&quot;/&quot;).append(itemMetadata.getConfigurationMetadata().getName());</span>
+<span class="fc" id="L207">            nestedConfigCollection.put(&quot;configName&quot;, collectionConfigName.toString());</span>
+<span class="fc" id="L208">            JSONArray items = new JSONArray();</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">            for (ConfigurationData configData : configDatas) {</span>
+<span class="fc" id="L210">              items.put(toJson(configData, false, collectionConfigName.toString()));</span>
+            }
+<span class="fc" id="L212">            nestedConfigCollection.put(&quot;items&quot;, items);</span>
+<span class="fc" id="L213">            prop.put(&quot;nestedConfigCollection&quot;, nestedConfigCollection);</span>
+          }
+<span class="fc" id="L215">        }</span>
+        else {
+<span class="fc" id="L217">          ConfigurationData configData = (ConfigurationData)item.getValue();</span>
+<span class="pc bpc" id="L218" title="1 of 2 branches missed.">          if (configData != null) {</span>
+<span class="fc" id="L219">            prop.put(&quot;nestedConfig&quot;, toJson(configData, null, fullConfigName</span>
+<span class="fc" id="L220">                + &quot;/&quot; + itemMetadata.getConfigurationMetadata().getName()));</span>
+          }
+        }
+<span class="fc" id="L223">      }</span>
+
+      // property data and metadata
+      else {
+<span class="fc" id="L227">        prop.putOpt(&quot;value&quot;, toJsonValue(item.getValue()));</span>
+<span class="fc" id="L228">        prop.putOpt(&quot;effectiveValue&quot;, toJsonValue(item.getEffectiveValue()));</span>
+<span class="fc" id="L229">        prop.putOpt(&quot;configSourcePath&quot;, item.getConfigSourcePath());</span>
+<span class="fc" id="L230">        prop.putOpt(&quot;default&quot;, item.isDefault());</span>
+<span class="fc" id="L231">        prop.putOpt(&quot;inherited&quot;, item.isInherited());</span>
+<span class="fc" id="L232">        prop.putOpt(&quot;overridden&quot;, item.isOverridden());</span>
+
+<span class="fc bfc" id="L234" title="All 2 branches covered.">        if (itemMetadata != null) {</span>
+<span class="fc" id="L235">          JSONObject metadata = new JSONObject();</span>
+<span class="fc bfc" id="L236" title="All 2 branches covered.">          if (itemMetadata.getType().isArray()) {</span>
+<span class="fc" id="L237">            metadata.put(&quot;type&quot;, ClassUtils.primitiveToWrapper(itemMetadata.getType().getComponentType()).getSimpleName());</span>
+<span class="fc" id="L238">            metadata.put(&quot;multivalue&quot;, true);</span>
+          }
+          else {
+<span class="fc" id="L241">            metadata.put(&quot;type&quot;, ClassUtils.primitiveToWrapper(itemMetadata.getType()).getSimpleName());</span>
+          }
+<span class="fc" id="L243">          metadata.putOpt(&quot;defaultValue&quot;, toJsonValue(itemMetadata.getDefaultValue()));</span>
+<span class="fc" id="L244">          metadata.putOpt(&quot;label&quot;, itemMetadata.getLabel());</span>
+<span class="fc" id="L245">          metadata.putOpt(&quot;description&quot;, itemMetadata.getDescription());</span>
+<span class="fc" id="L246">          metadata.putOpt(&quot;properties&quot;, toJsonWithValueConversion(itemMetadata.getProperties()));</span>
+<span class="fc" id="L247">          prop.put(&quot;metadata&quot;, metadata);</span>
+        }
+      }
+<span class="fc" id="L250">      props.put(prop);</span>
+<span class="fc" id="L251">    }</span>
+<span class="fc" id="L252">    result.put(&quot;properties&quot;, props);</span>
+
+<span class="fc" id="L254">    return result;</span>
+  }
+
+  /**
+   * Converts the given map to JSON. Each map value is checked for a valid JSON string - if this is the case it's
+   * inserted as JSON objects and not as string.
+   * @param properties Map
+   * @return JSON object
+   */
+  private JSONObject toJsonWithValueConversion(Map&lt;String, String&gt; properties) throws JSONException {
+<span class="fc bfc" id="L264" title="All 4 branches covered.">    if (properties == null || properties.isEmpty()) {</span>
+<span class="fc" id="L265">      return null;</span>
+    }
+    else {
+<span class="fc" id="L268">      JSONObject metadataProps = new JSONObject();</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">      for (Map.Entry&lt;String, String&gt; entry : properties.entrySet()) {</span>
+<span class="fc" id="L270">        metadataProps.putOpt(entry.getKey(), tryConvertJsonString(entry.getValue()));</span>
+<span class="fc" id="L271">      }</span>
+<span class="fc" id="L272">      return metadataProps;</span>
+    }
+  }
+
+  private Object tryConvertJsonString(String value) {
+<span class="fc bfc" id="L277" title="All 2 branches covered.">    if (JSON_STRING_ARRAY_PATTERN.matcher(value).matches()) {</span>
+      try {
+<span class="fc" id="L279">        return new JSONArray(value);</span>
+      }
+<span class="nc" id="L281">      catch (JSONException ex) {</span>
+        // no valid json - ignore
+      }
+    }
+<span class="pc bpc" id="L285" title="1 of 2 branches missed.">    if (JSON_STRING_OBJECT_PATTERN.matcher(value).matches()) {</span>
+      try {
+<span class="nc" id="L287">        return new JSONObject(value);</span>
+      }
+<span class="nc" id="L289">      catch (JSONException ex) {</span>
+        // no valid json - ignore
+      }
+    }
+<span class="fc" id="L293">    return value;</span>
+  }
+
+  private Object toJsonValue(Object value) {
+<span class="fc bfc" id="L297" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L298">      return null;</span>
+    }
+<span class="fc bfc" id="L300" title="All 2 branches covered.">    if (value.getClass().isArray()) {</span>
+<span class="fc" id="L301">      JSONArray array = new JSONArray();</span>
+<span class="fc bfc" id="L302" title="All 2 branches covered.">      for (int i = 0; i &lt; Array.getLength(value); i++) {</span>
+<span class="fc" id="L303">        array.put(Array.get(value, i));</span>
+      }
+<span class="fc" id="L305">      return array;</span>
+    }
+    else {
+<span class="fc" id="L308">      return value;</span>
+    }
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RootTemplateContextPathStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Context-Aware Configuration Extensions for AEM</a> &gt; <a href="index.source.html" class="el_package">io.wcm.caconfig.extensions.contextpath.impl</a> &gt; <span class="el_source">RootTemplateContextPathStrategy.java</span></div><h1>RootTemplateContextPathStrategy.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2016 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.caconfig.extensions.contextpath.impl;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.caconfig.resource.spi.ContextPathStrategy;
+import org.apache.sling.caconfig.resource.spi.ContextResource;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.wcm.api.NameConstants;
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageManager;
+import com.day.cq.wcm.api.PageManagerFactory;
+import com.google.common.collect.ImmutableSet;
+
+import io.wcm.wcm.commons.util.Path;
+
+/**
+ * {@link ContextPathStrategy} that detects context paths by matching parent pages against a list of allowed templates
+ * for context root.
+ * All page between min and max level up to a page with a page matching the templates are defined as context paths.
+ */
+@Component(service = ContextPathStrategy.class)
+@Designate(ocd = RootTemplateContextPathStrategy.Config.class, factory = true)
+<span class="fc" id="L60">public class RootTemplateContextPathStrategy implements ContextPathStrategy {</span>
+
+  @ObjectClassDefinition(name = &quot;wcm.io Context-Aware Configuration Context Path Strategy: Root Templates&quot;,
+      description = &quot;Detects context paths by matching parent pages against a list of allowed templates for context root. &quot;
+          + &quot;All page between min and max level up to a page with a page matching the templates are defined as context paths.&quot;)
+  static @interface Config {
+
+    @AttributeDefinition(name = &quot;Templates&quot;,
+        description = &quot;List of template paths allowed for context root pages.&quot;,
+        required = true)
+    String[] templatePaths();
+
+    @AttributeDefinition(name = &quot;Match All Levels&quot;,
+        description = &quot;If set to true, all pages between min and max level have to match with one of the given template paths. &quot;
+            + &quot;Otherwise only the template of the first (deepest) parent page is evaluated.&quot;)
+    boolean templateMatchAllLevels();
+
+    @AttributeDefinition(name = &quot;Min. Level&quot;,
+        description = &quot;Minimum allowed absolute parent level. Example: Absolute parent level 1 of '/foo/bar/test' is '/foo/bar'.&quot;,
+        required = true)
+    int minLevel() default 1;
+
+    @AttributeDefinition(name = &quot;Max. Level&quot;,
+        description = &quot;Maximum allowed absolute parent level. Example: Absolute parent level 1 of '/foo/bar/test' is '/foo/bar'.&quot;,
+        required = true)
+    int maxLevel() default 5;
+
+    @AttributeDefinition(name = &quot;Context path expression&quot;,
+        description = &quot;Expression to match context paths. Only context paths matching this expression are allowed. Use groups to reference them in configPathPatterns.&quot;,
+        required = true)
+    String contextPathRegex() default &quot;^/content(/.+)$&quot;;
+
+    @AttributeDefinition(name = &quot;Config path patterns&quot;,
+        description = &quot;Expression to derive the config path from the context path. Regex group references like $1 can be used.&quot;,
+        required = true)
+    String[] configPathPatterns() default &quot;/conf$1&quot;;
+
+    @AttributeDefinition(name = &quot;Service Ranking&quot;,
+        description = &quot;Priority of context path strategy (higher = higher priority).&quot;)
+    int service_ranking() default 2000;
+
+    String webconsole_configurationFactory_nameHint() default &quot;templates={templatePaths}, path={contextPathRegex}&quot;;
+
+  }
+
+  private Set&lt;String&gt; templatePaths;
+  private boolean templatMatchAllLevels;
+  private int minLevel;
+  private int maxLevel;
+  private Pattern contextPathRegex;
+  private String[] configPathPatterns;
+  private int serviceRanking;
+
+<span class="fc" id="L113">  private static final Logger log = LoggerFactory.getLogger(RootTemplateContextPathStrategy.class);</span>
+
+  @Reference
+  private PageManagerFactory pageManagerFactory;
+
+  @Activate
+  void activate(Config config) {
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">    templatePaths = config.templatePaths() != null ? ImmutableSet.copyOf(config.templatePaths()) : Collections.&lt;String&gt;emptySet();</span>
+<span class="fc" id="L121">    templatMatchAllLevels = config.templateMatchAllLevels();</span>
+<span class="fc" id="L122">    minLevel = config.minLevel();</span>
+<span class="fc" id="L123">    maxLevel = config.maxLevel();</span>
+    try {
+<span class="fc" id="L125">      contextPathRegex = Pattern.compile(config.contextPathRegex());</span>
+    }
+<span class="nc" id="L127">    catch (PatternSyntaxException ex) {</span>
+<span class="nc" id="L128">      log.warn(&quot;Invalid context path regex: {}&quot;, config.contextPathRegex(), ex);</span>
+<span class="fc" id="L129">    }</span>
+<span class="fc" id="L130">    configPathPatterns = config.configPathPatterns();</span>
+<span class="fc" id="L131">    serviceRanking = config.service_ranking();</span>
+<span class="fc" id="L132">  }</span>
+
+  @Override
+  public @NotNull Iterator&lt;ContextResource&gt; findContextResources(@NotNull Resource resource) {
+<span class="fc bfc" id="L136" title="All 2 branches covered.">    if (!isValidConfig()) {</span>
+<span class="fc" id="L137">      return Collections.emptyIterator();</span>
+    }
+
+<span class="fc" id="L140">    ResourceResolver resourceResolver = resource.getResourceResolver();</span>
+<span class="fc" id="L141">    PageManager pageManager = pageManagerFactory.getPageManager(resource.getResourceResolver());</span>
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">    if (pageManager == null) {</span>
+<span class="nc" id="L143">      throw new RuntimeException(&quot;No page manager.&quot;);</span>
+    }
+<span class="fc" id="L145">    Page page = pageManager.getContainingPage(resource);</span>
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">    if (page == null) {</span>
+<span class="nc" id="L147">      log.debug(&quot;Skip findContextResources - no current page.&quot;);</span>
+<span class="nc" id="L148">      return Collections.emptyIterator();</span>
+    }
+    List&lt;String&gt; contextPathCandidats;
+<span class="fc bfc" id="L151" title="All 2 branches covered.">    if (templatMatchAllLevels) {</span>
+<span class="fc" id="L152">      contextPathCandidats = getContextPathCandidatesMatchAll(page, resourceResolver);</span>
+    }
+    else {
+<span class="fc" id="L155">      contextPathCandidats = getContextPathCandidatesMatchInnermost(page, resourceResolver);</span>
+    }
+
+<span class="fc" id="L158">    List&lt;ContextResource&gt; contextResources = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">    for (String contextPath : contextPathCandidats) {</span>
+<span class="fc" id="L160">      Resource contextResource = resource.getResourceResolver().getResource(contextPath);</span>
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">      if (contextResource != null) {</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">        for (String configPathPattern : configPathPatterns) {</span>
+<span class="fc" id="L163">          String configRef = deriveConfigRef(contextPath, configPathPattern, resourceResolver);</span>
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">          if (configRef != null) {</span>
+<span class="fc" id="L165">            contextResources.add(new ContextResource(contextResource, configRef, serviceRanking));</span>
+          }
+        }
+      }
+<span class="fc" id="L169">    }</span>
+<span class="fc" id="L170">    Collections.reverse(contextResources);</span>
+<span class="fc" id="L171">    return contextResources.iterator();</span>
+  }
+
+  private boolean isValidConfig() {
+<span class="pc bpc" id="L175" title="3 of 8 branches missed.">    return !templatePaths.isEmpty()</span>
+        &amp;&amp; contextPathRegex != null
+        &amp;&amp; configPathPatterns != null
+        &amp;&amp; configPathPatterns.length &gt; 0;
+  }
+
+  private List&lt;String&gt; getContextPathCandidatesMatchInnermost(Page page, ResourceResolver resourceResolver) {
+<span class="fc" id="L182">    List&lt;String&gt; candidates = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">    if (page != null) {</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">      for (int level = minLevel; level &lt;= maxLevel; level++) {</span>
+<span class="fc" id="L185">        Page rootPage = Path.getAbsoluteParent(page, level, resourceResolver);</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">        if (rootPage != null) {</span>
+<span class="fc" id="L187">          String templatePath = rootPage.getProperties().get(NameConstants.PN_TEMPLATE, String.class);</span>
+<span class="pc bpc" id="L188" title="1 of 2 branches missed.">          if (templatePath != null) {</span>
+<span class="fc" id="L189">            candidates.add(rootPage.getPath());</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">            if (templatePaths.contains(templatePath)) {</span>
+<span class="fc" id="L191">              break;</span>
+            }
+          }
+        }
+      }
+    }
+<span class="fc" id="L197">    return candidates;</span>
+  }
+
+  private List&lt;String&gt; getContextPathCandidatesMatchAll(Page page, ResourceResolver resourceResolver) {
+<span class="fc" id="L201">    List&lt;String&gt; candidates = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L202" title="1 of 2 branches missed.">    if (page != null) {</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">      for (int level = minLevel; level &lt;= maxLevel; level++) {</span>
+<span class="fc" id="L204">        Page rootPage = Path.getAbsoluteParent(page, level, resourceResolver);</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">        if (rootPage != null) {</span>
+<span class="fc" id="L206">          String templatePath = rootPage.getProperties().get(NameConstants.PN_TEMPLATE, String.class);</span>
+<span class="pc bpc" id="L207" title="1 of 4 branches missed.">          if (templatePath != null &amp;&amp; templatePaths.contains(templatePath)) {</span>
+<span class="fc" id="L208">            candidates.add(rootPage.getPath());</span>
+          }
+        }
+      }
+    }
+<span class="fc" id="L213">    return candidates;</span>
+  }
+
+  private String deriveConfigRef(String contextPath, String configPathPattern, ResourceResolver resourceResolver) {
+<span class="fc" id="L217">    Matcher matcher = contextPathRegex.matcher(Path.getOriginalPath(contextPath, resourceResolver));</span>
+<span class="pc bpc" id="L218" title="1 of 2 branches missed.">    if (matcher.matches()) {</span>
+<span class="fc" id="L219">      return matcher.replaceAll(configPathPattern);</span>
+    }
+    else {
+<span class="nc" id="L222">      return null;</span>
+    }
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

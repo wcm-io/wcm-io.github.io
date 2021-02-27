@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbsoluteParentContextPathStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Context-Aware Configuration Extensions for AEM</a> &gt; <a href="index.source.html" class="el_package">io.wcm.caconfig.extensions.contextpath.impl</a> &gt; <span class="el_source">AbsoluteParentContextPathStrategy.java</span></div><h1>AbsoluteParentContextPathStrategy.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2016 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.caconfig.extensions.contextpath.impl;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.caconfig.resource.spi.ContextPathStrategy;
+import org.apache.sling.caconfig.resource.spi.ContextResource;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.wcm.api.NameConstants;
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageManager;
+import com.day.cq.wcm.api.PageManagerFactory;
+
+import io.wcm.wcm.commons.util.Path;
+
+/**
+ * {@link ContextPathStrategy} that detects context paths by absolute parent levels of a context resource.
+ */
+@Component(service = ContextPathStrategy.class)
+@Designate(ocd = AbsoluteParentContextPathStrategy.Config.class, factory = true)
+<span class="fc" id="L61">public class AbsoluteParentContextPathStrategy implements ContextPathStrategy {</span>
+
+  @ObjectClassDefinition(name = &quot;wcm.io Context-Aware Configuration Context Path Strategy: Absolute Parents&quot;,
+      description = &quot;Detects context paths by absolute parent levels of a context resource.&quot;)
+  static @interface Config {
+
+    @AttributeDefinition(name = &quot;Absolute Levels&quot;,
+        description = &quot;List of absolute parent levels. Example: Absolute parent level 1 of '/foo/bar/test' is '/foo/bar'.&quot;,
+        required = true)
+    int[] levels();
+
+    @AttributeDefinition(name = &quot;Unlimited levels&quot;,
+        description = &quot;If set to true, the 'Absolute Levels' define only the minimum levels. &quot;
+            + &quot;Above the highest level number every additional level is accepted as well.&quot;)
+    boolean unlimited() default false;
+
+    @AttributeDefinition(name = &quot;Context path whitelist&quot;,
+        description = &quot;Expression to match context paths. Context paths matching this expression are allowed. Use groups to reference them in configPathPatterns.&quot;,
+        required = true)
+    String contextPathRegex() default &quot;^/content(/.+)$&quot;;
+
+    @AttributeDefinition(name = &quot;Context path blacklist&quot;,
+        description = &quot;Expression to match context paths. Context paths matching this expression are not allowed.&quot;,
+        required = true)
+    String contextPathBlacklistRegex() default &quot;^.*/tools(/config(/.+)?)?$&quot;;
+
+    @AttributeDefinition(name = &quot;Template path blacklist&quot;,
+            description = &quot;Context paths belonging to a page matching one of the given template paths are not allowed.&quot;,
+            required = true)
+    String[] templatePathsBlacklist();
+
+    @AttributeDefinition(name = &quot;Config path patterns&quot;,
+        description = &quot;Expression to derive the config path from the context path. Regex group references like $1 can be used.&quot;,
+        required = true)
+    String[] configPathPatterns() default &quot;/conf$1&quot;;
+
+    @AttributeDefinition(name = &quot;Service Ranking&quot;,
+        description = &quot;Priority of context path strategy (higher = higher priority).&quot;)
+    int service_ranking() default 2000;
+
+    String webconsole_configurationFactory_nameHint() default &quot;levels={levels}, path={contextPathRegex}&quot;;
+
+  }
+
+  private Set&lt;Integer&gt; levels;
+  private int unlimitedLevelStart;
+  private boolean unlimited;
+  private Pattern contextPathRegex;
+  private Pattern contextPathBlacklistRegex;
+  private String[] configPathPatterns;
+  private int serviceRanking;
+  private Set&lt;String&gt; templatePathsBlacklist;
+
+<span class="fc" id="L114">  private static final Logger log = LoggerFactory.getLogger(AbsoluteParentContextPathStrategy.class);</span>
+
+  @Reference
+  private PageManagerFactory pageManagerFactory;
+
+  @Activate
+  void activate(Config config) {
+<span class="fc" id="L121">    levels = new TreeSet&lt;&gt;();</span>
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">    if (config.levels() != null) {</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">      for (int level : config.levels()) {</span>
+<span class="fc" id="L124">        levels.add(level);</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">        if (level &gt;= unlimitedLevelStart) {</span>
+<span class="fc" id="L126">          unlimitedLevelStart = level + 1;</span>
+        }
+      }
+    }
+<span class="fc" id="L130">    unlimited = config.unlimited();</span>
+    try {
+<span class="fc" id="L132">      contextPathRegex = Pattern.compile(config.contextPathRegex());</span>
+    }
+<span class="nc" id="L134">    catch (PatternSyntaxException ex) {</span>
+<span class="nc" id="L135">      log.warn(&quot;Invalid context path regex: {}&quot;, config.contextPathRegex(), ex);</span>
+<span class="fc" id="L136">    }</span>
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">    if (StringUtils.isNotEmpty(config.contextPathBlacklistRegex())) {</span>
+      try {
+<span class="fc" id="L139">        contextPathBlacklistRegex = Pattern.compile(config.contextPathBlacklistRegex());</span>
+      }
+<span class="nc" id="L141">      catch (PatternSyntaxException ex) {</span>
+<span class="nc" id="L142">        log.warn(&quot;Invalid context path blacklist regex: {}&quot;, config.contextPathBlacklistRegex(), ex);</span>
+<span class="fc" id="L143">      }</span>
+    }
+<span class="fc" id="L145">    configPathPatterns = config.configPathPatterns();</span>
+<span class="fc" id="L146">    serviceRanking = config.service_ranking();</span>
+    // make sure this is never null (only DS 1.4 initializes them always to empty arrays)
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">    templatePathsBlacklist = config.templatePathsBlacklist() != null ? new HashSet&lt;&gt;(Arrays.asList(config.templatePathsBlacklist())) : Collections.emptySet();</span>
+<span class="fc" id="L149">  }</span>
+
+  @Override
+  public @NotNull Iterator&lt;ContextResource&gt; findContextResources(@NotNull Resource resource) {
+<span class="fc bfc" id="L153" title="All 2 branches covered.">    if (!isValidConfig()) {</span>
+<span class="fc" id="L154">      return Collections.emptyIterator();</span>
+    }
+
+<span class="fc" id="L157">    ResourceResolver resourceResolver = resource.getResourceResolver();</span>
+<span class="fc" id="L158">    PageManager pageManager = pageManagerFactory.getPageManager(resource.getResourceResolver());</span>
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">    if (pageManager == null) {</span>
+<span class="nc" id="L160">      throw new RuntimeException(&quot;No page manager.&quot;);</span>
+    }
+<span class="fc" id="L162">    List&lt;ContextResource&gt; contextResources = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L164">    int maxLevel = Path.getAbsoluteLevel(resource.getPath(), resourceResolver);</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">    for (int level = 0; level &lt;= maxLevel; level++) {</span>
+<span class="fc bfc" id="L166" title="All 6 branches covered.">      if (levels.contains(level) || (unlimited &amp;&amp; level &gt;= unlimitedLevelStart)) {</span>
+<span class="fc" id="L167">        String contextPath = Path.getAbsoluteParent(resource.getPath(), level, resourceResolver);</span>
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">        if (StringUtils.isNotEmpty(contextPath)) {</span>
+<span class="fc" id="L169">          Resource contextResource = resource.getResourceResolver().getResource(contextPath);</span>
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">          if (contextResource != null) {</span>
+            // first check if resource is blacklisted
+<span class="fc bfc" id="L172" title="All 2 branches covered.">            if (isResourceBelongingToBlacklistedTemplates(contextResource, pageManager)) {</span>
+<span class="fc" id="L173">              log.trace(&quot;Resource '{}' is belonging to a page derived from a blacklisted template, skipping level {}&quot;, contextPath, level);</span>
+<span class="fc" id="L174">              break;</span>
+            }
+<span class="fc bfc" id="L176" title="All 2 branches covered.">            for (String configPathPattern : configPathPatterns) {</span>
+<span class="fc" id="L177">              String configRef = deriveConfigRef(contextPath, configPathPattern, resourceResolver);</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">              if (configRef != null) {</span>
+<span class="fc" id="L179">                contextResources.add(new ContextResource(contextResource, configRef, serviceRanking));</span>
+              }
+            }
+          }
+        }
+      }
+    }
+
+<span class="fc" id="L187">    Collections.reverse(contextResources);</span>
+<span class="fc" id="L188">    return contextResources.iterator();</span>
+  }
+
+  private boolean isValidConfig() {
+<span class="pc bpc" id="L192" title="3 of 8 branches missed.">    return !levels.isEmpty()</span>
+        &amp;&amp; contextPathRegex != null
+        &amp;&amp; configPathPatterns != null
+        &amp;&amp; configPathPatterns.length &gt; 0;
+  }
+
+  private String deriveConfigRef(String contextPath, String configPathPattern, ResourceResolver resourceResolver) {
+<span class="fc" id="L199">    Matcher matcher = contextPathRegex.matcher(Path.getOriginalPath(contextPath, resourceResolver));</span>
+<span class="fc" id="L200">    Matcher blacklistMatcher = null;</span>
+<span class="pc bpc" id="L201" title="1 of 2 branches missed.">    if (contextPathBlacklistRegex != null) {</span>
+<span class="fc" id="L202">      blacklistMatcher = contextPathBlacklistRegex.matcher(contextPath);</span>
+    }
+<span class="pc bpc" id="L204" title="2 of 6 branches missed.">    if (matcher.matches() &amp;&amp; (blacklistMatcher == null || !blacklistMatcher.matches())) {</span>
+<span class="fc" id="L205">      return matcher.replaceAll(configPathPattern);</span>
+    }
+    else {
+<span class="fc" id="L208">      return null;</span>
+    }
+  }
+
+  private boolean isResourceBelongingToBlacklistedTemplates(Resource resource, PageManager pageManager) {
+<span class="fc bfc" id="L213" title="All 2 branches covered.">    if (templatePathsBlacklist.isEmpty()) {</span>
+<span class="fc" id="L214">      return false;</span>
+    }
+<span class="fc" id="L216">    Page page = pageManager.getContainingPage(resource);</span>
+    // if no containing page could be determined, we don't blacklist
+<span class="fc bfc" id="L218" title="All 2 branches covered.">    if (page == null) {</span>
+<span class="fc" id="L219">      log.trace(&quot;Resource '{}' is not part of page, blacklisted templates are not considered.&quot;, resource.getPath());</span>
+<span class="fc" id="L220">      return false;</span>
+    }
+<span class="fc" id="L222">    String templatePath = page.getProperties().get(NameConstants.PN_TEMPLATE, String.class);</span>
+<span class="pc bpc" id="L223" title="1 of 2 branches missed.">    if (templatePath != null) {</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">      if (templatePathsBlacklist.contains(templatePath)) {</span>
+<span class="fc" id="L225">        return true;</span>
+      }
+    }
+    else {
+<span class="nc" id="L229">      log.trace(&quot;Resource '{}' is part of page '{}' which doesn't contain any template property, blacklisted templates are not considered.&quot;,</span>
+<span class="nc" id="L230">          resource.getPath(), page.getPath());</span>
+<span class="nc" id="L231">      return false;</span>
+    }
+<span class="fc" id="L233">    log.trace(&quot;Resource '{}' is part of page '{}' but is not based on any of the blacklisted templates.&quot;, resource.getPath(), page.getPath());</span>
+<span class="fc" id="L234">    return false;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PagePersistenceStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Context-Aware Configuration Extensions for AEM</a> &gt; <a href="index.source.html" class="el_package">io.wcm.caconfig.extensions.persistence.impl</a> &gt; <span class="el_source">PagePersistenceStrategy.java</span></div><h1>PagePersistenceStrategy.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2017 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.caconfig.extensions.persistence.impl;
+
+import static com.day.cq.commons.jcr.JcrConstants.JCR_CONTENT;
+import static com.day.cq.commons.jcr.JcrConstants.NT_UNSTRUCTURED;
+import static io.wcm.caconfig.extensions.persistence.impl.PersistenceUtils.commit;
+import static io.wcm.caconfig.extensions.persistence.impl.PersistenceUtils.containsJcrContent;
+import static io.wcm.caconfig.extensions.persistence.impl.PersistenceUtils.deleteChildrenNotInCollection;
+import static io.wcm.caconfig.extensions.persistence.impl.PersistenceUtils.deletePageOrResource;
+import static io.wcm.caconfig.extensions.persistence.impl.PersistenceUtils.ensureContainingPage;
+import static io.wcm.caconfig.extensions.persistence.impl.PersistenceUtils.ensurePageIfNotContainingPage;
+import static io.wcm.caconfig.extensions.persistence.impl.PersistenceUtils.getOrCreateResource;
+import static io.wcm.caconfig.extensions.persistence.impl.PersistenceUtils.replaceProperties;
+import static io.wcm.caconfig.extensions.persistence.impl.PersistenceUtils.updatePageLastMod;
+
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.caconfig.management.ConfigurationManagementSettings;
+import org.apache.sling.caconfig.spi.ConfigurationCollectionPersistData;
+import org.apache.sling.caconfig.spi.ConfigurationPersistData;
+import org.apache.sling.caconfig.spi.ConfigurationPersistenceStrategy2;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageManager;
+import com.day.cq.wcm.api.PageManagerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+/**
+ * AEM-specific persistence strategy that has higher precedence than the default strategy from Sling,
+ * but lower precedence that the persistence strategy that is part of AEM since version 6.3.
+ * &lt;p&gt;
+ * It supports reading configurations from cq:Page nodes in /conf, the configuration is read from the jcr:content child
+ * node. Unlike the persistence strategy in AEM 6.3 this also supports writing configuration to /conf.
+ * &lt;/p&gt;
+ */
+@Component(service = ConfigurationPersistenceStrategy2.class)
+@Designate(ocd = PagePersistenceStrategy.Config.class)
+<span class="fc" id="L66">public class PagePersistenceStrategy implements ConfigurationPersistenceStrategy2 {</span>
+
+  @ObjectClassDefinition(name = &quot;wcm.io Context-Aware Configuration Persistence Strategy: AEM Page&quot;,
+      description = &quot;Stores Context-Aware Configuration in AEM pages instead of simple resources.&quot;)
+  static @interface Config {
+
+    @AttributeDefinition(name = &quot;Enabled&quot;,
+        description = &quot;Enable this persistence strategy.&quot;)
+    boolean enabled() default false;
+
+    @AttributeDefinition(name = &quot;Resource type&quot;,
+        description = &quot;Resource type for configuration pages.&quot;)
+    String resourceType();
+
+    @AttributeDefinition(name = &quot;Service Ranking&quot;,
+        description = &quot;Priority of persistence strategy (higher = higher priority).&quot;)
+    int service_ranking() default 1500;
+
+  }
+
+  private static final String DEFAULT_CONFIG_NODE_TYPE = NT_UNSTRUCTURED;
+
+  @Reference
+  private ConfigurationManagementSettings configurationManagementSettings;
+  @Reference
+  private PageManagerFactory pageManagerFactory;
+
+  private boolean enabled;
+  private String resourceType;
+
+  @Activate
+  void activate(Config value) {
+<span class="fc" id="L98">    this.enabled = value.enabled();</span>
+<span class="fc" id="L99">    this.resourceType = value.resourceType();</span>
+<span class="fc" id="L100">  }</span>
+
+  @Override
+  public Resource getResource(@NotNull Resource resource) {
+<span class="fc bfc" id="L104" title="All 2 branches covered.">    if (!enabled) {</span>
+<span class="fc" id="L105">      return null;</span>
+    }
+<span class="fc bfc" id="L107" title="All 2 branches covered.">    if (containsJcrContent(resource.getPath())) {</span>
+<span class="fc" id="L108">      return resource;</span>
+    }
+<span class="fc" id="L110">    return resource.getChild(JCR_CONTENT);</span>
+  }
+
+  @Override
+  public Resource getCollectionParentResource(@NotNull Resource resource) {
+<span class="nc bnc" id="L115" title="All 2 branches missed.">    if (!enabled) {</span>
+<span class="nc" id="L116">      return null;</span>
+    }
+<span class="nc" id="L118">    return resource;</span>
+  }
+
+  @Override
+  public Resource getCollectionItemResource(@NotNull Resource resource) {
+<span class="fc" id="L123">    return getResource(resource);</span>
+  }
+
+  @Override
+  public String getResourcePath(@NotNull String resourcePath) {
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">    if (!enabled) {</span>
+<span class="nc" id="L129">      return null;</span>
+    }
+<span class="fc bfc" id="L131" title="All 2 branches covered.">    if (containsJcrContent(resourcePath)) {</span>
+<span class="fc" id="L132">      return resourcePath;</span>
+    }
+<span class="fc" id="L134">    return resourcePath + &quot;/&quot; + JCR_CONTENT;</span>
+  }
+
+  @Override
+  public String getCollectionParentResourcePath(@NotNull String resourcePath) {
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">    if (!enabled) {</span>
+<span class="nc" id="L140">      return null;</span>
+    }
+<span class="fc" id="L142">    return resourcePath;</span>
+  }
+
+  @Override
+  public String getCollectionItemResourcePath(@NotNull String resourcePath) {
+<span class="fc" id="L147">    return getResourcePath(resourcePath);</span>
+  }
+
+  @Override
+  public String getConfigName(@NotNull String configName, @Nullable String relatedConfigPath) {
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">    if (!enabled) {</span>
+<span class="nc" id="L153">      return null;</span>
+    }
+<span class="fc bfc" id="L155" title="All 2 branches covered.">    if (containsJcrContent(configName)) {</span>
+<span class="fc" id="L156">      return configName;</span>
+    }
+<span class="fc" id="L158">    return configName + &quot;/&quot; + JCR_CONTENT;</span>
+  }
+
+  @Override
+  public String getCollectionParentConfigName(@NotNull String configName, @Nullable String relatedConfigPath) {
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">    if (!enabled) {</span>
+<span class="nc" id="L164">      return null;</span>
+    }
+<span class="fc" id="L166">    return configName;</span>
+  }
+
+  @Override
+  public String getCollectionItemConfigName(@NotNull String configName, @Nullable String relatedConfigPath) {
+<span class="fc" id="L171">    return getConfigName(configName, relatedConfigPath);</span>
+  }
+
+  @Override
+  @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
+  public boolean persistConfiguration(@NotNull ResourceResolver resolver, @NotNull String configResourcePath, @NotNull ConfigurationPersistData data) {
+<span class="fc bfc" id="L177" title="All 2 branches covered.">    if (!enabled) {</span>
+<span class="fc" id="L178">      return false;</span>
+    }
+<span class="fc" id="L180">    String path = getResourcePath(configResourcePath);</span>
+<span class="fc" id="L181">    ensureContainingPage(resolver, path, resourceType, configurationManagementSettings);</span>
+
+<span class="fc" id="L183">    getOrCreateResource(resolver, path, DEFAULT_CONFIG_NODE_TYPE, data.getProperties(), configurationManagementSettings);</span>
+
+<span class="fc" id="L185">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
+<span class="fc" id="L186">    updatePageLastMod(resolver, pageManager, path);</span>
+<span class="fc" id="L187">    commit(resolver, configResourcePath);</span>
+<span class="fc" id="L188">    return true;</span>
+  }
+
+  @Override
+  @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
+  public boolean persistConfigurationCollection(@NotNull ResourceResolver resolver, @NotNull String configResourceCollectionParentPath,
+      @NotNull ConfigurationCollectionPersistData data) {
+<span class="pc bpc" id="L195" title="1 of 2 branches missed.">    if (!enabled) {</span>
+<span class="nc" id="L196">      return false;</span>
+    }
+
+<span class="fc" id="L199">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
+
+    // create page for collection parent
+<span class="fc" id="L202">    String parentPath = getCollectionParentResourcePath(configResourceCollectionParentPath);</span>
+<span class="fc" id="L203">    ensurePageIfNotContainingPage(resolver, parentPath, resourceType, configurationManagementSettings);</span>
+<span class="fc" id="L204">    Resource configResourceParent = getOrCreateResource(resolver, parentPath, DEFAULT_CONFIG_NODE_TYPE, ValueMap.EMPTY, configurationManagementSettings);</span>
+<span class="fc" id="L205">    updatePageLastMod(resolver, pageManager, parentPath);</span>
+
+    // delete existing children no longer in the list
+<span class="fc" id="L208">    deleteChildrenNotInCollection(configResourceParent, data);</span>
+
+    // create new or overwrite existing children
+<span class="fc bfc" id="L211" title="All 2 branches covered.">    for (ConfigurationPersistData item : data.getItems()) {</span>
+<span class="fc" id="L212">      String path = getCollectionItemResourcePath(parentPath + &quot;/&quot; + item.getCollectionItemName());</span>
+<span class="fc" id="L213">      ensureContainingPage(resolver, path, resourceType, configurationManagementSettings);</span>
+<span class="fc" id="L214">      getOrCreateResource(resolver, path, DEFAULT_CONFIG_NODE_TYPE, item.getProperties(), configurationManagementSettings);</span>
+<span class="fc" id="L215">      updatePageLastMod(resolver, pageManager, path);</span>
+<span class="fc" id="L216">    }</span>
+
+    // if resource collection parent properties are given replace them as well
+<span class="fc bfc" id="L219" title="All 2 branches covered.">    if (data.getProperties() != null) {</span>
+<span class="fc" id="L220">      Page parentPage = configResourceParent.adaptTo(Page.class);</span>
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">      if (parentPage != null) {</span>
+<span class="fc" id="L222">        replaceProperties(parentPage.getContentResource(), data.getProperties(), configurationManagementSettings);</span>
+      }
+      else {
+<span class="nc" id="L225">        replaceProperties(configResourceParent, data.getProperties(), configurationManagementSettings);</span>
+      }
+    }
+
+<span class="fc" id="L229">    commit(resolver, configResourceCollectionParentPath);</span>
+<span class="fc" id="L230">    return true;</span>
+  }
+
+  @Override
+  public boolean deleteConfiguration(@NotNull ResourceResolver resolver, @NotNull String configResourcePath) {
+<span class="pc bpc" id="L235" title="1 of 2 branches missed.">    if (!enabled) {</span>
+<span class="nc" id="L236">      return false;</span>
+    }
+<span class="fc" id="L238">    Resource configResource = resolver.getResource(configResourcePath);</span>
+<span class="pc bpc" id="L239" title="1 of 2 branches missed.">    if (configResource != null) {</span>
+<span class="fc" id="L240">      deletePageOrResource(configResource);</span>
+    }
+<span class="fc" id="L242">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
+<span class="fc" id="L243">    updatePageLastMod(resolver, pageManager, configResourcePath);</span>
+<span class="fc" id="L244">    commit(resolver, configResourcePath);</span>
+<span class="fc" id="L245">    return true;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>
