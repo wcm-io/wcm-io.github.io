@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransformedRenditionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.impl</a> &gt; <span class="el_source">TransformedRenditionHandler.java</span></div><h1>TransformedRenditionHandler.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.impl;
+
+import static io.wcm.handler.media.impl.ImageTransformation.isValidRotation;
+import static io.wcm.handler.media.impl.ImageTransformation.rotateMapHeight;
+import static io.wcm.handler.media.impl.ImageTransformation.rotateMapWidth;
+
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+
+import io.wcm.handler.media.CropDimension;
+import io.wcm.handler.media.format.Ratio;
+
+/**
+ * Extended rendition handler supporting cropping and rotating of images.
+ */
+public class TransformedRenditionHandler extends DefaultRenditionHandler {
+
+  private final CropDimension cropDimension;
+  private final Integer rotation;
+
+  /**
+   * @param cropDimension Crop dimension
+   * @param rotation Rotation
+   * @param damContext DAM context objects
+   */
+  TransformedRenditionHandler(CropDimension cropDimension, Integer rotation, DamContext damContext) {
+<span class="fc" id="L48">    super(damContext);</span>
+<span class="fc" id="L49">    this.cropDimension = cropDimension;</span>
+<span class="fc bfc" id="L50" title="All 4 branches covered.">    this.rotation = (rotation != null &amp;&amp; isValidRotation(rotation)) ? rotation : null;</span>
+<span class="fc" id="L51">  }</span>
+
+  /**
+   * Searches for the biggest web enabled rendition and, if exists,
+   * adds a {@link VirtualTransformedRenditionMetadata} to the list.
+   * @param candidates Candidates
+   * @return {@link Set} of {@link RenditionMetadata}
+   */
+  @Override
+  protected Set&lt;RenditionMetadata&gt; postProcessCandidates(Set&lt;RenditionMetadata&gt; candidates) {
+<span class="fc" id="L61">    NavigableSet&lt;RenditionMetadata&gt; processedCandidates = new TreeSet&lt;&gt;(candidates);</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">    if (cropDimension != null) {</span>
+<span class="fc" id="L63">      VirtualTransformedRenditionMetadata cropRendition = getCropRendition();</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">      if (cropRendition != null) {</span>
+        // return only cropped rendition
+<span class="fc" id="L66">        processedCandidates.clear();</span>
+<span class="fc" id="L67">        processedCandidates.add(cropRendition);</span>
+<span class="fc" id="L68">        return processedCandidates;</span>
+      }
+    }
+<span class="fc" id="L71">    return rotateSourceRenditions(processedCandidates);</span>
+  }
+
+  /**
+   * Rotates all source renditions if configured.
+   * @param candidates Candidate renditions
+   * @return Virtual-rotated and sorted candidate renditions
+   */
+  private NavigableSet&lt;RenditionMetadata&gt; rotateSourceRenditions(Set&lt;RenditionMetadata&gt; candidates) {
+<span class="fc bfc" id="L80" title="All 2 branches covered.">    if (rotation == null) {</span>
+<span class="fc" id="L81">      return new TreeSet&lt;&gt;(candidates);</span>
+    }
+<span class="fc" id="L83">    return candidates.stream()</span>
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        .filter(rendition -&gt; !rendition.isVectorImage())</span>
+<span class="fc" id="L85">        .map(rendition -&gt; new VirtualTransformedRenditionMetadata(rendition.getRendition(),</span>
+<span class="fc" id="L86">            rotateMapWidth(rendition.getWidth(), rendition.getHeight(), rotation),</span>
+<span class="fc" id="L87">            rotateMapHeight(rendition.getWidth(), rendition.getHeight(), rotation),</span>
+            null, rotation))
+<span class="fc" id="L89">        .collect(Collectors.toCollection(TreeSet::new));</span>
+  }
+
+  /**
+   * Searches for the biggest web-enabled rendition that matches the crop dimensions width and height or is bigger.
+   * @return Rendition or null if no match found
+   */
+  private VirtualTransformedRenditionMetadata getCropRendition() {
+<span class="fc" id="L97">    RenditionMetadata original = getOriginalRendition();</span>
+<span class="pc bpc" id="L98" title="1 of 4 branches missed.">    if (original == null || original.isVectorImage()) {</span>
+<span class="fc" id="L99">      return null;</span>
+    }
+<span class="fc" id="L101">    Double scaleFactor = getCropScaleFactor();</span>
+<span class="fc" id="L102">    CropDimension scaledCropDimension = new CropDimension(</span>
+<span class="fc" id="L103">        Math.round(cropDimension.getLeft() * scaleFactor),</span>
+<span class="fc" id="L104">        Math.round(cropDimension.getTop() * scaleFactor),</span>
+<span class="fc" id="L105">        Math.round(cropDimension.getWidth() * scaleFactor),</span>
+<span class="fc" id="L106">        Math.round(cropDimension.getHeight() * scaleFactor),</span>
+<span class="fc" id="L107">        cropDimension.isAutoCrop());</span>
+<span class="fc" id="L108">    return new VirtualTransformedRenditionMetadata(original.getRendition(),</span>
+<span class="fc" id="L109">        rotateMapWidth(scaledCropDimension.getWidth(), scaledCropDimension.getHeight(), rotation),</span>
+<span class="fc" id="L110">        rotateMapHeight(scaledCropDimension.getWidth(), scaledCropDimension.getHeight(), rotation),</span>
+        scaledCropDimension, rotation);
+  }
+
+  /**
+   * The cropping coordinates are stored with coordinates relating to the web-enabled rendition. But we want
+   * to crop the original image, so we have to scale those values to match the coordinates in the original image.
+   * @return Scale factor
+   */
+  private double getCropScaleFactor() {
+<span class="fc" id="L120">    RenditionMetadata original = getOriginalRendition();</span>
+<span class="fc" id="L121">    RenditionMetadata webEnabled = DamAutoCropping.getWebRenditionForCropping(getAsset());</span>
+<span class="pc bpc" id="L122" title="3 of 8 branches missed.">    if (original == null || webEnabled == null || original.getWidth() == 0 || webEnabled.getWidth() == 0) {</span>
+<span class="fc" id="L123">      return 1d;</span>
+    }
+<span class="fc" id="L125">    return Ratio.get(original.getWidth(), webEnabled.getWidth());</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

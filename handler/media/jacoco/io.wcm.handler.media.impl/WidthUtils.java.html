@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WidthUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.impl</a> &gt; <span class="el_source">WidthUtils.java</span></div><h1>WidthUtils.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2020 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.impl;
+
+import java.util.Arrays;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.wcm.handler.media.MediaArgs.WidthOption;
+
+/**
+ * Helper methods for parsing strings with responsive widths (which can be optional).
+ */
+public final class WidthUtils {
+
+  // example values:
+  // 800,1024,2048
+  // 800,1024?,2048?   &lt;- last two are optional
+<span class="fc" id="L41">  static final Pattern WIDTHS_PATTERN = Pattern.compile(&quot;^\\s*\\d+\\??\\s*(,\\s*\\d+\\??\\s*)*$&quot;);</span>
+
+  private WidthUtils() {
+    // static methods only
+  }
+
+  /**
+   * Parse width string.
+   * @param widths Width string
+   * @return Width options
+   */
+  @SuppressFBWarnings(&quot;NP_NONNULL_RETURN_VIOLATION&quot;)
+  public static @NotNull WidthOption @Nullable [] parseWidths(@Nullable String widths) {
+<span class="fc bfc" id="L54" title="All 2 branches covered.">    if (StringUtils.isBlank(widths)) {</span>
+<span class="fc" id="L55">      return null;</span>
+    }
+<span class="fc bfc" id="L57" title="All 2 branches covered.">    if (!WIDTHS_PATTERN.matcher(widths).matches()) {</span>
+<span class="fc" id="L58">      return null;</span>
+    }
+<span class="fc" id="L60">    String[] widthItems = StringUtils.split(widths, &quot;,&quot;);</span>
+<span class="fc" id="L61">    return Arrays.stream(widthItems)</span>
+<span class="fc" id="L62">        .map(StringUtils::trim)</span>
+<span class="fc" id="L63">        .map(WidthUtils::toWidthOption)</span>
+<span class="fc" id="L64">        .toArray(size -&gt; new WidthOption[size]);</span>
+  }
+
+  private static @NotNull WidthOption toWidthOption(String width) {
+<span class="fc" id="L68">    boolean optional = StringUtils.endsWith(width, &quot;?&quot;);</span>
+    String widthValue;
+<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (optional) {</span>
+<span class="fc" id="L71">      widthValue = StringUtils.substringBefore(width, &quot;?&quot;);</span>
+    }
+    else {
+<span class="fc" id="L74">      widthValue = width;</span>
+    }
+<span class="fc bfc" id="L76" title="All 2 branches covered.">    return new WidthOption(NumberUtils.toLong(widthValue), !optional);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

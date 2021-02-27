@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DummyResponsiveImageMediaMarkupBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.markup</a> &gt; <span class="el_source">DummyResponsiveImageMediaMarkupBuilder.java</span></div><h1>DummyResponsiveImageMediaMarkupBuilder.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.markup;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.adapter.Adaptable;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.commons.json.JSONArray;
+import org.apache.sling.commons.json.JSONException;
+import org.apache.sling.commons.json.JSONObject;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.Self;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ConsumerType;
+
+import com.day.cq.wcm.api.WCMMode;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.wcm.handler.commons.dom.HtmlElement;
+import io.wcm.handler.commons.dom.Image;
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.MediaNameConstants;
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.impl.DummyImageServlet;
+import io.wcm.handler.media.spi.MediaHandlerConfig;
+import io.wcm.handler.media.spi.MediaSource;
+import io.wcm.handler.url.UrlHandler;
+import io.wcm.handler.url.suffix.SuffixBuilder;
+import io.wcm.sling.commons.adapter.AdaptTo;
+import io.wcm.wcm.commons.contenttype.FileExtension;
+
+/**
+ * Generates a rendered dummy image as edit placeholder in WCM edit mode with information about image sizes
+ * and media format name.
+ * @deprecated Use responsive image handling methods for image sizes and picture sources from MediaBuilder.
+ */
+@Model(adaptables = {
+    SlingHttpServletRequest.class, Resource.class
+})
+@ConsumerType
+@Deprecated
+<span class="fc" id="L60">public class DummyResponsiveImageMediaMarkupBuilder extends AbstractImageMediaMarkupBuilder {</span>
+
+  @Self
+  private Adaptable adaptable;
+  @Self
+  private UrlHandler urlHandler;
+  @Self
+  private MediaHandlerConfig mediaHandlerConfig;
+
+  @Override
+  public final boolean accepts(@NotNull Media media) {
+    // accept if not rendition was found and in edit mode
+    // and multiple media formats are mandatory, and dummy image is not suppressed
+<span class="fc" id="L73">    MediaArgs mediaArgs = media.getMediaRequest().getMediaArgs();</span>
+<span class="fc" id="L74">    MediaFormat[] mediaFormats = mediaArgs.getMediaFormats();</span>
+<span class="pc bpc" id="L75" title="1 of 4 branches missed.">    return (!media.isValid() || media.getRendition() == null)</span>
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">        &amp;&amp; getWcmMode() != null</span>
+<span class="fc bfc" id="L77" title="All 6 branches covered.">        &amp;&amp; getWcmMode() != WCMMode.DISABLED</span>
+        &amp;&amp; (mediaFormats != null &amp;&amp; mediaFormats.length &gt; 1)
+<span class="pc bpc" id="L79" title="1 of 4 branches missed.">        &amp;&amp; mediaArgs.isDummyImage() &amp;&amp; mediaArgs.isMediaFormatsMandatory();</span>
+  }
+
+  @SuppressWarnings({ &quot;null&quot;, &quot;unused&quot; })
+  @SuppressFBWarnings(&quot;STYLE&quot;)
+  @Override
+  public final HtmlElement&lt;?&gt; build(@NotNull Media media) {
+<span class="fc" id="L86">    HtmlElement&lt;?&gt; mediaElement = getImageElement(media);</span>
+
+    // set responsive image sources
+<span class="fc" id="L89">    JSONArray sources = getResponsiveImageSources(media);</span>
+<span class="fc" id="L90">    setResponsiveImageSource(mediaElement, sources, media);</span>
+
+    // set additional attributes
+<span class="fc" id="L93">    setAdditionalAttributes(mediaElement, media);</span>
+
+    // enable drag&amp;drop for media source - if none is specified use first one defined in config
+<span class="fc" id="L96">    MediaSource mediaSource = media.getMediaSource();</span>
+<span class="pc bpc" id="L97" title="3 of 4 branches missed.">    if (mediaSource == null &amp;&amp; !mediaHandlerConfig.getSources().isEmpty()) {</span>
+<span class="nc" id="L98">      Class&lt;? extends MediaSource&gt; mediaSourceClass = mediaHandlerConfig.getSources().iterator().next();</span>
+<span class="nc" id="L99">      mediaSource = AdaptTo.notNull(adaptable, mediaSourceClass);</span>
+    }
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">    if (mediaSource != null) {</span>
+<span class="fc" id="L102">      mediaSource.enableMediaDrop(mediaElement, media.getMediaRequest());</span>
+    }
+
+<span class="fc" id="L105">    return mediaElement;</span>
+  }
+
+  /**
+   * Create an IMG element.
+   * @param media Media metadata
+   * @return IMG element with properties
+   */
+  protected HtmlElement&lt;?&gt; getImageElement(Media media) {
+<span class="fc" id="L114">    Image img = new Image().addCssClass(MediaNameConstants.CSS_DUMMYIMAGE);</span>
+<span class="fc" id="L115">    return img;</span>
+  }
+
+  /**
+   * Collect responsive JSON metadata for all renditions as image sources.
+   * @param media Media
+   * @return JSON metadata
+   */
+  protected JSONArray getResponsiveImageSources(Media media) {
+<span class="fc" id="L124">    MediaFormat[] mediaFormats = media.getMediaRequest().getMediaArgs().getMediaFormats();</span>
+<span class="fc" id="L125">    JSONArray sources = new JSONArray();</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">    for (MediaFormat mediaFormat : mediaFormats) {</span>
+<span class="fc" id="L127">      sources.put(toReponsiveImageSource(media, mediaFormat));</span>
+    }
+<span class="fc" id="L129">    return sources;</span>
+  }
+
+  /**
+   * Build JSON metadata for one rendition as image source.
+   * @param media Media
+   * @param mediaFormat Media format
+   * @return JSON metadata
+   */
+  protected JSONObject toReponsiveImageSource(Media media, MediaFormat mediaFormat) {
+<span class="fc" id="L139">    String url = buildDummyImageUrl(mediaFormat);</span>
+    try {
+<span class="fc" id="L141">      JSONObject source = new JSONObject();</span>
+<span class="fc" id="L142">      source.put(MediaNameConstants.PROP_BREAKPOINT, mediaFormat.getProperties().get(MediaNameConstants.PROP_BREAKPOINT));</span>
+<span class="fc" id="L143">      source.put(ResponsiveImageMediaMarkupBuilder.PROP_SRC, url);</span>
+<span class="fc" id="L144">      return source;</span>
+    }
+<span class="nc" id="L146">    catch (JSONException ex) {</span>
+<span class="nc" id="L147">      throw new RuntimeException(&quot;Error building JSON source.&quot;, ex);</span>
+    }
+  }
+
+  /**
+   * Build Dummy/Placeholder image URL
+   * @param format Media format
+   * @return Dummy image URL
+   */
+  protected final String buildDummyImageUrl(MediaFormat format) {
+<span class="fc" id="L157">    String suffix = new SuffixBuilder()</span>
+<span class="fc" id="L158">    .put(DummyImageServlet.SUFFIX_WIDTH, format.getWidth())</span>
+<span class="fc" id="L159">    .put(DummyImageServlet.SUFFIX_HEIGHT, format.getHeight())</span>
+<span class="fc" id="L160">    .put(DummyImageServlet.SUFFIX_MEDIA_FORMAT_NAME, format.getLabel())</span>
+<span class="fc" id="L161">    .build();</span>
+<span class="fc" id="L162">    return urlHandler.get(DummyImageServlet.PATH)</span>
+<span class="fc" id="L163">        .extension(FileExtension.PNG)</span>
+<span class="fc" id="L164">        .suffix(suffix)</span>
+<span class="fc" id="L165">        .build();</span>
+  }
+
+  /**
+   * Set attribute on media element for responsive image sources
+   * @param mediaElement Media element
+   * @param responsiveImageSources Responsive image sources JSON metadata
+   * @param media Media
+   */
+  protected void setResponsiveImageSource(HtmlElement&lt;?&gt; mediaElement, JSONArray responsiveImageSources, Media media) {
+<span class="fc" id="L175">    mediaElement.setData(ResponsiveImageMediaMarkupBuilder.PROP_RESPONSIVE_SOURCES, responsiveImageSources.toString());</span>
+<span class="fc" id="L176">  }</span>
+
+  @Override
+  public final boolean isValidMedia(@NotNull HtmlElement&lt;?&gt; element) {
+<span class="nc" id="L180">    return false;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

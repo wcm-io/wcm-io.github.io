@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RenditionMetadataGenerator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.impl.metadata</a> &gt; <span class="el_source">RenditionMetadataGenerator.java</span></div><h1>RenditionMetadataGenerator.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.impl.metadata;
+
+import static com.day.cq.commons.jcr.JcrConstants.JCR_CONTENT;
+import static com.day.cq.commons.jcr.JcrConstants.JCR_CREATED;
+import static com.day.cq.commons.jcr.JcrConstants.JCR_LASTMODIFIED;
+import static com.day.cq.commons.jcr.JcrConstants.JCR_LAST_MODIFIED_BY;
+import static com.day.cq.commons.jcr.JcrConstants.JCR_MIMETYPE;
+import static com.day.cq.commons.jcr.JcrConstants.JCR_PRIMARYTYPE;
+import static com.day.cq.commons.jcr.JcrConstants.NT_UNSTRUCTURED;
+import static com.day.cq.dam.api.DamConstants.ORIGINAL_FILE;
+import static com.day.cq.dam.api.DamConstants.RENDITIONS_FOLDER;
+import static io.wcm.handler.mediasource.dam.impl.metadata.RenditionMetadataNameConstants.NN_RENDITIONS_METADATA;
+import static io.wcm.handler.mediasource.dam.impl.metadata.RenditionMetadataNameConstants.PN_IMAGE_HEIGHT;
+import static io.wcm.handler.mediasource.dam.impl.metadata.RenditionMetadataNameConstants.PN_IMAGE_WIDTH;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.util.Text;
+import org.apache.sling.api.resource.ModifiableValueMap;
+import org.apache.sling.api.resource.PersistenceException;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.dam.api.Asset;
+import com.day.cq.dam.api.Rendition;
+import com.day.cq.dam.api.handler.store.AssetStore;
+import com.day.image.Layer;
+import com.google.common.collect.ImmutableMap;
+
+import io.wcm.handler.media.Dimension;
+import io.wcm.handler.media.MediaFileType;
+import io.wcm.handler.media.impl.ResourceLayerUtil;
+import io.wcm.sling.commons.adapter.AdaptTo;
+import io.wcm.wcm.commons.contenttype.ContentType;
+
+/**
+ * Generates metadata (widht/height) for renditions in DAM assets.
+ */
+public final class RenditionMetadataGenerator {
+
+  private final ResourceResolver resourceResolver;
+  private final AssetStore assetStore;
+
+<span class="fc" id="L74">  private static final Logger log = LoggerFactory.getLogger(RenditionMetadataGenerator.class);</span>
+
+  /**
+   * @param resourceResolver Resource resolver
+   */
+<span class="fc" id="L79">  public RenditionMetadataGenerator(ResourceResolver resourceResolver, AssetStore assetStore) {</span>
+<span class="fc" id="L80">    this.resourceResolver = resourceResolver;</span>
+<span class="fc" id="L81">    this.assetStore = assetStore;</span>
+<span class="fc" id="L82">  }</span>
+
+  /**
+   * Generate/validate rendition metadata of all renditions of this asset.
+   * @param asset Asset
+   */
+  public void processAllRenditions(Asset asset) {
+<span class="fc" id="L89">    Set&lt;String&gt; existingRenditionNames = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L90">    List&lt;String&gt; renditionPaths = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L92">    int addUpdateCount = 0;</span>
+<span class="fc" id="L93">    int removeCount = 0;</span>
+<span class="fc" id="L94">    int errorCount = 0;</span>
+
+    // get existing rendition names and paths
+<span class="fc bfc" id="L97" title="All 2 branches covered.">    for (Rendition rendition : asset.getRenditions()) {</span>
+<span class="fc" id="L98">      existingRenditionNames.add(rendition.getName());</span>
+<span class="fc" id="L99">      renditionPaths.add(rendition.getPath());</span>
+<span class="fc" id="L100">    }</span>
+
+    // get existing rendition names for which metadata exists (some may be obsolete)
+<span class="fc" id="L103">    Set&lt;String&gt; existingMetadataRenditionNames = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L104">    Resource metadataResource = resourceResolver.getResource(asset.getPath() + &quot;/&quot; + JCR_CONTENT + &quot;/&quot; + NN_RENDITIONS_METADATA);</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">    if (metadataResource != null) {</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">      for (Resource metadataItem : metadataResource.getChildren()) {</span>
+<span class="fc" id="L107">        existingMetadataRenditionNames.add(metadataItem.getName());</span>
+<span class="fc" id="L108">      }</span>
+    }
+
+    // generate metadata for all existing renditions
+<span class="fc bfc" id="L112" title="All 2 branches covered.">    for (String renditionPath : renditionPaths) {</span>
+      try {
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        if (renditionAddedOrUpdated(renditionPath)) {</span>
+<span class="fc" id="L115">          addUpdateCount++;</span>
+        }
+      }
+<span class="nc" id="L118">      catch (PersistenceException ex) {</span>
+<span class="nc" id="L119">        log.error(ex.getMessage(), ex);</span>
+<span class="nc" id="L120">        errorCount++;</span>
+<span class="fc" id="L121">      }</span>
+<span class="fc" id="L122">    }</span>
+
+    // remove obsolete metadata
+<span class="fc" id="L125">    existingMetadataRenditionNames.removeAll(existingRenditionNames);</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">    for (String obsoleteRenditionName : existingMetadataRenditionNames) {</span>
+<span class="fc" id="L127">      String nonexistingRenditionPath = asset.getPath() + &quot;/&quot; + JCR_CONTENT + &quot;/&quot; + RENDITIONS_FOLDER</span>
+          + &quot;/&quot; + obsoleteRenditionName;
+      try {
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">        if (renditionRemoved(nonexistingRenditionPath)) {</span>
+<span class="fc" id="L131">          removeCount++;</span>
+        }
+      }
+<span class="nc" id="L134">      catch (PersistenceException ex) {</span>
+<span class="nc" id="L135">        log.error(ex.getMessage(), ex);</span>
+<span class="nc" id="L136">        errorCount++;</span>
+<span class="fc" id="L137">      }</span>
+<span class="fc" id="L138">    }</span>
+
+<span class="fc" id="L140">    log.info(&quot;Processed rendition metadata for {}, {} added/updated, {} removed, {} error(s)&quot;,</span>
+<span class="fc" id="L141">        asset.getPath(), addUpdateCount, removeCount, errorCount);</span>
+<span class="fc" id="L142">  }</span>
+
+  /**
+   * Create or update rendition metadata if rendition is created or updated.
+   * @param renditionPath Rendition path
+   * @throws PersistenceException Persistence exception
+   * @return true if rendition data was added or updated
+   */
+  public boolean renditionAddedOrUpdated(String renditionPath) throws PersistenceException {
+
+    // check for resource existence and try to get layer from image
+<span class="fc" id="L153">    Resource renditionResource = resourceResolver.getResource(renditionPath);</span>
+<span class="pc bpc" id="L154" title="1 of 2 branches missed.">    if (renditionResource == null) {</span>
+<span class="nc" id="L155">      log.debug(&quot;Skip generation of metadata for non-existing rendition {}&quot;, renditionPath);</span>
+<span class="nc" id="L156">      return false;</span>
+    }
+
+    // check if rendition is original
+<span class="fc" id="L160">    boolean isOriginal = StringUtils.equals(ResourceUtil.getName(renditionPath), ORIGINAL_FILE);</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">    if (isOriginal) {</span>
+      // skip original unless it is an SVG file (for which AEM does not generated width/height metadata properties)
+<span class="fc" id="L163">      boolean isSVG = StringUtils.equals(getContentType(renditionResource), ContentType.SVG);</span>
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">      if (!isSVG) {</span>
+<span class="fc" id="L165">        log.debug(&quot;Skip original rendition {}&quot;, renditionPath);</span>
+<span class="fc" id="L166">        return false;</span>
+      }
+<span class="nc" id="L168">    }</span>
+    else {
+      // ensure rendition is an image rendition for which metadata can be generated
+<span class="fc" id="L171">      String fileExtension = FilenameUtils.getExtension(renditionPath);</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">      if (!MediaFileType.isImage(fileExtension)) {</span>
+<span class="fc" id="L173">        log.debug(&quot;Skip non-image rendition {}&quot;, renditionPath);</span>
+<span class="fc" id="L174">        return false;</span>
+      }
+    }
+
+    // Compare timestamps of rendition and rendition metadata
+<span class="fc" id="L179">    Calendar renditionTimestamp = getLastModified(renditionResource);</span>
+<span class="fc" id="L180">    String metdataResourcePath = getRenditionMetadataResourcePath(renditionPath);</span>
+<span class="fc" id="L181">    Resource metadataResource = resourceResolver.getResource(metdataResourcePath);</span>
+<span class="fc" id="L182">    Calendar renditionsMetadataTimestamp = getLastModified(metadataResource);</span>
+<span class="fc bfc" id="L183" title="All 4 branches covered.">    boolean metadataOutdated = (renditionTimestamp == null)</span>
+        || (renditionsMetadataTimestamp == null)
+<span class="fc bfc" id="L185" title="All 2 branches covered.">        || renditionsMetadataTimestamp.before(renditionTimestamp);</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">    if (!metadataOutdated) {</span>
+<span class="fc" id="L187">      log.debug(&quot;Skip re-generation of metadata for unchanged rendition {}&quot;, renditionPath);</span>
+<span class="fc" id="L188">      return false;</span>
+    }
+
+    // calculate rendition dimension
+    // (record duration of converting resource to layer for debugging)
+<span class="fc" id="L193">    long startTime = System.currentTimeMillis();</span>
+<span class="fc" id="L194">    Dimension dimension = getRenditionDimension(renditionResource);</span>
+<span class="fc" id="L195">    long conversionDuration = System.currentTimeMillis() - startTime;</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">    if (dimension == null) {</span>
+<span class="nc" id="L197">      log.debug(&quot;Unable to calculate dimension of rendition {}&quot;, renditionPath);</span>
+<span class="nc" id="L198">      return false;</span>
+    }
+
+    // write metadata
+    try {
+<span class="fc" id="L203">      log.debug(&quot;Update rendition metadata at {} (width={}, height={}); duration={}ms.&quot;,</span>
+<span class="fc" id="L204">          metdataResourcePath, dimension.getWidth(), dimension.getHeight(), conversionDuration);</span>
+
+<span class="fc bfc" id="L206" title="All 2 branches covered.">      if (metadataResource == null) {</span>
+<span class="fc" id="L207">        metadataResource = ResourceUtil.getOrCreateResource(resourceResolver,</span>
+            metdataResourcePath,
+<span class="fc" id="L209">            ImmutableMap.&lt;String, Object&gt;of(JCR_PRIMARYTYPE, NT_UNSTRUCTURED),</span>
+            null, false);
+      }
+
+<span class="fc" id="L213">      ModifiableValueMap props = AdaptTo.notNull(metadataResource, ModifiableValueMap.class);</span>
+<span class="fc" id="L214">      props.put(PN_IMAGE_WIDTH, dimension.getWidth());</span>
+<span class="fc" id="L215">      props.put(PN_IMAGE_HEIGHT, dimension.getHeight());</span>
+<span class="fc" id="L216">      props.put(JCR_LASTMODIFIED, Calendar.getInstance());</span>
+<span class="fc" id="L217">      props.put(JCR_LAST_MODIFIED_BY, resourceResolver.getUserID());</span>
+<span class="fc" id="L218">      resourceResolver.commit();</span>
+<span class="fc" id="L219">      return true;</span>
+    }
+<span class="nc" id="L221">    catch (PersistenceException ex) {</span>
+<span class="nc" id="L222">      throw new PersistenceException(&quot;Unable to create or update rendition metadata node for &quot; + renditionPath, ex);</span>
+    }
+  }
+
+  private @Nullable String getContentType(@NotNull Resource renditionResource) {
+<span class="fc" id="L227">    return renditionResource.getValueMap().get(JCR_CONTENT + &quot;/&quot; + JCR_MIMETYPE, String.class);</span>
+  }
+
+  private Calendar getLastModified(@Nullable Resource resource) {
+<span class="fc" id="L231">    Calendar lastModified = null;</span>
+<span class="fc bfc" id="L232" title="All 2 branches covered.">    if (resource != null) {</span>
+      // if a rendition is updated it's last modified date is stored in the jcr:content child node
+<span class="fc" id="L234">      Resource contentResource = resource.getChild(JCR_CONTENT);</span>
+<span class="fc bfc" id="L235" title="All 2 branches covered.">      if (contentResource != null) {</span>
+<span class="fc" id="L236">        lastModified = contentResource.getValueMap().get(JCR_LASTMODIFIED, Calendar.class);</span>
+      }
+<span class="pc bpc" id="L238" title="1 of 2 branches missed.">      if (lastModified == null) {</span>
+<span class="fc" id="L239">        lastModified = resource.getValueMap().get(JCR_LASTMODIFIED, Calendar.class);</span>
+      }
+<span class="fc bfc" id="L241" title="All 2 branches covered.">      if (lastModified == null) {</span>
+<span class="fc" id="L242">        lastModified = resource.getValueMap().get(JCR_CREATED, Calendar.class);</span>
+      }
+    }
+<span class="fc" id="L245">    return lastModified;</span>
+  }
+
+  /**
+   * Remove rendition metadata node if rendition is removed.
+   * @param renditionPath Rendition path
+   * @throws PersistenceException Persistence exception
+   * @return true if rendition data was removed
+   */
+  public boolean renditionRemoved(String renditionPath) throws PersistenceException {
+
+    // check if rendition still exist (or exists again) - in this case skip removing of renditions metadata
+<span class="fc" id="L257">    Resource renditionResource = resourceResolver.getResource(renditionPath);</span>
+<span class="fc bfc" id="L258" title="All 2 branches covered.">    if (renditionResource != null) {</span>
+<span class="fc" id="L259">      log.debug(&quot;Skip removing of metadata for existing rendition {}&quot;, renditionPath);</span>
+<span class="fc" id="L260">      return false;</span>
+    }
+
+    // remove rendition metadata for non-existing rendition
+<span class="fc" id="L264">    String metdataResourcePath = getRenditionMetadataResourcePath(renditionPath);</span>
+<span class="fc" id="L265">    Resource metadataResource = resourceResolver.getResource(metdataResourcePath);</span>
+<span class="pc bpc" id="L266" title="1 of 2 branches missed.">    if (metadataResource == null) {</span>
+<span class="nc" id="L267">      return false;</span>
+    }
+    try {
+<span class="fc" id="L270">      log.debug(&quot;Remove rendition metadata at {}.&quot;, metadataResource.getPath());</span>
+<span class="fc" id="L271">      resourceResolver.delete(metadataResource);</span>
+<span class="fc" id="L272">      resourceResolver.commit();</span>
+<span class="fc" id="L273">      return true;</span>
+    }
+<span class="nc" id="L275">    catch (PersistenceException ex) {</span>
+<span class="nc" id="L276">      throw new PersistenceException(&quot;Unable to delete rendition metadata node for &quot; + renditionPath, ex);</span>
+    }
+  }
+
+  /**
+   * Get dimension (with/height) of rendition.
+   * @param renditionResource Rendition
+   * @return Dimension or null if it could not be detected
+   */
+  private Dimension getRenditionDimension(Resource renditionResource) {
+<span class="fc" id="L286">    Layer layer = ResourceLayerUtil.toLayer(renditionResource, assetStore);</span>
+<span class="pc bpc" id="L287" title="1 of 2 branches missed.">    if (layer == null) {</span>
+<span class="nc" id="L288">      return null;</span>
+    }
+<span class="fc" id="L290">    return new Dimension(layer.getWidth(), layer.getHeight());</span>
+  }
+
+  /**
+   * Get resource path for metadata for given rendition.
+   * @param renditionPath Rendition path
+   * @return Metadata resource or null if none exist
+   */
+  private String getRenditionMetadataResourcePath(String renditionPath) {
+<span class="fc" id="L299">    String assetPath = StringUtils.substringBefore(renditionPath, &quot;/&quot; + JCR_CONTENT + &quot;/&quot; + RENDITIONS_FOLDER + &quot;/&quot;);</span>
+<span class="fc" id="L300">    String renditionName = Text.getName(renditionPath);</span>
+<span class="fc" id="L301">    return assetPath + &quot;/&quot; + JCR_CONTENT + &quot;/&quot; + NN_RENDITIONS_METADATA + &quot;/&quot; + renditionName;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

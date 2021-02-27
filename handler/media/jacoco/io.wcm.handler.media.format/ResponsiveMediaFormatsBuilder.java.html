@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResponsiveMediaFormatsBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.format</a> &gt; <span class="el_source">ResponsiveMediaFormatsBuilder.java</span></div><h1>ResponsiveMediaFormatsBuilder.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.format;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
+
+import io.wcm.handler.media.MediaNameConstants;
+
+/**
+ * Special builder that supports generating a on-the-fly list of media formats derived from a main
+ * media format with same ratio but different sizes for different breakpoints.
+ * &lt;p&gt;
+ * The main media format should not have a fixed dimension defined, but only a ratio and probably min. width and height.
+ * The resulting media formats are only generated on-the-fly for the media resolution process. On each format a
+ * {@link MediaNameConstants#PROP_BREAKPOINT} breakpoint is set that is used by the
+ * {@link io.wcm.handler.media.markup.ResponsiveImageMediaMarkupBuilder}.
+ * &lt;/p&gt;
+ * @deprecated Use responsive image handling methods for image sizes and picture sources from MediaBuilder
+ *             together with {@link io.wcm.handler.media.markup.SimpleImageMediaMarkupBuilder}.
+ */
+@ProviderType
+@Deprecated
+public final class ResponsiveMediaFormatsBuilder {
+
+  private final MediaFormat mainMediaFormat;
+<span class="fc" id="L47">  private final List&lt;MediaFormat&gt; mediaFormats = new ArrayList&lt;&gt;();</span>
+
+  /**
+   * @param mainMediaFormat Main media format from which the reponsive &quot;on-the-fly&quot; formats are derived from.
+   */
+<span class="fc" id="L52">  public ResponsiveMediaFormatsBuilder(@NotNull MediaFormat mainMediaFormat) {</span>
+<span class="fc" id="L53">    this.mainMediaFormat = mainMediaFormat;</span>
+<span class="fc" id="L54">  }</span>
+
+  /**
+   * Defines one breakpoint for each &quot;on-the-fly&quot; format required.
+   * @param breakpoint Breakpoint name which is set in the {@link MediaNameConstants#PROP_BREAKPOINT} property.
+   * @param width Width for the breakpoint
+   * @param height Height for the breakpoint
+   * @return this
+   */
+  public ResponsiveMediaFormatsBuilder breakpoint(@NotNull String breakpoint, int width, int height) {
+<span class="fc" id="L64">    mediaFormats.add(MediaFormatBuilder.create(buildCombinedName(mainMediaFormat, breakpoint, width, height))</span>
+<span class="fc" id="L65">        .label(mainMediaFormat.getLabel())</span>
+<span class="fc" id="L66">        .extensions(mainMediaFormat.getExtensions())</span>
+<span class="fc" id="L67">        .ratio(mainMediaFormat.getRatio())</span>
+<span class="fc" id="L68">        .fixedDimension(width, height)</span>
+<span class="fc" id="L69">        .property(MediaNameConstants.PROP_BREAKPOINT, breakpoint)</span>
+<span class="fc" id="L70">        .build());</span>
+<span class="fc" id="L71">    return this;</span>
+  }
+
+  /**
+   * Builds an array of media formats that can be used as for
+   * {@link io.wcm.handler.media.MediaBuilder#mandatoryMediaFormats(MediaFormat...)}.
+   * @return Array of on-the-fly media formats
+   */
+  public MediaFormat[] build() {
+<span class="fc" id="L80">    return mediaFormats.toArray(new MediaFormat[0]);</span>
+  }
+
+  static @NotNull String buildCombinedName(MediaFormat mediaFormat, String breakpoint, int width, int height) {
+<span class="fc" id="L84">    return mediaFormat.getName() + &quot;_&quot; + breakpoint + &quot;_&quot; + width + &quot;_&quot; + height;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImageUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.ui</a> &gt; <span class="el_source">ImageUtils.java</span></div><h1>ImageUtils.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2020 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.ui;
+
+import java.util.Arrays;
+
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.MediaArgs.PictureSource;
+import io.wcm.handler.media.MediaBuilder;
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.format.MediaFormatHandler;
+
+final class ImageUtils {
+
+<span class="fc" id="L38">  private static final Logger LOG = LoggerFactory.getLogger(ImageUtils.class);</span>
+
+  private ImageUtils() {
+    // private constructor as this is a utils class
+  }
+
+  /**
+   * Applies picture sources to the given {@link MediaBuilder}.
+   *
+   * @param mediaFormatHandler {@link MediaFormatHandler} to fetch media formats from
+   * @param builder            {@link MediaBuilder} to apply the picture sources to
+   * @param mediaFormatNames   media formats for the picture source elements
+   * @param medias             media expressions for the picture source elements
+   * @param widths             widths for the picture source elements
+   */
+  public static void applyPictureSources(MediaFormatHandler mediaFormatHandler, MediaBuilder builder,
+      String[] mediaFormatNames, String[] medias, String[] widths) {
+<span class="pc bpc" id="L55" title="2 of 6 branches missed.">    for (int i = 0; i &lt; mediaFormatNames.length &amp;&amp; i &lt; medias.length &amp;&amp; i &lt; widths.length; i++) {</span>
+<span class="fc" id="L56">      MediaFormat mediaFormat = mediaFormatHandler.getMediaFormat(mediaFormatNames[i]);</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">      if (mediaFormat != null) {</span>
+<span class="fc" id="L58">        String media = medias[i];</span>
+<span class="fc" id="L59">        long[] widthsArray = toWidthsArray(widths[i]);</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">        if (widthsArray.length &gt; 0) {</span>
+
+<span class="fc" id="L62">          PictureSource pictureSource = new PictureSource(mediaFormat);</span>
+<span class="fc" id="L63">          pictureSource.widths(widthsArray);</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">          if (StringUtils.isNotBlank(media)) {</span>
+<span class="fc" id="L65">            pictureSource.media(media);</span>
+          }
+<span class="fc" id="L67">          builder.pictureSource(pictureSource);</span>
+        }
+<span class="fc" id="L69">      }</span>
+      else {
+<span class="nc" id="L71">        LOG.warn(&quot;Ignoring invalid media format: {}&quot;, mediaFormatNames[i]);</span>
+      }
+    }
+<span class="fc" id="L74">  }</span>
+
+  /**
+   * Convert widths string to long array and ignore invalid numbers, sort values descending.
+   *
+   * @param widths Widths string
+   * @return Widths array
+   */
+  public static long[] toWidthsArray(String widths) {
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">    if (StringUtils.isBlank(widths)) {</span>
+<span class="nc" id="L84">      return new long[0];</span>
+    }
+<span class="fc" id="L86">    return Arrays.stream(StringUtils.split(widths, &quot;,&quot;))</span>
+<span class="fc" id="L87">        .map(NumberUtils::toLong)</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">        .filter(width -&gt; width &gt; 0)</span>
+<span class="fc" id="L89">        .sorted((l1, l2) -&gt; Long.compare(l2, l1))</span>
+<span class="fc" id="L90">        .mapToLong(Long::longValue)</span>
+<span class="fc" id="L91">        .toArray();</span>
+  }
+
+  /**
+   * Convert width options string to MediaArgs.WidthOption array and ignore invalid numbers and invalid format, sort
+   * values descending.
+   * @param widthOptions Width options string
+   * @return Widths array which is empty in case given widthOptions is blank
+   */
+  public static MediaArgs.WidthOption[] toWidthOptionArray(String widthOptions) {
+<span class="nc bnc" id="L101" title="All 2 branches missed.">    if (StringUtils.isBlank(widthOptions)) {</span>
+<span class="nc" id="L102">      return new MediaArgs.WidthOption[0];</span>
+    }
+<span class="nc" id="L104">    return Arrays.stream(StringUtils.split(widthOptions, &quot;,&quot;))</span>
+<span class="nc" id="L105">        .filter(StringUtils::isNotBlank)</span>
+<span class="nc" id="L106">        .map(widthOption -&gt; StringUtils.split(widthOption, &quot;:&quot;))</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        .filter(widthOptionArray -&gt; widthOptionArray.length == 2)</span>
+<span class="nc" id="L108">        .map(widthOptionArray -&gt; new MediaArgs.WidthOption(NumberUtils.toLong(widthOptionArray[0]), BooleanUtils.toBoolean(widthOptionArray[1])))</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        .filter(widthOption -&gt; widthOption.getWidth() &gt; 0)</span>
+<span class="nc" id="L110">        .sorted((wo1, wo2) -&gt; Long.compare(wo2.getWidth(), wo1.getWidth()))</span>
+<span class="nc" id="L111">        .toArray(MediaArgs.WidthOption[]::new);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

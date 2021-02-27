@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MediaFormatProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.spi</a> &gt; <span class="el_source">MediaFormatProvider.java</span></div><h1>MediaFormatProvider.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.spi;
+
+import java.lang.reflect.Field;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.osgi.annotation.versioning.ConsumerType;
+
+import com.google.common.collect.ImmutableSet;
+
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.sling.commons.caservice.ContextAwareService;
+
+/**
+ * {@link MediaFormatProvider} OSGi services provide media formats for the media handler.
+ * Applications can set service properties or bundle headers as defined in {@link ContextAwareService} to apply this
+ * configuration only for resources that match the relevant resource paths.
+ */
+@ConsumerType
+public abstract class MediaFormatProvider implements ContextAwareService {
+
+  private final Set&lt;MediaFormat&gt; mediaFormats;
+
+  /**
+   * @param mediaFormats Set of media formats for parameter provider
+   */
+<span class="fc" id="L46">  protected MediaFormatProvider(Set&lt;MediaFormat&gt; mediaFormats) {</span>
+<span class="fc" id="L47">    this.mediaFormats = mediaFormats;</span>
+<span class="fc" id="L48">  }</span>
+
+  /**
+   * @param type Type containing media format definitions as public static fields.
+   */
+  protected MediaFormatProvider(Class&lt;?&gt; type) {
+<span class="fc" id="L54">    this(getMediaFormatsFromPublicFields(type));</span>
+<span class="fc" id="L55">  }</span>
+
+  /**
+   * @return Media formats that the application defines
+   */
+  public Set&lt;MediaFormat&gt; getMediaFormats() {
+<span class="fc" id="L61">    return mediaFormats;</span>
+  }
+
+  /**
+   * Get all media formats defined as public static fields in the given type.
+   * @param type Type
+   * @return Set of media formats
+   */
+  private static Set&lt;MediaFormat&gt; getMediaFormatsFromPublicFields(Class&lt;?&gt; type) {
+<span class="fc" id="L70">    Set&lt;MediaFormat&gt; params = new HashSet&lt;&gt;();</span>
+    try {
+<span class="fc" id="L72">      Field[] fields = type.getFields();</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">      for (Field field : fields) {</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">        if (field.getType().isAssignableFrom(MediaFormat.class)) {</span>
+<span class="fc" id="L75">          params.add((MediaFormat)field.get(null));</span>
+        }
+      }
+    }
+<span class="nc" id="L79">    catch (IllegalArgumentException | IllegalAccessException ex) {</span>
+<span class="nc" id="L80">      throw new RuntimeException(&quot;Unable to access fields of &quot; + type.getName(), ex);</span>
+<span class="fc" id="L81">    }</span>
+<span class="fc" id="L82">    return ImmutableSet.copyOf(params);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

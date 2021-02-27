@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SimpleImageMediaMarkupBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.markup</a> &gt; <span class="el_source">SimpleImageMediaMarkupBuilder.java</span></div><h1>SimpleImageMediaMarkupBuilder.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.markup;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.models.annotations.Model;
+import org.jdom2.Element;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ConsumerType;
+
+import com.google.common.collect.ImmutableList;
+
+import io.wcm.handler.commons.dom.Area;
+import io.wcm.handler.commons.dom.HtmlElement;
+import io.wcm.handler.commons.dom.Image;
+import io.wcm.handler.commons.dom.Map;
+import io.wcm.handler.commons.dom.Picture;
+import io.wcm.handler.commons.dom.Source;
+import io.wcm.handler.commons.dom.Span;
+import io.wcm.handler.media.Asset;
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.MediaArgs.ImageSizes;
+import io.wcm.handler.media.MediaArgs.PictureSource;
+import io.wcm.handler.media.MediaArgs.WidthOption;
+import io.wcm.handler.media.MediaNameConstants;
+import io.wcm.handler.media.Rendition;
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.format.Ratio;
+import io.wcm.handler.media.imagemap.ImageMapArea;
+
+/**
+ * Basic implementation of {@link io.wcm.handler.media.spi.MediaMarkupBuilder} for images.
+ * &lt;p&gt;
+ * If image sizes or picture sources are set on the media handler this markup builder also
+ * generates markup for responsive images using &lt;code&gt;img&lt;/code&gt; with &lt;code&gt;sizes&lt;/code&gt; and &lt;code&gt;srcset&lt;/code&gt;
+ * attributes or &lt;code&gt;picture&lt;/code&gt; with &lt;code&gt;source&lt;/code&gt; elements.
+ * &lt;/p&gt;
+ */
+@Model(adaptables = {
+    SlingHttpServletRequest.class, Resource.class
+})
+@ConsumerType
+<span class="fc" id="L70">public class SimpleImageMediaMarkupBuilder extends AbstractImageMediaMarkupBuilder {</span>
+
+  @Override
+  public final boolean accepts(@NotNull Media media) {
+    // accept if rendition is an image rendition, and resolving was successful
+<span class="fc bfc" id="L75" title="All 2 branches covered.">    return media.isValid()</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        &amp;&amp; media.getRendition() != null</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        &amp;&amp; media.getRendition().isBrowserImage();</span>
+  }
+
+  @Override
+  public final HtmlElement&lt;?&gt; build(@NotNull Media media) {
+
+    // render media element for rendition
+<span class="fc" id="L84">    HtmlElement&lt;?&gt; mediaElement = getMediaElement(media);</span>
+
+    // further processing in edit or preview mode
+<span class="fc" id="L87">    applyWcmMarkup(mediaElement, media);</span>
+
+<span class="fc" id="L89">    return mediaElement;</span>
+  }
+
+  /**
+   * Create &lt;code&gt;img&lt;/code&gt; or &lt;code&gt;picture&lt;/code&gt; media element.
+   * @param media Media metadata
+   * @return Media element with properties or null if media metadata is invalid
+   */
+  protected @Nullable HtmlElement&lt;?&gt; getMediaElement(@NotNull Media media) {
+<span class="fc" id="L98">    PictureSource[] pictureSources = media.getMediaRequest().getMediaArgs().getPictureSources();</span>
+<span class="pc bpc" id="L99" title="1 of 4 branches missed.">    if (pictureSources != null &amp;&amp; pictureSources.length &gt; 0) {</span>
+<span class="fc" id="L100">      return getPictureElement(media);</span>
+    }
+    else {
+<span class="fc" id="L103">      return getImageElement(media);</span>
+    }
+  }
+
+  /**
+   * Create an &lt;code&gt;img&lt;/code&gt; element that displays the given rendition image.
+   * @param media Media metadata
+   * @return &lt;code&gt;img&lt;/code&gt; element with properties or null if media metadata is invalid
+   */
+  protected @Nullable HtmlElement&lt;?&gt; getPictureElement(@NotNull Media media) {
+<span class="fc" id="L113">    PictureSource[] pictureSources = media.getMediaRequest().getMediaArgs().getPictureSources();</span>
+
+<span class="fc" id="L115">    Picture picture = new Picture();</span>
+
+    // add source elements (only if matching renditions found)
+<span class="fc" id="L118">    boolean foundAnySource = false;</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">    for (PictureSource pictureSource : pictureSources) {</span>
+<span class="fc" id="L120">      Source source = new Source();</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">      if (pictureSource.getMedia() != null) {</span>
+<span class="fc" id="L122">        source.setMedia(pictureSource.getMedia());</span>
+      }
+<span class="fc bfc" id="L124" title="All 2 branches covered.">      if (pictureSource.getSizes() != null) {</span>
+<span class="fc" id="L125">        source.setSizes(pictureSource.getSizes());</span>
+      }
+<span class="fc" id="L127">      MediaFormat mediaFormat = pictureSource.getMediaFormat();</span>
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">      if (mediaFormat != null) {</span>
+<span class="fc" id="L129">        String srcSet = getSrcSetRenditions(media, mediaFormat, pictureSource.getWidthOptions());</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        if (srcSet != null) {</span>
+<span class="fc" id="L131">          source.setSrcSet(srcSet);</span>
+<span class="fc" id="L132">          picture.add(source);</span>
+<span class="fc" id="L133">          foundAnySource = true;</span>
+        }
+      }
+    }
+
+    // add image element
+<span class="fc" id="L139">    HtmlElement&lt;?&gt; image = getImageElement(media);</span>
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">    if (image == null) {</span>
+<span class="nc" id="L141">      return null;</span>
+    }
+
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">    if (foundAnySource) {</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">      if (image instanceof Span) {</span>
+        // if image was wrapped in span, add content of span element, not the span itself
+<span class="fc bfc" id="L147" title="All 2 branches covered.">        for (Element element : ImmutableList.copyOf(image.getChildren())) {</span>
+<span class="fc" id="L148">          element.detach();</span>
+<span class="fc" id="L149">          picture.addContent(element);</span>
+<span class="fc" id="L150">        }</span>
+      }
+      else {
+<span class="fc" id="L153">        picture.addContent(image);</span>
+      }
+<span class="fc" id="L155">      return picture;</span>
+    }
+    else {
+<span class="nc" id="L158">      return image;</span>
+    }
+  }
+
+  /**
+   * Create an &lt;code&gt;img&lt;/code&gt; element that displays the given rendition image.
+   * @param media Media metadata
+   * @return &lt;code&gt;img&lt;/code&gt; element with properties or null if media metadata is invalid
+   */
+  protected @Nullable HtmlElement&lt;?&gt; getImageElement(@NotNull Media media) {
+<span class="fc" id="L168">    Image img = null;</span>
+
+<span class="fc" id="L170">    MediaArgs mediaArgs = media.getMediaRequest().getMediaArgs();</span>
+<span class="fc" id="L171">    Asset asset = media.getAsset();</span>
+<span class="fc" id="L172">    Rendition rendition = media.getRendition();</span>
+
+<span class="fc" id="L174">    String url = null;</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">    if (rendition != null) {</span>
+<span class="fc" id="L176">      url = rendition.getUrl();</span>
+    }
+
+<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (url != null) {</span>
+<span class="fc" id="L180">      img = new Image(url);</span>
+
+      // Alternative text
+<span class="fc" id="L183">      String altText = null;</span>
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">      if (asset != null) {</span>
+<span class="fc" id="L185">        altText = asset.getAltText();</span>
+      }
+<span class="fc bfc" id="L187" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(altText)) {</span>
+<span class="fc" id="L188">        img.setAlt(altText);</span>
+      }
+
+      // set width/height
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">      if (rendition != null</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">          &amp;&amp; !rendition.isVectorImage()</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">          &amp;&amp; mediaArgs.getImageSizes() == null</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">          &amp;&amp; mediaArgs.getPictureSources() == null) {</span>
+<span class="fc" id="L196">        long height = rendition.getHeight();</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">        if (height &gt; 0) {</span>
+<span class="fc" id="L198">          img.setHeight(height);</span>
+        }
+<span class="fc" id="L200">        long width = rendition.getWidth();</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">        if (width &gt; 0) {</span>
+<span class="fc" id="L202">          img.setWidth(width);</span>
+        }
+      }
+
+      // set image sizes/srcset
+<span class="fc" id="L207">      ImageSizes imageSizes = mediaArgs.getImageSizes();</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">      if (imageSizes != null) {</span>
+<span class="fc" id="L209">        MediaFormat primaryMediaFormat = getFirstMediaFormat(media);</span>
+<span class="pc bpc" id="L210" title="1 of 2 branches missed.">        if (primaryMediaFormat != null) {</span>
+<span class="fc" id="L211">          String srcSet = getSrcSetRenditions(media, primaryMediaFormat, imageSizes.getWidthOptions());</span>
+<span class="pc bpc" id="L212" title="1 of 2 branches missed.">          if (srcSet != null) {</span>
+<span class="fc" id="L213">            img.setSrcSet(srcSet);</span>
+<span class="fc" id="L214">            img.setSizes(imageSizes.getSizes());</span>
+          }
+        }
+      }
+
+    }
+
+    // set additional attributes
+<span class="fc" id="L222">    setAdditionalAttributes(img, media);</span>
+
+    // apply image map markup
+<span class="fc" id="L225">    return applyImageMap(img, media);</span>
+  }
+
+  /**
+   * Generate srcset list from the resolved renditions for the ratio of the given media formats and the given widths.
+   * Widths that have no match are ignored.
+   * @param media Media
+   * @param mediaFormat Media format
+   * @param widths widths
+   * @return srcset String or null if no matching renditions found
+   */
+  protected @Nullable String getSrcSetRenditions(@NotNull Media media, @NotNull MediaFormat mediaFormat,
+      @NotNull WidthOption @Nullable... widths) {
+<span class="pc bpc" id="L238" title="1 of 2 branches missed.">    if (widths == null) {</span>
+<span class="nc" id="L239">      return null;</span>
+    }
+<span class="fc" id="L241">    return getSrcSetRenditions(media, mediaFormat, Arrays.stream(widths)</span>
+<span class="fc" id="L242">        .mapToLong(WidthOption::getWidth)</span>
+<span class="fc" id="L243">        .toArray());</span>
+  }
+
+  /**
+   * Generate srcset list from the resolved renditions for the ratio of the given media formats and the given widths.
+   * Widths that have no match are ignored.
+   * @param media Media
+   * @param mediaFormat Media format
+   * @param widths widths
+   * @return srcset String or null if no matching renditions found
+   */
+  protected @Nullable String getSrcSetRenditions(@NotNull Media media, @NotNull MediaFormat mediaFormat,
+      long @NotNull... widths) {
+<span class="fc" id="L256">    StringBuilder srcset = new StringBuilder();</span>
+
+<span class="fc bfc" id="L258" title="All 2 branches covered.">    for (long width : widths) {</span>
+<span class="fc" id="L259">      Optional&lt;String&gt; url = media.getRenditions().stream()</span>
+<span class="fc bfc" id="L260" title="All 2 branches covered.">          .filter(rendition -&gt; (Ratio.matches(rendition.getRatio(), mediaFormat.getRatio())</span>
+<span class="fc bfc" id="L261" title="All 2 branches covered.">              || Ratio.matches(mediaFormat.getRatio(), 0d))</span>
+<span class="fc bfc" id="L262" title="All 2 branches covered.">              &amp;&amp; rendition.getWidth() == width)</span>
+<span class="fc" id="L263">          .map(rendition -&gt; rendition.getUrl())</span>
+<span class="fc" id="L264">          .findFirst();</span>
+<span class="fc bfc" id="L265" title="All 2 branches covered.">      if (url.isPresent()) {</span>
+<span class="fc bfc" id="L266" title="All 2 branches covered.">        if (srcset.length() &gt; 0) {</span>
+<span class="fc" id="L267">          srcset.append(&quot;, &quot;);</span>
+        }
+<span class="fc" id="L269">        srcset.append(url.get()).append(&quot; &quot;).append(Long.toString(width)).append(&quot;w&quot;);</span>
+      }
+    }
+
+<span class="fc bfc" id="L273" title="All 2 branches covered.">    if (srcset.length() &gt; 0) {</span>
+<span class="fc" id="L274">      return srcset.toString();</span>
+    }
+    else {
+<span class="fc" id="L277">      return null;</span>
+    }
+  }
+
+  /**
+   * Get first media format from the media formats of the media args that has a ratio set.
+   * @param media Media
+   * @return Media format or null if none found
+   */
+  protected final @Nullable MediaFormat getFirstMediaFormatWithRatio(@NotNull Media media) {
+<span class="nc" id="L287">    MediaFormat[] mediaFormats = media.getMediaRequest().getMediaArgs().getMediaFormats();</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">    if (mediaFormats != null) {</span>
+<span class="nc bnc" id="L289" title="All 2 branches missed.">      for (MediaFormat mediaFormat : mediaFormats) {</span>
+<span class="nc bnc" id="L290" title="All 2 branches missed.">        if (mediaFormat.hasRatio()) {</span>
+<span class="nc" id="L291">          return mediaFormat;</span>
+        }
+      }
+    }
+<span class="nc" id="L295">    return null;</span>
+  }
+
+  /**
+   * Get first media format from the resolved media renditions.
+   * @param media Media
+   * @return Media format or null if none found
+   */
+  protected final @Nullable MediaFormat getFirstMediaFormat(@NotNull Media media) {
+<span class="fc" id="L304">    return media.getRenditions().stream()</span>
+<span class="fc" id="L305">        .map(Rendition::getMediaFormat)</span>
+<span class="fc" id="L306">        .filter(Objects::nonNull)</span>
+<span class="fc" id="L307">        .findFirst()</span>
+<span class="fc" id="L308">        .orElse(null);</span>
+  }
+
+  /**
+   * If a image map was resolved apply map markup to given image element. As a result both image
+   * and map markup are wrapped in a span element.
+   * @param element Image Element
+   * @param media Media
+   * @return Unchanged element or wrapped element with map
+   */
+  protected final @Nullable HtmlElement&lt;?&gt; applyImageMap(@Nullable HtmlElement&lt;?&gt; element, @NotNull Media media) {
+<span class="fc" id="L319">    List&lt;ImageMapArea&gt; mapData = media.getMap();</span>
+<span class="fc bfc" id="L320" title="All 4 branches covered.">    if (!(element instanceof Image) || mapData == null) {</span>
+<span class="fc" id="L321">      return element;</span>
+    }
+
+    // build unique name for map
+<span class="fc" id="L325">    String mapName = buildImageMapName(mapData, media);</span>
+
+    // build wrapper element that will contain both image and map element
+<span class="fc" id="L328">    Span span = new Span();</span>
+<span class="fc" id="L329">    ((Image)element).setUseMap(&quot;#&quot; + mapName);</span>
+<span class="fc" id="L330">    span.addContent(element);</span>
+
+    // build image map markup
+<span class="fc" id="L333">    Map map = new Map();</span>
+<span class="fc" id="L334">    map.setMapName(mapName);</span>
+<span class="fc bfc" id="L335" title="All 2 branches covered.">    for (ImageMapArea areaData : mapData) {</span>
+<span class="fc" id="L336">      Area area = new Area();</span>
+<span class="fc" id="L337">      area.setShape(areaData.getShape());</span>
+<span class="fc" id="L338">      area.setCoords(areaData.getCoordinates());</span>
+<span class="fc" id="L339">      area.setHRef(areaData.getLinkUrl());</span>
+<span class="fc bfc" id="L340" title="All 2 branches covered.">      if (areaData.getLinkWindowTarget() != null) {</span>
+<span class="fc" id="L341">        area.setTarget(areaData.getLinkWindowTarget());</span>
+      }
+<span class="fc bfc" id="L343" title="All 2 branches covered.">      if (areaData.getAltText() != null) {</span>
+<span class="fc" id="L344">        area.setAlt(areaData.getAltText());</span>
+      }
+<span class="fc" id="L346">      map.addContent(area);</span>
+<span class="fc" id="L347">    }</span>
+<span class="fc" id="L348">    span.addContent(map);</span>
+
+<span class="fc" id="L350">    return span;</span>
+  }
+
+  /**
+   * Builds an ID for the image map that is unique within the page.
+   * @param map Map data
+   * @param media Media
+   * @return Unique ID
+   */
+  protected final @NotNull String buildImageMapName(@NotNull List&lt;ImageMapArea&gt; map, @NotNull Media media) {
+<span class="fc" id="L360">    HashCodeBuilder builder = new HashCodeBuilder();</span>
+<span class="fc bfc" id="L361" title="All 2 branches covered.">    for (ImageMapArea area : map) {</span>
+<span class="fc" id="L362">      builder.append(area);</span>
+<span class="fc" id="L363">    }</span>
+<span class="fc" id="L364">    return &quot;map-&quot; + builder.hashCode();</span>
+  }
+
+  @Override
+  public final boolean isValidMedia(@NotNull HtmlElement&lt;?&gt; element) {
+<span class="fc bfc" id="L369" title="All 2 branches covered.">    if (element instanceof Image) {</span>
+<span class="fc" id="L370">      Image img = (Image)element;</span>
+<span class="fc bfc" id="L371" title="All 2 branches covered.">      return StringUtils.isNotEmpty(img.getSrc())</span>
+<span class="fc bfc" id="L372" title="All 2 branches covered.">          &amp;&amp; !StringUtils.contains(img.getCssClass(), MediaNameConstants.CSS_DUMMYIMAGE);</span>
+    }
+<span class="fc bfc" id="L374" title="All 2 branches covered.">    if (element instanceof Picture) {</span>
+<span class="fc" id="L375">      Element imgChild = element.getChild(&quot;img&quot;);</span>
+<span class="fc bfc" id="L376" title="All 2 branches covered.">      if (imgChild instanceof Image) {</span>
+<span class="fc" id="L377">        Image img = (Image)imgChild;</span>
+<span class="pc bpc" id="L378" title="1 of 2 branches missed.">        return StringUtils.isNotEmpty(img.getSrc())</span>
+<span class="fc bfc" id="L379" title="All 2 branches covered.">            &amp;&amp; !StringUtils.contains(element.getCssClass(), MediaNameConstants.CSS_DUMMYIMAGE);</span>
+      }
+    }
+<span class="pc bpc" id="L382" title="1 of 2 branches missed.">    if (element instanceof Span) {</span>
+<span class="nc" id="L383">      Optional&lt;Element&gt; firstChild = element.getChildren().stream().findFirst();</span>
+<span class="nc bnc" id="L384" title="All 2 branches missed.">      if (firstChild.isPresent()) {</span>
+<span class="nc" id="L385">        return isValidMedia((HtmlElement)firstChild.get());</span>
+      }
+    }
+<span class="fc" id="L388">    return false;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

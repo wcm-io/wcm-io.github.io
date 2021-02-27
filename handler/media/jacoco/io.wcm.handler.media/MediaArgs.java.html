@@ -1,0 +1,1054 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MediaArgs.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media</a> &gt; <span class="el_source">MediaArgs.java</span></div><h1>MediaArgs.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.api.wrappers.ValueMapDecorator;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.markup.DragDropSupport;
+import io.wcm.handler.media.markup.IPERatioCustomize;
+import io.wcm.handler.url.UrlMode;
+import io.wcm.wcm.commons.util.ToStringStyle;
+
+/**
+ * Holds parameters to influence the media resolving process.
+ */
+@ProviderType
+public final class MediaArgs implements Cloneable {
+
+  private MediaFormatOption[] mediaFormatOptions;
+  private boolean autoCrop;
+  private String[] fileExtensions;
+  private UrlMode urlMode;
+  private long fixedWidth;
+  private long fixedHeight;
+  private boolean download;
+  private boolean contentDispositionAttachment;
+  private String altText;
+<span class="fc" id="L57">  private boolean dummyImage = true;</span>
+  private String dummyImageUrl;
+  private boolean includeAssetThumbnails;
+  private Boolean includeAssetWebRenditions;
+  private ImageSizes imageSizes;
+  private PictureSource[] pictureSourceSets;
+<span class="fc" id="L63">  private DragDropSupport dragDropSupport = DragDropSupport.AUTO;</span>
+<span class="fc" id="L64">  private IPERatioCustomize ipeRatioCustomize = IPERatioCustomize.AUTO;</span>
+  private boolean dynamicMediaDisabled;
+  private ValueMap properties;
+
+  /**
+   * Default constructor
+   */
+<span class="fc" id="L71">  public MediaArgs() {</span>
+    // default constructor
+<span class="fc" id="L73">  }</span>
+
+  /**
+   * @param mediaFormats Media formats
+   */
+  @SuppressWarnings(&quot;null&quot;)
+<span class="fc" id="L79">  public MediaArgs(@NotNull MediaFormat @NotNull... mediaFormats) {</span>
+<span class="fc" id="L80">    mediaFormats(mediaFormats);</span>
+<span class="fc" id="L81">  }</span>
+
+  /**
+   * @param mediaFormatNames Media format names
+   */
+<span class="fc" id="L86">  public MediaArgs(@NotNull String @NotNull... mediaFormatNames) {</span>
+<span class="fc" id="L87">    mediaFormatNames(mediaFormatNames);</span>
+<span class="fc" id="L88">  }</span>
+
+  /**
+   * Returns list of media formats to resolve to. If {@link #isMediaFormatsMandatory()} is false,
+   * the first rendition that matches any of the given media format is returned. If it is set to true,
+   * for each media format given a rendition has to be resolved and returned. If not all renditions
+   * could be resolved the media is marked as invalid (but the partial resolved renditions are returned anyway).
+   * @return Media formats
+   */
+  public MediaFormat[] getMediaFormats() {
+<span class="fc bfc" id="L98" title="All 2 branches covered.">    if (this.mediaFormatOptions != null) {</span>
+<span class="fc" id="L99">      MediaFormat[] result = Arrays.stream(this.mediaFormatOptions)</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">          .filter(option -&gt; option.getMediaFormatName() == null)</span>
+<span class="fc" id="L101">          .map(option -&gt; option.getMediaFormat())</span>
+<span class="fc" id="L102">          .toArray(size -&gt; new MediaFormat[size]);</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">      if (result.length &gt; 0) {</span>
+<span class="fc" id="L104">        return result;</span>
+      }
+    }
+<span class="fc" id="L107">    return null;</span>
+  }
+
+  /**
+   * Sets list of media formats to resolve to.
+   * @param values Media formats
+   * @return this
+   */
+  public @NotNull MediaArgs mediaFormats(@Nullable MediaFormat @Nullable... values) {
+<span class="pc bpc" id="L116" title="2 of 4 branches missed.">    if (values == null || values.length == 0) {</span>
+<span class="nc" id="L117">      this.mediaFormatOptions = null;</span>
+    }
+    else {
+<span class="fc" id="L120">      this.mediaFormatOptions = Arrays.stream(values)</span>
+<span class="fc" id="L121">          .map(mediaFormat -&gt; new MediaFormatOption(mediaFormat, false))</span>
+<span class="fc" id="L122">          .toArray(size -&gt; new MediaFormatOption[size]);</span>
+    }
+<span class="fc" id="L124">    return this;</span>
+  }
+
+  /**
+   * Sets list of media formats to resolve to.
+   * Additionally {@link #isMediaFormatsMandatory()} is set to true.
+   * @param values Media formats
+   * @return this
+   */
+  public @NotNull MediaArgs mandatoryMediaFormats(@NotNull MediaFormat @Nullable... values) {
+<span class="pc bpc" id="L134" title="2 of 4 branches missed.">    if (values == null || values.length == 0) {</span>
+<span class="nc" id="L135">      this.mediaFormatOptions = null;</span>
+    }
+    else {
+<span class="fc" id="L138">      this.mediaFormatOptions = Arrays.stream(values)</span>
+<span class="fc" id="L139">          .map(mediaFormat -&gt; new MediaFormatOption(mediaFormat, true))</span>
+<span class="fc" id="L140">          .toArray(size -&gt; new MediaFormatOption[size]);</span>
+    }
+<span class="fc" id="L142">    return this;</span>
+  }
+
+  /**
+   * Sets a single media format to resolve to.
+   * @param value Media format
+   * @return this
+   */
+  public @NotNull MediaArgs mediaFormat(MediaFormat value) {
+<span class="fc bfc" id="L151" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L152">      this.mediaFormatOptions = null;</span>
+    }
+    else {
+<span class="fc" id="L155">      this.mediaFormatOptions = new MediaFormatOption[] {</span>
+          new MediaFormatOption(value, false)
+      };
+    }
+<span class="fc" id="L159">    return this;</span>
+  }
+
+  /**
+   * Checks if all media format options have the &quot;mandatory&quot; flag set.
+   * If none or not all of them have the flag set, false is returned.
+   * @return true if all media format options have the &quot;mandatory&quot; flag set.
+   * @deprecated Please check the mandatory flag for each media format individually via {@link #getMediaFormatOptions()}
+   */
+  @Deprecated
+  public boolean isMediaFormatsMandatory() {
+<span class="fc bfc" id="L170" title="All 2 branches covered.">    if (this.mediaFormatOptions == null) {</span>
+<span class="fc" id="L171">      return false;</span>
+    }
+<span class="fc" id="L173">    return !Arrays.stream(this.mediaFormatOptions)</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">        .filter(option -&gt; !option.isMandatory())</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">        .findFirst().isPresent();</span>
+  }
+
+  /**
+   * The &quot;mandatory&quot; flag of all media format options is set to to the given value.
+   * @param value Resolving of all media formats is mandatory.
+   * @return this
+   */
+  public @NotNull MediaArgs mediaFormatsMandatory(boolean value) {
+<span class="nc bnc" id="L184" title="All 2 branches missed.">    if (this.mediaFormatOptions != null) {</span>
+<span class="nc" id="L185">      this.mediaFormatOptions = Arrays.stream(this.mediaFormatOptions)</span>
+<span class="nc" id="L186">          .map(option -&gt; option.withMandatory(value))</span>
+<span class="nc" id="L187">          .toArray(size -&gt; new MediaFormatOption[size]);</span>
+    }
+<span class="nc" id="L189">    return this;</span>
+  }
+
+  /**
+   * Returns list of media formats to resolve to. See {@link #getMediaFormatNames()} for details.
+   * @return Media format names
+   */
+  public String[] getMediaFormatNames() {
+<span class="fc bfc" id="L197" title="All 2 branches covered.">    if (this.mediaFormatOptions != null) {</span>
+<span class="fc" id="L198">      String[] result = Arrays.stream(this.mediaFormatOptions)</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">          .filter(option -&gt; option.getMediaFormatName() != null)</span>
+<span class="fc" id="L200">          .map(option -&gt; option.getMediaFormatName())</span>
+<span class="fc" id="L201">          .toArray(size -&gt; new String[size]);</span>
+<span class="fc bfc" id="L202" title="All 2 branches covered.">      if (result.length &gt; 0) {</span>
+<span class="fc" id="L203">        return result;</span>
+      }
+    }
+<span class="fc" id="L206">    return null;</span>
+  }
+
+  /**
+   * Sets list of media formats to resolve to.
+   * @param names Media format names.
+   * @return this
+   */
+  public @NotNull MediaArgs mediaFormatNames(@NotNull String @Nullable... names) {
+<span class="pc bpc" id="L215" title="2 of 4 branches missed.">    if (names == null || names.length == 0) {</span>
+<span class="nc" id="L216">      this.mediaFormatOptions = null;</span>
+    }
+    else {
+<span class="fc" id="L219">      this.mediaFormatOptions = Arrays.stream(names)</span>
+<span class="fc" id="L220">          .map(name -&gt; new MediaFormatOption(name, false))</span>
+<span class="fc" id="L221">          .toArray(size -&gt; new MediaFormatOption[size]);</span>
+    }
+<span class="fc" id="L223">    return this;</span>
+  }
+
+  /**
+   * Sets list of media formats to resolve to.
+   * Additionally {@link #isMediaFormatsMandatory()} is set to true.
+   * @param names Media format names.
+   * @return this
+   */
+  public @NotNull MediaArgs mandatoryMediaFormatNames(@NotNull String @Nullable... names) {
+<span class="pc bpc" id="L233" title="2 of 4 branches missed.">    if (names == null || names.length == 0) {</span>
+<span class="nc" id="L234">      this.mediaFormatOptions = null;</span>
+    }
+    else {
+<span class="fc" id="L237">      this.mediaFormatOptions = Arrays.stream(names)</span>
+<span class="fc" id="L238">          .map(name -&gt; new MediaFormatOption(name, true))</span>
+<span class="fc" id="L239">          .toArray(size -&gt; new MediaFormatOption[size]);</span>
+    }
+<span class="fc" id="L241">    return this;</span>
+  }
+
+  /**
+   * Sets a single media format to resolve to.
+   * @param name Media format name
+   * @return this
+   */
+  public @NotNull MediaArgs mediaFormatName(String name) {
+<span class="fc bfc" id="L250" title="All 2 branches covered.">    if (name == null) {</span>
+<span class="fc" id="L251">      this.mediaFormatOptions = null;</span>
+    }
+    else {
+<span class="fc" id="L254">      this.mediaFormatOptions = new MediaFormatOption[] {</span>
+          new MediaFormatOption(name, false)
+      };
+    }
+<span class="fc" id="L258">    return this;</span>
+  }
+
+  /**
+   * Gets list of media formats to resolve to.
+   * @return Media formats with mandatory flag
+   */
+  public MediaFormatOption[] getMediaFormatOptions() {
+<span class="fc" id="L266">    return this.mediaFormatOptions;</span>
+  }
+
+  /**
+   * Sets list of media formats to resolve to.
+   * @param values Media formats with mandatory flag
+   * @return this
+   */
+  public @NotNull MediaArgs mediaFormatOptions(@NotNull MediaFormatOption @Nullable... values) {
+<span class="pc bpc" id="L275" title="1 of 4 branches missed.">    if (values == null || values.length == 0) {</span>
+<span class="fc" id="L276">      this.mediaFormatOptions = null;</span>
+    }
+    else {
+<span class="fc" id="L279">      this.mediaFormatOptions = values;</span>
+    }
+<span class="fc" id="L281">    return this;</span>
+  }
+
+  /**
+   * @return Enables &quot;auto-cropping&quot; mode. If no matching rendition is found
+   *         it is tried to generate one by automatically cropping another one.
+   */
+  public boolean isAutoCrop() {
+<span class="fc" id="L289">    return this.autoCrop;</span>
+  }
+
+  /**
+   * @param value Enables &quot;auto-cropping&quot; mode. If no matching rendition is found
+   *          it is tried to generate one by automatically cropping another one.
+   * @return this
+   */
+  public @NotNull MediaArgs autoCrop(boolean value) {
+<span class="fc" id="L298">    this.autoCrop = value;</span>
+<span class="fc" id="L299">    return this;</span>
+  }
+
+  /**
+   * @return File extensions
+   */
+  public String[] getFileExtensions() {
+<span class="fc" id="L306">    return this.fileExtensions;</span>
+  }
+
+  /**
+   * @param values File extensions
+   * @return this
+   */
+  public @NotNull MediaArgs fileExtensions(@NotNull String @Nullable... values) {
+<span class="pc bpc" id="L314" title="2 of 4 branches missed.">    if (values == null || values.length == 0) {</span>
+<span class="nc" id="L315">      this.fileExtensions = null;</span>
+    }
+    else {
+<span class="fc" id="L318">      this.fileExtensions = values;</span>
+    }
+<span class="fc" id="L320">    return this;</span>
+  }
+
+  /**
+   * @param value File extension
+   * @return this
+   */
+  public @NotNull MediaArgs fileExtension(String value) {
+<span class="fc bfc" id="L328" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L329">      this.fileExtensions = null;</span>
+    }
+    else {
+<span class="fc" id="L332">      this.fileExtensions = new String[] {</span>
+          value
+      };
+    }
+<span class="fc" id="L336">    return this;</span>
+  }
+
+  /**
+   * @return URL mode
+   */
+  public UrlMode getUrlMode() {
+<span class="fc" id="L343">    return this.urlMode;</span>
+  }
+
+  /**
+   * @param value URS mode
+   * @return this
+   */
+  public @NotNull MediaArgs urlMode(UrlMode value) {
+<span class="fc" id="L351">    this.urlMode = value;</span>
+<span class="fc" id="L352">    return this;</span>
+  }
+
+  /**
+   * Use fixed width instead of width from media format or original image
+   * @return Fixed width
+   */
+  public long getFixedWidth() {
+<span class="fc" id="L360">    return this.fixedWidth;</span>
+  }
+
+  /**
+   * Use fixed width instead of width from media format or original image
+   * @param value Fixed width
+   * @return this
+   */
+  public @NotNull MediaArgs fixedWidth(long value) {
+<span class="fc" id="L369">    this.fixedWidth = value;</span>
+<span class="fc" id="L370">    return this;</span>
+  }
+
+  /**
+   * Use fixed height instead of width from media format or original image
+   * @return Fixed height
+   */
+  public long getFixedHeight() {
+<span class="fc" id="L378">    return this.fixedHeight;</span>
+  }
+
+  /**
+   * Use fixed height instead of width from media format or original image
+   * @param value Fixed height
+   * @return this
+   */
+  public @NotNull MediaArgs fixedHeight(long value) {
+<span class="fc" id="L387">    this.fixedHeight = value;</span>
+<span class="fc" id="L388">    return this;</span>
+  }
+
+  /**
+   * Use fixed dimensions instead of width from media format or original image
+   * @param widthValue Fixed width
+   * @param heightValue Fixed height
+   * @return this
+   */
+  public @NotNull MediaArgs fixedDimension(long widthValue, long heightValue) {
+<span class="fc" id="L398">    this.fixedWidth = widthValue;</span>
+<span class="fc" id="L399">    this.fixedHeight = heightValue;</span>
+<span class="fc" id="L400">    return this;</span>
+  }
+
+  /**
+   * @return Accept only media formats that have the download flag set.
+   */
+  public boolean isDownload() {
+<span class="fc" id="L407">    return this.download;</span>
+  }
+
+  /**
+   * @param value Accept only media formats that have the download flag set.
+   * @return this
+   */
+  public @NotNull MediaArgs download(boolean value) {
+<span class="fc" id="L415">    this.download = value;</span>
+<span class="fc" id="L416">    return this;</span>
+  }
+
+  /**
+   * @return Whether to set a &quot;Content-Disposition&quot; header to &quot;attachment&quot; for forcing a &quot;Save as&quot; dialog on the client
+   */
+  public boolean isContentDispositionAttachment() {
+<span class="fc" id="L423">    return this.contentDispositionAttachment;</span>
+  }
+
+  /**
+   * @param value Whether to set a &quot;Content-Disposition&quot; header to &quot;attachment&quot; for forcing a &quot;Save as&quot; dialog on the
+   *          client
+   * @return this
+   */
+  public @NotNull MediaArgs contentDispositionAttachment(boolean value) {
+<span class="fc" id="L432">    this.contentDispositionAttachment = value;</span>
+<span class="fc" id="L433">    return this;</span>
+  }
+
+  /**
+   * @return The custom alternative text that is to be used instead of the one defined in the the media lib item
+   */
+  public String getAltText() {
+<span class="fc" id="L440">    return this.altText;</span>
+  }
+
+  /**
+   * Allows to specify a custom alternative text that is to be used instead of the one defined in the the media lib item
+   * @param value Custom alternative text. If null or empty, the default alt text from media library is used.
+   * @return this
+   */
+  public @NotNull MediaArgs altText(String value) {
+<span class="fc" id="L449">    this.altText = value;</span>
+<span class="fc" id="L450">    return this;</span>
+  }
+
+  /**
+   * @return If set to true, media handler never returns a dummy image. Otherwise this can happen in edit mode.
+   */
+  public boolean isDummyImage() {
+<span class="fc" id="L457">    return this.dummyImage;</span>
+  }
+
+  /**
+   * @param value If set to false, media handler never returns a dummy image. Otherwise this can happen in edit mode.
+   * @return this
+   */
+  public @NotNull MediaArgs dummyImage(boolean value) {
+<span class="fc" id="L465">    this.dummyImage = value;</span>
+<span class="fc" id="L466">    return this;</span>
+  }
+
+  /**
+   * @return Url of custom dummy image. If null default dummy image is used.
+   */
+  public String getDummyImageUrl() {
+<span class="fc" id="L473">    return this.dummyImageUrl;</span>
+  }
+
+  /**
+   * @param value Url of custom dummy image. If null default dummy image is used.
+   * @return this
+   */
+  public @NotNull MediaArgs dummyImageUrl(String value) {
+<span class="fc" id="L481">    this.dummyImageUrl = value;</span>
+<span class="fc" id="L482">    return this;</span>
+  }
+
+  /**
+   * @return If set to true, thumbnail generated by the DAM asset workflows (with cq5dam.thumbnail prefix) are taken
+   *         into account as well when trying to resolve the media request.
+   */
+  public boolean isIncludeAssetThumbnails() {
+<span class="fc" id="L490">    return this.includeAssetThumbnails;</span>
+  }
+
+  /**
+   * @param value If set to true, thumbnail generated by the DAM asset workflows (with cq5dam.thumbnail prefix) are
+   *          taken into account as well when trying to resolve the media request.
+   * @return this
+   */
+  public @NotNull MediaArgs includeAssetThumbnails(boolean value) {
+<span class="fc" id="L499">    this.includeAssetThumbnails = value;</span>
+<span class="fc" id="L500">    return this;</span>
+  }
+
+  /**
+   * @return If set to true, web renditions generated by the DAM asset workflows (with cq5dam.web prefix) are taken
+   *         into account as well when trying to resolve the media request.
+   *         If null, the default setting applies from the media handler configuration.
+   */
+  public Boolean isIncludeAssetWebRenditions() {
+<span class="fc" id="L509">    return this.includeAssetWebRenditions;</span>
+  }
+
+  /**
+   * @param value If set to true, web renditions generated by the DAM asset workflows (with cq5dam.web prefix) are
+   *          taken into account as well when trying to resolve the media request.
+   * @return this
+   */
+  public @NotNull MediaArgs includeAssetWebRenditions(boolean value) {
+<span class="fc" id="L518">    this.includeAssetWebRenditions = value;</span>
+<span class="fc" id="L519">    return this;</span>
+  }
+
+  /**
+   * @return Image sizes for responsive image handling
+   */
+  public ImageSizes getImageSizes() {
+<span class="fc" id="L526">    return this.imageSizes;</span>
+  }
+
+  /**
+   * @param value Image sizes for responsive image handling
+   * @return this
+   */
+  public @NotNull MediaArgs imageSizes(ImageSizes value) {
+<span class="fc" id="L534">    this.imageSizes = value;</span>
+<span class="fc" id="L535">    return this;</span>
+  }
+
+  /**
+   * @return Picture sources for responsive image handling
+   */
+  public PictureSource[] getPictureSources() {
+<span class="fc" id="L542">    return this.pictureSourceSets;</span>
+  }
+
+  /**
+   * @param value Picture sources for responsive image handling
+   * @return this
+   */
+  public @NotNull MediaArgs pictureSources(@NotNull PictureSource @Nullable... value) {
+<span class="fc" id="L550">    this.pictureSourceSets = value;</span>
+<span class="fc" id="L551">    return this;</span>
+  }
+
+  /**
+   * @return If set to true, dynamic media support is disabled even when enabled on the instance.
+   */
+  public boolean isDynamicMediaDisabled() {
+<span class="fc" id="L558">    return this.dynamicMediaDisabled;</span>
+  }
+
+  /**
+   * @param value If set to true, dynamic media support is disabled even when enabled on the instance.
+   * @return this
+   */
+  public @NotNull MediaArgs dynamicMediaDisabled(boolean value) {
+<span class="fc" id="L566">    this.dynamicMediaDisabled = value;</span>
+<span class="fc" id="L567">    return this;</span>
+  }
+
+  /**
+   * Drag&amp;amp;Drop support for media builder.
+   * @return Drag&amp;amp;Drop support
+   */
+  public DragDropSupport getDragDropSupport() {
+<span class="fc" id="L575">    return this.dragDropSupport;</span>
+  }
+
+  /**
+   * Drag&amp;amp;Drop support for media builder.
+   * @param value Drag&amp;amp;Drop support
+   * @return this
+   */
+  public @NotNull MediaArgs dragDropSupport(DragDropSupport value) {
+<span class="pc bpc" id="L584" title="1 of 2 branches missed.">    if (value == null) {</span>
+<span class="nc" id="L585">      throw new IllegalArgumentException(&quot;No null value allowed for drag&amp;drop support.&quot;);</span>
+    }
+<span class="fc" id="L587">    this.dragDropSupport = value;</span>
+<span class="fc" id="L588">    return this;</span>
+  }
+
+  /**
+   * @return Whether to set customized list of IPE cropping ratios.
+   */
+  public IPERatioCustomize getIPERatioCustomize() {
+<span class="fc" id="L595">    return this.ipeRatioCustomize;</span>
+  }
+
+  /**
+   * @param value Whether to set customized list of IPE cropping ratios.
+   * @return this
+   */
+  public @NotNull MediaArgs ipeRatioCustomize(IPERatioCustomize value) {
+<span class="fc" id="L603">    this.ipeRatioCustomize = value;</span>
+<span class="fc" id="L604">    return this;</span>
+  }
+
+  /**
+   * Custom properties that my be used by application-specific markup builders or processors.
+   * @param map Property map. Is merged with properties already set.
+   * @return this
+   */
+  public @NotNull MediaArgs properties(Map&lt;String, Object&gt; map) {
+<span class="pc bpc" id="L613" title="1 of 2 branches missed.">    if (map == null) {</span>
+<span class="nc" id="L614">      throw new IllegalArgumentException(&quot;Map argument must not be null.&quot;);</span>
+    }
+<span class="fc" id="L616">    getProperties().putAll(map);</span>
+<span class="fc" id="L617">    return this;</span>
+  }
+
+  /**
+   * Custom properties that my be used by application-specific markup builders or processors.
+   * @param key Property key
+   * @param value Property value
+   * @return this
+   */
+  public @NotNull MediaArgs property(String key, Object value) {
+<span class="pc bpc" id="L627" title="1 of 2 branches missed.">    if (key == null) {</span>
+<span class="nc" id="L628">      throw new IllegalArgumentException(&quot;Key argument must not be null.&quot;);</span>
+    }
+<span class="fc" id="L630">    getProperties().put(key, value);</span>
+<span class="fc" id="L631">    return this;</span>
+  }
+
+  /**
+   * Custom properties that my be used by application-specific markup builders or processors.
+   * @return Value map
+   */
+  @NotNull
+  public ValueMap getProperties() {
+<span class="fc bfc" id="L640" title="All 2 branches covered.">    if (this.properties == null) {</span>
+<span class="fc" id="L641">      this.properties = new ValueMapDecorator(new HashMap&lt;String, Object&gt;());</span>
+    }
+<span class="fc" id="L643">    return this.properties;</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="fc" id="L648">    return HashCodeBuilder.reflectionHashCode(this);</span>
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+<span class="fc" id="L653">    return EqualsBuilder.reflectionEquals(this, obj);</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L658">    return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE);</span>
+  }
+
+  /**
+   * Custom clone-method for {@link MediaArgs}
+   * @return the cloned {@link MediaArgs}
+   */
+  // CHECKSTYLE:OFF
+  @Override
+  public MediaArgs clone() { //NOPMD
+    // CHECKSTYLE:ON
+<span class="fc" id="L669">    MediaArgs clone = new MediaArgs();</span>
+
+<span class="fc" id="L671">    clone.mediaFormatOptions = ArrayUtils.clone(this.mediaFormatOptions);</span>
+<span class="fc" id="L672">    clone.autoCrop = this.autoCrop;</span>
+<span class="fc" id="L673">    clone.fileExtensions = ArrayUtils.clone(this.fileExtensions);</span>
+<span class="fc" id="L674">    clone.urlMode = this.urlMode;</span>
+<span class="fc" id="L675">    clone.fixedWidth = this.fixedWidth;</span>
+<span class="fc" id="L676">    clone.fixedHeight = this.fixedHeight;</span>
+<span class="fc" id="L677">    clone.download = this.download;</span>
+<span class="fc" id="L678">    clone.contentDispositionAttachment = this.contentDispositionAttachment;</span>
+<span class="fc" id="L679">    clone.altText = this.altText;</span>
+<span class="fc" id="L680">    clone.dummyImage = this.dummyImage;</span>
+<span class="fc" id="L681">    clone.dummyImageUrl = this.dummyImageUrl;</span>
+<span class="fc" id="L682">    clone.includeAssetThumbnails = this.includeAssetThumbnails;</span>
+<span class="fc" id="L683">    clone.includeAssetWebRenditions = this.includeAssetWebRenditions;</span>
+<span class="fc" id="L684">    clone.imageSizes = this.imageSizes;</span>
+<span class="fc" id="L685">    clone.pictureSourceSets = ArrayUtils.clone(this.pictureSourceSets);</span>
+<span class="fc" id="L686">    clone.dragDropSupport = this.dragDropSupport;</span>
+<span class="fc" id="L687">    clone.ipeRatioCustomize = this.ipeRatioCustomize;</span>
+<span class="fc" id="L688">    clone.dynamicMediaDisabled = this.dynamicMediaDisabled;</span>
+<span class="fc bfc" id="L689" title="All 2 branches covered.">    if (this.properties != null) {</span>
+<span class="fc" id="L690">      clone.properties = new ValueMapDecorator(new HashMap&lt;String, Object&gt;(this.properties));</span>
+    }
+
+<span class="fc" id="L693">    return clone;</span>
+  }
+
+  /**
+   * Media format to be applied on media processing.
+   */
+  @ProviderType
+  public static final class MediaFormatOption {
+
+    private final MediaFormat mediaFormat;
+    private final String mediaFormatName;
+    private final boolean mandatory;
+
+    /**
+     * @param mediaFormat Media format
+     * @param mandatory Resolution of this media format is mandatory
+     */
+<span class="fc" id="L710">    public MediaFormatOption(@Nullable MediaFormat mediaFormat, boolean mandatory) {</span>
+<span class="fc" id="L711">      this.mediaFormat = mediaFormat;</span>
+<span class="fc" id="L712">      this.mediaFormatName = null;</span>
+<span class="fc" id="L713">      this.mandatory = mandatory;</span>
+<span class="fc" id="L714">    }</span>
+
+    /**
+     * @param mediaFormatName Media format name
+     * @param mandatory Resolution of this media format is mandatory
+     */
+<span class="fc" id="L720">    public MediaFormatOption(@NotNull String mediaFormatName, boolean mandatory) {</span>
+<span class="fc" id="L721">      this.mediaFormat = null;</span>
+<span class="fc" id="L722">      this.mediaFormatName = mediaFormatName;</span>
+<span class="fc" id="L723">      this.mandatory = mandatory;</span>
+<span class="fc" id="L724">    }</span>
+
+    public @Nullable MediaFormat getMediaFormat() {
+<span class="fc" id="L727">      return this.mediaFormat;</span>
+    }
+
+    public @Nullable String getMediaFormatName() {
+<span class="fc" id="L731">      return this.mediaFormatName;</span>
+    }
+
+    public boolean isMandatory() {
+<span class="fc" id="L735">      return this.mandatory;</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L740">      return HashCodeBuilder.reflectionHashCode(this);</span>
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+<span class="fc" id="L745">      return EqualsBuilder.reflectionEquals(this, obj);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L750">      return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE);</span>
+    }
+
+    @NotNull
+    MediaFormatOption withMandatory(boolean newMandatory) {
+<span class="nc bnc" id="L755" title="All 2 branches missed.">      if (this.mediaFormat != null) {</span>
+<span class="nc" id="L756">        return new MediaFormatOption(this.mediaFormat, newMandatory);</span>
+      }
+      else {
+<span class="nc" id="L759">        return new MediaFormatOption(this.mediaFormatName, newMandatory);</span>
+      }
+    }
+
+  }
+
+  /**
+   * Image sizes for responsive image handling.
+   */
+  @ProviderType
+  public static final class ImageSizes {
+
+    private final @NotNull String sizes;
+    private final @NotNull WidthOption @NotNull [] widthOptions;
+
+    /**
+     * @param sizes A &lt;a href=&quot;http://w3c.github.io/html/semantics-embedded-content.html#valid-source-size-list&quot;&gt;valid
+     *          source size list&lt;/a&gt;
+     * @param widths Widths for the renditions in the &lt;code&gt;srcset&lt;/code&gt; attribute (all mandatory).
+     */
+<span class="fc" id="L779">    public ImageSizes(@NotNull String sizes, long @NotNull... widths) {</span>
+<span class="fc" id="L780">      this.sizes = sizes;</span>
+<span class="fc" id="L781">      this.widthOptions = Arrays.stream(widths)</span>
+<span class="fc" id="L782">          .mapToObj(width -&gt; new WidthOption(width, true))</span>
+<span class="fc" id="L783">          .toArray(size -&gt; new WidthOption[size]);</span>
+<span class="fc" id="L784">    }</span>
+
+    /**
+     * @param sizes A &lt;a href=&quot;http://w3c.github.io/html/semantics-embedded-content.html#valid-source-size-list&quot;&gt;valid
+     *          source size list&lt;/a&gt;
+     * @param widthOptions Widths for the renditions in the &lt;code&gt;srcset&lt;/code&gt; attribute.
+     */
+<span class="fc" id="L791">    public ImageSizes(@NotNull String sizes, @NotNull WidthOption @NotNull... widthOptions) {</span>
+<span class="fc" id="L792">      this.sizes = sizes;</span>
+<span class="fc" id="L793">      this.widthOptions = widthOptions;</span>
+<span class="fc" id="L794">    }</span>
+
+    /**
+     * @return A &lt;a href=&quot;http://w3c.github.io/html/semantics-embedded-content.html#valid-source-size-list&quot;&gt;valid
+     *         source size list&lt;/a&gt;
+     */
+    public @NotNull String getSizes() {
+<span class="fc" id="L801">      return this.sizes;</span>
+    }
+
+    /**
+     * @return Widths for the renditions in the &lt;code&gt;srcset&lt;/code&gt; attribute.
+     * @deprecated Use {@link #getWidthOptions()}
+     */
+    @Deprecated
+    public long @Nullable [] getWidths() {
+<span class="nc" id="L810">      return Arrays.stream(this.widthOptions)</span>
+<span class="nc" id="L811">          .mapToLong(WidthOption::getWidth)</span>
+<span class="nc" id="L812">          .toArray();</span>
+    }
+
+    /**
+     * @return Widths for the renditions in the &lt;code&gt;srcset&lt;/code&gt; attribute.
+     */
+    public @NotNull WidthOption @Nullable [] getWidthOptions() {
+<span class="fc" id="L819">      return this.widthOptions;</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L824">      return HashCodeBuilder.reflectionHashCode(this);</span>
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+<span class="fc" id="L829">      return EqualsBuilder.reflectionEquals(this, obj);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L834">      return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE);</span>
+    }
+
+  }
+
+  /**
+   * Picture source for responsive image handling.
+   */
+  @ProviderType
+  public static final class PictureSource {
+
+    private MediaFormat mediaFormat;
+    private String mediaFormatName;
+    private String media;
+    private String sizes;
+    private WidthOption[] widthOptions;
+
+    /**
+     * @param mediaFormat Media format
+     */
+<span class="fc" id="L854">    public PictureSource(@NotNull MediaFormat mediaFormat) {</span>
+<span class="fc" id="L855">      this.mediaFormat = mediaFormat;</span>
+<span class="fc" id="L856">    }</span>
+
+    /**
+     * @param mediaFormatName Media format name
+     */
+<span class="fc" id="L861">    public PictureSource(@Nullable String mediaFormatName) {</span>
+<span class="fc" id="L862">      this.mediaFormatName = mediaFormatName;</span>
+<span class="fc" id="L863">    }</span>
+
+    /**
+     * @param mediaFormat Media format
+     * @param media A &lt;a href=&quot;http://w3c.github.io/html/infrastructure.html#valid-media-query-list&quot;&gt;valid media query
+     *          list&lt;/a&gt;
+     * @param widths Widths for the renditions in the &lt;code&gt;srcset&lt;/code&gt; attribute (all mandatory).
+     * @deprecated Use constructor with {@link MediaFormat} and {@link #media} and {@link #widths(long...)}.
+     */
+    @Deprecated
+    public PictureSource(@NotNull MediaFormat mediaFormat, @Nullable String media,
+<span class="nc" id="L874">        long @NotNull... widths) {</span>
+<span class="nc" id="L875">      this.mediaFormat = mediaFormat;</span>
+<span class="nc" id="L876">      this.media = media;</span>
+<span class="nc" id="L877">      this.widthOptions = toWidthOptions(widths);</span>
+<span class="nc" id="L878">    }</span>
+
+    /**
+     * @param mediaFormat Media format
+     * @param media A &lt;a href=&quot;http://w3c.github.io/html/infrastructure.html#valid-media-query-list&quot;&gt;valid media query
+     *          list&lt;/a&gt;
+     * @param widthOptions Widths for the renditions in the &lt;code&gt;srcset&lt;/code&gt; attribute.
+     * @deprecated Use constructor with {@link MediaFormat} and {@link #media} and {@link #widths(long...)}.
+     */
+    @Deprecated
+    public PictureSource(@Nullable MediaFormat mediaFormat, @Nullable String media,
+<span class="nc" id="L889">        @NotNull WidthOption @NotNull... widthOptions) {</span>
+<span class="nc" id="L890">      this.mediaFormat = mediaFormat;</span>
+<span class="nc" id="L891">      this.media = media;</span>
+<span class="nc" id="L892">      this.widthOptions = widthOptions;</span>
+<span class="nc" id="L893">    }</span>
+
+    private static @NotNull WidthOption @NotNull [] toWidthOptions(long @NotNull... widths) {
+<span class="fc" id="L896">      return Arrays.stream(widths)</span>
+<span class="fc" id="L897">          .mapToObj(width -&gt; new WidthOption(width, true))</span>
+<span class="fc" id="L898">          .toArray(size -&gt; new WidthOption[size]);</span>
+    }
+
+    /**
+     * @return Media format
+     */
+    public @Nullable MediaFormat getMediaFormat() {
+<span class="fc" id="L905">      return this.mediaFormat;</span>
+    }
+
+    /**
+     * @return Media format
+     */
+    public @Nullable String getMediaFormatName() {
+<span class="fc" id="L912">      return this.mediaFormatName;</span>
+    }
+
+    /**
+     * @param value Widths for the renditions in the &lt;code&gt;srcset&lt;/code&gt; attribute.
+     * @return this
+     */
+    public PictureSource widthOptions(@NotNull WidthOption @NotNull... value) {
+<span class="fc" id="L920">      this.widthOptions = value;</span>
+<span class="fc" id="L921">      return this;</span>
+    }
+
+    /**
+     * @return Widths for the renditions in the &lt;code&gt;srcset&lt;/code&gt; attribute.
+     */
+    public @NotNull WidthOption @Nullable [] getWidthOptions() {
+<span class="fc" id="L928">      return this.widthOptions;</span>
+    }
+
+    /**
+     * @param value Widths for the renditions in the &lt;code&gt;srcset&lt;/code&gt; attribute.
+     * @return this
+     */
+    public PictureSource widths(long @NotNull... value) {
+<span class="fc" id="L936">      this.widthOptions = toWidthOptions(value);</span>
+<span class="fc" id="L937">      return this;</span>
+    }
+
+    /**
+     * @return Widths for the renditions in the &lt;code&gt;srcset&lt;/code&gt; attribute.
+     * @deprecated Use {@link #getWidthOptions()}
+     */
+    @Deprecated
+    public long @Nullable [] getWidths() {
+<span class="nc" id="L946">      return Arrays.stream(this.widthOptions)</span>
+<span class="nc" id="L947">          .mapToLong(WidthOption::getWidth)</span>
+<span class="nc" id="L948">          .toArray();</span>
+    }
+
+    /**
+     * @param value A &lt;a href=&quot;http://w3c.github.io/html/semantics-embedded-content.html#valid-source-size-list&quot;&gt;valid
+     *          source size list&lt;/a&gt;.
+     * @return this
+     */
+    public PictureSource sizes(@Nullable String value) {
+<span class="fc" id="L957">      this.sizes = value;</span>
+<span class="fc" id="L958">      return this;</span>
+    }
+
+    /**
+     * @return A &lt;a href=&quot;http://w3c.github.io/html/semantics-embedded-content.html#valid-source-size-list&quot;&gt;valid source
+     *         size list&lt;/a&gt;.
+     */
+    public @Nullable String getSizes() {
+<span class="fc" id="L966">      return this.sizes;</span>
+    }
+
+    /**
+     * @param value A &lt;a href=&quot;http://w3c.github.io/html/infrastructure.html#valid-media-query-list&quot;&gt;valid media query
+     *          list&lt;/a&gt;.
+     * @return this
+     */
+    public PictureSource media(@Nullable String value) {
+<span class="fc" id="L975">      this.media = value;</span>
+<span class="fc" id="L976">      return this;</span>
+    }
+
+    /**
+     * @return A &lt;a href=&quot;http://w3c.github.io/html/infrastructure.html#valid-media-query-list&quot;&gt;valid media query
+     *         list&lt;/a&gt;.
+     */
+    public @Nullable String getMedia() {
+<span class="fc" id="L984">      return this.media;</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L989">      return HashCodeBuilder.reflectionHashCode(this);</span>
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+<span class="fc" id="L994">      return EqualsBuilder.reflectionEquals(this, obj);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L999">      return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE);</span>
+    }
+
+  }
+
+  /**
+   * Width value with mandatory flag.
+   */
+  @ProviderType
+  public static final class WidthOption {
+
+    private final long width;
+    private final boolean mandatory;
+
+    /**
+     * @param width Width value
+     * @param mandatory Is it mandatory to resolve a rendition with this width
+     */
+<span class="fc" id="L1017">    public WidthOption(long width, boolean mandatory) {</span>
+<span class="fc" id="L1018">      this.width = width;</span>
+<span class="fc" id="L1019">      this.mandatory = mandatory;</span>
+<span class="fc" id="L1020">    }</span>
+
+    /**
+     * @return Width value
+     */
+    public long getWidth() {
+<span class="fc" id="L1026">      return this.width;</span>
+    }
+
+    /**
+     * @return Is it mandatory to resolve a rendition with this width
+     */
+    public boolean isMandatory() {
+<span class="fc" id="L1033">      return this.mandatory;</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L1038">      return HashCodeBuilder.reflectionHashCode(this);</span>
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+<span class="fc" id="L1043">      return EqualsBuilder.reflectionEquals(this, obj);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L1048">      return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE);</span>
+    }
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

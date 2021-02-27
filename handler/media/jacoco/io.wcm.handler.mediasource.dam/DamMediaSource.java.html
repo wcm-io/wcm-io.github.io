@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DamMediaSource.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam</a> &gt; <span class="el_source">DamMediaSource.java</span></div><h1>DamMediaSource.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam;
+
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.util.Text;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.adapter.Adaptable;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
+import org.apache.sling.models.annotations.injectorspecific.OSGiService;
+import org.apache.sling.models.annotations.injectorspecific.Self;
+import org.apache.sling.models.annotations.injectorspecific.SlingObject;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.wcm.api.WCMMode;
+import com.day.cq.wcm.api.components.Component;
+import com.day.cq.wcm.api.components.ComponentContext;
+import com.day.cq.wcm.api.components.DropTarget;
+import com.day.cq.wcm.api.components.InplaceEditingConfig;
+import com.day.cq.wcm.commons.WCMUtils;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.wcm.handler.commons.dom.HtmlElement;
+import io.wcm.handler.commons.editcontext.DropTargetImpl;
+import io.wcm.handler.media.Asset;
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.MediaFileType;
+import io.wcm.handler.media.MediaInvalidReason;
+import io.wcm.handler.media.MediaRequest;
+import io.wcm.handler.media.MediaRequest.MediaPropertyNames;
+import io.wcm.handler.media.format.MediaFormatHandler;
+import io.wcm.handler.media.impl.ipeconfig.CroppingRatios;
+import io.wcm.handler.media.impl.ipeconfig.IPEConfigResourceProvider;
+import io.wcm.handler.media.markup.MediaMarkupBuilderUtil;
+import io.wcm.handler.media.spi.MediaHandlerConfig;
+import io.wcm.handler.media.spi.MediaSource;
+import io.wcm.handler.mediasource.dam.impl.DamAsset;
+import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaSupportService;
+import io.wcm.sling.models.annotations.AemObject;
+
+/**
+ * Default implementation for media requests to media items stored in AEM Assets (DAM).
+ */
+@Model(adaptables = {
+    SlingHttpServletRequest.class, Resource.class
+})
+@ProviderType
+<span class="fc" id="L81">public final class DamMediaSource extends MediaSource {</span>
+
+  @Self
+  private Adaptable adaptable;
+  @SlingObject
+  private ResourceResolver resourceResolver;
+  @SlingObject
+  private Resource resource;
+  @AemObject(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private WCMMode wcmMode;
+  @AemObject(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private ComponentContext componentContext;
+  @Self
+  private MediaHandlerConfig mediaHandlerConfig;
+  @Self
+  private MediaFormatHandler mediaFormatHandler;
+  @OSGiService
+  private DynamicMediaSupportService dynamicMediaSupportService;
+
+<span class="fc" id="L100">  private static final Logger log = LoggerFactory.getLogger(DamMediaSource.class);</span>
+
+  /**
+   * Media source ID
+   */
+  public static final @NotNull String ID = &quot;dam&quot;;
+
+  @Override
+  public @NotNull String getId() {
+<span class="fc" id="L109">    return ID;</span>
+  }
+
+  @Override
+  public boolean accepts(@Nullable String mediaRef) {
+<span class="fc" id="L114">    return StringUtils.startsWith(mediaRef, &quot;/content/dam/&quot;);</span>
+  }
+
+  @Override
+  public @NotNull String getPrimaryMediaRefProperty() {
+<span class="fc" id="L119">    return mediaHandlerConfig.getMediaRefProperty();</span>
+  }
+
+  @Override
+  @SuppressWarnings(&quot;null&quot;)
+  @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
+  public @NotNull Media resolveMedia(@NotNull Media media) {
+<span class="fc" id="L126">    String mediaRef = getMediaRef(media.getMediaRequest(), mediaHandlerConfig);</span>
+<span class="fc" id="L127">    MediaArgs mediaArgs = media.getMediaRequest().getMediaArgs();</span>
+
+<span class="fc" id="L129">    boolean renditionsResolved = false;</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">    if (StringUtils.isNotBlank(mediaRef)) {</span>
+
+      // Check if there is a custom altText specified in the component's properties
+<span class="fc bfc" id="L133" title="All 2 branches covered.">      if (StringUtils.isEmpty(mediaArgs.getAltText())</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">          &amp;&amp; media.getMediaRequest().getResource() != null) {</span>
+<span class="fc" id="L135">        ValueMap props = media.getMediaRequest().getResource().getValueMap();</span>
+<span class="fc" id="L136">        mediaArgs.altText(props.get(mediaHandlerConfig.getMediaAltTextProperty(), String.class));</span>
+      }
+
+      // Check for transformations
+<span class="fc" id="L140">      media.setCropDimension(getMediaCropDimension(media.getMediaRequest(), mediaHandlerConfig));</span>
+<span class="fc" id="L141">      media.setRotation(getMediaRotation(media.getMediaRequest(), mediaHandlerConfig));</span>
+<span class="fc" id="L142">      media.setMap(getMediaMap(media.getMediaRequest(), mediaHandlerConfig));</span>
+
+      // get DAM Asset to check for available renditions
+<span class="fc" id="L145">      com.day.cq.dam.api.Asset damAsset = null;</span>
+<span class="fc" id="L146">      Resource assetResource = resourceResolver.getResource(mediaRef);</span>
+<span class="fc bfc" id="L147" title="All 2 branches covered.">      if (assetResource != null) {</span>
+<span class="fc" id="L148">        damAsset = assetResource.adaptTo(com.day.cq.dam.api.Asset.class);</span>
+      }
+<span class="fc bfc" id="L150" title="All 2 branches covered.">      if (damAsset != null) {</span>
+<span class="fc" id="L151">        Asset asset = new DamAsset(media, damAsset, dynamicMediaSupportService, adaptable);</span>
+<span class="fc" id="L152">        media.setAsset(asset);</span>
+
+        // resolve rendition(s)
+<span class="fc" id="L155">        renditionsResolved = resolveRenditions(media, asset, mediaArgs);</span>
+      }
+
+    }
+
+    // set media invalid reason
+<span class="fc bfc" id="L161" title="All 2 branches covered.">    if (!renditionsResolved) {</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">      if (media.getAsset() != null) {</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">        if (media.getRenditions().isEmpty()) {</span>
+<span class="fc" id="L164">          media.setMediaInvalidReason(MediaInvalidReason.NO_MATCHING_RENDITION);</span>
+        }
+        else {
+<span class="fc" id="L167">          media.setMediaInvalidReason(MediaInvalidReason.NOT_ENOUGH_MATCHING_RENDITIONS);</span>
+        }
+      }
+<span class="fc bfc" id="L170" title="All 2 branches covered.">      else if (StringUtils.isNotEmpty(mediaRef)) {</span>
+<span class="fc" id="L171">        media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_INVALID);</span>
+      }
+      else {
+<span class="fc" id="L174">        media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_MISSING);</span>
+      }
+    }
+
+<span class="fc" id="L178">    return media;</span>
+  }
+
+  @Override
+  @SuppressWarnings(&quot;null&quot;)
+  public void enableMediaDrop(@NotNull HtmlElement element, @NotNull MediaRequest mediaRequest) {
+<span class="pc bpc" id="L184" title="2 of 4 branches missed.">    if (wcmMode == WCMMode.DISABLED || wcmMode == null) {</span>
+<span class="nc" id="L185">      return;</span>
+    }
+
+<span class="pc bpc" id="L188" title="1 of 4 branches missed.">    if (componentContext != null &amp;&amp; componentContext.getEditContext() != null</span>
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">        &amp;&amp; MediaMarkupBuilderUtil.canApplyDragDropSupport(mediaRequest, componentContext)) {</span>
+
+<span class="fc" id="L191">      String refProperty = prependDotSlash(getMediaRefProperty(mediaRequest, mediaHandlerConfig));</span>
+<span class="fc" id="L192">      String cropProperty = prependDotSlash(getMediaCropProperty(mediaRequest, mediaHandlerConfig));</span>
+<span class="fc" id="L193">      String rotationProperty = prependDotSlash(getMediaRotationProperty(mediaRequest, mediaHandlerConfig));</span>
+<span class="fc" id="L194">      String mapProperty = prependDotSlash(getMediaMapProperty(mediaRequest, mediaHandlerConfig));</span>
+
+<span class="fc" id="L196">      String name = refProperty;</span>
+<span class="pc bpc" id="L197" title="1 of 2 branches missed.">      if (StringUtils.contains(name, &quot;/&quot;)) {</span>
+<span class="fc" id="L198">        name = Text.getName(name);</span>
+      }
+
+      // check of drop target for &quot;media&quot; group already exists - get it's id for the cq-dd- css class
+<span class="fc" id="L202">      Optional&lt;String&gt; dropTargetCssClass = getMediaDropTargetID();</span>
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">      if (!dropTargetCssClass.isPresent()) {</span>
+        // otherwise add a new drop target and get it's id
+<span class="fc" id="L205">        MediaPropertyNames mediaPropertyNames = new MediaPropertyNames()</span>
+<span class="fc" id="L206">            .refProperty(refProperty)</span>
+<span class="fc" id="L207">            .cropProperty(cropProperty)</span>
+<span class="fc" id="L208">            .rotationProperty(rotationProperty)</span>
+<span class="fc" id="L209">            .mapProperty(mapProperty);</span>
+<span class="fc" id="L210">        dropTargetCssClass = addMediaDroptarget(refProperty, mediaPropertyNames, name);</span>
+      }
+
+<span class="pc bpc" id="L213" title="1 of 2 branches missed.">      if (element != null) {</span>
+<span class="fc" id="L214">        element.addCssClass(dropTargetCssClass.get());</span>
+      }
+    }
+<span class="fc" id="L217">  }</span>
+
+  @Override
+  public void setCustomIPECropRatios(@NotNull HtmlElement&lt;?&gt; element, @NotNull MediaRequest mediaRequest) {
+<span class="pc bpc" id="L221" title="2 of 4 branches missed.">    if (wcmMode == WCMMode.DISABLED || wcmMode == null) {</span>
+<span class="nc" id="L222">      return;</span>
+    }
+
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">    if (componentContext != null</span>
+<span class="pc bpc" id="L226" title="1 of 2 branches missed.">        &amp;&amp; MediaMarkupBuilderUtil.canSetCustomIPECropRatios(mediaRequest, componentContext)) {</span>
+      // overlay IPE config with cropping ratios for each media format with a valid ratio
+<span class="fc" id="L228">      CroppingRatios croppingRatios = new CroppingRatios(mediaFormatHandler);</span>
+<span class="fc" id="L229">      Set&lt;String&gt; mediaFormatNames = croppingRatios.getMediaFormatsForCropping(mediaRequest);</span>
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">      if (!mediaFormatNames.isEmpty()) {</span>
+        // build custom IPE config path containing both the resource context path and the
+        // configured media formats. The path is served by a custom resource provider, because
+        // there is no other interface to pass in a dynamic IPE configuration
+<span class="fc" id="L234">        String ipeConfigPath = IPEConfigResourceProvider.buildPath(componentContext.getResource().getPath(), mediaFormatNames);</span>
+        // clone IPE config and overwrite config path via reflection (no API available for this)
+<span class="fc" id="L236">        InplaceEditingConfig customIpeConfig = new InplaceEditingConfig(componentContext</span>
+<span class="fc" id="L237">            .getEditContext().getEditConfig().getInplaceEditingConfig());</span>
+        try {
+<span class="fc" id="L239">          Field configPathField = InplaceEditingConfig.class.getDeclaredField(&quot;configPath&quot;);</span>
+<span class="fc" id="L240">          configPathField.setAccessible(true);</span>
+<span class="fc" id="L241">          configPathField.set(customIpeConfig, ipeConfigPath);</span>
+        }
+<span class="nc" id="L243">        catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException ex) {</span>
+<span class="nc" id="L244">          log.warn(&quot;Unable to set custom IPE config via reflection for {}&quot;, componentContext.getResource().getPath(), ex);</span>
+<span class="fc" id="L245">        }</span>
+<span class="fc" id="L246">        componentContext.getEditContext().getEditConfig().setInplaceEditingConfig(customIpeConfig);</span>
+      }
+
+    }
+<span class="fc" id="L250">  }</span>
+
+  private String prependDotSlash(String property) {
+<span class="pc bpc" id="L253" title="1 of 2 branches missed.">    if (!StringUtils.startsWith(property, &quot;./&quot;)) {</span>
+<span class="fc" id="L254">      return &quot;./&quot; + property;</span>
+    }
+    else {
+<span class="nc" id="L257">      return property;</span>
+    }
+  }
+
+  private Optional&lt;String&gt; getMediaDropTargetID() {
+<span class="fc" id="L262">    return componentContext.getEditContext().getEditConfig().getDropTargets().values().stream()</span>
+<span class="pc" id="L263">        .filter(item -&gt; ArrayUtils.contains(item.getGroups(), &quot;media&quot;))</span>
+<span class="pc" id="L264">        .map(item -&gt; item.getId())</span>
+<span class="fc" id="L265">        .findFirst();</span>
+  }
+
+  private Optional&lt;String&gt; addMediaDroptarget(String refProperty, MediaPropertyNames mediaPropertyNames, String name) {
+<span class="fc" id="L269">    Component componentDefinition = WCMUtils.getComponent(resource);</span>
+
+    // set drop target - with path of current component as default resource type
+<span class="fc" id="L272">    Map&lt;String, String&gt; params = new HashMap&lt;String, String&gt;();</span>
+<span class="pc bpc" id="L273" title="1 of 2 branches missed.">    if (componentDefinition != null) {</span>
+<span class="nc" id="L274">      params.put(&quot;./&quot; + ResourceResolver.PROPERTY_RESOURCE_TYPE, componentDefinition.getPath());</span>
+
+      // clear cropping parameters if a new image is inserted via drag&amp;drop
+<span class="nc" id="L277">      params.put(mediaPropertyNames.getCropProperty(), &quot;&quot;);</span>
+<span class="nc" id="L278">      params.put(mediaPropertyNames.getRotationProperty(), &quot;&quot;);</span>
+<span class="nc" id="L279">      params.put(mediaPropertyNames.getMapProperty(), &quot;&quot;);</span>
+    }
+
+<span class="fc" id="L282">    DropTarget dropTarget = new DropTargetImpl(name, refProperty).setAccept(</span>
+<span class="fc" id="L283">        MediaFileType.getImageContentTypes().stream().toArray(size -&gt; new String[size]) // allow all image mime types</span>
+<span class="fc" id="L284">    ).setGroups(new String[] {</span>
+        &quot;media&quot; // allow drop from DAM contentfinder tab
+<span class="fc" id="L286">    }).setParameters(params);</span>
+
+<span class="fc" id="L288">    componentContext.getEditContext().getEditConfig().getDropTargets().put(dropTarget.getId(), dropTarget);</span>
+
+<span class="fc" id="L290">    return Optional.of(dropTarget.getId());</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L295">    return ID;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

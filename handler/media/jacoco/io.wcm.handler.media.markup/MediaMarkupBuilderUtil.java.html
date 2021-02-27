@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MediaMarkupBuilderUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.markup</a> &gt; <span class="el_source">MediaMarkupBuilderUtil.java</span></div><h1>MediaMarkupBuilderUtil.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.markup;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ValueMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+import com.day.cq.commons.DiffInfo;
+import com.day.cq.commons.DiffService;
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageManager;
+import com.day.cq.wcm.api.components.ComponentContext;
+import com.day.cq.wcm.api.components.EditConfig;
+import com.day.cq.wcm.api.components.InplaceEditingConfig;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.wcm.handler.commons.dom.HtmlElement;
+import io.wcm.handler.media.Dimension;
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.MediaNameConstants;
+import io.wcm.handler.media.MediaRequest;
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.spi.MediaHandlerConfig;
+import io.wcm.handler.media.spi.MediaMarkupBuilder;
+import io.wcm.sling.commons.request.RequestParam;
+
+/**
+ * Helper methods for {@link MediaMarkupBuilder} implementations.
+ */
+@ProviderType
+public final class MediaMarkupBuilderUtil {
+
+  private MediaMarkupBuilderUtil() {
+    // static methods only
+  }
+
+  /**
+   * Adds CSS classes that denote the changes to the media element when compared to a different version.
+   * If no diff has been requested by the WCM UI, there won't be any changes to the element.
+   * @param mediaElement Element to be decorated
+   * @param resource Resource pointing to JCR node
+   * @param refProperty Name of property for media library item reference. If null, default name is used.
+   * @param request Servlet request
+   * @deprecated Use
+   *             {@link #addDiffDecoration(HtmlElement, Resource, String, SlingHttpServletRequest, MediaHandlerConfig)}
+   */
+  @Deprecated
+  public static void addDiffDecoration(@NotNull HtmlElement&lt;?&gt; mediaElement, @NotNull Resource resource,
+      @NotNull String refProperty, @NotNull SlingHttpServletRequest request) {
+<span class="nc" id="L74">    addDiffDecoration(mediaElement, resource, refProperty, request, null);</span>
+<span class="nc" id="L75">  }</span>
+
+  /**
+   * Adds CSS classes that denote the changes to the media element when compared to a different version.
+   * If no diff has been requested by the WCM UI, there won't be any changes to the element.
+   * @param mediaElement Element to be decorated
+   * @param resource Resource pointing to JCR node
+   * @param refProperty Name of property for media library item reference. If null, default name is used.
+   * @param request Servlet request
+   * @param mediaHandlerConfig Media handler config (can be null, but should not be null)
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
+  public static void addDiffDecoration(@NotNull HtmlElement&lt;?&gt; mediaElement, @NotNull Resource resource,
+      @NotNull String refProperty, @NotNull SlingHttpServletRequest request, @Nullable MediaHandlerConfig mediaHandlerConfig) {
+
+<span class="fc" id="L91">    PageManager pageManager = request.getResourceResolver().adaptTo(PageManager.class);</span>
+<span class="fc" id="L92">    Page currentPage = pageManager.getContainingPage(request.getResource());</span>
+<span class="fc" id="L93">    Page resourcePage = pageManager.getContainingPage(resource);</span>
+
+<span class="fc" id="L95">    String versionLabel = RequestParam.get(request, DiffService.REQUEST_PARAM_DIFF_TO);</span>
+    // Only try to diff when the resource is contained within the current page as the version number requested always
+    // refers to the version history of the current page. So chances a resource on another page doesn't have a matching
+    // version, and even if it has, it's comparing apples and oranges
+<span class="pc bpc" id="L99" title="1 of 4 branches missed.">    if (StringUtils.isNotEmpty(versionLabel)</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">        &amp;&amp; currentPage != null &amp;&amp; currentPage.equals(resourcePage)) {</span>
+<span class="fc" id="L101">      Resource versionedResource = DiffInfo.getVersionedResource(resource, versionLabel);</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">      if (versionedResource != null) {</span>
+<span class="nc" id="L103">        ValueMap currentProperties = resource.getValueMap();</span>
+<span class="nc" id="L104">        ValueMap oldProperties = versionedResource.getValueMap();</span>
+
+<span class="nc" id="L106">        String currentMediaRef = currentProperties.get(refProperty, String.class);</span>
+<span class="nc" id="L107">        String oldMediaRef = oldProperties.get(refProperty, String.class);</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        if (!StringUtils.equals(currentMediaRef, oldMediaRef)) {</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">          if (StringUtils.isEmpty(currentMediaRef)) {</span>
+<span class="nc" id="L110">            mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_REMOVED);</span>
+          }
+<span class="nc bnc" id="L112" title="All 2 branches missed.">          else if (StringUtils.isEmpty(oldMediaRef)) {</span>
+<span class="nc" id="L113">            mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_ADDED);</span>
+          }
+          else {
+<span class="nc" id="L116">            mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_UPDATED);</span>
+          }
+        }
+        else {
+          String cropProperty;
+<span class="nc bnc" id="L121" title="All 2 branches missed.">          if (mediaHandlerConfig != null) {</span>
+<span class="nc" id="L122">            cropProperty = mediaHandlerConfig.getMediaCropProperty();</span>
+          }
+          else {
+<span class="nc" id="L125">            cropProperty = MediaNameConstants.PN_MEDIA_CROP;</span>
+          }
+
+          // If the mediaRef itself hasn't changed, check the cropping coordinates
+<span class="nc" id="L129">          String currentMediaCrop = currentProperties.get(cropProperty, String.class);</span>
+<span class="nc" id="L130">          String oldMediaCrop = oldProperties.get(cropProperty, String.class);</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">          if (!StringUtils.equals(currentMediaCrop, oldMediaCrop)) {</span>
+<span class="nc" id="L132">            mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_UPDATED);</span>
+          }
+
+          // we also could try to determine here whether it resolves to another rendition
+          // or if the timestamp of the rendition has been updated (which would indicate the the binary payload has been
+          // changed).
+          // This however, is out of scope for this feature right now
+        }
+<span class="nc" id="L140">      }</span>
+      else {
+        // The resource didn't exist in the old version at all
+<span class="fc" id="L143">        mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_ADDED);</span>
+      }
+    }
+<span class="fc" id="L146">  }</span>
+
+  /**
+   * Get dimension from first media format defined in media args. Fall back to dummy min. dimension if none specified.
+   * @param media Media metadata
+   * @return Dimension
+   */
+  public static @NotNull Dimension getMediaformatDimension(@NotNull Media media) {
+    // Create dummy image element to be displayed in Edit mode as placeholder.
+<span class="fc" id="L155">    MediaArgs mediaArgs = media.getMediaRequest().getMediaArgs();</span>
+<span class="fc" id="L156">    MediaFormat[] mediaFormats = mediaArgs.getMediaFormats();</span>
+
+    // detect width/height - either from media args, or from first media format
+<span class="fc" id="L159">    long width = mediaArgs.getFixedWidth();</span>
+<span class="fc" id="L160">    long height = mediaArgs.getFixedHeight();</span>
+<span class="pc bpc" id="L161" title="2 of 8 branches missed.">    if ((width == 0 || height == 0) &amp;&amp; mediaFormats != null &amp;&amp; mediaFormats.length &gt; 0) {</span>
+<span class="fc" id="L162">      MediaFormat firstMediaFormat = mediaArgs.getMediaFormats()[0];</span>
+<span class="fc" id="L163">      Dimension dimension = firstMediaFormat.getMinDimension();</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">      if (dimension != null) {</span>
+<span class="fc" id="L165">        width = dimension.getWidth();</span>
+<span class="fc" id="L166">        height = dimension.getHeight();</span>
+      }
+    }
+
+    // fallback to min width/height
+<span class="fc bfc" id="L171" title="All 2 branches covered.">    if (width == 0) {</span>
+<span class="fc" id="L172">      width = MediaMarkupBuilder.DUMMY_MIN_DIMENSION;</span>
+    }
+<span class="fc bfc" id="L174" title="All 2 branches covered.">    if (height == 0) {</span>
+<span class="fc" id="L175">      height = MediaMarkupBuilder.DUMMY_MIN_DIMENSION;</span>
+    }
+
+<span class="fc" id="L178">    return new Dimension(width, height);</span>
+  }
+
+  /**
+   * Implements check whether to apply drag&amp;amp;drop support as described in {@link DragDropSupport}.
+   * @param mediaRequest Media request
+   * @param wcmComponentContext WCM component context
+   * @return true if drag&amp;amp;drop can be applied.
+   */
+  public static boolean canApplyDragDropSupport(@NotNull MediaRequest mediaRequest,
+      @Nullable ComponentContext wcmComponentContext) {
+<span class="pc bpc" id="L189" title="1 of 4 branches missed.">    switch (mediaRequest.getMediaArgs().getDragDropSupport()) {</span>
+      case ALWAYS:
+<span class="fc" id="L191">        return true;</span>
+      case NEVER:
+<span class="fc" id="L193">        return false;</span>
+      case AUTO:
+<span class="fc" id="L195">        String resourcePath = null;</span>
+<span class="fc" id="L196">        Resource mediaRequestResource = mediaRequest.getResource();</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">        if (mediaRequestResource != null) {</span>
+<span class="fc" id="L198">          resourcePath = mediaRequestResource.getPath();</span>
+        }
+<span class="fc" id="L200">        String componentResourcePath = null;</span>
+<span class="pc bpc" id="L201" title="1 of 4 branches missed.">        if (wcmComponentContext != null &amp;&amp; wcmComponentContext.getResource() != null) {</span>
+<span class="fc" id="L202">          componentResourcePath = wcmComponentContext.getResource().getPath();</span>
+        }
+<span class="pc bpc" id="L204" title="1 of 4 branches missed.">        return resourcePath != null &amp;&amp; StringUtils.equals(resourcePath, componentResourcePath);</span>
+      default:
+<span class="nc" id="L206">        throw new IllegalArgumentException(&quot;Unsupported drag&amp;drop support mode: &quot;</span>
+<span class="nc" id="L207">            + mediaRequest.getMediaArgs().getDragDropSupport());</span>
+    }
+
+  }
+
+  /**
+   * Implements check whether to set customized IPE cropping ratios as described in {@link IPERatioCustomize}.
+   * @param mediaRequest Media request
+   * @param wcmComponentContext WCM component context
+   * @return true if customized IP cropping ratios can be set
+   */
+  public static boolean canSetCustomIPECropRatios(@NotNull MediaRequest mediaRequest,
+      @Nullable ComponentContext wcmComponentContext) {
+
+<span class="fc" id="L221">    EditConfig editConfig = null;</span>
+<span class="fc" id="L222">    InplaceEditingConfig ipeConfig = null;</span>
+<span class="pc bpc" id="L223" title="2 of 4 branches missed.">    if (wcmComponentContext != null &amp;&amp; wcmComponentContext.getEditContext() != null</span>
+<span class="pc bpc" id="L224" title="1 of 2 branches missed.">        &amp;&amp; wcmComponentContext.getEditContext().getEditConfig() != null</span>
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">        &amp;&amp; wcmComponentContext.getResource() != null) {</span>
+<span class="fc" id="L226">      editConfig = wcmComponentContext.getEditContext().getEditConfig();</span>
+<span class="fc" id="L227">      ipeConfig = editConfig.getInplaceEditingConfig();</span>
+    }
+<span class="pc bpc" id="L229" title="2 of 4 branches missed.">    if (editConfig == null || ipeConfig == null</span>
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">        || !StringUtils.equals(ipeConfig.getEditorType(), &quot;image&quot;)) {</span>
+      // no image IPE activated - never customize crop ratios
+<span class="nc" id="L232">      return false;</span>
+    }
+
+<span class="pc bpc" id="L235" title="3 of 4 branches missed.">    switch (mediaRequest.getMediaArgs().getIPERatioCustomize()) {</span>
+      case ALWAYS:
+<span class="nc" id="L237">        return true;</span>
+      case NEVER:
+<span class="nc" id="L239">        return false;</span>
+      case AUTO:
+<span class="pc bpc" id="L241" title="1 of 2 branches missed.">        if (StringUtils.isNotEmpty(ipeConfig.getConfigPath())) {</span>
+<span class="fc" id="L242">          String ratiosPath = ipeConfig.getConfigPath() + &quot;/plugins/crop/aspectRatios&quot;;</span>
+          @SuppressWarnings(&quot;null&quot;)
+<span class="fc" id="L244">          ResourceResolver resolver = wcmComponentContext.getResource().getResourceResolver();</span>
+<span class="pc bpc" id="L245" title="1 of 2 branches missed.">          return resolver.getResource(ratiosPath) == null;</span>
+        }
+<span class="nc" id="L247">        return true;</span>
+      default:
+<span class="nc" id="L249">        throw new IllegalArgumentException(&quot;Unsupported IPE ratio customize mode: &quot;</span>
+<span class="nc" id="L250">            + mediaRequest.getMediaArgs().getIPERatioCustomize());</span>
+    }
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

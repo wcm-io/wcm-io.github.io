@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PathParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.impl.ipeconfig</a> &gt; <span class="el_source">PathParser.java</span></div><h1>PathParser.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.impl.ipeconfig;
+
+import java.util.Arrays;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+
+class PathParser {
+
+  public static final String NN_ASPECT_RATIOS = &quot;aspectRatios&quot;;
+  static final String NN_MEDIA_FORMAT = &quot;wcmio:mediaFormat&quot;;
+  static final String NN_CONFIG = &quot;wcmio:config&quot;;
+
+<span class="fc" id="L36">  private static final Pattern PATH_PATTERN = Pattern.compile(</span>
+      &quot;^&quot; + IPEConfigResourceProvider.IPECONFIG_OVERLAY_ROOTPATH + &quot;((/[^/]+)+)&quot;
+          + &quot;/&quot; + NN_MEDIA_FORMAT + &quot;((/[^/]+)+)&quot;
+          + &quot;/&quot; + NN_CONFIG + &quot;(/.*)?$&quot;);
+
+<span class="fc" id="L41">  private static final Pattern PLUGINS_CROP_PATH_PATTERN = Pattern.compile(</span>
+      &quot;^.*/plugins/crop(/&quot; + NN_ASPECT_RATIOS + &quot;(/([^/]+))?)?$&quot;);
+
+  private String componentContentPath;
+  private String relativeConfigPath;
+  private SortedSet&lt;String&gt; mediaFormatNames;
+
+  private boolean pluginsCropNode;
+  private boolean aspectRatiosNode;
+  private String aspectRatioItemName;
+
+<span class="fc" id="L52">  PathParser(String path) {</span>
+<span class="fc" id="L53">    Matcher matcher = PATH_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">    if (matcher.matches()) {</span>
+<span class="fc" id="L55">      this.componentContentPath = matcher.group(1);</span>
+<span class="fc" id="L56">      String[] names = StringUtils.split(matcher.group(3), &quot;/&quot;);</span>
+<span class="fc" id="L57">      this.mediaFormatNames = new TreeSet&lt;&gt;(Arrays.asList(names));</span>
+<span class="fc" id="L58">      this.relativeConfigPath = matcher.group(5);</span>
+
+      // check if related config path is around the &quot;aspectRatios&quot; node of crop plugin
+<span class="fc bfc" id="L61" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(this.relativeConfigPath)) {</span>
+<span class="fc" id="L62">        Matcher pluginsCropPathMatcher = PLUGINS_CROP_PATH_PATTERN.matcher(this.relativeConfigPath);</span>
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">        if (pluginsCropPathMatcher.matches()) {</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">          if (StringUtils.isEmpty(pluginsCropPathMatcher.group(1))) {</span>
+<span class="fc" id="L65">            pluginsCropNode = true;</span>
+          }
+<span class="fc bfc" id="L67" title="All 2 branches covered.">          else if (StringUtils.isEmpty(pluginsCropPathMatcher.group(2))) {</span>
+<span class="fc" id="L68">            aspectRatiosNode = true;</span>
+          }
+          else {
+<span class="fc" id="L71">            aspectRatioItemName = pluginsCropPathMatcher.group(3);</span>
+          }
+        }
+      }
+    }
+<span class="fc" id="L76">  }</span>
+
+  public String getComponentContentPath() {
+<span class="fc" id="L79">    return this.componentContentPath;</span>
+  }
+
+  public String getRelativeConfigPath() {
+<span class="fc" id="L83">    return this.relativeConfigPath;</span>
+  }
+
+  public SortedSet&lt;String&gt; getMediaFormatNames() {
+<span class="fc" id="L87">    return this.mediaFormatNames;</span>
+  }
+
+  public boolean isValid() {
+<span class="fc" id="L91">    return StringUtils.isNotEmpty(this.componentContentPath);</span>
+  }
+
+  public boolean isPluginsCropNode() {
+<span class="fc" id="L95">    return pluginsCropNode;</span>
+  }
+
+  public boolean isAspectRatiosNode() {
+<span class="fc" id="L99">    return aspectRatiosNode;</span>
+  }
+
+  public boolean isAspectRatioItem() {
+<span class="fc" id="L103">    return StringUtils.isNotEmpty(this.aspectRatioItemName);</span>
+  }
+
+  public String getAspectRatioItemName() {
+<span class="fc" id="L107">    return this.aspectRatioItemName;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

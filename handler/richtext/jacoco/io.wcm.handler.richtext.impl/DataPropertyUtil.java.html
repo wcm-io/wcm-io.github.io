@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DataPropertyUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RichText Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.richtext.impl</a> &gt; <span class="el_source">DataPropertyUtil.java</span></div><h1>DataPropertyUtil.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.richtext.impl;
+
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.CharUtils;
+import org.apache.commons.lang3.StringUtils;
+
+/**
+ * Converts case sensitive headless camel case property names to case insensitive HTML5 data property names
+ * and vice versa.
+ */
+public final class DataPropertyUtil {
+
+  private static final String HTML5_DATA_PREFIX = &quot;data-&quot;;
+<span class="fc" id="L34">  private static final Pattern HEADLESS_CAMEL_CASE_NAME_PATTERN = Pattern.compile(&quot;^[a-z][a-zA-Z0-9]*$&quot;);</span>
+<span class="fc" id="L35">  private static final Pattern HTML5_DATA_NAME_PATTERN = Pattern.compile(&quot;^data\\-[a-z][a-z0-9\\-]*$&quot;);</span>
+
+  private DataPropertyUtil() {
+    // static methods only
+  }
+
+  /**
+   * Converts a headless camel case property name to a HTML5 data attribute name including &quot;data-&quot; prefix.
+   * @param headlessCamelCaseName Headless camel case name
+   * @return HTML5 data attribute name
+   * @throws IllegalArgumentException If parameter name is not valid
+   */
+  public static String toHtml5DataName(String headlessCamelCaseName) {
+<span class="fc bfc" id="L48" title="All 2 branches covered.">    if (StringUtils.isEmpty(headlessCamelCaseName)) {</span>
+<span class="fc" id="L49">      throw new IllegalArgumentException(&quot;Property name is empty.&quot;);</span>
+    }
+<span class="fc bfc" id="L51" title="All 2 branches covered.">    if (!isHeadlessCamelCaseName(headlessCamelCaseName)) {</span>
+<span class="fc" id="L52">      throw new IllegalArgumentException(&quot;This is not a valid headless camel case property name: &quot; + headlessCamelCaseName);</span>
+    }
+
+<span class="fc" id="L55">    StringBuilder html5DataName = new StringBuilder(HTML5_DATA_PREFIX);</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">    for (int i = 0; i &lt; headlessCamelCaseName.length(); i++) {</span>
+<span class="fc" id="L57">      char c = headlessCamelCaseName.charAt(i);</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">      if (CharUtils.isAsciiAlphaUpper(c)) {</span>
+<span class="fc" id="L59">        html5DataName.append('-');</span>
+      }
+<span class="fc" id="L61">      html5DataName.append(Character.toLowerCase(c));</span>
+    }
+
+<span class="fc" id="L64">    return html5DataName.toString();</span>
+  }
+
+  /**
+   * Converts a HTML5 data attribute name including &quot;data-&quot; prefix to a headless camel case name.
+   * @param html5DataName Html5 data attribute name
+   * @return Headless camel case name
+   * @throws IllegalArgumentException If parameter name is not valid
+   */
+  public static String toHeadlessCamelCaseName(String html5DataName) {
+<span class="fc bfc" id="L74" title="All 2 branches covered.">    if (StringUtils.isEmpty(html5DataName)) {</span>
+<span class="fc" id="L75">      throw new IllegalArgumentException(&quot;Property name is empty.&quot;);</span>
+    }
+<span class="fc bfc" id="L77" title="All 2 branches covered.">    if (!isHtml5DataName(html5DataName)) {</span>
+<span class="fc" id="L78">      throw new IllegalArgumentException(&quot;This is not a valid HTML5 data property name: &quot; + html5DataName);</span>
+    }
+
+<span class="fc" id="L81">    String html5DataNameWithoutSuffix = StringUtils.substringAfter(html5DataName, HTML5_DATA_PREFIX);</span>
+<span class="fc" id="L82">    StringBuilder headlessCamelCaseName = new StringBuilder();</span>
+<span class="fc" id="L83">    boolean upperCaseNext = false;</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">    for (int i = 0; i &lt; html5DataNameWithoutSuffix.length(); i++) {</span>
+<span class="fc" id="L85">      char c = html5DataNameWithoutSuffix.charAt(i);</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">      if (c == '-') {</span>
+<span class="fc" id="L87">        upperCaseNext = true;</span>
+      }
+<span class="fc bfc" id="L89" title="All 2 branches covered.">      else if (upperCaseNext) {</span>
+<span class="fc" id="L90">        headlessCamelCaseName.append(Character.toUpperCase(c));</span>
+<span class="fc" id="L91">        upperCaseNext = false;</span>
+      }
+      else {
+<span class="fc" id="L94">        headlessCamelCaseName.append(c);</span>
+      }
+    }
+
+<span class="fc" id="L98">    return headlessCamelCaseName.toString();</span>
+  }
+
+  /**
+   * @param name Property name
+   * @return true if property is a valid headless camel case name which can be converted to a HTML5 data property name.
+   */
+  public static boolean isHeadlessCamelCaseName(String name) {
+<span class="fc bfc" id="L106" title="All 2 branches covered.">    if (StringUtils.isEmpty(name)) {</span>
+<span class="fc" id="L107">      return false;</span>
+    }
+<span class="fc" id="L109">    return HEADLESS_CAMEL_CASE_NAME_PATTERN.matcher(name).matches();</span>
+  }
+
+  /**
+   * @param name Property name
+   * @return true if property name starts with &quot;data-&quot; prefix, and has only lowercase, number or hyphen chars.
+   */
+  public static boolean isHtml5DataName(String name) {
+<span class="fc bfc" id="L117" title="All 2 branches covered.">    if (StringUtils.isEmpty(name)) {</span>
+<span class="fc" id="L118">      return false;</span>
+    }
+<span class="fc" id="L120">    return HTML5_DATA_NAME_PATTERN.matcher(name).matches();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

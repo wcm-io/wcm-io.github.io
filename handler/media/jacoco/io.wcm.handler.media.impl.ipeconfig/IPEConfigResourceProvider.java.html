@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IPEConfigResourceProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.impl.ipeconfig</a> &gt; <span class="el_source">IPEConfigResourceProvider.java</span></div><h1>IPEConfigResourceProvider.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.impl.ipeconfig;
+
+import static io.wcm.handler.media.impl.ipeconfig.CroppingRatios.MEDIAFORMAT_FREE_CROP;
+import static io.wcm.handler.media.impl.ipeconfig.PathParser.NN_ASPECT_RATIOS;
+import static io.wcm.handler.media.impl.ipeconfig.PathParser.NN_CONFIG;
+import static io.wcm.handler.media.impl.ipeconfig.PathParser.NN_MEDIA_FORMAT;
+
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.SyntheticResource;
+import org.apache.sling.spi.resource.provider.ResolveContext;
+import org.apache.sling.spi.resource.provider.ResourceContext;
+import org.apache.sling.spi.resource.provider.ResourceProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Component;
+
+import com.day.cq.wcm.api.components.ComponentManager;
+
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.format.MediaFormatHandler;
+import io.wcm.sling.commons.adapter.AdaptTo;
+
+/**
+ * Resource provider that overlays a IPE config resource with a dynamically generated
+ * set of cropping aspect ratios derived from given set of media formats.
+ * &lt;p&gt;
+ * URL pattern for resource access:&lt;br&gt;
+ * &lt;code&gt;/wcmio:mediaHandler/ipeConfig/{componentContentPath}/wcmio:mediaFormat/{mf1}/{mf2}/.../wcmio:config/{relativeConfigPath}&lt;/code&gt;
+ * &lt;/p&gt;
+ */
+@Component(service = ResourceProvider.class, property = {
+    ResourceProvider.PROPERTY_NAME + &quot;=wcmioHandlerIPEConfig&quot;,
+    ResourceProvider.PROPERTY_ROOT + &quot;=&quot; + IPEConfigResourceProvider.IPECONFIG_OVERLAY_ROOTPATH
+})
+<span class="fc" id="L63">public class IPEConfigResourceProvider extends ResourceProvider {</span>
+
+  /**
+   * Root path for IPE config overlay resources.
+   */
+  public static final String IPECONFIG_OVERLAY_ROOTPATH = &quot;/wcmio:mediaHandler/ipeConfig&quot;;
+
+  @Override
+  public @Nullable Resource getResource(@NotNull ResolveContext resolveContext, @NotNull String path,
+      @NotNull ResourceContext resourceContext, @Nullable Resource parent) {
+
+<span class="fc" id="L74">    PathParser parser = new PathParser(path);</span>
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">    if (!parser.isValid()) {</span>
+<span class="nc" id="L76">      return null;</span>
+    }
+
+<span class="fc" id="L79">    ResourceResolver resolver = resolveContext.getResourceResolver();</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">    if (parser.isAspectRatiosNode()) {</span>
+      // simulate 'aspectRatios' node
+<span class="fc" id="L82">      return buildAspectRatiosResource(resolver, path);</span>
+    }
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">    else if (parser.isAspectRatioItem()) {</span>
+      // simulate 'aspectRatios/xxx' node
+<span class="nc" id="L86">      String mediaFormatName = parser.getAspectRatioItemName();</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">      if (parser.getMediaFormatNames().contains(mediaFormatName)) {</span>
+<span class="nc" id="L88">        return buildAspectRatioItemResource(resolver, path, mediaFormatName, parser);</span>
+      }
+<span class="nc" id="L90">    }</span>
+    else {
+      // return wrapped overlaid resource
+<span class="fc" id="L93">      String overlayResourcePath = getIpeConfigPath(resolver, parser);</span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">      if (StringUtils.isNotEmpty(overlayResourcePath)) {</span>
+<span class="fc" id="L95">        Resource overlayResource = resolver.getResource(overlayResourcePath);</span>
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">        if (overlayResource != null) {</span>
+<span class="fc" id="L97">          return new OverlayResource(overlayResource, path);</span>
+        }
+      }
+    }
+<span class="nc" id="L101">    return null;</span>
+  }
+
+  @Override
+  public @Nullable Iterator&lt;Resource&gt; listChildren(@NotNull ResolveContext resolveContext, @NotNull Resource resource) {
+<span class="fc" id="L106">    Map&lt;String, Resource&gt; childMap = getOverlayedResourceChilden(resource);</span>
+
+<span class="fc" id="L108">    String path = resource.getPath();</span>
+<span class="fc" id="L109">    PathParser parser = new PathParser(path);</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">    if (!parser.isValid()) {</span>
+<span class="nc" id="L111">      return null;</span>
+    }
+
+<span class="fc" id="L114">    ResourceResolver resolver = resolveContext.getResourceResolver();</span>
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">    if (parser.isPluginsCropNode()) {</span>
+      // add simulated 'aspectRatios' node
+<span class="nc" id="L117">      childMap.put(NN_ASPECT_RATIOS, buildAspectRatiosResource(resolver, path + &quot;/&quot; + NN_ASPECT_RATIOS));</span>
+    }
+<span class="fc bfc" id="L119" title="All 2 branches covered.">    else if (parser.isAspectRatiosNode()) {</span>
+      // add simulated 'aspectRatios/xxx' nodes
+<span class="fc" id="L121">      childMap.clear();</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">      for (String mediaFormatName : parser.getMediaFormatNames()) {</span>
+<span class="fc" id="L123">        Resource item = buildAspectRatioItemResource(resolver, path + &quot;/&quot; + mediaFormatName, mediaFormatName, parser);</span>
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">        if (item != null) {</span>
+<span class="fc" id="L125">          childMap.put(mediaFormatName, item);</span>
+        }
+<span class="fc" id="L127">      }</span>
+    }
+
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">    if (childMap.isEmpty()) {</span>
+<span class="nc" id="L131">      return null;</span>
+    }
+    else {
+<span class="fc" id="L134">      return childMap.values().iterator();</span>
+    }
+  }
+
+  /**
+   * Gets children of overlaid resource and converts children to {@link OverlayResource}.
+   * @param resource Requested resources
+   * @return Map with all children
+   */
+  private Map&lt;String, Resource&gt; getOverlayedResourceChilden(Resource resource) {
+<span class="fc" id="L144">    Map&lt;String, Resource&gt; childMap = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">    if (resource instanceof OverlayResource) {</span>
+<span class="fc" id="L146">      Resource overlayResource = ((OverlayResource)resource).getOverlayedResource();</span>
+<span class="fc" id="L147">      Iterator&lt;Resource&gt; childrenIterator = overlayResource.listChildren();</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">      while (childrenIterator.hasNext()) {</span>
+<span class="fc" id="L149">        Resource child = childrenIterator.next();</span>
+<span class="fc" id="L150">        childMap.put(child.getName(), new OverlayResource(child,</span>
+<span class="fc" id="L151">            resource.getPath() + &quot;/&quot; + child.getName()));</span>
+<span class="fc" id="L152">      }</span>
+    }
+<span class="fc" id="L154">    return childMap;</span>
+  }
+
+  /**
+   * Build resource for /aspectRatios node
+   * @param resolver Resource resolver
+   * @param path Path
+   * @return Resource
+   */
+  private Resource buildAspectRatiosResource(ResourceResolver resolver, String path) {
+<span class="fc" id="L164">    return new SyntheticResource(resolver, path, null);</span>
+  }
+
+  /**
+   * Build virtual resource with name and aspect ratio of given media format.
+   * @param resolver Resource resolver
+   * @param path Path
+   * @param mediaFormatName Media format name
+   * @param parser Path parser
+   * @return Resource or null if media format not found or has no valid ratio
+   */
+  private Resource buildAspectRatioItemResource(ResourceResolver resolver, String path, String mediaFormatName,
+      PathParser parser) {
+<span class="fc" id="L177">    Resource componentContent = resolver.getResource(parser.getComponentContentPath());</span>
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">    if (componentContent != null) {</span>
+<span class="fc" id="L179">      MediaFormatHandler mediaFormatHandler = AdaptTo.notNull(componentContent, MediaFormatHandler.class);</span>
+<span class="fc" id="L180">      MediaFormat mediaFormat = getMediaFormat(mediaFormatName, mediaFormatHandler);</span>
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">      if (mediaFormat != null) {</span>
+<span class="fc" id="L182">        return new AspectRatioResource(resolver, mediaFormat, path);</span>
+      }
+    }
+<span class="nc" id="L185">    return null;</span>
+  }
+
+  private MediaFormat getMediaFormat(String mediaFormatName, MediaFormatHandler mediaFormatHandler) {
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">    if (StringUtils.equals(mediaFormatName, MEDIAFORMAT_FREE_CROP.getName())) {</span>
+<span class="nc" id="L190">      return MEDIAFORMAT_FREE_CROP;</span>
+    }
+    else {
+<span class="fc" id="L193">      return mediaFormatHandler.getMediaFormat(mediaFormatName);</span>
+    }
+  }
+
+  /**
+   * Get IPE config path from component associated with given resource and append the relative
+   * config path from current resource request.
+   * @param resolver Resource resolver
+   * @param parser Path parser
+   * @return Path or null
+   */
+  private String getIpeConfigPath(ResourceResolver resolver, PathParser parser) {
+<span class="fc" id="L205">    Resource componentContent = resolver.getResource(parser.getComponentContentPath());</span>
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">    if (componentContent != null) {</span>
+<span class="fc" id="L207">      ComponentManager componentManager = AdaptTo.notNull(resolver, ComponentManager.class);</span>
+<span class="fc" id="L208">      com.day.cq.wcm.api.components.Component component = componentManager.getComponentOfResource(componentContent);</span>
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">      if (component != null</span>
+<span class="pc bpc" id="L210" title="1 of 2 branches missed.">          &amp;&amp; component.getEditConfig() != null</span>
+<span class="pc bpc" id="L211" title="1 of 2 branches missed.">          &amp;&amp; component.getEditConfig().getInplaceEditingConfig() != null) {</span>
+<span class="fc" id="L212">        String ipeConfigPath = component.getEditConfig().getInplaceEditingConfig().getConfigPath();</span>
+<span class="pc bpc" id="L213" title="1 of 2 branches missed.">        if (StringUtils.isNotEmpty(ipeConfigPath)) {</span>
+<span class="fc" id="L214">          return ipeConfigPath + StringUtils.defaultString(parser.getRelativeConfigPath());</span>
+        }
+      }
+    }
+<span class="nc" id="L218">    return null;</span>
+  }
+
+  /**
+   * Build path to overlaid IPE configuration services by this resource provider.
+   * @param componentContentPath Content resource path containing reference component with image IPE enabled
+   * @param mediaFormatNames Media format names
+   * @return Path
+   */
+  public static String buildPath(String componentContentPath, Set&lt;String&gt; mediaFormatNames) {
+<span class="fc" id="L228">    SortedSet&lt;String&gt; sortedMediaFormatNames = new TreeSet&lt;&gt;(mediaFormatNames);</span>
+<span class="fc" id="L229">    return IPECONFIG_OVERLAY_ROOTPATH + componentContentPath</span>
+<span class="fc" id="L230">        + &quot;/&quot; + NN_MEDIA_FORMAT + &quot;/&quot; + StringUtils.join(sortedMediaFormatNames, &quot;/&quot;)</span>
+        + &quot;/&quot; + NN_CONFIG;
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

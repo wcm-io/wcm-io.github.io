@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DefaultRenditionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.impl</a> &gt; <span class="el_source">DefaultRenditionHandler.java</span></div><h1>DefaultRenditionHandler.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.impl;
+
+import static io.wcm.handler.media.format.impl.MediaFormatSupport.getRequestedFileExtensions;
+import static io.wcm.handler.media.format.impl.MediaFormatSupport.visitMediaFormats;
+
+import java.util.Set;
+import java.util.TreeSet;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.day.cq.dam.api.Asset;
+import com.day.cq.dam.api.Rendition;
+import com.google.common.collect.ImmutableSet;
+
+import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.MediaFileType;
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.format.MediaFormatHandler;
+import io.wcm.handler.media.format.Ratio;
+import io.wcm.handler.media.format.impl.MediaFormatVisitor;
+import io.wcm.handler.mediasource.dam.AssetRendition;
+
+/**
+ * Handles resolving DAM renditions and resizing for media handler.
+ */
+class DefaultRenditionHandler implements RenditionHandler {
+
+  private Set&lt;RenditionMetadata&gt; renditions;
+  private final RenditionMetadata originalRendition;
+  private final DamContext damContext;
+
+  /**
+   * @param damContext DAM context objects
+   */
+<span class="fc" id="L56">  DefaultRenditionHandler(DamContext damContext) {</span>
+<span class="fc" id="L57">    this.damContext = damContext;</span>
+
+<span class="fc" id="L59">    Rendition damOriginalRendition = damContext.getAsset().getOriginal();</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">    originalRendition = damOriginalRendition != null ? new RenditionMetadata(damOriginalRendition) : null;</span>
+<span class="fc" id="L61">  }</span>
+
+  protected RenditionMetadata getOriginalRendition() {
+<span class="fc" id="L64">    return this.originalRendition;</span>
+  }
+
+  /**
+   * @return All renditions that are available for this asset
+   */
+  Set&lt;RenditionMetadata&gt; getAvailableRenditions(MediaArgs mediaArgs) {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">    if (this.renditions == null) {</span>
+      // gather rendition infos of all renditions and sort them by size (smallest or virtual crop rendition first)
+<span class="fc" id="L73">      Set&lt;RenditionMetadata&gt; candidates = new TreeSet&lt;&gt;();</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">      for (Rendition rendition : damContext.getAsset().getRenditions()) {</span>
+<span class="fc" id="L75">        addRendition(candidates, rendition, mediaArgs);</span>
+<span class="fc" id="L76">      }</span>
+<span class="fc" id="L77">      candidates = postProcessCandidates(candidates);</span>
+<span class="fc" id="L78">      this.renditions = ImmutableSet.&lt;RenditionMetadata&gt;copyOf(candidates);</span>
+    }
+<span class="fc" id="L80">    return this.renditions;</span>
+  }
+
+  /**
+   * Provides an option to post process the list of candidates. Can be overridden in subclasses
+   * @param candidates Candidates
+   * @return {@link Set} of {@link RenditionMetadata}
+   */
+  protected Set&lt;RenditionMetadata&gt; postProcessCandidates(Set&lt;RenditionMetadata&gt; candidates) {
+<span class="fc" id="L89">    return candidates;</span>
+  }
+
+  /**
+   * adds rendition to the list of candidates, if it should be available for resolving
+   * @param candidates Candidates
+   * @param rendition Rendition
+   */
+  private void addRendition(Set&lt;RenditionMetadata&gt; candidates, Rendition rendition, MediaArgs mediaArgs) {
+    // ignore AEM-generated thumbnail renditions unless allowed via mediaargs
+<span class="fc bfc" id="L99" title="All 4 branches covered.">    if (!mediaArgs.isIncludeAssetThumbnails() &amp;&amp; AssetRendition.isThumbnailRendition(rendition)) {</span>
+<span class="fc" id="L100">      return;</span>
+    }
+    // ignore AEM-generated web renditions unless allowed via mediaargs
+<span class="fc bfc" id="L103" title="All 2 branches covered.">    boolean isIncludeAssetWebRenditions = mediaArgs.isIncludeAssetWebRenditions() != null</span>
+<span class="fc" id="L104">        ? mediaArgs.isIncludeAssetWebRenditions()</span>
+        : true;
+<span class="fc bfc" id="L106" title="All 4 branches covered.">    if (!isIncludeAssetWebRenditions &amp;&amp; AssetRendition.isWebRendition(rendition)) {</span>
+<span class="fc" id="L107">      return;</span>
+    }
+<span class="fc" id="L109">    RenditionMetadata renditionMetadata = createRenditionMetadata(rendition);</span>
+<span class="fc" id="L110">    candidates.add(renditionMetadata);</span>
+<span class="fc" id="L111">  }</span>
+
+  /**
+   * Create rendition metadata for given rendition. May be overridden by subclasses.
+   * @param rendition Rendition
+   * @return Rendition metadata
+   */
+  protected RenditionMetadata createRenditionMetadata(Rendition rendition) {
+<span class="fc" id="L119">    return new RenditionMetadata(rendition);</span>
+  }
+
+  /**
+   * Get all renditions that match the requested list of file extension.
+   * @param fileExtensions List of file extensions
+   * @return Matching renditions
+   */
+  private Set&lt;RenditionMetadata&gt; getRendtionsMatchingFileExtensions(String[] fileExtensions, MediaArgs mediaArgs) {
+
+    // if no file extension restriction get all renditions
+<span class="fc" id="L130">    Set&lt;RenditionMetadata&gt; allRenditions = getAvailableRenditions(mediaArgs);</span>
+<span class="pc bpc" id="L131" title="1 of 4 branches missed.">    if (fileExtensions == null || fileExtensions.length == 0) {</span>
+<span class="fc" id="L132">      return allRenditions;</span>
+    }
+
+    // otherwise return those with matching extensions
+<span class="fc" id="L136">    Set&lt;RenditionMetadata&gt; matchingRenditions = new TreeSet&lt;&gt;();</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    for (RenditionMetadata rendition : allRenditions) {</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">      for (String fileExtension : fileExtensions) {</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        if (StringUtils.equalsIgnoreCase(fileExtension, rendition.getFileExtension())) {</span>
+<span class="fc" id="L140">          matchingRenditions.add(rendition);</span>
+<span class="fc" id="L141">          break;</span>
+        }
+      }
+<span class="fc" id="L144">    }</span>
+<span class="fc" id="L145">    return matchingRenditions;</span>
+  }
+
+  /**
+   * Get rendition (probably virtual) for given media arguments.
+   * @param mediaArgs Media arguments
+   * @return Rendition or null if none is matching
+   */
+  @Override
+  public RenditionMetadata getRendition(MediaArgs mediaArgs) {
+
+    // get list of file extensions requested
+<span class="fc" id="L157">    String[] requestedFileExtensions = getRequestedFileExtensions(mediaArgs);</span>
+
+    // if the array is null file extensions constraints are applied, but do not match to each other
+    // - no rendition can fulfill these constraints
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">    if (requestedFileExtensions == null) {</span>
+<span class="nc" id="L162">      return null;</span>
+    }
+
+    // check if a specific media size is requested
+<span class="fc" id="L166">    boolean isSizeMatchingRequest = isSizeMatchingRequest(mediaArgs, requestedFileExtensions);</span>
+
+    // get rendition candidates matching for file extensions
+<span class="fc" id="L169">    Set&lt;RenditionMetadata&gt; candidates = getRendtionsMatchingFileExtensions(requestedFileExtensions, mediaArgs);</span>
+
+    // if request does not contain any size restrictions return original image or first by filename matching rendition
+<span class="fc bfc" id="L172" title="All 2 branches covered.">    if (!isSizeMatchingRequest) {</span>
+<span class="fc" id="L173">      return getOriginalOrFirstRendition(candidates);</span>
+    }
+
+    // original rendition is a image - check for matching rendition or build virtual one
+<span class="fc" id="L177">    RenditionMetadata exactMatchRendition = getExactMatchRendition(candidates, mediaArgs);</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">    if (exactMatchRendition != null) {</span>
+<span class="fc" id="L179">      return exactMatchRendition;</span>
+    }
+
+    // get rendition virtual rendition downscaled from existing one
+<span class="fc" id="L183">    RenditionMetadata virtualRendition = getVirtualRendition(candidates, mediaArgs);</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">    if (virtualRendition != null) {</span>
+<span class="fc" id="L185">      return virtualRendition;</span>
+    }
+
+    // no match found
+<span class="fc" id="L189">    return null;</span>
+  }
+
+  /**
+   * Checks if the media args contain any with/height restriction, that means a rendition matching
+   * the given size constraints is requested. Additionally it is checked that at least one image file
+   * extension is requested.
+   * @param mediaArgs Media arguments
+   * @return true if any size restriction was defined.
+   */
+  private boolean isSizeMatchingRequest(MediaArgs mediaArgs, String[] requestedFileExtensions) {
+
+    // check that at least one image file extension is in the list of requested extensions
+<span class="fc" id="L202">    boolean anyImageFileExtension = false;</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">    for (String fileExtension : requestedFileExtensions) {</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">      if (MediaFileType.isImage(fileExtension)) {</span>
+<span class="fc" id="L205">        anyImageFileExtension = true;</span>
+      }
+    }
+<span class="fc bfc" id="L208" title="All 6 branches covered.">    if (!anyImageFileExtension &amp;&amp; mediaArgs.getFixedWidth() == 0 &amp;&amp; mediaArgs.getFixedHeight() == 0) {</span>
+<span class="fc" id="L209">      return false;</span>
+    }
+
+    // check for size restriction
+<span class="fc bfc" id="L213" title="All 4 branches covered.">    if (mediaArgs.getFixedWidth() &gt; 0 || mediaArgs.getFixedHeight() &gt; 0) {</span>
+<span class="fc" id="L214">      return true;</span>
+    }
+<span class="fc" id="L216">    Boolean isSizeMatchingMediaFormat = visitMediaFormats(mediaArgs, new MediaFormatVisitor&lt;Boolean&gt;() {</span>
+      @Override
+      public @Nullable Boolean visit(@NotNull MediaFormat mediaFormat) {
+<span class="fc bfc" id="L219" title="All 2 branches covered.">        if (mediaFormat.getEffectiveMinWidth() &gt; 0</span>
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">            || mediaFormat.getEffectiveMaxWidth() &gt; 0</span>
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">            || mediaFormat.getEffectiveMinHeight() &gt; 0</span>
+<span class="pc bpc" id="L222" title="1 of 2 branches missed.">            || mediaFormat.getEffectiveMaxHeight() &gt; 0</span>
+<span class="fc bfc" id="L223" title="All 2 branches covered.">            || mediaFormat.getRatio() &gt; 0) {</span>
+<span class="fc" id="L224">          return true;</span>
+        }
+<span class="fc" id="L226">        return null;</span>
+      }
+    });
+<span class="pc bpc" id="L229" title="1 of 4 branches missed.">    return isSizeMatchingMediaFormat != null &amp;&amp; isSizeMatchingMediaFormat.booleanValue();</span>
+  }
+
+  /**
+   * Get rendition that matches exactly with the given media args requirements.
+   * @param candidates Rendition candidates
+   * @param mediaArgs Media args
+   * @return Rendition or null if none found
+   */
+  private RenditionMetadata getExactMatchRendition(final Set&lt;RenditionMetadata&gt; candidates, MediaArgs mediaArgs) {
+    // check for fixed width and/or height request
+<span class="fc bfc" id="L240" title="All 4 branches covered.">    if (mediaArgs.getFixedWidth() &gt; 0 || mediaArgs.getFixedHeight() &gt; 0) {</span>
+<span class="fc bfc" id="L241" title="All 2 branches covered.">      for (RenditionMetadata candidate : candidates) {</span>
+<span class="fc bfc" id="L242" title="All 2 branches covered.">        if (candidate.matches(mediaArgs.getFixedWidth(), mediaArgs.getFixedHeight())) {</span>
+<span class="fc" id="L243">          return candidate;</span>
+        }
+<span class="fc" id="L245">      }</span>
+    }
+
+    // otherwise check for media format restriction
+<span class="pc bpc" id="L249" title="2 of 4 branches missed.">    else if (mediaArgs.getMediaFormats() != null &amp;&amp; mediaArgs.getMediaFormats().length &gt; 0) {</span>
+<span class="fc" id="L250">      return visitMediaFormats(mediaArgs, new MediaFormatVisitor&lt;RenditionMetadata&gt;() {</span>
+        @Override
+        public @Nullable RenditionMetadata visit(@NotNull MediaFormat mediaFormat) {
+<span class="fc bfc" id="L253" title="All 2 branches covered.">          for (RenditionMetadata candidate : candidates) {</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">            if (candidate.matches((int)mediaFormat.getEffectiveMinWidth(),</span>
+<span class="fc" id="L255">                (int)mediaFormat.getEffectiveMinHeight(),</span>
+<span class="fc" id="L256">                (int)mediaFormat.getEffectiveMaxWidth(),</span>
+<span class="fc" id="L257">                (int)mediaFormat.getEffectiveMaxHeight(),</span>
+<span class="fc" id="L258">                mediaFormat.getRatio())) {</span>
+<span class="fc" id="L259">              candidate.setMediaFormat(mediaFormat);</span>
+<span class="fc" id="L260">              return candidate;</span>
+            }
+<span class="fc" id="L262">          }</span>
+<span class="fc" id="L263">          return null;</span>
+        }
+      });
+    }
+
+    // no restriction - return original or first rendition
+    else {
+<span class="nc" id="L270">      return getOriginalOrFirstRendition(candidates);</span>
+    }
+
+    // none found
+<span class="fc" id="L274">    return null;</span>
+  }
+
+  /**
+   * Returns original rendition - if it is contained in the candidate set. Otherwise first candidate is returned.
+   * If a VirtualCropRenditionMetadata is present always the first one is returned.
+   * @param candidates Candidates
+   * @return Original or first rendition of candidates or null
+   */
+  private RenditionMetadata getOriginalOrFirstRendition(Set&lt;RenditionMetadata&gt; candidates) {
+<span class="pc bpc" id="L284" title="1 of 4 branches missed.">    if (this.originalRendition != null &amp;&amp; candidates.contains(this.originalRendition)) {</span>
+<span class="fc" id="L285">      return this.originalRendition;</span>
+    }
+<span class="fc bfc" id="L287" title="All 2 branches covered.">    else if (!candidates.isEmpty()) {</span>
+<span class="fc" id="L288">      return candidates.iterator().next();</span>
+    }
+    else {
+<span class="fc" id="L291">      return null;</span>
+    }
+  }
+
+  /**
+   * Check if a rendition is available from which the required format can be downscaled from and returns
+   * a virtual rendition in this case.
+   * @param candidates Candidates
+   * @param mediaArgs Media args
+   * @return Rendition or null
+   */
+  private RenditionMetadata getVirtualRendition(final Set&lt;RenditionMetadata&gt; candidates, MediaArgs mediaArgs) {
+
+    // get from fixed with/height
+<span class="fc bfc" id="L305" title="All 4 branches covered.">    if (mediaArgs.getFixedWidth() &gt; 0 || mediaArgs.getFixedHeight() &gt; 0) {</span>
+<span class="fc" id="L306">      long destWidth = mediaArgs.getFixedWidth();</span>
+<span class="fc" id="L307">      long destHeight = mediaArgs.getFixedHeight();</span>
+<span class="fc" id="L308">      double destRatio = 0;</span>
+<span class="fc bfc" id="L309" title="All 4 branches covered.">      if (destWidth &gt; 0 &amp;&amp; destHeight &gt; 0) {</span>
+<span class="fc" id="L310">        destRatio = Ratio.get(destWidth, destHeight);</span>
+      }
+<span class="fc" id="L312">      return getVirtualRendition(candidates, destWidth, destHeight, destRatio);</span>
+    }
+
+    // or from any media format
+<span class="fc" id="L316">    return visitMediaFormats(mediaArgs, new MediaFormatVisitor&lt;RenditionMetadata&gt;() {</span>
+      @Override
+      public @Nullable RenditionMetadata visit(@NotNull MediaFormat mediaFormat) {
+<span class="fc" id="L319">        int destWidth = (int)mediaFormat.getEffectiveMinWidth();</span>
+<span class="fc" id="L320">        int destHeight = (int)mediaFormat.getEffectiveMinHeight();</span>
+<span class="fc" id="L321">        double destRatio = mediaFormat.getRatio();</span>
+        // try to find matching rendition, otherwise check for next media format
+<span class="fc" id="L323">        RenditionMetadata rendition = getVirtualRendition(candidates, destWidth, destHeight, destRatio);</span>
+<span class="fc bfc" id="L324" title="All 2 branches covered.">        if (rendition != null) {</span>
+<span class="fc" id="L325">          rendition.setMediaFormat(mediaFormat);</span>
+        }
+<span class="fc" id="L327">        return rendition;</span>
+      }
+    });
+  }
+
+  /**
+   * Check if a rendition is available from which the required format can be downscaled from and returns
+   * a virtual rendition in this case.
+   * @param candidates Candidates
+   * @param destWidth Destination width
+   * @param destHeight Destination height
+   * @param destRatio Destination ratio
+   * @return Rendition or null
+   */
+  private RenditionMetadata getVirtualRendition(Set&lt;RenditionMetadata&gt; candidates,
+      long destWidth, long destHeight, double destRatio) {
+
+    // if ratio is defined get first rendition with matching ratio and same or bigger size
+<span class="fc bfc" id="L345" title="All 2 branches covered.">    if (destRatio &gt; 0) {</span>
+<span class="fc bfc" id="L346" title="All 2 branches covered.">      for (RenditionMetadata candidate : candidates) {</span>
+<span class="fc bfc" id="L347" title="All 2 branches covered.">        if (candidate.matches(destWidth, destHeight, 0, 0, destRatio)) {</span>
+<span class="fc" id="L348">          return getVirtualRendition(candidate, destWidth, destHeight, destRatio);</span>
+        }
+<span class="fc" id="L350">      }</span>
+    }
+    // otherwise get first rendition which is same or bigger in width and height
+    else {
+<span class="fc bfc" id="L354" title="All 2 branches covered.">      for (RenditionMetadata candidate : candidates) {</span>
+<span class="fc bfc" id="L355" title="All 2 branches covered.">        if (candidate.matches(destWidth, destHeight, 0, 0, 0d)) {</span>
+<span class="fc" id="L356">          return getVirtualRendition(candidate, destWidth, destHeight, 0d);</span>
+        }
+<span class="fc" id="L358">      }</span>
+    }
+
+    // none found
+<span class="fc" id="L362">    return null;</span>
+  }
+
+  /**
+   * Get virtual rendition for given width/height/ratio.
+   * @param rendition Rendition
+   * @param widthValue Width
+   * @param heightValue Height
+   * @param ratioValue Ratio
+   * @return Rendition or null
+   */
+  private RenditionMetadata getVirtualRendition(RenditionMetadata rendition, long widthValue, long heightValue, double ratioValue) {
+
+<span class="fc" id="L375">    long width = widthValue;</span>
+<span class="fc" id="L376">    long height = heightValue;</span>
+<span class="fc" id="L377">    double ratio = ratioValue;</span>
+
+    // if ratio is missing: calculate from given rendition
+<span class="fc bfc" id="L380" title="All 2 branches covered.">    if (ratio &lt; MediaFormatHandler.RATIO_TOLERANCE) {</span>
+<span class="fc" id="L381">      ratio = Ratio.get(rendition.getWidth(), rendition.getHeight());</span>
+    }
+
+    // if height is missing - calculate from width
+<span class="pc bpc" id="L385" title="1 of 4 branches missed.">    if (height == 0 &amp;&amp; width &gt; 0) {</span>
+<span class="fc" id="L386">      height = (int)Math.round(width / ratio);</span>
+    }
+
+    // if width is missing - calculate from height
+<span class="pc bpc" id="L390" title="1 of 4 branches missed.">    if (width == 0 &amp;&amp; height &gt; 0) {</span>
+<span class="fc" id="L391">      width = (int)Math.round(height * ratio);</span>
+    }
+
+    // return virtual rendition
+<span class="pc bpc" id="L395" title="2 of 4 branches missed.">    if (width &gt; 0 &amp;&amp; height &gt; 0) {</span>
+<span class="fc bfc" id="L396" title="All 2 branches covered.">      if (rendition instanceof VirtualTransformedRenditionMetadata) {</span>
+<span class="fc" id="L397">        VirtualTransformedRenditionMetadata cropRendition = (VirtualTransformedRenditionMetadata)rendition;</span>
+<span class="fc" id="L398">        return new VirtualTransformedRenditionMetadata(cropRendition.getRendition(), width, height,</span>
+<span class="fc" id="L399">            cropRendition.getCropDimension(), cropRendition.getRotation());</span>
+      }
+      else {
+<span class="fc" id="L402">        return new VirtualRenditionMetadata(rendition.getRendition(), width, height);</span>
+      }
+    }
+    else {
+<span class="nc" id="L406">      return null;</span>
+    }
+  }
+
+  protected Asset getAsset() {
+<span class="fc" id="L411">    return damContext.getAsset();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

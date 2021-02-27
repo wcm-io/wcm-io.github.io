@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImageTransformation.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.impl</a> &gt; <span class="el_source">ImageTransformation.java</span></div><h1>ImageTransformation.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.impl;
+
+import org.jetbrains.annotations.NotNull;
+
+import com.drew.lang.annotations.Nullable;
+
+import io.wcm.handler.media.CropDimension;
+import io.wcm.handler.media.Dimension;
+import io.wcm.handler.media.format.Ratio;
+
+/**
+ * Image transformation parameters and helper methods.
+ */
+public final class ImageTransformation {
+
+  /**
+   * Rotate 90°
+   */
+  public static final int ROTATE_90 = 90;
+
+  /**
+   * Rotate 180°
+   */
+  public static final int ROTATE_180 = 180;
+
+  /**
+   * Rotate 270°
+   */
+  public static final int ROTATE_270 = 270;
+
+  private ImageTransformation() {
+    // static methods only
+  }
+
+  /**
+   * @param rotation Rotation value
+   * @return true if the value is a supported image rotation operation.
+   */
+  public static boolean isValidRotation(int rotation) {
+<span class="fc bfc" id="L59" title="All 6 branches covered.">    return rotation == ROTATE_90</span>
+        || rotation == ROTATE_180
+        || rotation == ROTATE_270;
+  }
+
+  /**
+   * Swaps width with height if rotated 90° clock-wise or counter clock-wise.
+   * @param width Rendition width
+   * @param height Rendition height
+   * @param rotation Rotation
+   * @return Width
+   */
+  public static long rotateMapWidth(long width, long height, @Nullable Integer rotation) {
+<span class="fc bfc" id="L72" title="All 6 branches covered.">    if (rotation != null &amp;&amp; (rotation == ROTATE_90 || rotation == ROTATE_270)) {</span>
+<span class="fc" id="L73">      return height;</span>
+    }
+<span class="fc" id="L75">    return width;</span>
+  }
+
+  /**
+   * Swaps height with width if rotated 90° clock-wise or counter clock-wise.
+   * @param width Rendition width
+   * @param height Rendition height
+   * @param rotation Rotation
+   * @return Height
+   */
+  public static long rotateMapHeight(long width, long height, @Nullable Integer rotation) {
+<span class="fc bfc" id="L86" title="All 6 branches covered.">    if (rotation != null &amp;&amp; (rotation == ROTATE_90 || rotation == ROTATE_270)) {</span>
+<span class="fc" id="L87">      return width;</span>
+    }
+<span class="fc" id="L89">    return height;</span>
+  }
+
+  /**
+   * Swaps height with width if rotated 90° clock-wise or counter clock-wise.
+   * @param dimension Dimension or crop dimension
+   * @param rotation Rotation
+   * @return Crop dimension
+   */
+  public static @NotNull Dimension rotateMapDimension(@NotNull Dimension dimension, @Nullable Integer rotation) {
+<span class="fc bfc" id="L99" title="All 2 branches covered.">    if (dimension instanceof CropDimension) {</span>
+<span class="fc" id="L100">      return rotateMapDimension((CropDimension)dimension, rotation);</span>
+    }
+<span class="fc bfc" id="L102" title="All 6 branches covered.">    if (rotation != null &amp;&amp; (rotation == ROTATE_90 || rotation == ROTATE_270)) {</span>
+<span class="fc" id="L103">      return new Dimension(dimension.getHeight(), dimension.getWidth());</span>
+    }
+<span class="fc" id="L105">    return dimension;</span>
+  }
+
+  /**
+   * Swaps height with width if rotated 90° clock-wise or counter clock-wise.
+   * @param dimension Dimension or crop dimension
+   * @param rotation Rotation
+   * @return Crop dimension
+   */
+  public static @NotNull CropDimension rotateMapDimension(@NotNull CropDimension dimension, @Nullable Integer rotation) {
+<span class="fc bfc" id="L115" title="All 6 branches covered.">    if (rotation != null &amp;&amp; (rotation == ROTATE_90 || rotation == ROTATE_270)) {</span>
+<span class="fc" id="L116">      CropDimension cropDimension = dimension;</span>
+<span class="fc" id="L117">      return new CropDimension(cropDimension.getTop(), cropDimension.getLeft(),</span>
+<span class="fc" id="L118">          cropDimension.getHeight(), cropDimension.getWidth());</span>
+    }
+<span class="fc" id="L120">    return dimension;</span>
+  }
+
+  /**
+   * Calculates auto-cropping dimensions
+   * @param givenWidth Width of rendition that is used for cropping
+   * @param givenHeight Height of rendition that is used for cropping
+   * @param expectedRatio Expected ratio
+   * @return Cropping dimension.
+   */
+  public static @NotNull CropDimension calculateAutoCropDimension(long givenWidth, long givenHeight, double expectedRatio) {
+<span class="fc" id="L131">    double givenRatio = Ratio.get(givenWidth, givenHeight);</span>
+    long width;
+    long height;
+    long top;
+    long left;
+<span class="fc bfc" id="L136" title="All 2 branches covered.">    if (givenRatio &gt; expectedRatio) {</span>
+<span class="fc" id="L137">      width = Math.round(givenHeight * expectedRatio);</span>
+<span class="fc" id="L138">      height = givenHeight;</span>
+<span class="fc" id="L139">      top = 0;</span>
+<span class="fc" id="L140">      left = Math.round(((double)givenWidth - (double)width) / 2d);</span>
+    }
+    else {
+<span class="fc" id="L143">      width = givenWidth;</span>
+<span class="fc" id="L144">      height = Math.round(givenWidth / expectedRatio);</span>
+<span class="fc" id="L145">      top = Math.round(((double)givenHeight - (double)height) / 2d);</span>
+<span class="fc" id="L146">      left = 0;</span>
+    }
+<span class="fc" id="L148">    return new CropDimension(left, top, width, height, true);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

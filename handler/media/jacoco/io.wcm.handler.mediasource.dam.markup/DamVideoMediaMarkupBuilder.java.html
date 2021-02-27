@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DamVideoMediaMarkupBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.markup</a> &gt; <span class="el_source">DamVideoMediaMarkupBuilder.java</span></div><h1>DamVideoMediaMarkupBuilder.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.markup;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.caconfig.resource.ConfigurationResourceResolver;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.OSGiService;
+import org.apache.sling.models.annotations.injectorspecific.Self;
+import org.apache.sling.models.annotations.injectorspecific.SlingObject;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ConsumerType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.commons.jcr.JcrConstants;
+import com.day.cq.dam.api.Asset;
+import com.day.cq.dam.commons.util.PrefixRenditionPicker;
+import com.day.cq.dam.video.VideoConstants;
+import com.day.cq.dam.video.VideoProfile;
+import com.google.common.collect.ImmutableList;
+
+import io.wcm.handler.commons.dom.HtmlElement;
+import io.wcm.handler.commons.dom.Video;
+import io.wcm.handler.media.Dimension;
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.markup.MediaMarkupBuilderUtil;
+import io.wcm.handler.media.spi.MediaMarkupBuilder;
+import io.wcm.handler.url.UrlHandler;
+import io.wcm.wcm.commons.contenttype.ContentType;
+
+/**
+ * Default implementation of {@link MediaMarkupBuilder} for DAM video assets.
+ */
+@Model(adaptables = {
+    SlingHttpServletRequest.class, Resource.class
+})
+@ConsumerType
+<span class="fc" id="L68">public class DamVideoMediaMarkupBuilder implements MediaMarkupBuilder {</span>
+
+  private static final String H264_PROFILE = &quot;format_aac&quot;;
+  private static final String OGG_PROFILE = &quot;format_ogg&quot;;
+  private static final String LEGACY_H264_PROFILE = &quot;hq&quot;; // for AEM 6.3
+  private static final String LEGACY_OGG_PROFILE = &quot;firefoxhq&quot;; // for AEM 6.3
+<span class="fc" id="L74">  private static final List&lt;String&gt; VIDEO_PROFILE_NAMES = ImmutableList.of(H264_PROFILE, OGG_PROFILE,</span>
+      LEGACY_H264_PROFILE, LEGACY_OGG_PROFILE);
+
+<span class="fc" id="L77">  private static final Logger log = LoggerFactory.getLogger(DamVideoMediaMarkupBuilder.class);</span>
+
+  @SlingObject
+  private ResourceResolver resourceResolver;
+  @Self
+  private UrlHandler urlHandler;
+  @OSGiService
+  private ConfigurationResourceResolver configurationResourceResolver;
+
+  @Override
+  public final boolean accepts(@NotNull Media media) {
+<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (!media.isValid()) {</span>
+<span class="fc" id="L89">      return false;</span>
+    }
+<span class="fc" id="L91">    Asset asset = getDamAsset(media);</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">    if (asset != null) {</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">      return asset.getRendition(new PrefixRenditionPicker(VideoConstants.RENDITION_PREFIX)) != null;</span>
+    }
+    else {
+<span class="nc" id="L96">      return false;</span>
+    }
+  }
+
+  /**
+   * Return video profile names stored below /etc/dam/video supported by this markup builder.
+   * @return Video profile names
+   */
+  protected List&lt;String&gt; getVideoProfileNames() {
+<span class="fc" id="L105">    return VIDEO_PROFILE_NAMES;</span>
+  }
+
+  /**
+   * Return video profiles supported by this markup builder.
+   * @return Video profiles
+   */
+  protected List&lt;VideoProfile&gt; getVideoProfiles() {
+<span class="fc" id="L113">    List&lt;VideoProfile&gt; profiles = new ArrayList&lt;VideoProfile&gt;();</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">    for (String profileName : getVideoProfileNames()) {</span>
+<span class="fc" id="L115">      VideoProfile profile = getVideoProfile(profileName);</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">      if (profile != null) {</span>
+<span class="fc" id="L117">        profiles.add(profile);</span>
+      }
+      else {
+<span class="fc" id="L120">        log.debug(&quot;DAM video profile with name '{}' does not exist.&quot;, profileName);</span>
+      }
+<span class="fc" id="L122">    }</span>
+<span class="fc" id="L123">    return profiles;</span>
+  }
+
+  private VideoProfile getVideoProfile(String profileName) {
+<span class="fc" id="L127">    return VideoProfile.get(resourceResolver, configurationResourceResolver, profileName);</span>
+  }
+
+  /**
+   * @param media Media metadata
+   * @return DAM asset or null
+   */
+  protected Asset getDamAsset(Media media) {
+<span class="fc" id="L135">    return media.getAsset().adaptTo(Asset.class);</span>
+  }
+
+  @Override
+  public final HtmlElement&lt;?&gt; build(@NotNull Media media) {
+<span class="fc" id="L140">    return getVideoPlayerElement(media);</span>
+  }
+
+  /**
+   * Build HTML5 video player element
+   * @param media Media metadata
+   * @return Media element
+   */
+  protected Video getVideoPlayerElement(@NotNull Media media) {
+<span class="fc" id="L149">    Dimension dimension = MediaMarkupBuilderUtil.getMediaformatDimension(media);</span>
+
+<span class="fc" id="L151">    Video video = new Video();</span>
+<span class="fc" id="L152">    video.setWidth((int)dimension.getWidth());</span>
+<span class="fc" id="L153">    video.setHeight((int)dimension.getHeight());</span>
+<span class="fc" id="L154">    video.setControls(true);</span>
+
+    // add video sources for each video profile
+<span class="fc" id="L157">    addSources(video, media);</span>
+
+<span class="fc" id="L159">    return video;</span>
+  }
+
+  /**
+   * Add sources for HTML5 video player
+   * @param video Video
+   * @param media Media metadata
+   */
+  protected void addSources(Video video, Media media) {
+<span class="fc" id="L168">    Asset asset = getDamAsset(media);</span>
+<span class="pc bpc" id="L169" title="1 of 2 branches missed.">    if (asset == null) {</span>
+<span class="nc" id="L170">      return;</span>
+    }
+
+<span class="fc bfc" id="L173" title="All 2 branches covered.">    for (VideoProfile profile : getVideoProfiles()) {</span>
+<span class="fc" id="L174">      com.day.cq.dam.api.Rendition rendition = profile.getRendition(asset);</span>
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">      if (rendition != null) {</span>
+<span class="fc" id="L176">        video.createSource()</span>
+<span class="fc" id="L177">        .setType(profile.getHtmlType())</span>
+<span class="fc" id="L178">        .setSrc(urlHandler.get(rendition.getPath()).buildExternalResourceUrl(rendition.adaptTo(Resource.class)));</span>
+      }
+<span class="fc" id="L180">    }</span>
+<span class="fc" id="L181">  }</span>
+
+  /**
+   * Build flash player element
+   * @param media Media metadata
+   * @param dimension Dimension
+   * @return Media element
+   * @deprecated Usage of flash for video player fallback is deprecated
+   */
+  @Deprecated
+  protected HtmlElement getFlashPlayerElement(Media media, Dimension dimension) {
+<span class="nc" id="L192">    Asset asset = getDamAsset(media);</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">    if (asset == null) {</span>
+<span class="nc" id="L194">      return null;</span>
+    }
+
+<span class="nc" id="L197">    com.day.cq.dam.api.Rendition rendition = asset.getRendition(new PrefixRenditionPicker(VideoConstants.RENDITION_PREFIX + H264_PROFILE));</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">    if (rendition == null) {</span>
+<span class="nc" id="L199">      rendition = asset.getRendition(new PrefixRenditionPicker(VideoConstants.RENDITION_PREFIX + LEGACY_H264_PROFILE));</span>
+<span class="nc bnc" id="L200" title="All 2 branches missed.">      if (rendition == null) {</span>
+<span class="nc" id="L201">        return null;</span>
+      }
+    }
+
+<span class="nc" id="L205">    String playerUrl = urlHandler.get(&quot;/etc/clientlibs/foundation/video/swf/StrobeMediaPlayback.swf&quot;)</span>
+<span class="nc" id="L206">        .buildExternalResourceUrl();</span>
+
+    // strobe specialty: path must be relative to swf file
+<span class="nc" id="L209">    String renditionUrl = &quot;../../../../..&quot; + rendition.getPath();</span>
+
+    // manually apply jcr_content namespace mangling
+<span class="nc" id="L212">    renditionUrl = StringUtils.replace(renditionUrl, JcrConstants.JCR_CONTENT, &quot;_jcr_content&quot;);</span>
+
+<span class="nc" id="L214">    HtmlElement object = new HtmlElement(&quot;object&quot;);</span>
+<span class="nc" id="L215">    object.setAttribute(&quot;type&quot;, ContentType.SWF);</span>
+<span class="nc" id="L216">    object.setAttribute(&quot;data&quot;, playerUrl);</span>
+<span class="nc" id="L217">    object.setAttribute(&quot;width&quot;, Long.toString(dimension.getWidth()));</span>
+<span class="nc" id="L218">    object.setAttribute(&quot;height&quot;, Long.toString(dimension.getHeight()));</span>
+
+    // get flashvars
+<span class="nc" id="L221">    Map&lt;String, String&gt; flashvars = new HashMap&lt;String, String&gt;();</span>
+<span class="nc" id="L222">    flashvars.put(&quot;src&quot;, renditionUrl);</span>
+<span class="nc" id="L223">    flashvars.putAll(getAdditionalFlashPlayerFlashVars(media, dimension));</span>
+
+    // get flash parameters
+<span class="nc" id="L226">    Map&lt;String, String&gt; parameters = new HashMap&lt;String, String&gt;();</span>
+<span class="nc" id="L227">    parameters.put(&quot;movie&quot;, playerUrl);</span>
+<span class="nc" id="L228">    parameters.put(&quot;flashvars&quot;, buildFlashVarsString(flashvars));</span>
+<span class="nc" id="L229">    parameters.putAll(getAdditionalFlashPlayerParameters(media, dimension));</span>
+
+    // set parameters on object element
+<span class="nc bnc" id="L232" title="All 2 branches missed.">    for (Map.Entry&lt;String, String&gt; entry : parameters.entrySet()) {</span>
+<span class="nc" id="L233">      HtmlElement param = object.create(&quot;param&quot;);</span>
+<span class="nc" id="L234">      param.setAttribute(&quot;name&quot;, entry.getKey());</span>
+<span class="nc" id="L235">      param.setAttribute(&quot;value&quot;, entry.getValue());</span>
+<span class="nc" id="L236">    }</span>
+
+<span class="nc" id="L238">    return object;</span>
+  }
+
+  /**
+   * Build flashvars string to be used on HTML object element for flash embedding.
+   * @param flashVars flashvars map
+   * @return flashvars string with proper encoding
+   * @deprecated Usage of flash for video player fallback is deprecated
+   */
+  @Deprecated
+  protected String buildFlashVarsString(Map&lt;String, String&gt; flashVars) {
+    try {
+<span class="nc" id="L250">      StringBuilder flashvarsString = new StringBuilder();</span>
+<span class="nc" id="L251">      Iterator&lt;Map.Entry&lt;String, String&gt;&gt; flashvarsIterator = flashVars.entrySet().iterator();</span>
+<span class="nc bnc" id="L252" title="All 2 branches missed.">      while (flashvarsIterator.hasNext()) {</span>
+<span class="nc" id="L253">        Map.Entry&lt;String, String&gt; entry = flashvarsIterator.next();</span>
+<span class="nc" id="L254">        flashvarsString.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8.name()));</span>
+<span class="nc" id="L255">        flashvarsString.append('=');</span>
+<span class="nc" id="L256">        flashvarsString.append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8.name()));</span>
+<span class="nc bnc" id="L257" title="All 2 branches missed.">        if (flashvarsIterator.hasNext()) {</span>
+<span class="nc" id="L258">          flashvarsString.append('&amp;');</span>
+        }
+<span class="nc" id="L260">      }</span>
+<span class="nc" id="L261">      return flashvarsString.toString();</span>
+    }
+<span class="nc" id="L263">    catch (UnsupportedEncodingException ex) {</span>
+<span class="nc" id="L264">      throw new RuntimeException(&quot;Unsupported encoding.&quot;, ex);</span>
+    }
+  }
+
+  /**
+   * Get additional parameters to be set as &amp;lt;param&amp;gt; elements on html object element for flash player.
+   * @param media Media metadata
+   * @param dimension Dimension
+   * @return Set of key/value pairs
+   */
+  protected Map&lt;String, String&gt; getAdditionalFlashPlayerParameters(Media media, Dimension dimension) {
+<span class="nc" id="L275">    Map&lt;String, String&gt; parameters = new HashMap&lt;String, String&gt;();</span>
+
+<span class="nc" id="L277">    parameters.put(&quot;allowFullScreen&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L278">    parameters.put(&quot;wmode&quot;, &quot;opaque&quot;);</span>
+
+<span class="nc" id="L280">    return parameters;</span>
+  }
+
+  /**
+   * Get additional parameters to be set as flashvars parameter on html object element for flash player.
+   * @param media Media metadata
+   * @param dimension Dimension
+   * @return Set of key/value pairs
+   */
+  protected Map&lt;String, String&gt; getAdditionalFlashPlayerFlashVars(Media media, Dimension dimension) {
+<span class="nc" id="L290">    Map&lt;String, String&gt; flashvars = new HashMap&lt;String, String&gt;();</span>
+
+<span class="nc" id="L292">    flashvars.put(&quot;autoPlay&quot;, &quot;false&quot;);</span>
+<span class="nc" id="L293">    flashvars.put(&quot;loop&quot;, &quot;false&quot;);</span>
+
+<span class="nc" id="L295">    return flashvars;</span>
+  }
+
+  @Override
+  public final boolean isValidMedia(@NotNull HtmlElement&lt;?&gt; element) {
+<span class="fc" id="L300">    return (element instanceof Video);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

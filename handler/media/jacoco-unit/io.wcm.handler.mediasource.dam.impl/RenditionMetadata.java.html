@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RenditionMetadata.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.impl</a> &gt; <span class="el_source">RenditionMetadata.java</span></div><h1>RenditionMetadata.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.impl;
+
+import static com.day.cq.dam.api.DamConstants.ORIGINAL_FILE;
+
+import java.io.InputStream;
+
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.sling.api.adapter.SlingAdaptable;
+import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.day.cq.dam.api.Rendition;
+import com.day.image.Layer;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.wcm.handler.media.Dimension;
+import io.wcm.handler.media.MediaFileType;
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.format.Ratio;
+import io.wcm.handler.media.impl.ImageFileServlet;
+import io.wcm.handler.media.impl.MediaFileServlet;
+import io.wcm.handler.mediasource.dam.AssetRendition;
+import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaPath;
+import io.wcm.wcm.commons.contenttype.FileExtension;
+
+/**
+ * Wrapper class for rendition metadata retrieved from DAM rendition filenames.
+ */
+class RenditionMetadata extends SlingAdaptable implements Comparable&lt;RenditionMetadata&gt; {
+
+  private final Rendition rendition;
+  private final String fileName;
+  private final String fileExtension;
+  private final long width;
+  private final long height;
+  private final boolean isVectorImage;
+  private MediaFormat mediaFormat;
+
+  /**
+   * @param rendition DAM rendition
+   */
+<span class="fc" id="L65">  RenditionMetadata(Rendition rendition) {</span>
+<span class="fc" id="L66">    this.rendition = rendition;</span>
+
+    // get filename and extension
+<span class="fc" id="L69">    this.fileName = AssetRendition.getFilename(rendition);</span>
+<span class="fc" id="L70">    this.fileExtension = FilenameUtils.getExtension(this.fileName);</span>
+<span class="fc" id="L71">    this.isVectorImage = MediaFileType.isVectorImage(this.fileExtension);</span>
+
+    // get image width/height
+<span class="fc" id="L74">    Dimension dimension = AssetRendition.getDimension(rendition);</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">    if (dimension != null) {</span>
+<span class="fc" id="L76">      this.width = dimension.getWidth();</span>
+<span class="fc" id="L77">      this.height = dimension.getHeight();</span>
+    }
+    else {
+<span class="fc" id="L80">      this.width = 0;</span>
+<span class="fc" id="L81">      this.height = 0;</span>
+    }
+<span class="fc" id="L83">  }</span>
+
+  /**
+   * @param value DAM rendition
+   * @return true if rendition is the original file that was uploaded initially
+   */
+  private boolean isOriginalRendition(Rendition value) {
+<span class="fc" id="L90">    return StringUtils.equals(value.getName(), ORIGINAL_FILE);</span>
+  }
+
+  /**
+   * @return True if rendition is a vector image
+   */
+  public boolean isVectorImage() {
+<span class="fc" id="L97">    return this.isVectorImage;</span>
+  }
+
+  /**
+   * @return DAM rendition
+   */
+  public Rendition getRendition() {
+<span class="fc" id="L104">    return this.rendition;</span>
+  }
+
+  /**
+   * @return File name
+   */
+  public String getFileName(boolean contentDispositionAttachment) {
+<span class="fc bfc" id="L111" title="All 2 branches covered.">    if (MediaFileType.isBrowserImage(getFileExtension())</span>
+<span class="fc bfc" id="L112" title="All 4 branches covered.">        || !MediaFileType.isImage(getFileExtension())</span>
+        || contentDispositionAttachment
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">        || isVectorImage()) {</span>
+<span class="fc" id="L115">      return this.fileName;</span>
+    }
+    else {
+<span class="fc" id="L118">      return ImageFileServlet.getImageFileName(this.fileName);</span>
+    }
+  }
+
+  /**
+   * @return File size
+   */
+  public long getFileSize() {
+<span class="nc" id="L126">    return this.rendition.getSize();</span>
+  }
+
+  /**
+   * @return File extension
+   */
+  public String getFileExtension() {
+<span class="fc" id="L133">    return this.fileExtension;</span>
+  }
+
+  /**
+   * @return Mime type
+   */
+  public String getMimeType() {
+<span class="fc" id="L140">    return this.rendition.getMimeType();</span>
+  }
+
+  /**
+   * @return Image width
+   */
+  public long getWidth() {
+<span class="fc" id="L147">    return this.width;</span>
+  }
+
+  /**
+   * @return Image height
+   */
+  public long getHeight() {
+<span class="fc" id="L154">    return this.height;</span>
+  }
+
+  /**
+   * @return Media format that matches with the resolved rendition. Null if no media format was specified for resolving.
+   */
+  public MediaFormat getMediaFormat() {
+<span class="fc" id="L161">    return this.mediaFormat;</span>
+  }
+
+  /**
+   * @param mediaFormat Media format that matches with the resolved rendition. Null if no media format was specified for
+   *          resolving.
+   */
+  public void setMediaFormat(MediaFormat mediaFormat) {
+<span class="fc" id="L169">    this.mediaFormat = mediaFormat;</span>
+<span class="fc" id="L170">  }</span>
+
+  /**
+   * @param contentDispositionAttachment Force content disposition download header.
+   * @return Media path (not externalized)
+   */
+  public @NotNull String getMediaPath(boolean contentDispositionAttachment) {
+<span class="fc bfc" id="L177" title="All 2 branches covered.">    if (contentDispositionAttachment) {</span>
+<span class="fc" id="L178">      return RenditionMetadata.buildMediaPath(getRendition().getPath() + &quot;.&quot; + MediaFileServlet.SELECTOR</span>
+          + &quot;.&quot; + MediaFileServlet.SELECTOR_DOWNLOAD
+<span class="fc" id="L180">          + &quot;.&quot; + MediaFileServlet.EXTENSION, getFileName(contentDispositionAttachment));</span>
+    }
+<span class="fc bfc" id="L182" title="All 4 branches covered.">    else if (MediaFileType.isBrowserImage(getFileExtension()) || !MediaFileType.isImage(getFileExtension())) {</span>
+      // use &quot;deep URL&quot; to reference rendition directly
+      // do not use Asset URL for original rendition because it creates conflicts for dispatcher cache (filename vs. directory for asset resource name)
+<span class="fc" id="L185">      return RenditionMetadata.buildMediaPath(this.rendition.getPath() + &quot;.&quot;, getFileName(contentDispositionAttachment));</span>
+    }
+    else {
+      // image rendition uses a file extension that cannot be displayed in browser directly - render via ImageFileServlet
+<span class="fc" id="L189">      return RenditionMetadata.buildMediaPath(getRendition().getPath() + &quot;.&quot; + ImageFileServlet.SELECTOR</span>
+<span class="fc" id="L190">          + &quot;.&quot; + getWidth() + &quot;.&quot; + getHeight()</span>
+<span class="fc" id="L191">          + &quot;.&quot; + MediaFileServlet.EXTENSION, getFileName(contentDispositionAttachment));</span>
+    }
+  }
+
+  /**
+   * Returns a dynamic media path part (object and further URL modifiers, the string after &quot;/is/image/&quot;).
+   * @param contentDispositionAttachment Force content disposition download header.
+   * @param damContext DAM context
+   * @return Dynamic media path part or null if dynamic media not supported for this rendition
+   */
+  public @Nullable String getDynamicMediaPath(boolean contentDispositionAttachment, DamContext damContext) {
+<span class="fc bfc" id="L202" title="All 2 branches covered.">    if (contentDispositionAttachment) {</span>
+      // do not use dynamic media for request forced with content disposition attachment
+<span class="fc" id="L204">      return null;</span>
+    }
+<span class="fc bfc" id="L206" title="All 2 branches covered.">    else if ((MediaFileType.isBrowserImage(getFileExtension())</span>
+<span class="fc bfc" id="L207" title="All 4 branches covered.">        &amp;&amp; (MediaFileType.isVectorImage(getFileExtension()) || StringUtils.equals(getFileExtension(), FileExtension.GIF)))</span>
+<span class="pc bpc" id="L208" title="1 of 2 branches missed.">        || !MediaFileType.isImage(getFileExtension())) {</span>
+      // do not use dynamic media for non-image requests or Vector/GIF images that can be displayed in browser directly
+      // (vector can be scaled in browser directly, GIF may be animated which is not supported by dynamic media)
+<span class="fc" id="L211">      return null;</span>
+    }
+    else {
+      // display original rendition with original file size - or image rendition that uses a file extension
+      // that cannot be displayed in browser directly - render via dynamic media
+<span class="fc" id="L216">      return DynamicMediaPath.build(damContext, getWidth(), getHeight());</span>
+    }
+  }
+
+  /**
+   * Checks if this rendition matches the given width/height.
+   * @param checkWidth Width
+   * @param checkHeight Height
+   * @return true if matches
+   */
+  public boolean matches(long checkWidth, long checkHeight) {
+<span class="fc bfc" id="L227" title="All 4 branches covered.">    if (checkWidth != 0 &amp;&amp; checkWidth != getWidth()) {</span>
+<span class="fc" id="L228">      return false;</span>
+    }
+<span class="fc bfc" id="L230" title="All 4 branches covered.">    if (checkHeight != 0 &amp;&amp; checkHeight != getHeight()) {</span>
+<span class="fc" id="L231">      return false;</span>
+    }
+<span class="fc" id="L233">    return true;</span>
+  }
+
+  /**
+   * Checks if this rendition matches the given width/height/ration restrictions.
+   * @param minWidth Min. width
+   * @param minHeight Min. height
+   * @param maxWidth Max. width
+   * @param maxHeight Max. height
+   * @param ratio Ratio
+   * @return true if matches
+   */
+  public boolean matches(long minWidth, long minHeight, long maxWidth, long maxHeight, double ratio) {
+<span class="fc bfc" id="L246" title="All 4 branches covered.">    if (minWidth &gt; 0 &amp;&amp; getWidth() &lt; minWidth) {</span>
+<span class="fc" id="L247">      return false;</span>
+    }
+<span class="fc bfc" id="L249" title="All 4 branches covered.">    if (minHeight &gt; 0 &amp;&amp; getHeight() &lt; minHeight) {</span>
+<span class="fc" id="L250">      return false;</span>
+    }
+<span class="fc bfc" id="L252" title="All 4 branches covered.">    if (maxWidth &gt; 0 &amp;&amp; getWidth() &gt; maxWidth) {</span>
+<span class="fc" id="L253">      return false;</span>
+    }
+<span class="fc bfc" id="L255" title="All 4 branches covered.">    if (maxHeight &gt; 0 &amp;&amp; getHeight() &gt; maxHeight) {</span>
+<span class="fc" id="L256">      return false;</span>
+    }
+<span class="fc bfc" id="L258" title="All 2 branches covered.">    if (ratio &gt; 0) {</span>
+<span class="fc" id="L259">      double renditionRatio = Ratio.get(getWidth(), getHeight());</span>
+<span class="fc bfc" id="L260" title="All 2 branches covered.">      if (!Ratio.matches(renditionRatio, ratio)) {</span>
+<span class="fc" id="L261">        return false;</span>
+      }
+    }
+<span class="fc" id="L264">    return true;</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="fc" id="L269">    return new HashCodeBuilder()</span>
+<span class="fc" id="L270">        .append(this.rendition.getPath())</span>
+<span class="fc" id="L271">        .hashCode();</span>
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+<span class="pc bpc" id="L276" title="2 of 4 branches missed.">    if (obj == null || obj.getClass() != this.getClass()) {</span>
+<span class="nc" id="L277">      return false;</span>
+    }
+<span class="fc" id="L279">    RenditionMetadata other = (RenditionMetadata)obj;</span>
+<span class="fc" id="L280">    return new EqualsBuilder()</span>
+<span class="fc" id="L281">        .append(this.rendition.getPath(), other.rendition.getPath())</span>
+<span class="fc" id="L282">        .build();</span>
+  }
+
+  @Override
+  public int compareTo(RenditionMetadata obj) {
+    // always prefer the virtual rendition
+<span class="fc" id="L288">    boolean thisIsVirtualRendition = this instanceof VirtualTransformedRenditionMetadata;</span>
+<span class="fc" id="L289">    boolean otherIsVirtualRendition = obj instanceof VirtualTransformedRenditionMetadata;</span>
+<span class="fc bfc" id="L290" title="All 4 branches covered.">    if (thisIsVirtualRendition &amp;&amp; !otherIsVirtualRendition) {</span>
+<span class="fc" id="L291">      return -2;</span>
+    }
+<span class="fc bfc" id="L293" title="All 4 branches covered.">    else if (otherIsVirtualRendition &amp;&amp; !thisIsVirtualRendition) {</span>
+<span class="fc" id="L294">      return 2;</span>
+    }
+
+    // always prefer original rendition
+<span class="fc" id="L298">    boolean thisIsOriginalRendition = isOriginalRendition(getRendition());</span>
+<span class="fc" id="L299">    boolean otherIsOriginalRendition = isOriginalRendition(obj.getRendition());</span>
+<span class="fc bfc" id="L300" title="All 4 branches covered.">    if (thisIsOriginalRendition &amp;&amp; !otherIsOriginalRendition) {</span>
+<span class="fc" id="L301">      return -1;</span>
+    }
+<span class="fc bfc" id="L303" title="All 4 branches covered.">    else if (otherIsOriginalRendition &amp;&amp; !thisIsOriginalRendition) {</span>
+<span class="fc" id="L304">      return 1;</span>
+    }
+
+    // order by width, height, rendition path
+<span class="fc" id="L308">    Long thisWidth = getWidth();</span>
+<span class="fc" id="L309">    Long otherWidth = obj.getWidth();</span>
+<span class="fc bfc" id="L310" title="All 2 branches covered.">    if (thisWidth.equals(otherWidth)) {</span>
+<span class="fc" id="L311">      Long thisHeight = getHeight();</span>
+<span class="fc" id="L312">      Long otherHeight = obj.getHeight();</span>
+<span class="fc bfc" id="L313" title="All 2 branches covered.">      if (thisHeight.equals(otherHeight)) {</span>
+<span class="fc" id="L314">        String thisPath = getRendition().getPath();</span>
+<span class="fc" id="L315">        String otherPath = obj.getRendition().getPath();</span>
+<span class="fc bfc" id="L316" title="All 2 branches covered.">        if (!StringUtils.equals(thisPath, otherPath)) {</span>
+          // same with/height - compare paths as last resort
+<span class="fc" id="L318">          return thisPath.compareTo(otherPath);</span>
+        }
+        else {
+<span class="fc" id="L321">          return 0;</span>
+        }
+      }
+      else {
+<span class="fc" id="L325">        return thisHeight.compareTo(otherHeight);</span>
+      }
+    }
+    else {
+<span class="fc" id="L329">      return thisWidth.compareTo(otherWidth);</span>
+    }
+  }
+
+  @SuppressWarnings(&quot;null&quot;)
+  @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
+  protected Layer getLayer() {
+<span class="pc bpc" id="L336" title="1 of 2 branches missed.">    if (MediaFileType.isImage(getFileExtension())) {</span>
+<span class="fc" id="L337">      return this.rendition.adaptTo(Resource.class).adaptTo(Layer.class);</span>
+    }
+    else {
+<span class="nc" id="L340">      return null;</span>
+    }
+  }
+
+  @SuppressWarnings(&quot;null&quot;)
+  @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
+  protected InputStream getInputStream() {
+<span class="fc" id="L347">    return this.rendition.adaptTo(Resource.class).adaptTo(InputStream.class);</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L352">    return this.rendition.getPath() + &quot; (&quot; + this.width + &quot;x&quot; + this.height + &quot;)&quot;;</span>
+  }
+
+  /**
+   * Build media path and suffix. The suffix is url-encoded.
+   * @param mediaPath Media path
+   * @param suffix Suffix
+   * @return Media path and suffix
+   */
+  static String buildMediaPath(String mediaPath, String suffix) {
+<span class="fc" id="L362">    return mediaPath + &quot;/&quot; + suffix;</span>
+  }
+
+  @Override
+  @SuppressWarnings(&quot;unchecked&quot;)
+  public &lt;AdapterType&gt; AdapterType adaptTo(Class&lt;AdapterType&gt; type) {
+<span class="fc bfc" id="L368" title="All 2 branches covered.">    if (type == Rendition.class) {</span>
+<span class="fc" id="L369">      return (AdapterType)this.rendition;</span>
+    }
+<span class="fc bfc" id="L371" title="All 2 branches covered.">    if (type == Resource.class) {</span>
+<span class="fc" id="L372">      return (AdapterType)this.rendition.adaptTo(Resource.class);</span>
+    }
+<span class="fc bfc" id="L374" title="All 2 branches covered.">    else if (type == Layer.class) {</span>
+<span class="fc" id="L375">      return (AdapterType)getLayer();</span>
+    }
+<span class="pc bpc" id="L377" title="1 of 2 branches missed.">    else if (type == InputStream.class) {</span>
+<span class="fc" id="L378">      return (AdapterType)getInputStream();</span>
+    }
+<span class="nc" id="L380">    return super.adaptTo(type);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

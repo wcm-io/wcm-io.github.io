@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MediaFileType.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media</a> &gt; <span class="el_source">MediaFileType.java</span></div><h1>MediaFileType.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media;
+
+import java.util.EnumSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+import com.google.common.collect.ImmutableSet;
+
+import io.wcm.wcm.commons.contenttype.ContentType;
+import io.wcm.wcm.commons.contenttype.FileExtension;
+
+/**
+ * File types supported by Media Handler.
+ */
+<span class="fc" id="L39">@ProviderType</span>
+public enum MediaFileType {
+
+  /**
+   * JPEG
+   */
+<span class="fc" id="L45">  JPEG(new String[] { ContentType.JPEG }, new String[] { FileExtension.JPEG, &quot;jpeg&quot; }),</span>
+
+  /**
+   * PNG
+   */
+<span class="fc" id="L50">  PNG(new String[] { ContentType.PNG }, new String[] { FileExtension.PNG }),</span>
+
+  /**
+   * GIF
+   */
+<span class="fc" id="L55">  GIF(new String[] { ContentType.GIF }, new String[] { FileExtension.GIF }),</span>
+
+  /**
+   * TIFF
+   */
+<span class="fc" id="L60">  TIFF(new String[] { ContentType.TIFF }, new String[] { FileExtension.TIFF, &quot;tiff&quot; }),</span>
+
+  /**
+   * SVG
+   */
+<span class="fc" id="L65">  SVG(new String[] { ContentType.SVG }, new String[] { FileExtension.SVG }),</span>
+
+  /**
+   * Flash
+   * @deprecated Flash support is deprecated
+   */
+<span class="fc" id="L71">  @Deprecated</span>
+  SWF(new String[] { ContentType.SWF }, new String[] { FileExtension.SWF });
+
+  private final Set&lt;String&gt; contentTypes;
+  private final Set&lt;String&gt; extensions;
+
+<span class="fc" id="L77">  MediaFileType(@NotNull String @NotNull [] contentTypes, @NotNull String @NotNull [] extensions) {</span>
+<span class="fc" id="L78">    this.contentTypes = ImmutableSet.copyOf(contentTypes);</span>
+<span class="fc" id="L79">    this.extensions = ImmutableSet.copyOf(extensions);</span>
+<span class="fc" id="L80">  }</span>
+
+  /**
+   * @return Content types
+   */
+  public Set&lt;String&gt; getContentTypes() {
+<span class="fc" id="L86">    return this.contentTypes;</span>
+  }
+
+  /**
+   * @return File extensions
+   */
+  public Set&lt;String&gt; getExtensions() {
+<span class="fc" id="L93">    return extensions;</span>
+  }
+
+  /**
+   * All file types that are supported by the Media Handler for rendering as image.
+   */
+<span class="fc" id="L99">  private static final EnumSet&lt;MediaFileType&gt; IMAGE_FILE_TYPES = EnumSet.of(</span>
+      GIF,
+      JPEG,
+      PNG,
+      TIFF,
+      SVG);
+
+  /**
+   * All file types that are supported by the browser for direct display.
+   */
+<span class="fc" id="L109">  private static final EnumSet&lt;MediaFileType&gt; BROWSER_IMAGE_FILE_TYPES = EnumSet.of(</span>
+      GIF,
+      JPEG,
+      PNG,
+      SVG);
+
+  /**
+   * All file types that are vector formats and can be scaled by the browser.
+   */
+<span class="fc" id="L118">  private static final EnumSet&lt;MediaFileType&gt; VECTOR_IMAGE_FILE_TYPES = EnumSet.of(</span>
+      SVG);
+
+  /**
+   * All file types that will be displayed as Flash.
+   */
+<span class="fc" id="L124">  private static final EnumSet&lt;MediaFileType&gt; FLASH_FILE_TYPES = EnumSet.of(</span>
+      SWF);
+
+  /**
+   * Check if the given file extension is supported by the Media Handler for rendering as image.
+   * @param fileExtension File extension
+   * @return true if image
+   */
+  public static boolean isImage(@Nullable String fileExtension) {
+<span class="fc" id="L133">    return isExtension(IMAGE_FILE_TYPES, fileExtension);</span>
+  }
+
+  /**
+   * @return Image file extensions supported by the Media Handler for rendering as image.
+   */
+  public static @NotNull Set&lt;String&gt; getImageFileExtensions() {
+<span class="fc" id="L140">    return getFileExtensions(IMAGE_FILE_TYPES);</span>
+  }
+
+  /**
+   * @return Image content types supported by the Media Handler for rendering as image.
+   */
+  public static @NotNull Set&lt;String&gt; getImageContentTypes() {
+<span class="fc" id="L147">    return getContentTypes(IMAGE_FILE_TYPES);</span>
+  }
+
+  /**
+   * Check if the given file extension is supported for direct display in a browser.
+   * @param fileExtension File extension
+   * @return true if image is supported in browsers
+   */
+  public static boolean isBrowserImage(@Nullable String fileExtension) {
+<span class="fc" id="L156">    return isExtension(BROWSER_IMAGE_FILE_TYPES, fileExtension);</span>
+  }
+
+  /**
+   * @return Image file extensions supported for direct display in a browser.
+   */
+  public static @NotNull Set&lt;String&gt; getBrowserImageFileExtensions() {
+<span class="fc" id="L163">    return getFileExtensions(BROWSER_IMAGE_FILE_TYPES);</span>
+  }
+
+  /**
+   * @return Image content types supported for direct display in a browser.
+   */
+  public static @NotNull Set&lt;String&gt; getBrowserImageContentTypes() {
+<span class="fc" id="L170">    return getContentTypes(BROWSER_IMAGE_FILE_TYPES);</span>
+  }
+
+  /**
+   * Check if the given file extension is a vector image file extension.
+   * @param fileExtension File extension
+   * @return true if image is a vector image.
+   */
+  public static boolean isVectorImage(@Nullable String fileExtension) {
+<span class="fc" id="L179">    return isExtension(VECTOR_IMAGE_FILE_TYPES, fileExtension);</span>
+  }
+
+  /**
+   * @return Image file extensions that are vector images.
+   */
+  public static @NotNull Set&lt;String&gt; getVectorImageFileExtensions() {
+<span class="fc" id="L186">    return getFileExtensions(VECTOR_IMAGE_FILE_TYPES);</span>
+  }
+
+  /**
+   * @return Image content types that are vector images.
+   */
+  public static @NotNull Set&lt;String&gt; getVectorImageContentTypes() {
+<span class="fc" id="L193">    return getContentTypes(VECTOR_IMAGE_FILE_TYPES);</span>
+  }
+
+  /**
+   * Check if the given file extension is an flash.
+   * @param fileExtension File extension
+   * @return true if flash
+   * @deprecated Flash support is deprecated
+   */
+  @Deprecated
+  public static boolean isFlash(@Nullable String fileExtension) {
+<span class="fc" id="L204">    return isExtension(FLASH_FILE_TYPES, fileExtension);</span>
+  }
+
+  /**
+   * @return Flash file extensions
+   * @deprecated Flash support is deprecated
+   */
+  @Deprecated
+  public static @NotNull Set&lt;String&gt; getFlashFileExtensions() {
+<span class="fc" id="L213">    return getFileExtensions(FLASH_FILE_TYPES);</span>
+  }
+
+  /**
+   * @return Flash content types
+   * @deprecated Flash support is deprecated
+   */
+  @Deprecated
+  public static @NotNull Set&lt;String&gt; getFlashContentTypes() {
+<span class="fc" id="L222">    return getContentTypes(FLASH_FILE_TYPES);</span>
+  }
+
+  private static Set&lt;String&gt; getContentTypes(@NotNull EnumSet&lt;MediaFileType&gt; fileTypes) {
+<span class="fc" id="L226">    return fileTypes.stream()</span>
+<span class="fc" id="L227">        .flatMap(type -&gt; type.getContentTypes().stream())</span>
+<span class="fc" id="L228">        .collect(Collectors.toSet());</span>
+  }
+
+  private static boolean isExtension(@NotNull EnumSet&lt;MediaFileType&gt; fileTypes, @Nullable String fileExtension) {
+<span class="fc bfc" id="L232" title="All 2 branches covered.">    if (StringUtils.isEmpty(fileExtension)) {</span>
+<span class="fc" id="L233">      return false;</span>
+    }
+<span class="fc" id="L235">    return fileTypes.stream()</span>
+<span class="fc" id="L236">        .filter(type -&gt; type.getExtensions().contains(StringUtils.lowerCase(fileExtension)))</span>
+<span class="fc" id="L237">        .findFirst().isPresent();</span>
+  }
+
+  private static Set&lt;String&gt; getFileExtensions(@NotNull EnumSet&lt;MediaFileType&gt; fileTypes) {
+<span class="fc" id="L241">    return fileTypes.stream()</span>
+<span class="fc" id="L242">        .flatMap(type -&gt; type.getExtensions().stream())</span>
+<span class="fc" id="L243">        .collect(Collectors.toSet());</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

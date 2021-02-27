@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RichTextHandlerImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RichText Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.richtext.impl</a> &gt; <span class="el_source">RichTextHandlerImpl.java</span></div><h1>RichTextHandlerImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.richtext.impl;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.adapter.Adaptable;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
+import org.apache.sling.models.annotations.injectorspecific.OSGiService;
+import org.apache.sling.models.annotations.injectorspecific.Self;
+import org.jdom2.Content;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.Text;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.wcm.api.Page;
+import com.google.common.collect.ImmutableList;
+
+import io.wcm.handler.richtext.RichText;
+import io.wcm.handler.richtext.RichTextBuilder;
+import io.wcm.handler.richtext.RichTextHandler;
+import io.wcm.handler.richtext.RichTextNameConstants;
+import io.wcm.handler.richtext.RichTextRequest;
+import io.wcm.handler.richtext.TextMode;
+import io.wcm.handler.richtext.spi.RichTextHandlerConfig;
+import io.wcm.handler.richtext.util.RewriteContentHandler;
+import io.wcm.handler.richtext.util.RichTextUtil;
+import io.wcm.sling.commons.caservice.ContextAwareServiceResolver;
+import io.wcm.sling.models.annotations.AemObject;
+
+/**
+ * Default implementation of {@link RichTextHandler}.
+ */
+@Model(adaptables = {
+    SlingHttpServletRequest.class, Resource.class
+}, adapters = RichTextHandler.class)
+<span class="fc" id="L62">public final class RichTextHandlerImpl implements RichTextHandler {</span>
+
+<span class="fc" id="L64">  static final Logger log = LoggerFactory.getLogger(RichTextHandlerImpl.class);</span>
+
+  @Self
+  private Adaptable adaptable;
+  @AemObject(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private Page currentPage;
+  @OSGiService
+  private ContextAwareServiceResolver serviceResolver;
+
+  private List&lt;RewriteContentHandler&gt; rewriteContentHandlers;
+
+  @Override
+  public @NotNull RichTextBuilder get(Resource resource) {
+<span class="fc" id="L77">    return new RichTextBuilderImpl(resource, this);</span>
+  }
+
+  @Override
+  public @NotNull RichTextBuilder get(String text) {
+<span class="fc" id="L82">    return new RichTextBuilderImpl(text, this);</span>
+  }
+
+  @NotNull
+  RichText processRequest(@NotNull RichTextRequest richTextRequest) {
+<span class="fc" id="L87">    String text = getRawText(richTextRequest);</span>
+<span class="fc" id="L88">    TextMode textMode = getTextMode(richTextRequest);</span>
+
+    List&lt;Content&gt; content;
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (textMode == TextMode.XHTML) {</span>
+<span class="fc" id="L92">      content = processRichText(text);</span>
+    }
+    else {
+<span class="fc" id="L95">      content = processPlainText(text);</span>
+    }
+
+<span class="fc" id="L98">    return new RichText(richTextRequest, content);</span>
+  }
+
+  private String getRawText(RichTextRequest richTextRequest) {
+<span class="fc bfc" id="L102" title="All 2 branches covered.">    if (richTextRequest.getResource() != null) {</span>
+<span class="fc" id="L103">      return richTextRequest.getResourceProperties().get(RichTextNameConstants.PN_TEXT, String.class);</span>
+    }
+    else {
+<span class="fc" id="L106">      return richTextRequest.getText();</span>
+    }
+  }
+
+  private TextMode getTextMode(RichTextRequest richTextRequest) {
+<span class="fc bfc" id="L111" title="All 2 branches covered.">    if (richTextRequest.getTextMode() != null) {</span>
+<span class="fc" id="L112">      return richTextRequest.getTextMode();</span>
+    }
+<span class="fc bfc" id="L114" title="All 2 branches covered.">    else if (richTextRequest.getResource() != null) {</span>
+<span class="fc" id="L115">      boolean textIsRich = richTextRequest.getResourceProperties().get(RichTextNameConstants.PN_TEXT_IS_RICH, true);</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">      return textIsRich ? TextMode.XHTML : TextMode.PLAIN;</span>
+    }
+    else {
+<span class="fc" id="L119">      return TextMode.XHTML;</span>
+    }
+  }
+
+  private List&lt;Content&gt; processRichText(String text) {
+<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (isEmpty(text)) {</span>
+<span class="fc" id="L125">      return ImmutableList.of();</span>
+    }
+
+    // Parse text
+    try {
+<span class="fc" id="L130">      Element contentParent = RichTextUtil.parseText(text, true);</span>
+
+      // Rewrite content (e.g. anchor tags)
+<span class="fc" id="L133">      List&lt;RewriteContentHandler&gt; rewriters = getRewriterContentHandlers();</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">      for (RewriteContentHandler rewriter : rewriters) {</span>
+<span class="fc" id="L135">        RichTextUtil.rewriteContent(contentParent, rewriter);</span>
+<span class="fc" id="L136">      }</span>
+
+      // return xhtml elements
+<span class="fc" id="L139">      return ImmutableList.copyOf(contentParent.cloneContent());</span>
+    }
+<span class="fc" id="L141">    catch (JDOMException ex) {</span>
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">      if (log.isDebugEnabled()) {</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">        log.debug(&quot;Unable to parse XHTML text.&quot;</span>
+<span class="nc" id="L144">            + (currentPage != null ? &quot; Current page is &quot; + currentPage.getPath() + &quot;.&quot; : &quot;&quot;), ex);</span>
+      }
+<span class="fc" id="L146">      return ImmutableList.of();</span>
+    }
+  }
+
+  private List&lt;Content&gt; processPlainText(String text) {
+<span class="fc bfc" id="L151" title="All 2 branches covered.">    if (StringUtils.isBlank(text)) {</span>
+<span class="fc" id="L152">      return ImmutableList.of();</span>
+    }
+
+<span class="fc" id="L155">    List&lt;Content&gt; content = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L156">    String[] lines = StringUtils.splitByWholeSeparatorPreserveAllTokens(text, &quot;\n&quot;);</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">    for (int i = 0; i &lt; lines.length; i++) {</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">      if (i &gt; 0) {</span>
+<span class="fc" id="L159">        content.add(new Element(&quot;br&quot;));</span>
+      }
+<span class="fc" id="L161">      content.add(new Text(lines[i]));</span>
+    }
+
+<span class="fc" id="L164">    return ImmutableList.copyOf(content);</span>
+  }
+
+  @Override
+  public boolean isEmpty(String text) {
+<span class="fc" id="L169">    return RichTextUtil.isEmpty(text);</span>
+  }
+
+  private List&lt;RewriteContentHandler&gt; getRewriterContentHandlers() {
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">    if (rewriteContentHandlers == null) {</span>
+<span class="fc" id="L174">      RichTextHandlerConfig config = serviceResolver.resolve(RichTextHandlerConfig.class, adaptable);</span>
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">      if (config != null) {</span>
+<span class="fc" id="L176">        rewriteContentHandlers = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        for (Class&lt;? extends RewriteContentHandler&gt; clazz : config.getRewriteContentHandlers()) {</span>
+<span class="fc" id="L178">          RewriteContentHandler rewriter = adaptable.adaptTo(clazz);</span>
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">          if (rewriter == null) {</span>
+<span class="nc" id="L180">            throw new RuntimeException(&quot;Unable to adapt &quot; + adaptable.getClass() + &quot; to &quot; + clazz.getName() + &quot;. &quot;</span>
+                + &quot;Make sure the class is a Sling Model and adaptable from Resource and SlingHttpServletRequest.&quot;);
+          }
+<span class="fc" id="L183">          rewriteContentHandlers.add(rewriter);</span>
+<span class="fc" id="L184">        }</span>
+      }
+    }
+<span class="fc" id="L187">    return rewriteContentHandlers;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

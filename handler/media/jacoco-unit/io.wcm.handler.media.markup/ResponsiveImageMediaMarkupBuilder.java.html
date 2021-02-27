@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResponsiveImageMediaMarkupBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.markup</a> &gt; <span class="el_source">ResponsiveImageMediaMarkupBuilder.java</span></div><h1>ResponsiveImageMediaMarkupBuilder.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.markup;
+
+import java.util.Collection;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.commons.json.JSONArray;
+import org.apache.sling.commons.json.JSONException;
+import org.apache.sling.commons.json.JSONObject;
+import org.apache.sling.models.annotations.Model;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ConsumerType;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.wcm.handler.commons.dom.HtmlElement;
+import io.wcm.handler.commons.dom.Image;
+import io.wcm.handler.media.Asset;
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.MediaNameConstants;
+import io.wcm.handler.media.Rendition;
+import io.wcm.handler.media.format.MediaFormat;
+
+/**
+ * Builds image element with data attribute containing sources for responsive image.
+ * This builder uses non-HTML5 standard markup and is therefore deprecated.
+ * @deprecated Use responsive image handling methods for image sizes and picture sources from MediaBuilder
+ *             together with {@link SimpleImageMediaMarkupBuilder}.
+ */
+@Model(adaptables = {
+    SlingHttpServletRequest.class, Resource.class
+})
+@ConsumerType
+@Deprecated
+<span class="fc" id="L54">public class ResponsiveImageMediaMarkupBuilder extends AbstractImageMediaMarkupBuilder {</span>
+
+  /**
+   * Data attribute name for responsive image sources.
+   */
+  static final String PROP_RESPONSIVE_SOURCES = &quot;resp-src&quot;;
+
+  /**
+   * Property name for image URL
+   */
+  static final String PROP_SRC = &quot;src&quot;;
+
+  @Override
+  public final boolean accepts(@NotNull Media media) {
+<span class="fc bfc" id="L68" title="All 2 branches covered.">    return media.getMediaRequest().getMediaArgs().isMediaFormatsMandatory()</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">        &amp;&amp; media.getRendition() != null</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        &amp;&amp; media.getRenditions().size() &gt; 1</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        &amp;&amp; media.isValid();</span>
+  }
+
+  @Override
+  public final HtmlElement&lt;?&gt; build(@NotNull Media media) {
+<span class="fc" id="L76">    HtmlElement&lt;?&gt; mediaElement = getImageElement(media);</span>
+
+    // set responsive image sources
+<span class="fc" id="L79">    JSONArray sources = getResponsiveImageSources(media);</span>
+<span class="fc" id="L80">    setResponsiveImageSource(mediaElement, sources, media);</span>
+
+    // set additional attributes
+<span class="fc" id="L83">    setAdditionalAttributes(mediaElement, media);</span>
+
+    // further processing in edit or preview mode
+<span class="fc" id="L86">    applyWcmMarkup(mediaElement, media);</span>
+
+<span class="fc" id="L88">    return mediaElement;</span>
+  }
+
+  /**
+   * Create an IMG element with alt text.
+   * @param media Media metadata
+   * @return IMG element with properties
+   */
+  protected HtmlElement&lt;?&gt; getImageElement(Media media) {
+<span class="fc" id="L97">    Image img = new Image();</span>
+
+    // Alternative text
+<span class="fc" id="L100">    Asset asset = media.getAsset();</span>
+<span class="fc" id="L101">    String altText = null;</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">    if (asset != null) {</span>
+<span class="fc" id="L103">      altText = asset.getAltText();</span>
+    }
+<span class="fc bfc" id="L105" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(altText)) {</span>
+<span class="fc" id="L106">      img.setAlt(altText);</span>
+    }
+
+<span class="fc" id="L109">    return img;</span>
+  }
+
+  /**
+   * Collect responsive JSON metadata for all renditions as image sources.
+   * @param media Media
+   * @return JSON metadata
+   */
+  protected JSONArray getResponsiveImageSources(Media media) {
+<span class="fc" id="L118">    Collection&lt;Rendition&gt; renditions = media.getRenditions();</span>
+<span class="fc" id="L119">    JSONArray sources = new JSONArray();</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">    for (Rendition rendition : renditions) {</span>
+<span class="fc" id="L121">      sources.put(toReponsiveImageSource(media, rendition));</span>
+<span class="fc" id="L122">    }</span>
+<span class="fc" id="L123">    return sources;</span>
+  }
+
+  /**
+   * Build JSON metadata for one rendition as image source.
+   * @param media Media
+   * @param rendition Rendition
+   * @return JSON metadata
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  @SuppressFBWarnings(&quot;STYLE&quot;)
+  protected JSONObject toReponsiveImageSource(Media media, Rendition rendition) {
+    try {
+<span class="fc" id="L136">      JSONObject source = new JSONObject();</span>
+<span class="fc" id="L137">      MediaFormat mediaFormat = rendition.getMediaFormat();</span>
+<span class="fc" id="L138">      source.put(MediaNameConstants.PROP_BREAKPOINT, mediaFormat.getProperties().get(MediaNameConstants.PROP_BREAKPOINT));</span>
+<span class="fc" id="L139">      source.put(PROP_SRC, rendition.getUrl());</span>
+<span class="fc" id="L140">      return source;</span>
+    }
+<span class="nc" id="L142">    catch (JSONException ex) {</span>
+<span class="nc" id="L143">      throw new RuntimeException(&quot;Error building JSON source.&quot;, ex);</span>
+    }
+  }
+
+  /**
+   * Set attribute on media element for responsive image sources
+   * @param mediaElement Media element
+   * @param responsiveImageSources Responsive image sources JSON metadata
+   * @param media Media
+   */
+  protected void setResponsiveImageSource(HtmlElement&lt;?&gt; mediaElement, JSONArray responsiveImageSources, Media media) {
+<span class="fc" id="L154">    mediaElement.setData(PROP_RESPONSIVE_SOURCES, responsiveImageSources.toString());</span>
+<span class="fc" id="L155">  }</span>
+
+  @Override
+  public final boolean isValidMedia(@NotNull HtmlElement&lt;?&gt; element) {
+<span class="fc bfc" id="L159" title="All 2 branches covered.">    if (element instanceof Image) {</span>
+<span class="fc" id="L160">      Image img = (Image)element;</span>
+      // if it's a responsive image, we don't need the src attribute set
+<span class="fc bfc" id="L162" title="All 2 branches covered.">      return imageSourceIsNotEmpty(img)</span>
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">          &amp;&amp; !StringUtils.contains(img.getCssClass(), MediaNameConstants.CSS_DUMMYIMAGE);</span>
+    }
+<span class="fc" id="L165">    return false;</span>
+  }
+
+  private boolean imageSourceIsNotEmpty(Image img) {
+<span class="fc" id="L169">    String imageSources = img.getData(PROP_RESPONSIVE_SOURCES);</span>
+<span class="fc" id="L170">    return StringUtils.isNotBlank(imageSources);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

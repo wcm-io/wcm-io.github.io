@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DummyImageServlet.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.impl</a> &gt; <span class="el_source">DummyImageServlet.java</span></div><h1>DummyImageServlet.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.impl;
+
+import java.awt.Color;
+import java.io.IOException;
+
+import javax.jcr.RepositoryException;
+import javax.servlet.Servlet;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Component;
+
+import com.day.cq.wcm.commons.AbstractImageServlet;
+import com.day.image.Font;
+import com.day.image.Layer;
+import com.day.image.font.AbstractFont;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.wcm.handler.url.suffix.SuffixParser;
+import io.wcm.wcm.commons.contenttype.FileExtension;
+
+/**
+ * Servlet which is used to render a dummy image with information about the size of the image and media format.
+ * Note: most of the values used for scaling are the result of experiments, how the image looks nice.
+ */
+@Component(service = Servlet.class, immediate = true, property = {
+    &quot;sling.servlet.extensions=&quot; + FileExtension.PNG,
+    &quot;sling.servlet.resourceTypes=/apps/wcm-io/handler/media/components/dummyImage&quot;
+})
+<span class="fc" id="L51">public final class DummyImageServlet extends AbstractImageServlet {</span>
+  private static final long serialVersionUID = 1L;
+
+  /**
+   * Dummy image content path
+   */
+  public static final @NotNull String PATH = &quot;/apps/wcm-io/handler/media/content/dummyImage&quot;;
+
+  /**
+   * Suffix for width
+   */
+  public static final @NotNull String SUFFIX_WIDTH = &quot;width&quot;;
+
+  /**
+   * Suffix for height
+   */
+  public static final @NotNull String SUFFIX_HEIGHT = &quot;height&quot;;
+
+  /**
+   * Suffix for Name of mediaformat (optional)
+   */
+  public static final @NotNull String SUFFIX_MEDIA_FORMAT_NAME = &quot;mf&quot;;
+
+  @SuppressWarnings(&quot;null&quot;)
+  @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
+  @Override
+  protected Layer createLayer(ImageContext ctx) throws RepositoryException, IOException {
+<span class="fc" id="L78">    SuffixParser parser = new SuffixParser(ctx.request);</span>
+<span class="fc" id="L79">    int width = parser.get(SUFFIX_WIDTH, 0);</span>
+<span class="fc" id="L80">    int height = parser.get(SUFFIX_HEIGHT, 0);</span>
+<span class="fc" id="L81">    String name = parser.get(SUFFIX_MEDIA_FORMAT_NAME, String.class);</span>
+
+    // validate with/height
+<span class="pc bpc" id="L84" title="1 of 4 branches missed.">    if (width &lt; 1 || height &lt; 1) {</span>
+<span class="fc" id="L85">      return new Layer(1, 1, null);</span>
+    }
+
+<span class="fc" id="L88">    Layer textLayer = getTextLayer(width, height, name);</span>
+
+<span class="fc" id="L90">    int x = (width - textLayer.getWidth()) / 2;</span>
+<span class="fc" id="L91">    int y = (height - textLayer.getHeight()) / 2;</span>
+
+<span class="fc" id="L93">    Layer layer = new Layer(width, height, Color.GRAY);</span>
+
+    // we now build a grey box for the text which is slightly bigger than the text
+<span class="fc" id="L96">    int backgroundOffset = width / 120;</span>
+<span class="fc" id="L97">    Layer textBackground = new Layer(textLayer.getWidth() + (backgroundOffset * 2), textLayer.getHeight() + (backgroundOffset * 2), Color.DARK_GRAY);</span>
+<span class="fc" id="L98">    layer.blit(textBackground, x - backgroundOffset, y - backgroundOffset, textBackground.getWidth(), textBackground.getHeight(), 0, 0);</span>
+
+    // now we can add the text
+<span class="fc" id="L101">    layer.blit(textLayer, x, y, textLayer.getWidth(), textLayer.getHeight(), 0, 0);</span>
+<span class="fc" id="L102">    return layer;</span>
+  }
+
+  private Layer getTextLayer(int width, int height, String name) {
+<span class="fc bfc" id="L106" title="All 2 branches covered.">    String text = (StringUtils.isNotEmpty(name) ? name + &quot;\n&quot; : &quot;&quot;)</span>
+        + width + &quot; x &quot; + height;
+<span class="fc" id="L108">    Font font = new Font(&quot;Arial&quot;, width / 30);</span>
+<span class="fc" id="L109">    int align = AbstractFont.ALIGN_BASE | AbstractFont.ALIGN_CENTER | AbstractFont.TTANTIALIASED;</span>
+<span class="fc" id="L110">    Layer ret = new Layer(1, 1, null);</span>
+<span class="fc" id="L111">    ret.setPaint(Color.WHITE);</span>
+<span class="fc" id="L112">    ret.drawText(0, 0, 0, 0, text, font, align, 0, 0);</span>
+<span class="fc" id="L113">    return ret;</span>
+  }
+
+  @Override
+  protected boolean checkModifiedSince(SlingHttpServletRequest pReq, SlingHttpServletResponse pResp) {
+<span class="fc" id="L118">    return false;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

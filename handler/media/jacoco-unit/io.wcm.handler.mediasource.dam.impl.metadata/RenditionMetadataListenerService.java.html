@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RenditionMetadataListenerService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.impl.metadata</a> &gt; <span class="el_source">RenditionMetadataListenerService.java</span></div><h1>RenditionMetadataListenerService.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.impl.metadata;
+
+import static com.day.cq.dam.api.DamConstants.ORIGINAL_FILE;
+
+import java.util.EnumSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.util.Text;
+import org.apache.sling.api.resource.LoginException;
+import org.apache.sling.api.resource.PersistenceException;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.settings.SlingSettingsService;
+import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.event.Event;
+import org.osgi.service.event.EventConstants;
+import org.osgi.service.event.EventHandler;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.dam.api.DamEvent;
+import com.day.cq.dam.api.DamEvent.Type;
+import com.day.cq.dam.api.handler.store.AssetStore;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import io.wcm.handler.media.MediaFileType;
+import io.wcm.wcm.commons.util.RunMode;
+
+/**
+ * Background service that extracts additional metadata like width and height for DAM renditions.
+ */
+@Component(service = EventHandler.class, immediate = true,
+    // define explicit PID which was the old location of the implementation class
+    configurationPid = &quot;io.wcm.handler.mediasource.dam.impl.DamRenditionMetadataService&quot;,
+    property = {
+        EventConstants.EVENT_TOPIC + &quot;=&quot; + DamEvent.EVENT_TOPIC
+    })
+@Designate(ocd = RenditionMetadataListenerService.Config.class)
+<span class="fc" id="L72">public final class RenditionMetadataListenerService implements EventHandler {</span>
+
+  @ObjectClassDefinition(
+      name = &quot;wcm.io Media Handler Rendition Metadata Service&quot;,
+      description = &quot;Extracts additional metadata like width and height for AEM asset renditions.&quot;)
+  static @interface Config {
+
+    @AttributeDefinition(name = &quot;Enabled&quot;, description = &quot;Switch to enable or disable this service.&quot;)
+    boolean enabled() default true;
+
+    @AttributeDefinition(name = &quot;Allowed run mode(s)&quot;, description = &quot;Run modes this service is allowed on. &quot;
+        + &quot;The service is disabled if the run mode does not match.&quot;)
+    String[] allowedRunMode() default RunMode.AUTHOR;
+
+    @AttributeDefinition(name = &quot;Thread pool size&quot;, description = &quot;Size of threads in pool that is used to process &quot;
+        + &quot;asset rendition events asynchronously. &quot;
+        + &quot;Setting it to 0 disables asynchronous processing completely (not recommended for production environments).&quot;)
+    int threadPoolSize() default 10;
+
+  }
+
+  private static final int REMOVE_EVENT_EXECUTION_DELAY_SECONDS = 10;
+  private static final int MAX_RETRY_COUNT = 3;
+  private static final int RETRY_DELAY_SECONDS = 5;
+  private static final String SERVICEUSER_SUBSERVICE = &quot;dam-rendition-metadata&quot;;
+
+<span class="fc" id="L98">  private static final EnumSet&lt;DamEvent.Type&gt; SUPPORTED_EVENT_TYPES = EnumSet.of(DamEvent.Type.RENDITION_UPDATED, DamEvent.Type.RENDITION_REMOVED);</span>
+<span class="fc" id="L99">  private static final Logger log = LoggerFactory.getLogger(RenditionMetadataListenerService.class);</span>
+
+  private boolean enabled;
+  private boolean synchronousProcessing;
+
+  @Reference
+  private ResourceResolverFactory resourceResolverFactory;
+  @Reference
+  private SlingSettingsService slingSettings;
+  @Reference
+  private AssetSynchonizationService assetSynchronizationService;
+  @Reference
+  private AssetStore assetStore;
+
+  private ScheduledExecutorService executorService;
+
+  @Activate
+  @SuppressWarnings(&quot;deprecation&quot;)
+  private void activate(ComponentContext componentContext, Config config) {
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (config.enabled()) {</span>
+<span class="pc bpc" id="L119" title="1 of 4 branches missed.">      if (config.allowedRunMode() != null &amp;&amp; config.allowedRunMode().length &gt; 0) {</span>
+        // Activate only if configured run modes are met
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        this.enabled = !RunMode.disableIfNoRunModeActive(slingSettings.getRunModes(), config.allowedRunMode(), componentContext, log);</span>
+      }
+      else {
+<span class="fc" id="L124">        this.enabled = true;</span>
+      }
+    }
+    else {
+<span class="fc" id="L128">      this.enabled = false;</span>
+    }
+<span class="fc bfc" id="L130" title="All 2 branches covered.">    this.synchronousProcessing = config.threadPoolSize() &lt;= 0;</span>
+<span class="pc bpc" id="L131" title="1 of 4 branches missed.">    if (this.enabled &amp;&amp; !this.synchronousProcessing) {</span>
+<span class="nc" id="L132">      this.executorService = Executors.newScheduledThreadPool(config.threadPoolSize(),</span>
+<span class="nc" id="L133">          new ThreadFactoryBuilder().setNameFormat(getClass().getSimpleName() + &quot;-%d&quot;).build());</span>
+    }
+<span class="fc" id="L135">  }</span>
+
+  @Deactivate
+  private void deactivate() {
+<span class="fc" id="L139">    this.enabled = false;</span>
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">    if (executorService != null) {</span>
+<span class="nc" id="L141">      executorService.shutdown();</span>
+      try {
+<span class="nc" id="L143">        executorService.awaitTermination(10, TimeUnit.SECONDS);</span>
+      }
+<span class="nc" id="L145">      catch (InterruptedException ex) {</span>
+        // ignore
+<span class="nc" id="L147">      }</span>
+<span class="nc" id="L148">      executorService = null;</span>
+    }
+<span class="fc" id="L150">  }</span>
+
+  @Override
+  public void handleEvent(Event event) {
+<span class="pc bpc" id="L154" title="1 of 4 branches missed.">    if (!enabled || !StringUtils.equals(event.getTopic(), DamEvent.EVENT_TOPIC)) {</span>
+<span class="fc" id="L155">      return;</span>
+    }
+<span class="fc" id="L157">    DamEvent damEvent = DamEvent.fromEvent(event);</span>
+    // process only rendition-related events
+<span class="fc bfc" id="L159" title="All 2 branches covered.">    if (SUPPORTED_EVENT_TYPES.contains(damEvent.getType())) {</span>
+<span class="fc" id="L160">      handleDamEvent(damEvent);</span>
+    }
+<span class="fc" id="L162">  }</span>
+
+  /**
+   * Handle dam event if certain conditions are fulfilled.
+   * @param event DAM event
+   */
+  private void handleDamEvent(DamEvent event) {
+    // make sure rendition file extension is an image extensions
+<span class="fc" id="L170">    String renditionPath = event.getAdditionalInfo();</span>
+<span class="fc" id="L171">    String renditionNodeName = Text.getName(renditionPath);</span>
+<span class="fc" id="L172">    boolean isOriginal = StringUtils.equals(renditionNodeName, ORIGINAL_FILE);</span>
+<span class="fc" id="L173">    String fileExtension = FilenameUtils.getExtension(renditionNodeName);</span>
+<span class="fc bfc" id="L174" title="All 4 branches covered.">    if (!(isOriginal || MediaFileType.isImage(fileExtension))) {</span>
+<span class="fc" id="L175">      return;</span>
+    }
+
+<span class="fc" id="L178">    RenditionMetadataEvent runnable = new RenditionMetadataEvent(event.getAssetPath(),</span>
+<span class="fc" id="L179">        renditionPath, event.getType());</span>
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">    if (synchronousProcessing) {</span>
+      // execute directly in synchronous mode (e.g. for unit tests)
+<span class="fc" id="L182">      runnable.run();</span>
+    }
+    else {
+      // decouple event processing from listener to avoid timeouts
+<span class="nc" id="L186">      executorService.schedule(runnable, runnable.getDelaySeconds(), TimeUnit.SECONDS);</span>
+    }
+<span class="fc" id="L188">  }</span>
+
+  private final class RenditionMetadataEvent implements Runnable {
+
+    private final String assetPath;
+    private final String renditionPath;
+    private final DamEvent.Type eventType;
+
+    private int retryCount;
+
+<span class="fc" id="L198">    RenditionMetadataEvent(String assetPath, String renditionPath, Type eventType) {</span>
+<span class="fc" id="L199">      this.assetPath = assetPath;</span>
+<span class="fc" id="L200">      this.renditionPath = renditionPath;</span>
+<span class="fc" id="L201">      this.eventType = eventType;</span>
+<span class="fc" id="L202">    }</span>
+
+    private int getDelaySeconds() {
+<span class="nc bnc" id="L205" title="All 2 branches missed.">      if (eventType == DamEvent.Type.RENDITION_REMOVED) {</span>
+        // delay event handling in case of removed event for some time to avoid repository conflicts
+        // e.g. when new packages with sample content are installed remove and udpate events
+        // are quickly fired after another
+<span class="nc" id="L209">        return REMOVE_EVENT_EXECUTION_DELAY_SECONDS;</span>
+      }
+      else {
+<span class="nc" id="L212">        return 0;</span>
+      }
+    }
+
+    @Override
+    public void run() {
+      // process event synchronized per asset path
+<span class="fc" id="L219">      Lock lock = assetSynchronizationService.getLock(assetPath);</span>
+<span class="fc" id="L220">      lock.lock();</span>
+
+<span class="fc" id="L222">      ResourceResolver serviceResourceResolver = null;</span>
+      try {
+        // open service user session for reading/writing rendition metadata
+<span class="fc" id="L225">        serviceResourceResolver = resourceResolverFactory</span>
+<span class="fc" id="L226">            .getServiceResourceResolver(ImmutableMap.of(ResourceResolverFactory.SUBSERVICE, SERVICEUSER_SUBSERVICE));</span>
+
+        // make sure asset resource exists
+<span class="fc" id="L229">        Resource assetResource = serviceResourceResolver.getResource(assetPath);</span>
+<span class="fc bfc" id="L230" title="All 2 branches covered.">        if (assetResource == null) {</span>
+<span class="fc" id="L231">          log.debug(&quot;Unable to read asset at {} with user {}&quot;, assetPath, serviceResourceResolver.getUserID());</span>
+<span class="fc" id="L232">          return;</span>
+        }
+
+<span class="fc bfc" id="L235" title="All 2 branches covered.">        if (eventType == DamEvent.Type.RENDITION_UPDATED) {</span>
+<span class="fc" id="L236">          renditionAddedOrUpdated(serviceResourceResolver);</span>
+        }
+<span class="pc bpc" id="L238" title="1 of 2 branches missed.">        else if (eventType == DamEvent.Type.RENDITION_REMOVED) {</span>
+<span class="fc" id="L239">          renditionRemoved(serviceResourceResolver);</span>
+        }
+      }
+<span class="nc" id="L242">      catch (PersistenceException ex) {</span>
+        // in case of persistence exception retry execution some times later
+<span class="nc" id="L244">        this.retryCount++;</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        if (this.retryCount &gt;= MAX_RETRY_COUNT) {</span>
+          // retried too often - log as error
+<span class="nc" id="L247">          log.error(&quot;Failed after {} attempts: {}&quot;, this.retryCount, ex.getMessage(), ex);</span>
+        }
+        else {
+<span class="nc" id="L250">          log.debug(&quot;Failed {} attempt(s), retry: {}&quot;, this.retryCount, ex.getMessage(), ex);</span>
+<span class="nc" id="L251">          executorService.schedule(this, RETRY_DELAY_SECONDS, TimeUnit.SECONDS);</span>
+        }
+      }
+<span class="nc" id="L254">      catch (LoginException ex) {</span>
+<span class="nc" id="L255">        log.error(&quot;Missing service user mapping for 'io.wcm.handler.media:dam-rendition-metadata' - see https://wcm.io/handler/media/configuration.html&quot;, ex);</span>
+      }
+      finally {
+<span class="fc" id="L258">        lock.unlock();</span>
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">        if (serviceResourceResolver != null) {</span>
+<span class="fc" id="L260">          serviceResourceResolver.close();</span>
+        }
+      }
+<span class="fc" id="L263">    }</span>
+
+    /**
+     * Create or update rendition metadata if rendition is created or updated.
+     * @throws PersistenceException Persistence exception
+     */
+    private void renditionAddedOrUpdated(ResourceResolver resolver) throws PersistenceException {
+<span class="fc" id="L270">      log.trace(&quot;Process rendition added/updated event: {}&quot;, renditionPath);</span>
+<span class="fc" id="L271">      RenditionMetadataGenerator generator = new RenditionMetadataGenerator(resolver, assetStore);</span>
+<span class="fc" id="L272">      generator.renditionAddedOrUpdated(renditionPath);</span>
+<span class="fc" id="L273">    }</span>
+
+    /**
+     * Remove rendition metadata node if rendition is removed.
+     * @throws PersistenceException Persistence exception
+     */
+    private void renditionRemoved(ResourceResolver resolver) throws PersistenceException {
+<span class="fc" id="L280">      log.trace(&quot;Process rendition removed event: {}&quot;, renditionPath);</span>
+<span class="fc" id="L281">      RenditionMetadataGenerator generator = new RenditionMetadataGenerator(resolver, assetStore);</span>
+<span class="fc" id="L282">      generator.renditionRemoved(renditionPath);</span>
+<span class="fc" id="L283">    }</span>
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

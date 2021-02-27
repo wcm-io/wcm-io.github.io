@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DamAsset.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.impl</a> &gt; <span class="el_source">DamAsset.java</span></div><h1>DamAsset.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.impl;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.adapter.Adaptable;
+import org.apache.sling.api.adapter.SlingAdaptable;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.api.wrappers.ValueMapDecorator;
+import org.jetbrains.annotations.NotNull;
+
+import com.day.cq.dam.api.DamConstants;
+
+import io.wcm.handler.media.Asset;
+import io.wcm.handler.media.CropDimension;
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.Rendition;
+import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaSupportService;
+
+/**
+ * {@link Asset} implementation for DAM assets.
+ */
+public final class DamAsset extends SlingAdaptable implements Asset {
+
+  private final DamContext damContext;
+  private final CropDimension cropDimension;
+  private final Integer rotation;
+  private final MediaArgs defaultMediaArgs;
+  private final ValueMap properties;
+
+  /**
+   * @param media Media metadata
+   * @param damAsset DAM asset
+   * @param dynamicMediaSupportService Dynamic media support service
+   * @param adaptable Adaptable from current context
+   */
+  public DamAsset(Media media, com.day.cq.dam.api.Asset damAsset,
+<span class="fc" id="L57">      DynamicMediaSupportService dynamicMediaSupportService, Adaptable adaptable) {</span>
+<span class="fc" id="L58">    this.damContext = new DamContext(damAsset, dynamicMediaSupportService, adaptable);</span>
+<span class="fc" id="L59">    this.cropDimension = media.getCropDimension();</span>
+<span class="fc" id="L60">    this.rotation = media.getRotation();</span>
+<span class="fc" id="L61">    this.defaultMediaArgs = media.getMediaRequest().getMediaArgs();</span>
+<span class="fc" id="L62">    this.properties = new ValueMapDecorator(damAsset.getMetadata());</span>
+<span class="fc" id="L63">  }</span>
+
+  @Override
+  public String getTitle() {
+    // default title is the asset name
+<span class="fc" id="L68">    String title = damContext.getAsset().getName();</span>
+
+<span class="fc" id="L70">    Object titleObj = this.properties.get(DamConstants.DC_TITLE);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">    if (titleObj != null) {</span>
+      // it might happen that the adobe xmp lib creates an array, e.g. if the asset file already has a title attribute
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">      if (titleObj instanceof Object[]) {</span>
+<span class="nc" id="L74">        Object[] titleArray = (Object[])titleObj;</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        if (titleArray.length &gt; 0) {</span>
+<span class="nc" id="L76">          title = StringUtils.defaultString(titleArray[0].toString(), title);</span>
+        }
+<span class="nc" id="L78">      }</span>
+      else {
+<span class="fc" id="L80">        title = titleObj.toString();</span>
+      }
+    }
+
+<span class="fc" id="L84">    return title;</span>
+  }
+
+  @Override
+  public String getAltText() {
+<span class="fc" id="L89">    return StringUtils.defaultString(this.defaultMediaArgs.getAltText(), getTitle());</span>
+  }
+
+  @Override
+  public String getDescription() {
+<span class="nc" id="L94">    return this.properties.get(DamConstants.DC_DESCRIPTION, String.class);</span>
+  }
+
+  @Override
+  public @NotNull String getPath() {
+<span class="fc" id="L99">    return this.damContext.getAsset().getPath();</span>
+  }
+
+  @Override
+  public @NotNull ValueMap getProperties() {
+<span class="fc" id="L104">    return this.properties;</span>
+  }
+
+  @Override
+  public Rendition getDefaultRendition() {
+<span class="nc" id="L109">    return getRendition(this.defaultMediaArgs);</span>
+  }
+
+  @Override
+  public Rendition getRendition(@NotNull MediaArgs mediaArgs) {
+<span class="fc" id="L114">    Rendition rendition = getDamRendition(mediaArgs);</span>
+
+    // check if rendition is valid - otherwise return null
+<span class="fc bfc" id="L117" title="All 2 branches covered.">    if (StringUtils.isEmpty(rendition.getUrl())) {</span>
+<span class="fc" id="L118">      rendition = null;</span>
+    }
+
+<span class="fc" id="L121">    return rendition;</span>
+  }
+
+  @Override
+  public Rendition getImageRendition(@NotNull MediaArgs mediaArgs) {
+<span class="nc" id="L126">    Rendition rendition = getRendition(mediaArgs);</span>
+<span class="nc bnc" id="L127" title="All 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isImage()) {</span>
+<span class="nc" id="L128">      return rendition;</span>
+    }
+    else {
+<span class="nc" id="L131">      return null;</span>
+    }
+  }
+
+  @SuppressWarnings(&quot;deprecation&quot;)
+  @Override
+  public Rendition getFlashRendition(@NotNull MediaArgs mediaArgs) {
+<span class="nc" id="L138">    Rendition rendition = getRendition(mediaArgs);</span>
+<span class="nc bnc" id="L139" title="All 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isFlash()) {</span>
+<span class="nc" id="L140">      return rendition;</span>
+    }
+    else {
+<span class="nc" id="L143">      return null;</span>
+    }
+  }
+
+  @Override
+  public Rendition getDownloadRendition(@NotNull MediaArgs mediaArgs) {
+<span class="nc" id="L149">    Rendition rendition = getRendition(mediaArgs);</span>
+<span class="nc bnc" id="L150" title="All 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isDownload()) {</span>
+<span class="nc" id="L151">      return rendition;</span>
+    }
+    else {
+<span class="nc" id="L154">      return null;</span>
+    }
+  }
+
+  /**
+   * Get DAM rendition instance.
+   * @param mediaArgs Media args
+   * @return DAM rendition instance (may be invalid rendition)
+   */
+  protected Rendition getDamRendition(MediaArgs mediaArgs) {
+<span class="fc" id="L164">    return new DamRendition(this.cropDimension, this.rotation, mediaArgs, damContext);</span>
+  }
+
+  @Override
+  @SuppressWarnings({ &quot;unchecked&quot;, &quot;null&quot; })
+  public &lt;AdapterType&gt; AdapterType adaptTo(Class&lt;AdapterType&gt; type) {
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">    if (type == com.day.cq.dam.api.Asset.class) {</span>
+<span class="fc" id="L171">      return (AdapterType)this.damContext.getAsset();</span>
+    }
+<span class="nc bnc" id="L173" title="All 2 branches missed.">    if (type == Resource.class) {</span>
+<span class="nc" id="L174">      return (AdapterType)this.damContext.getAsset().adaptTo(Resource.class);</span>
+    }
+<span class="nc" id="L176">    return super.adaptTo(type);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RichTextUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RichText Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.richtext.util</a> &gt; <span class="el_source">RichTextUtil.java</span></div><h1>RichTextUtil.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.richtext.util;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jdom2.Content;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.Text;
+import org.jdom2.input.SAXBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+/**
+ * Utility methods for handling XHTML rich text fragments i.e. used for FCKEditor.
+ */
+@ProviderType
+public final class RichTextUtil {
+
+  private RichTextUtil() {
+    // utility methods only
+  }
+
+  private static final int EMPTYTEXT_DEFAULT_TRESHOLD = 20;
+
+<span class="fc" id="L50">  private static final String XHTML_ENTITY_DEF =</span>
+<span class="fc" id="L51">      &quot;&lt;!ENTITY % HTMLlat1 PUBLIC \&quot;&quot; + XHtmlResource.ENTITIES_LAT1.getPublicId() + &quot;\&quot; &quot;</span>
+<span class="fc" id="L52">          + &quot;\&quot;&quot; + XHtmlResource.ENTITIES_LAT1.getSystemId() + &quot;\&quot;&gt;&quot;</span>
+          + &quot;%HTMLlat1;&quot;
+<span class="fc" id="L54">          + &quot;&lt;!ENTITY % HTMLsymbol PUBLIC \&quot;&quot; + XHtmlResource.ENTITIES_SYMBOL.getPublicId() + &quot;\&quot; &quot;</span>
+<span class="fc" id="L55">          + &quot;\&quot;&quot; + XHtmlResource.ENTITIES_SYMBOL.getSystemId() + &quot;\&quot;&gt;&quot;</span>
+          + &quot;%HTMLsymbol;&quot;
+<span class="fc" id="L57">          + &quot;&lt;!ENTITY % HTMLspecial PUBLIC \&quot;&quot; + XHtmlResource.ENTITIES_SPECIAL.getPublicId() + &quot;\&quot; &quot;</span>
+<span class="fc" id="L58">          + &quot;\&quot;&quot; + XHtmlResource.ENTITIES_SPECIAL.getSystemId() + &quot;\&quot;&gt;&quot;</span>
+          + &quot;%HTMLspecial;&quot;;
+
+  /**
+   * Check if the given formatted text block is empty.
+   * A text block containing only one paragraph element and whitespaces is considered as empty.
+   * A text block with more than 20 characters (raw data) is never considered as empty.
+   * @param text XHTML text string (root element not needed)
+   * @return true if text block is empty
+   */
+  public static boolean isEmpty(@Nullable String text) {
+<span class="fc" id="L69">    return isEmpty(text, EMPTYTEXT_DEFAULT_TRESHOLD);</span>
+  }
+
+  /**
+   * Check if the given formatted text block is empty.
+   * A text block containing only one paragraph element and whitespaces is considered as empty.
+   * A text block with more than pTreshold characters (raw data) is never considered as empty.
+   * @param text XHTML text string (root element not needed)
+   * @param treshold Treshold value - only strings with less than this number of characters are checked.
+   * @return true if text block is empty
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  public static boolean isEmpty(@Nullable String text, int treshold) {
+
+    // check if text block is really empty
+<span class="fc bfc" id="L84" title="All 2 branches covered.">    if (StringUtils.isEmpty(text)) {</span>
+<span class="fc" id="L85">      return true;</span>
+    }
+
+    // check if text block has more than 20 chars
+<span class="fc bfc" id="L89" title="All 2 branches covered.">    if (text.length() &gt; treshold) {</span>
+<span class="fc" id="L90">      return false;</span>
+    }
+
+    // replace all whitespaces and nbsp's
+<span class="fc" id="L94">    String cleanedText = StringUtils.replace(text, &quot; &quot;, &quot;&quot;);</span>
+<span class="fc" id="L95">    cleanedText = StringUtils.replace(cleanedText, &quot;&amp;#160;&quot;, &quot;&quot;);</span>
+<span class="fc" id="L96">    cleanedText = StringUtils.replace(cleanedText, &quot;&amp;nbsp;&quot;, &quot;&quot;);</span>
+<span class="fc" id="L97">    cleanedText = StringUtils.replace(cleanedText, &quot;\n&quot;, &quot;&quot;);</span>
+<span class="fc" id="L98">    cleanedText = StringUtils.replace(cleanedText, &quot;\r&quot;, &quot;&quot;);</span>
+<span class="fc bfc" id="L99" title="All 4 branches covered.">    return StringUtils.isEmpty(cleanedText) || &quot;&lt;p&gt;&lt;/p&gt;&quot;.equals(cleanedText);</span>
+  }
+
+  /**
+   * Parses XHTML text string, and adds to parsed content to the given parent element.
+   * @param parent Parent element to add parsed content to
+   * @param text XHTML text string (root element not needed)
+   * @throws JDOMException Is thrown if the text could not be parsed as XHTML
+   */
+  public static void addParsedText(@NotNull Element parent, @NotNull String text) throws JDOMException {
+<span class="nc" id="L109">    addParsedText(parent, text, false);</span>
+<span class="nc" id="L110">  }</span>
+
+  /**
+   * Parses XHTML text string, and adds to parsed content to the given parent element.
+   * @param parent Parent element to add parsed content to
+   * @param text XHTML text string (root element not needed)
+   * @param xhtmlEntities If set to true, Resolving of XHtml entities in XHtml fragment is supported.
+   * @throws JDOMException Is thrown if the text could not be parsed as XHTML
+   */
+  public static void addParsedText(@NotNull Element parent, @NotNull String text, boolean xhtmlEntities) throws JDOMException {
+<span class="nc" id="L120">    Element root = parseText(text, xhtmlEntities);</span>
+<span class="nc" id="L121">    parent.addContent(root.cloneContent());</span>
+<span class="nc" id="L122">  }</span>
+
+  /**
+   * Parses XHTML text string. Adds a wrapping &quot;root&quot; element before parsing and returns this root element.
+   * @param text XHTML text string (root element not needed)
+   * @return Root element with parsed xhtml content
+   * @throws JDOMException Is thrown if the text could not be parsed as XHTML
+   */
+  public static Element parseText(@NotNull String text) throws JDOMException {
+<span class="fc" id="L131">    return parseText(text, false);</span>
+  }
+
+  /**
+   * Parses XHTML text string. Adds a wrapping &quot;root&quot; element before parsing and returns this root element.
+   * @param text XHTML text string (root element not needed)
+   * @param xhtmlEntities If set to true, Resolving of XHtml entities in XHtml fragment is supported.
+   * @return Root element with parsed xhtml content
+   * @throws JDOMException Is thrown if the text could not be parsed as XHTML
+   */
+  public static @NotNull Element parseText(@NotNull String text, boolean xhtmlEntities) throws JDOMException {
+
+    // add root element
+<span class="fc bfc" id="L144" title="All 2 branches covered.">    String xhtmlString =</span>
+        (xhtmlEntities ? &quot;&lt;!DOCTYPE root [&quot; + XHTML_ENTITY_DEF + &quot;]&gt;&quot; : &quot;&quot;)
+        + &quot;&lt;root&gt;&quot; + text + &quot;&lt;/root&gt;&quot;;
+
+    try {
+<span class="fc" id="L149">      SAXBuilder saxBuilder = new SAXBuilder();</span>
+
+<span class="fc bfc" id="L151" title="All 2 branches covered.">      if (xhtmlEntities) {</span>
+<span class="fc" id="L152">        saxBuilder.setEntityResolver(XHtmlEntityResolver.getInstance());</span>
+      }
+
+<span class="fc" id="L155">      Document doc = saxBuilder.build(new StringReader(xhtmlString));</span>
+<span class="fc" id="L156">      return doc.getRootElement();</span>
+    }
+<span class="nc" id="L158">    catch (IOException ex) {</span>
+<span class="nc" id="L159">      throw new RuntimeException(&quot;Error parsing XHTML fragment.&quot;, ex);</span>
+    }
+
+  }
+
+  /**
+   * Rewrites all children/sub-tree of the given parent element.
+   * For rewrite operations the given rewrite content handler is called.
+   * @param parent Parent element
+   * @param rewriteContentHandler Rewrite content handler
+   */
+  public static void rewriteContent(@NotNull Element parent, @NotNull RewriteContentHandler rewriteContentHandler) {
+
+    // iterate through content list and build new content list
+<span class="fc" id="L173">    List&lt;Content&gt; originalContent = parent.getContent();</span>
+<span class="fc" id="L174">    List&lt;Content&gt; newContent = new ArrayList&lt;Content&gt;();</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">    for (Content contentElement : originalContent) {</span>
+
+      // handle element
+<span class="fc bfc" id="L178" title="All 2 branches covered.">      if (contentElement instanceof Element) {</span>
+<span class="fc" id="L179">        Element element = (Element)contentElement;</span>
+
+        // check if rewrite is needed for element
+<span class="fc" id="L182">        List&lt;Content&gt; rewriteContent = rewriteContentHandler.rewriteElement(element);</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">        if (rewriteContent != null) {</span>
+          // element was removed
+<span class="fc bfc" id="L185" title="All 2 branches covered.">          if (rewriteContent.isEmpty()) {</span>
+            // do not add to newContent
+          }
+
+          // element is the same - rewrite child elements
+<span class="fc bfc" id="L190" title="All 4 branches covered.">          else if (rewriteContent.size() == 1 &amp;&amp; rewriteContent.get(0) == element) { //NOPMD</span>
+<span class="fc" id="L191">            rewriteContent(element, rewriteContentHandler);</span>
+<span class="fc" id="L192">            newContent.add(element);</span>
+          }
+
+          // element was replaced with other content - rewrite and add instead
+          else {
+<span class="fc bfc" id="L197" title="All 2 branches covered.">            for (Content newContentItem : rewriteContent) {</span>
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">              if (newContentItem instanceof Element) {</span>
+<span class="fc" id="L199">                Element newElement = (Element)newContentItem;</span>
+<span class="fc" id="L200">                rewriteContent(newElement, rewriteContentHandler);</span>
+              }
+<span class="fc" id="L202">              newContent.add(newContentItem.clone());</span>
+<span class="fc" id="L203">            }</span>
+          }
+        }
+
+        // nothing to rewrite - do nothing, but rewrite child element
+        else {
+<span class="fc" id="L209">          rewriteContent(element, rewriteContentHandler);</span>
+<span class="fc" id="L210">          newContent.add(element);</span>
+        }
+
+<span class="fc" id="L213">      }</span>
+
+      // handle text node
+<span class="fc bfc" id="L216" title="All 2 branches covered.">      else if (contentElement instanceof Text) {</span>
+<span class="fc" id="L217">        Text text = (Text)contentElement;</span>
+
+        // check if rewrite is needed for text node
+<span class="fc" id="L220">        List&lt;Content&gt; rewriteContent = rewriteContentHandler.rewriteText(text);</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">        if (rewriteContent != null) {</span>
+          // element was removed
+<span class="pc bpc" id="L223" title="1 of 2 branches missed.">          if (rewriteContent.isEmpty()) {</span>
+            // do not add to newContent
+          }
+
+          // element is the same - ignore
+<span class="pc bpc" id="L228" title="2 of 4 branches missed.">          else if (rewriteContent.size() == 1 &amp;&amp; rewriteContent.get(0) == text) { //NOPMD</span>
+            // add original element
+<span class="nc" id="L230">            newContent.add(text);</span>
+          }
+
+          // element was replaced with other content - add instead
+          else {
+<span class="fc bfc" id="L235" title="All 2 branches covered.">            for (Content newContentItem : rewriteContent) {</span>
+<span class="fc" id="L236">              newContent.add(newContentItem.clone());</span>
+<span class="fc" id="L237">            }</span>
+          }
+        }
+
+        // nothing to rewrite - do nothing, but add original text element
+        else {
+<span class="fc" id="L243">          newContent.add(text);</span>
+        }
+
+<span class="fc" id="L246">      }</span>
+
+      // unknown element - just add to new content
+      else {
+<span class="fc" id="L250">        newContent.add(contentElement);</span>
+      }
+
+<span class="fc" id="L253">    }</span>
+
+    // replace original content with new content
+<span class="fc" id="L256">    parent.removeContent();</span>
+<span class="fc" id="L257">    parent.addContent(newContent);</span>
+
+<span class="fc" id="L259">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

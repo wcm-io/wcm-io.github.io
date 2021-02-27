@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VirtualRenditionMetadata.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.impl</a> &gt; <span class="el_source">VirtualRenditionMetadata.java</span></div><h1>VirtualRenditionMetadata.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.impl;
+
+import java.io.InputStream;
+
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.day.cq.dam.api.Rendition;
+import com.day.image.Layer;
+
+import io.wcm.handler.media.impl.ImageFileServlet;
+import io.wcm.handler.media.impl.MediaFileServlet;
+import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaPath;
+
+/**
+ * Virtual rendition that is downscaling from an existing rendition.
+ */
+class VirtualRenditionMetadata extends RenditionMetadata {
+
+  private final long width;
+  private final long height;
+
+  VirtualRenditionMetadata(Rendition rendition, long width, long height) {
+<span class="fc" id="L45">    super(rendition);</span>
+<span class="fc" id="L46">    this.width = width;</span>
+<span class="fc" id="L47">    this.height = height;</span>
+<span class="fc" id="L48">  }</span>
+
+  @Override
+  public String getFileName(boolean contentDispositionAttachment) {
+<span class="fc bfc" id="L52" title="All 2 branches covered.">    if (isVectorImage()) {</span>
+<span class="fc" id="L53">      return super.getFileName(contentDispositionAttachment);</span>
+    }
+    else {
+      // replace extension based on the format supported by ImageFileServlet for rendering for this rendition
+<span class="fc" id="L57">      return ImageFileServlet.getImageFileName(super.getFileName(contentDispositionAttachment));</span>
+    }
+  }
+
+  @Override
+  public long getFileSize() {
+    // no size for virutal renditions
+<span class="nc" id="L64">    return 0L;</span>
+  }
+
+  @Override
+  public long getWidth() {
+<span class="fc" id="L69">    return this.width;</span>
+  }
+
+  @Override
+  public long getHeight() {
+<span class="fc" id="L74">    return this.height;</span>
+  }
+
+  @Override
+  public @NotNull String getMediaPath(boolean contentDispositionAttachment) {
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    if (isVectorImage()) {</span>
+      // vector images can be scaled in browser without need of ImageFileServlet
+<span class="fc" id="L81">      return super.getMediaPath(contentDispositionAttachment);</span>
+    }
+<span class="fc" id="L83">    return RenditionMetadata.buildMediaPath(getRendition().getPath() + &quot;.&quot; + ImageFileServlet.SELECTOR</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        + &quot;.&quot; + getWidth() + &quot;.&quot; + getHeight()</span>
+        + (contentDispositionAttachment ? &quot;.&quot; + MediaFileServlet.SELECTOR_DOWNLOAD : &quot;&quot;)
+<span class="fc" id="L86">        + &quot;.&quot; + MediaFileServlet.EXTENSION, getFileName(contentDispositionAttachment));</span>
+  }
+
+  @Override
+  public @Nullable String getDynamicMediaPath(boolean contentDispositionAttachment, DamContext damContext) {
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">    if (contentDispositionAttachment) {</span>
+      // do not use dynamic media for request forced with content disposition attachment
+<span class="nc" id="L93">      return null;</span>
+    }
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    else if (isVectorImage()) {</span>
+      // vector images can be scaled in browser without need of dynamic media
+<span class="fc" id="L97">      return null;</span>
+    }
+    // render virtual rendition with dynamic media
+<span class="fc" id="L100">    return DynamicMediaPath.build(damContext, getWidth(), getHeight());</span>
+  }
+
+  @Override
+  protected Layer getLayer() {
+<span class="fc" id="L105">    Layer layer = super.getLayer();</span>
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">    if (layer != null) {</span>
+<span class="fc" id="L107">      layer.resize((int)getWidth(), (int)getHeight());</span>
+    }
+<span class="fc" id="L109">    return layer;</span>
+  }
+
+  @Override
+  protected InputStream getInputStream() {
+    // currently not supported for virtual renditions
+<span class="fc" id="L115">    return null;</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="nc" id="L120">    return new HashCodeBuilder()</span>
+<span class="nc" id="L121">        .append(this.getRendition().getPath())</span>
+<span class="nc" id="L122">        .append(width)</span>
+<span class="nc" id="L123">        .append(height)</span>
+<span class="nc" id="L124">        .hashCode();</span>
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+<span class="pc bpc" id="L129" title="2 of 4 branches missed.">    if (obj == null || obj.getClass() != this.getClass()) {</span>
+<span class="nc" id="L130">      return false;</span>
+    }
+<span class="fc" id="L132">    VirtualRenditionMetadata other = (VirtualRenditionMetadata)obj;</span>
+<span class="fc" id="L133">    return new EqualsBuilder()</span>
+<span class="fc" id="L134">        .append(this.getRendition().getPath(), other.getRendition().getPath())</span>
+<span class="fc" id="L135">        .append(this.width, other.width)</span>
+<span class="fc" id="L136">        .append(this.height, other.height)</span>
+<span class="fc" id="L137">        .build();</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L142">    return super.toString() + &quot; -&gt; &quot; + this.width + &quot;x&quot; + this.height;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

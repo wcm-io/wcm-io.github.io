@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MediaFormatProviderManagerImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.format.impl</a> &gt; <span class="el_source">MediaFormatProviderManagerImpl.java</span></div><h1>MediaFormatProviderManagerImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.format.impl;
+
+import java.util.Collection;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.Resource;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
+import org.osgi.framework.ServiceReference;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.format.MediaFormatProviderManager;
+import io.wcm.handler.media.spi.MediaFormatProvider;
+import io.wcm.sling.commons.caservice.ContextAwareServiceResolver;
+import io.wcm.sling.commons.caservice.ContextAwareServiceResolver.ResolveAllResult;
+
+/**
+ * Default implementation of {@link MediaFormatProviderManager}.
+ */
+@Component(service = MediaFormatProviderManager.class, immediate = true)
+<span class="fc" id="L57">public final class MediaFormatProviderManagerImpl implements MediaFormatProviderManager {</span>
+
+  @Reference
+  private ContextAwareServiceResolver serviceResolver;
+
+  @Reference(cardinality = ReferenceCardinality.MULTIPLE,
+      policy = ReferencePolicy.STATIC,
+      policyOption = ReferencePolicyOption.GREEDY)
+  private Collection&lt;ServiceReference&lt;MediaFormatProvider&gt;&gt; mediaFormatProviderServiceReferences;
+
+  private BundleContext bundleContext;
+
+  // cache resolving of media formats per combined cache key of context-aware services
+<span class="fc" id="L70">  private final Cache&lt;String, SortedSet&lt;MediaFormat&gt;&gt; cache = CacheBuilder.newBuilder()</span>
+<span class="fc" id="L71">      .expireAfterWrite(1, TimeUnit.HOURS)</span>
+<span class="fc" id="L72">      .build();</span>
+
+  @Activate
+  private void activate(BundleContext bc) {
+<span class="fc" id="L76">    this.bundleContext = bc;</span>
+<span class="fc" id="L77">  }</span>
+
+  @Override
+  public SortedSet&lt;MediaFormat&gt; getMediaFormats(Resource contextResource) {
+<span class="fc" id="L81">    ResolveAllResult&lt;MediaFormatProvider&gt; result = serviceResolver.resolveAll(MediaFormatProvider.class, contextResource);</span>
+<span class="fc" id="L82">    String key = result.getCombinedKey();</span>
+    try {
+<span class="fc" id="L84">      return cache.get(key, () -&gt; result.getServices()</span>
+<span class="fc" id="L85">          .flatMap(provider -&gt; provider.getMediaFormats().stream())</span>
+<span class="fc" id="L86">          .collect(Collectors.toCollection(() -&gt; new TreeSet&lt;MediaFormat&gt;())));</span>
+    }
+<span class="nc" id="L88">    catch (ExecutionException ex) {</span>
+<span class="nc" id="L89">      throw new RuntimeException(&quot;Error accessing media format provider result cache.&quot;, ex);</span>
+    }
+  }
+
+  @Override
+  public SortedMap&lt;String, SortedSet&lt;MediaFormat&gt;&gt; getAllMediaFormats() {
+<span class="fc" id="L95">    SortedMap&lt;String, SortedSet&lt;MediaFormat&gt;&gt; result = new TreeMap&lt;&gt;();</span>
+
+<span class="fc bfc" id="L97" title="All 2 branches covered.">    for (ServiceReference&lt;MediaFormatProvider&gt; serviceReference : mediaFormatProviderServiceReferences) {</span>
+<span class="fc" id="L98">      Bundle bundle = serviceReference.getBundle();</span>
+<span class="fc" id="L99">      String bundleName = StringUtils.defaultString(bundle.getHeaders().get(Constants.BUNDLE_NAME), bundle.getSymbolicName());</span>
+<span class="fc" id="L100">      SortedSet&lt;MediaFormat&gt; mediaFormats = result.getOrDefault(bundleName, new TreeSet&lt;&gt;());</span>
+<span class="fc" id="L101">      result.putIfAbsent(bundleName, mediaFormats);</span>
+<span class="fc" id="L102">      MediaFormatProvider mediaFormatProvider = bundleContext.getService(serviceReference);</span>
+      try {
+<span class="fc" id="L104">        mediaFormats.addAll(mediaFormatProvider.getMediaFormats());</span>
+      }
+      finally {
+<span class="fc" id="L107">        bundleContext.ungetService(serviceReference);</span>
+      }
+<span class="fc" id="L109">    }</span>
+
+<span class="fc" id="L111">    return result;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

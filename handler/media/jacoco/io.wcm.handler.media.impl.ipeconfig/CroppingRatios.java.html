@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CroppingRatios.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.impl.ipeconfig</a> &gt; <span class="el_source">CroppingRatios.java</span></div><h1>CroppingRatios.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.impl.ipeconfig;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import io.wcm.handler.media.MediaRequest;
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.format.MediaFormatBuilder;
+import io.wcm.handler.media.format.MediaFormatHandler;
+import io.wcm.handler.media.format.Ratio;
+
+/**
+ * Helper class to build list of media formats for cropping in the AEM image editor
+ * based on media formats of the current request/the application.
+ */
+public class CroppingRatios {
+
+  /**
+   * Special media format name to also allow &quot;free cropping&quot; without constraints.
+   */
+<span class="fc" id="L46">  public static final MediaFormat MEDIAFORMAT_FREE_CROP = MediaFormatBuilder.create(&quot;__FREE_CROP__&quot;)</span>
+<span class="fc" id="L47">      .label(&quot;Free Hand&quot;)</span>
+<span class="fc" id="L48">      .build();</span>
+
+  private final MediaFormatHandler mediaFormatHandler;
+
+  /**
+   * @param mediaFormatHandler Media format handler
+   */
+<span class="fc" id="L55">  public CroppingRatios(@NotNull MediaFormatHandler mediaFormatHandler) {</span>
+<span class="fc" id="L56">    this.mediaFormatHandler = mediaFormatHandler;</span>
+<span class="fc" id="L57">  }</span>
+
+  /**
+   * Get media formats that should be offered as cropping ratios when using the AEM image editor.
+   * This eliminates duplicates (with same ratio) and media formats not suited for cropping.
+   * @param mediaRequest Media request
+   * @return Media format names
+   */
+  public @NotNull Set&lt;String&gt; getMediaFormatsForCropping(@NotNull MediaRequest mediaRequest) {
+
+    // if the current request has media formats, use them directly
+<span class="fc" id="L68">    MediaFormat[] requestMediaFormats = mediaRequest.getMediaArgs().getMediaFormats();</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">    if (requestMediaFormats != null) {</span>
+<span class="fc" id="L70">      return toNameSet(Arrays.stream(mediaRequest.getMediaArgs().getMediaFormats()));</span>
+    }
+
+    // otherwise get all image media formats with ratios, filter out duplicates with same ratios
+    // including the special free cropping ratio option
+<span class="fc" id="L75">    return toNameSet(getUniqueRatios().stream());</span>
+  }
+
+  private Set&lt;MediaFormat&gt; getUniqueRatios() {
+<span class="fc" id="L79">    Set&lt;MediaFormat&gt; all = mediaFormatHandler.getMediaFormats();</span>
+<span class="fc" id="L80">    Set&lt;MediaFormat&gt; result = new HashSet&lt;&gt;();</span>
+
+    // add special free cropping action
+<span class="fc" id="L83">    result.add(MEDIAFORMAT_FREE_CROP);</span>
+
+<span class="fc bfc" id="L85" title="All 2 branches covered.">    for (MediaFormat mediaFormat : all) {</span>
+
+      // skip non-image and non-ratio media formats
+<span class="fc bfc" id="L88" title="All 4 branches covered.">      if (!(mediaFormat.isImage() &amp;&amp; mediaFormat.hasRatio())) {</span>
+<span class="fc" id="L89">        continue;</span>
+      }
+
+      // check if a media format with same ratio already exists
+      // replace existing media format if the new one is bigger
+      // prefer media formats without fixed dimension
+<span class="fc" id="L95">      MediaFormat existingMediaFormat = getExistingMediaFormatWithRatio(result, mediaFormat.getRatio());</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">      if (existingMediaFormat != null) {</span>
+<span class="pc bpc" id="L97" title="1 of 4 branches missed.">        if ((hasDimension(existingMediaFormat) &amp;&amp; !hasDimension(mediaFormat))</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">            || isBigger(mediaFormat, existingMediaFormat)) {</span>
+<span class="fc" id="L99">          result.remove(existingMediaFormat);</span>
+<span class="fc" id="L100">          result.add(mediaFormat);</span>
+        }
+      }
+      else {
+<span class="fc" id="L104">        result.add(mediaFormat);</span>
+      }
+<span class="fc" id="L106">    }</span>
+
+<span class="fc" id="L108">    return result;</span>
+  }
+
+  private @Nullable MediaFormat getExistingMediaFormatWithRatio(Set&lt;MediaFormat&gt; all, double ratio) {
+<span class="fc" id="L112">    return all.stream()</span>
+<span class="fc" id="L113">        .filter(mediaFormat -&gt; Ratio.matches(mediaFormat.getRatio(), ratio))</span>
+<span class="fc" id="L114">        .findFirst().orElse(null);</span>
+  }
+
+  private boolean isBigger(@NotNull MediaFormat mediaFormat1, @NotNull MediaFormat mediaFormat2) {
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    return mediaFormat1.getEffectiveMinWidth() &gt; mediaFormat2.getEffectiveMinWidth()</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        &amp;&amp; mediaFormat2.getEffectiveMinWidth() &gt; 0;</span>
+  }
+
+  private boolean hasDimension(@NotNull MediaFormat mediaFormat) {
+<span class="pc bpc" id="L123" title="1 of 4 branches missed.">    return (mediaFormat.getEffectiveMinWidth() &gt; 0 || mediaFormat.getEffectiveMaxWidth() &gt; 0)</span>
+<span class="pc bpc" id="L124" title="3 of 4 branches missed.">        &amp;&amp; (mediaFormat.getEffectiveMinHeight() &gt; 0 || mediaFormat.getEffectiveMaxHeight() &gt; 0);</span>
+  }
+
+  @SuppressWarnings(&quot;null&quot;)
+  private @NotNull Set&lt;String&gt; toNameSet(@NotNull Stream&lt;MediaFormat&gt; mediaFormats) {
+<span class="fc" id="L129">    return mediaFormats</span>
+<span class="fc" id="L130">        .map(MediaFormat::getName)</span>
+<span class="fc" id="L131">        .collect(Collectors.toSet());</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

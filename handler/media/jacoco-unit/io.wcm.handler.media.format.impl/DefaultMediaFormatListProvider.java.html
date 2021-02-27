@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DefaultMediaFormatListProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.format.impl</a> &gt; <span class="el_source">DefaultMediaFormatListProvider.java</span></div><h1>DefaultMediaFormatListProvider.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.format.impl;
+
+import java.io.IOException;
+import java.util.Set;
+
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.commons.json.JSONArray;
+import org.apache.sling.commons.json.JSONException;
+import org.apache.sling.commons.json.JSONObject;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Component;
+
+import com.google.common.collect.ImmutableSet;
+
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.format.MediaFormatHandler;
+import io.wcm.wcm.commons.contenttype.ContentType;
+import io.wcm.wcm.commons.contenttype.FileExtension;
+
+/**
+ * Exports the list of media format available for the addressed media path in JSON format to the response.
+ */
+@Component(service = Servlet.class, immediate = true, property = {
+    &quot;sling.servlet.extensions=&quot; + FileExtension.JSON,
+    &quot;sling.servlet.selectors=wcmio_handler_media_mediaformat_list&quot;,
+    &quot;sling.servlet.resourceTypes=sling/servlet/default&quot;,
+    &quot;sling.servlet.methods=&quot; + HttpConstants.METHOD_GET
+})
+@SuppressWarnings(&quot;deprecation&quot;)
+<span class="fc" id="L55">public final class DefaultMediaFormatListProvider extends SlingSafeMethodsServlet {</span>
+  private static final long serialVersionUID = 1L;
+
+  @Override
+  protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
+    try {
+
+      // get list of media formats for current medialib path
+<span class="fc" id="L63">      Set&lt;MediaFormat&gt; mediaFormats = getMediaFormats(request);</span>
+
+<span class="fc" id="L65">      response.setContentType(ContentType.JSON);</span>
+
+<span class="fc" id="L67">      JSONArray mediaFormatList = new JSONArray();</span>
+
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">      if (mediaFormats != null) {</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        for (MediaFormat mediaFormat : mediaFormats) {</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">          if (!mediaFormat.isInternal()) {</span>
+<span class="fc" id="L72">            JSONObject mediaFormatItem = new JSONObject();</span>
+<span class="fc" id="L73">            mediaFormatItem.put(&quot;name&quot;, mediaFormat.getName());</span>
+<span class="fc" id="L74">            mediaFormatItem.put(&quot;text&quot;, mediaFormat.toString());</span>
+<span class="fc" id="L75">            mediaFormatItem.put(&quot;width&quot;, mediaFormat.getWidth());</span>
+<span class="fc" id="L76">            mediaFormatItem.put(&quot;height&quot;, mediaFormat.getHeight());</span>
+<span class="fc" id="L77">            mediaFormatItem.put(&quot;widthMin&quot;, mediaFormat.getMinWidth());</span>
+<span class="fc" id="L78">            mediaFormatItem.put(&quot;heightMin&quot;, mediaFormat.getMinHeight());</span>
+<span class="fc" id="L79">            mediaFormatItem.put(&quot;isImage&quot;, mediaFormat.isImage());</span>
+<span class="fc" id="L80">            mediaFormatItem.put(&quot;ratio&quot;, mediaFormat.getRatio());</span>
+<span class="fc" id="L81">            mediaFormatItem.put(&quot;ratioWidth&quot;, mediaFormat.getRatioWidthAsDouble());</span>
+<span class="fc" id="L82">            mediaFormatItem.put(&quot;ratioHeight&quot;, mediaFormat.getRatioHeightAsDouble());</span>
+<span class="fc" id="L83">            mediaFormatItem.put(&quot;ratioDisplayString&quot;, mediaFormat.getRatioDisplayString());</span>
+<span class="fc" id="L84">            mediaFormatList.put(mediaFormatItem);</span>
+          }
+<span class="fc" id="L86">        }</span>
+      }
+
+<span class="fc" id="L89">      response.getWriter().write(mediaFormatList.toString());</span>
+    }
+<span class="nc" id="L91">    catch (JSONException ex) {</span>
+<span class="nc" id="L92">      throw new ServletException(ex);</span>
+<span class="fc" id="L93">    }</span>
+<span class="fc" id="L94">  }</span>
+
+  protected Set&lt;MediaFormat&gt; getMediaFormats(SlingHttpServletRequest request) {
+<span class="fc" id="L97">    MediaFormatHandler mediaFormatHandler = request.adaptTo(MediaFormatHandler.class);</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">    if (mediaFormatHandler != null) {</span>
+<span class="fc" id="L99">      return mediaFormatHandler.getMediaFormats();</span>
+    }
+    else {
+<span class="nc" id="L102">      return ImmutableSet.of();</span>
+    }
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

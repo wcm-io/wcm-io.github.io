@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RTELinkPluginConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">RichText Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.richtext.impl</a> &gt; <span class="el_source">RTELinkPluginConfig.java</span></div><h1>RTELinkPluginConfig.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.richtext.impl;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.MissingResourceException;
+import java.util.stream.Collectors;
+
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.commons.json.JSONException;
+import org.apache.sling.commons.json.JSONObject;
+import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Component;
+
+import com.day.cq.i18n.I18n;
+import com.day.cq.wcm.api.NameConstants;
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageManager;
+
+import io.wcm.handler.link.spi.LinkHandlerConfig;
+import io.wcm.handler.link.spi.LinkType;
+import io.wcm.sling.commons.adapter.AdaptTo;
+import io.wcm.wcm.commons.contenttype.ContentType;
+import io.wcm.wcm.commons.contenttype.FileExtension;
+
+/**
+ * Servlet providing RTE link plugin configuration in context of the referenced content page.
+ */
+@Component(service = Servlet.class)
+@SlingServletResourceTypes(
+    resourceTypes = NameConstants.NT_PAGE,
+    selectors = RTELinkPluginConfig.SELECTOR,
+    extensions = FileExtension.JSON,
+    methods = HttpConstants.METHOD_GET)
+@SuppressWarnings(&quot;deprecation&quot;)
+<span class="fc" id="L62">public class RTELinkPluginConfig extends SlingSafeMethodsServlet {</span>
+  private static final long serialVersionUID = 1L;
+
+  static final String SELECTOR = &quot;wcmio-handler-richtext-rte-plugins-links-config&quot;;
+
+  @Override
+  protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
+
+<span class="fc" id="L70">    Resource resource = request.getResource();</span>
+<span class="fc" id="L71">    PageManager pageManager = AdaptTo.notNull(request.getResourceResolver(), PageManager.class);</span>
+<span class="fc" id="L72">    Page page = pageManager.getContainingPage(resource);</span>
+<span class="fc" id="L73">    I18n i18n = new I18n(request);</span>
+
+<span class="fc" id="L75">    LinkHandlerConfig linkHandlerConfig = AdaptTo.notNull(resource, LinkHandlerConfig.class);</span>
+<span class="fc" id="L76">    List&lt;LinkType&gt; linkTypes = linkHandlerConfig.getLinkTypes().stream()</span>
+<span class="fc" id="L77">        .map(linkTypeClass -&gt; AdaptTo.notNull(resource, linkTypeClass))</span>
+<span class="fc" id="L78">        .collect(Collectors.toList());</span>
+
+    try {
+<span class="fc" id="L81">      JSONObject result = new JSONObject();</span>
+
+<span class="fc" id="L83">      JSONObject linkTypesConfigs = new JSONObject();</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">      for (LinkType linkType : linkTypes) {</span>
+<span class="fc" id="L85">        JSONObject linkTypeConfig = new JSONObject();</span>
+<span class="fc" id="L86">        linkTypeConfig.put(&quot;value&quot;, linkType.getId());</span>
+<span class="fc" id="L87">        linkTypeConfig.put(&quot;text&quot;, getI18nText(&quot;io.wcm.handler.link.components.granite.form.linkRefContainer.&quot; + linkType.getId() + &quot;.type&quot;, i18n));</span>
+<span class="fc" id="L88">        linkTypesConfigs.put(linkType.getId(), linkTypeConfig);</span>
+<span class="fc" id="L89">      }</span>
+<span class="fc" id="L90">      result.put(&quot;linkTypes&quot;, linkTypesConfigs);</span>
+
+<span class="fc" id="L92">      JSONObject rootPaths = new JSONObject();</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">      for (LinkType linkType : linkTypes) {</span>
+<span class="fc" id="L94">        String rootPath = linkHandlerConfig.getLinkRootPath(page, linkType.getId());</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (rootPath != null) {</span>
+<span class="fc" id="L96">          rootPaths.put(linkType.getId(), rootPath);</span>
+        }
+<span class="fc" id="L98">      }</span>
+
+<span class="fc" id="L100">      result.put(&quot;linkTypes&quot;, linkTypesConfigs);</span>
+<span class="fc" id="L101">      result.put(&quot;rootPaths&quot;, rootPaths);</span>
+<span class="fc" id="L102">      response.setContentType(ContentType.JSON);</span>
+<span class="fc" id="L103">      response.getWriter().write(result.toString());</span>
+    }
+<span class="nc" id="L105">    catch (JSONException ex) {</span>
+<span class="nc" id="L106">      throw new ServletException(ex);</span>
+<span class="fc" id="L107">    }</span>
+<span class="fc" id="L108">  }</span>
+
+  private String getI18nText(String key, I18n i18n) {
+    try {
+<span class="fc" id="L112">      return i18n.get(key);</span>
+    }
+<span class="nc" id="L114">    catch (MissingResourceException ex) {</span>
+<span class="nc" id="L115">      return key;</span>
+    }
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

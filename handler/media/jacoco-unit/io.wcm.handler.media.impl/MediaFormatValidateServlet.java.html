@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MediaFormatValidateServlet.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.impl</a> &gt; <span class="el_source">MediaFormatValidateServlet.java</span></div><h1>MediaFormatValidateServlet.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.impl;
+
+import java.io.IOException;
+import java.util.Locale;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
+
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.commons.json.JSONException;
+import org.apache.sling.commons.json.JSONObject;
+import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Component;
+
+import com.day.cq.i18n.I18n;
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageManager;
+
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.MediaArgs.MediaFormatOption;
+import io.wcm.handler.media.MediaHandler;
+import io.wcm.sling.commons.adapter.AdaptTo;
+import io.wcm.sling.commons.request.RequestParam;
+import io.wcm.wcm.commons.contenttype.ContentType;
+import io.wcm.wcm.commons.contenttype.FileExtension;
+
+/**
+ * Validates if the given asset references matches with the given
+ * set of media formats. This is used for the File Upload Granite UI component.
+ */
+@Component(service = Servlet.class)
+@SlingServletResourceTypes(
+    extensions = FileExtension.JSON,
+    selectors = MediaFormatValidateServlet.SELECTOR,
+    resourceTypes = &quot;sling/servlet/default&quot;,
+    methods = HttpConstants.METHOD_GET)
+@SuppressWarnings(&quot;deprecation&quot;)
+<span class="fc" id="L66">public final class MediaFormatValidateServlet extends SlingSafeMethodsServlet {</span>
+  private static final long serialVersionUID = 1L;
+
+  static final String SELECTOR = &quot;wcm-io-handler-media-mediaformat-validate&quot;;
+
+  static final String RP_MEDIA_FORMATS = &quot;mediaFormats&quot;;
+  static final String RP_MEDIA_FORMATS_MANDATORY = &quot;mediaFormatsMandatory&quot;;
+  static final String RP_MEDIA_CROPAUTO = &quot;mediaCropAuto&quot;;
+  static final String RP_MEDIA_REF = &quot;mediaRef&quot;;
+
+  /**
+   * Prefix for i18n keys to generated messages for media invalid reasons.
+   */
+  public static final String MEDIA_INVALID_REASON_I18N_PREFIX = &quot;io.wcm.handler.media.invalidReason.&quot;;
+  private static final String ASSET_INVALID_I18N_KEY = &quot;io.wcm.handler.media.assetInvalid&quot;;
+
+  @Override
+  protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
+
+    // read and validated request parameters
+<span class="fc" id="L86">    String[] mediaFormats = StringUtils.split(RequestParam.get(request, RP_MEDIA_FORMATS), &quot;,&quot;);</span>
+<span class="fc" id="L87">    String[] mediaFormatsMandatory = StringUtils.split(RequestParam.get(request, RP_MEDIA_FORMATS_MANDATORY), &quot;,&quot;);</span>
+<span class="fc" id="L88">    boolean mediaCropAuto = RequestParam.getBoolean(request, RP_MEDIA_CROPAUTO);</span>
+<span class="fc" id="L89">    String mediaRef = RequestParam.get(request, RP_MEDIA_REF);</span>
+
+<span class="pc bpc" id="L91" title="2 of 4 branches missed.">    if (mediaFormats == null || mediaFormats.length == 0</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">        || StringUtils.isEmpty(mediaRef)) {</span>
+<span class="nc" id="L93">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="nc" id="L94">      return;</span>
+    }
+
+<span class="fc" id="L97">    MediaFormatOption[] mediaFormatOptions = new MediaFormatOption[mediaFormats.length];</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">    for (int i = 0; i &lt; mediaFormats.length; i++) {</span>
+<span class="fc" id="L99">      boolean mandatory = false;</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">      if (mediaFormatsMandatory != null) {</span>
+<span class="fc" id="L101">        mandatory = ArrayUtils.contains(mediaFormatsMandatory, mediaFormats[i]);</span>
+      }
+<span class="fc" id="L103">      mediaFormatOptions[i] = new MediaFormatOption(mediaFormats[i], mandatory);</span>
+    }
+
+    // try to resolve media
+<span class="fc" id="L107">    MediaHandler mediaHandler = AdaptTo.notNull(request, MediaHandler.class);</span>
+<span class="fc" id="L108">    Media media = mediaHandler.get(mediaRef)</span>
+<span class="fc" id="L109">        .mediaFormatOptions(mediaFormatOptions)</span>
+<span class="fc" id="L110">        .autoCrop(mediaCropAuto)</span>
+<span class="fc" id="L111">        .build();</span>
+
+    // response
+    try {
+<span class="fc" id="L115">      JSONObject result = new JSONObject();</span>
+<span class="fc" id="L116">      result.put(&quot;valid&quot;, media.isValid());</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">      if (!media.isValid()) {</span>
+<span class="fc" id="L118">        I18n i18n = getI18n(request);</span>
+<span class="fc" id="L119">        result.put(&quot;reason&quot;, getI18nText(i18n,</span>
+<span class="fc" id="L120">            MEDIA_INVALID_REASON_I18N_PREFIX + media.getMediaInvalidReason().name()));</span>
+<span class="fc" id="L121">        result.put(&quot;reasonTitle&quot;, getI18nText(i18n, ASSET_INVALID_I18N_KEY));</span>
+      }
+<span class="fc" id="L123">      response.setContentType(ContentType.JSON);</span>
+<span class="fc" id="L124">      response.getWriter().write(result.toString());</span>
+    }
+<span class="nc" id="L126">    catch (JSONException ex) {</span>
+<span class="nc" id="L127">      throw new ServletException(ex);</span>
+<span class="fc" id="L128">    }</span>
+<span class="fc" id="L129">  }</span>
+
+  private String getI18nText(I18n i18n, String key) {
+    try {
+<span class="fc" id="L133">      return i18n.get(key);</span>
+    }
+<span class="nc" id="L135">    catch (MissingResourceException ex) {</span>
+<span class="nc" id="L136">      return key;</span>
+    }
+  }
+
+  private I18n getI18n(SlingHttpServletRequest request) {
+<span class="fc" id="L141">    PageManager pageManager = AdaptTo.notNull(request.getResourceResolver(), PageManager.class);</span>
+<span class="fc" id="L142">    Page currentPage = pageManager.getContainingPage(request.getResource());</span>
+<span class="pc bpc" id="L143" title="1 of 2 branches missed.">    if (currentPage != null) {</span>
+<span class="fc" id="L144">      Locale locale = currentPage.getLanguage(false);</span>
+<span class="fc" id="L145">      ResourceBundle resourceBundle = request.getResourceBundle(locale);</span>
+<span class="fc" id="L146">      return new I18n(resourceBundle);</span>
+    }
+<span class="nc" id="L148">    return new I18n(request);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

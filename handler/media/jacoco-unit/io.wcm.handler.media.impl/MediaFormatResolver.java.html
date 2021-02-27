@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MediaFormatResolver.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.impl</a> &gt; <span class="el_source">MediaFormatResolver.java</span></div><h1>MediaFormatResolver.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.impl;
+
+import static io.wcm.handler.media.MediaNameConstants.MEDIAFORMAT_PROP_PARENT_MEDIA_FORMAT;
+import static org.apache.commons.lang3.ArrayUtils.isEmpty;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.MediaArgs.ImageSizes;
+import io.wcm.handler.media.MediaArgs.MediaFormatOption;
+import io.wcm.handler.media.MediaArgs.PictureSource;
+import io.wcm.handler.media.MediaArgs.WidthOption;
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.format.MediaFormatBuilder;
+import io.wcm.handler.media.format.MediaFormatHandler;
+
+/**
+ * Resolves media formats before starting the media handler processing.
+ */
+final class MediaFormatResolver {
+
+  private final MediaFormatHandler mediaFormatHandler;
+
+<span class="fc" id="L53">  private static final Logger log = LoggerFactory.getLogger(MediaHandlerImpl.class);</span>
+
+  static final String MEDIAFORMAT_NAME_SEPARATOR = &quot;___&quot;;
+
+<span class="fc" id="L57">  MediaFormatResolver(MediaFormatHandler mediaFormatHandler) {</span>
+<span class="fc" id="L58">    this.mediaFormatHandler = mediaFormatHandler;</span>
+<span class="fc" id="L59">  }</span>
+
+  /**
+   * Resolve media format names and responsive media formats.
+   * @param mediaArgs Media args
+   * @return true if resolution was successful.
+   */
+  public boolean resolve(MediaArgs mediaArgs) {
+<span class="fc bfc" id="L67" title="All 2 branches covered.">    return resolveMediaFormatOptionsByNames(mediaArgs)</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        &amp;&amp; resolvePictureSourcesByNames(mediaArgs)</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        &amp;&amp; addResponsiveImageMediaFormats(mediaArgs);</span>
+  }
+
+  /**
+   * Resolve media format names to media formats in media options so all downstream logic has only to handle the
+   * resolved media formats.
+   * @param mediaArgs Media args
+   * @return true if resolution was successful.
+   */
+  private boolean resolveMediaFormatOptionsByNames(MediaArgs mediaArgs) {
+<span class="fc" id="L79">    MediaFormatOption[] mediaFormatOptions = mediaArgs.getMediaFormatOptions();</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">    if (mediaFormatOptions == null) {</span>
+<span class="fc" id="L81">      return true;</span>
+    }
+
+    // resolve media format options that have only a name set
+<span class="fc" id="L85">    boolean resolutionSuccessful = true;</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">    for (int i = 0; i &lt; mediaFormatOptions.length; i++) {</span>
+<span class="fc" id="L87">      MediaFormatOption option = mediaFormatOptions[i];</span>
+<span class="fc" id="L88">      String mediaFormatName = option.getMediaFormatName();</span>
+<span class="pc bpc" id="L89" title="1 of 4 branches missed.">      if (option.getMediaFormat() == null &amp;&amp; mediaFormatName != null) {</span>
+<span class="fc" id="L90">        MediaFormat mediaFormat = mediaFormatHandler.getMediaFormat(mediaFormatName);</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (mediaFormat == null) {</span>
+<span class="fc" id="L92">          log.warn(&quot;Media format name '{}' is invalid.&quot;, option.getMediaFormatName());</span>
+<span class="fc" id="L93">          resolutionSuccessful = false;</span>
+        }
+<span class="fc" id="L95">        mediaFormatOptions[i] = new MediaFormatOption(mediaFormat, option.isMandatory());</span>
+      }
+    }
+<span class="fc" id="L98">    mediaArgs.mediaFormatOptions(mediaFormatOptions);</span>
+
+<span class="fc" id="L100">    return resolutionSuccessful;</span>
+  }
+
+  /**
+   * Resolve media format names to media formats in picture sources so all downstream logic has only to handle the
+   * resolved media formats.
+   * @param mediaArgs Media args
+   * @return true if resolution was successful.
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  private boolean resolvePictureSourcesByNames(MediaArgs mediaArgs) {
+<span class="fc" id="L111">    PictureSource[] pictureSources = mediaArgs.getPictureSources();</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (pictureSources == null) {</span>
+<span class="fc" id="L113">      return true;</span>
+    }
+
+    // resolve media format options that have only a name set
+<span class="fc" id="L117">    boolean resolutionSuccessful = true;</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    for (int i = 0; i &lt; pictureSources.length; i++) {</span>
+<span class="fc" id="L119">      PictureSource pictureSource = pictureSources[i];</span>
+<span class="fc" id="L120">      String mediaFormatName = pictureSource.getMediaFormatName();</span>
+<span class="pc bpc" id="L121" title="1 of 4 branches missed.">      if (pictureSource.getMediaFormat() == null &amp;&amp; mediaFormatName != null) {</span>
+<span class="fc" id="L122">        MediaFormat mediaFormat = mediaFormatHandler.getMediaFormat(mediaFormatName);</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        if (mediaFormat == null) {</span>
+<span class="fc" id="L124">          log.warn(&quot;Media format name '{}' is invalid.&quot;, pictureSource.getMediaFormatName());</span>
+<span class="fc" id="L125">          resolutionSuccessful = false;</span>
+        }
+        else {
+<span class="fc" id="L128">          pictureSources[i] = new PictureSource(mediaFormat)</span>
+<span class="fc" id="L129">              .media(pictureSource.getMedia())</span>
+<span class="fc" id="L130">              .sizes(pictureSource.getSizes())</span>
+<span class="fc" id="L131">              .widthOptions(pictureSource.getWidthOptions());</span>
+        }
+      }
+    }
+<span class="fc" id="L135">    mediaArgs.pictureSources(pictureSources);</span>
+
+<span class="fc" id="L137">    return resolutionSuccessful;</span>
+  }
+
+  /**
+   * Add on-the-fly generated media formats if required for responsive image handling
+   * via image sizes or picture sources.
+   * @param mediaArgs Media args
+   * @return true if resolution was successful
+   */
+  private boolean addResponsiveImageMediaFormats(MediaArgs mediaArgs) {
+<span class="fc" id="L147">    Map&lt;String, MediaFormatOption&gt; additionalMediaFormats = new LinkedHashMap&lt;&gt;();</span>
+
+    // check if additional on-the-fly generated media formats needs to be added for responsive image handling
+<span class="fc bfc" id="L150" title="All 2 branches covered.">    if (!resolveForImageSizes(mediaArgs, additionalMediaFormats)) {</span>
+<span class="fc" id="L151">      return false;</span>
+    }
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">    if (!resolveForResponsivePictureSources(mediaArgs, additionalMediaFormats)) {</span>
+<span class="nc" id="L154">      return false;</span>
+    }
+
+    // if additional media formats where found add them to the media format list in media args
+<span class="fc bfc" id="L158" title="All 2 branches covered.">    if (!additionalMediaFormats.isEmpty()) {</span>
+<span class="fc" id="L159">      List&lt;MediaFormatOption&gt; allMediaFormats = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">      if (mediaArgs.getMediaFormatOptions() != null) {</span>
+<span class="fc" id="L161">        allMediaFormats.addAll(Arrays.asList(mediaArgs.getMediaFormatOptions()));</span>
+      }
+<span class="fc" id="L163">      allMediaFormats.addAll(additionalMediaFormats.values());</span>
+<span class="fc" id="L164">      mediaArgs.mediaFormatOptions(allMediaFormats.toArray(new MediaFormatOption[0]));</span>
+    }
+
+<span class="fc" id="L167">    return true;</span>
+  }
+
+  private boolean resolveForImageSizes(MediaArgs mediaArgs, Map&lt;String, MediaFormatOption&gt; additionalMediaFormats) {
+<span class="fc" id="L171">    ImageSizes imageSizes = mediaArgs.getImageSizes();</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">    if (imageSizes == null) {</span>
+<span class="fc" id="L173">      return true;</span>
+    }
+
+<span class="fc" id="L176">    final MediaFormat[] mediaFormats = mediaArgs.getMediaFormats();</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">    if (isEmpty(mediaFormats)) {</span>
+<span class="fc" id="L178">      log.warn(&quot;No media format with ratio given - unable to fulfill resolve image sizes.&quot;);</span>
+<span class="fc" id="L179">      return false;</span>
+    }
+
+<span class="fc" id="L182">    Arrays.stream(mediaFormats)</span>
+<span class="fc" id="L183">        .filter(Objects::nonNull)</span>
+<span class="fc" id="L184">        .forEach(mediaFormat -&gt; generateMediaFormatsForWidths(additionalMediaFormats, mediaFormat, true, imageSizes.getWidthOptions()));</span>
+<span class="fc" id="L185">    return true;</span>
+  }
+
+  private boolean resolveForResponsivePictureSources(MediaArgs mediaArgs, Map&lt;String, MediaFormatOption&gt; additionalMediaFormats) {
+<span class="fc" id="L189">    PictureSource[] pictureSources = mediaArgs.getPictureSources();</span>
+<span class="pc bpc" id="L190" title="1 of 4 branches missed.">    if (pictureSources == null || pictureSources.length == 0) {</span>
+<span class="fc" id="L191">      return true;</span>
+    }
+<span class="fc bfc" id="L193" title="All 2 branches covered.">    for (PictureSource pictureSource : pictureSources) {</span>
+<span class="fc" id="L194">      generateMediaFormatsForWidths(additionalMediaFormats, pictureSource.getMediaFormat(), false, pictureSource.getWidthOptions());</span>
+    }
+<span class="fc" id="L196">    return true;</span>
+  }
+
+  private void generateMediaFormatsForWidths(@NotNull Map&lt;String, MediaFormatOption&gt; additionalMediaFormats,
+      @Nullable MediaFormat mediaFormat, boolean setParent, @NotNull WidthOption @Nullable... widthOptions) {
+<span class="pc bpc" id="L201" title="1 of 4 branches missed.">    if (mediaFormat == null || widthOptions == null) {</span>
+<span class="fc" id="L202">      return;</span>
+    }
+<span class="fc bfc" id="L204" title="All 2 branches covered.">    for (WidthOption widthOption : widthOptions) {</span>
+<span class="fc" id="L205">      MediaFormat widthMediaFormat = MediaFormatBuilder.create(</span>
+<span class="fc" id="L206">          mediaFormat.getName() + MEDIAFORMAT_NAME_SEPARATOR + widthOption.getWidth())</span>
+<span class="fc" id="L207">          .label(mediaFormat.getLabel())</span>
+<span class="fc" id="L208">          .extensions(mediaFormat.getExtensions())</span>
+<span class="fc" id="L209">          .ratio(mediaFormat.getRatio())</span>
+<span class="fc bfc" id="L210" title="All 2 branches covered.">          .width(widthOption.getWidth())</span>
+<span class="fc" id="L211">          .property(MEDIAFORMAT_PROP_PARENT_MEDIA_FORMAT, setParent ? mediaFormat : null)</span>
+<span class="fc" id="L212">          .build();</span>
+<span class="fc" id="L213">      additionalMediaFormats.put(widthMediaFormat.getName(), new MediaFormatOption(widthMediaFormat, widthOption.isMandatory()));</span>
+    }
+<span class="fc" id="L215">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

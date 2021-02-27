@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Rendition.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media</a> &gt; <span class="el_source">Rendition.java</span></div><h1>Rendition.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media;
+
+import java.util.Date;
+
+import org.apache.sling.api.adapter.Adaptable;
+import org.apache.sling.api.resource.ValueMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
+
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.format.Ratio;
+import io.wcm.wcm.commons.caching.ModificationDateProvider;
+
+/**
+ * Represents a rendition contained in a {@link Asset} which can be rendered.
+ * A rendition can be pointing to a binary file stored in the repository, or a virtual rendition that is
+ * rendered on the fly if required.
+ */
+@ProviderType
+@JsonInclude(Include.NON_NULL)
+public interface Rendition extends Adaptable, ModificationDateProvider {
+
+  /**
+   * Get externalized URL pointing to the rendition.
+   * @return Rendition URL
+   */
+  @Nullable
+  String getUrl();
+
+  /**
+   * Returns the internal path of the rendition if stored within the JCR repository. If the rendition is a virtual
+   * rendition the path points to the binary from which the virtual rendition is derived from.
+   * @return Repository path
+   */
+  @Nullable
+  String getPath();
+
+  /**
+   * @return File name of the renditions source binary
+   */
+  @Nullable
+  String getFileName();
+
+  /**
+   * @return File extension of the renditions source binary
+   */
+  @Nullable
+  String getFileExtension();
+
+  /**
+   * @return File size of the rendition in bytes (or -1 if it is unknown).
+   */
+  long getFileSize();
+
+  /**
+   * @return Mime type of the renditions source binary.
+   */
+  @Nullable
+  String getMimeType();
+
+  /**
+   * @return Media format that matches with the resolved rendition. Null if no media format was specified for resolving.
+   */
+  @Nullable
+  @JsonUnwrapped
+  MediaFormat getMediaFormat();
+
+  /**
+   * @return Properties of rendition
+   */
+  @NotNull
+  @JsonIgnore
+  ValueMap getProperties();
+
+  /**
+   * @return true if the rendition is an image format supported by the media handler.
+   */
+  @JsonIgnore
+  boolean isImage();
+
+  /**
+   * @return true if the rendition is a web image file that can be displayed in a browser.
+   */
+  @JsonIgnore
+  boolean isBrowserImage();
+
+  /**
+   * @return true if the rendition is a vector image that can be displayed in a browser.
+   */
+  @JsonIgnore
+  boolean isVectorImage();
+
+  /**
+   * @return true if the rendition has a flash movie.
+   * @deprecated Flash support is deprecated
+   */
+  @Deprecated
+  @JsonIgnore
+  boolean isFlash();
+
+  /**
+   * @return true if the rendition is not and image nor a flash movie.
+   */
+  @JsonIgnore
+  boolean isDownload();
+
+  /**
+   * Gets the width of this rendition. If it is a virtual rendition the virtual height is returned.
+   * @return Height in pixels. Returns 0 if no height information is available.
+   */
+  long getWidth();
+
+  /**
+   * Gets the height of this rendition. If it is a virtual rendition the virtual height is returned.
+   * @return Height in pixels. Returns 0 if no height information is available.
+   */
+  long getHeight();
+
+  /**
+   * Gets the ratio of the image (width / height).
+   * @return Ratio. Returns 0 if no width or height information is available.
+   */
+  default double getRatio() {
+<span class="fc" id="L149">    long width = getWidth();</span>
+<span class="fc" id="L150">    long height = getHeight();</span>
+<span class="pc bpc" id="L151" title="2 of 4 branches missed.">    if (width &gt; 0 &amp;&amp; height &gt; 0) {</span>
+<span class="fc" id="L152">      return Ratio.get(width, height);</span>
+    }
+<span class="nc" id="L154">    return 0d;</span>
+  }
+
+  /**
+   * @return The date of the last modification
+   */
+  @Override
+  @Nullable
+  @JsonIgnore
+  Date getModificationDate();
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

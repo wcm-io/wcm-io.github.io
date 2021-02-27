@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImageMapParserImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.imagemap.impl</a> &gt; <span class="el_source">ImageMapParserImpl.java</span></div><h1>ImageMapParserImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.imagemap.impl;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
+import org.apache.sling.models.annotations.injectorspecific.OSGiService;
+import org.apache.sling.models.annotations.injectorspecific.SlingObject;
+import org.jetbrains.annotations.Nullable;
+
+import io.wcm.handler.media.imagemap.ImageMapArea;
+import io.wcm.handler.media.imagemap.ImageMapParser;
+import io.wcm.handler.media.spi.ImageMapLinkResolver;
+
+/**
+ * Creates {@link ImageMapArea} from strings.
+ */
+@Model(adaptables = {
+    SlingHttpServletRequest.class, Resource.class
+}, adapters = ImageMapParser.class)
+<span class="fc" id="L44">public class ImageMapParserImpl implements ImageMapParser {</span>
+
+  @SlingObject
+  private Resource resource;
+
+  @OSGiService(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private ImageMapLinkResolver linkResolver;
+
+  @Override
+  public @Nullable List&lt;ImageMapArea&gt; parseMap(@Nullable String mapString) {
+<span class="fc bfc" id="L54" title="All 2 branches covered.">    if (StringUtils.isBlank(mapString)) {</span>
+<span class="fc" id="L55">      return null;</span>
+    }
+
+<span class="fc" id="L58">    List&lt;ImageMapArea&gt; areas = new ArrayList&lt;&gt;();</span>
+    // Parse the image map areas as defined at {@code Image.PN_MAP}
+<span class="fc" id="L60">    String[] areaStrings = StringUtils.split(mapString, &quot;][&quot;);</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">    for (String areaString : areaStrings) {</span>
+<span class="fc" id="L62">      int coordinatesEndIndex = areaString.indexOf(')');</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">      if (coordinatesEndIndex &lt; 0) {</span>
+<span class="fc" id="L64">        break;</span>
+      }
+<span class="fc" id="L66">      String shapeAndCoords = StringUtils.substring(areaString, 0, coordinatesEndIndex + 1);</span>
+<span class="fc" id="L67">      String shape = StringUtils.substringBefore(shapeAndCoords, &quot;(&quot;);</span>
+<span class="fc" id="L68">      String coordinates = StringUtils.substringBetween(shapeAndCoords, &quot;(&quot;, &quot;)&quot;);</span>
+<span class="fc" id="L69">      String remaining = StringUtils.substring(areaString, coordinatesEndIndex + 1);</span>
+<span class="fc" id="L70">      String[] remainingTokens = StringUtils.split(remaining, &quot;|&quot;);</span>
+<span class="pc bpc" id="L71" title="2 of 4 branches missed.">      if (StringUtils.isBlank(shape) || StringUtils.isBlank(coordinates)) {</span>
+<span class="nc" id="L72">        break;</span>
+      }
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">      if (remainingTokens.length &gt; 0) {</span>
+<span class="fc" id="L75">        String linkUrl = StringUtils.remove(remainingTokens[0], &quot;\&quot;&quot;);</span>
+
+        // resolve and validate via link handler
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        if (linkResolver != null) {</span>
+<span class="fc" id="L79">          linkUrl = linkResolver.resolve(linkUrl, resource);</span>
+        }
+
+<span class="pc bpc" id="L82" title="1 of 4 branches missed.">        if (linkUrl == null || StringUtils.isBlank(linkUrl)) {</span>
+<span class="nc" id="L83">          break;</span>
+        }
+
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">        String linkWindowTarget = remainingTokens.length &gt; 1 ? StringUtils.remove(remainingTokens[1], &quot;\&quot;&quot;) : &quot;&quot;;</span>
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">        String altText = remainingTokens.length &gt; 2 ? StringUtils.remove(remainingTokens[2], &quot;\&quot;&quot;) : &quot;&quot;;</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">        String relativeCoordinates = remainingTokens.length &gt; 3 ? remainingTokens[3] : &quot;&quot;;</span>
+<span class="fc" id="L89">        relativeCoordinates = StringUtils.substringBetween(relativeCoordinates, &quot;(&quot;, &quot;)&quot;);</span>
+
+<span class="fc" id="L91">        ImageMapArea area = new ImageMapAreaImpl(shape, coordinates,</span>
+<span class="fc" id="L92">            StringUtils.trimToNull(relativeCoordinates),</span>
+            linkUrl,
+<span class="fc" id="L94">            StringUtils.trimToNull(linkWindowTarget), StringUtils.trimToNull(altText));</span>
+
+<span class="fc" id="L96">        areas.add(area);</span>
+      }
+    }
+
+<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (areas.isEmpty()) {</span>
+<span class="fc" id="L101">      return null;</span>
+    }
+    else {
+<span class="fc" id="L104">      return areas;</span>
+    }
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

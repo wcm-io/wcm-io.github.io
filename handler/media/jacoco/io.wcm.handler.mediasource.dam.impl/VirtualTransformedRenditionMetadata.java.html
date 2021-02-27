@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VirtualTransformedRenditionMetadata.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.impl</a> &gt; <span class="el_source">VirtualTransformedRenditionMetadata.java</span></div><h1>VirtualTransformedRenditionMetadata.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.impl;
+
+import java.io.InputStream;
+
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.day.cq.dam.api.Rendition;
+import com.day.image.Layer;
+
+import io.wcm.handler.media.CropDimension;
+import io.wcm.handler.media.impl.ImageFileServlet;
+import io.wcm.handler.media.impl.MediaFileServlet;
+import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaPath;
+
+/**
+ * Virtual rendition that is cropping and/or rotating and downscaling from an existing rendition.
+ */
+class VirtualTransformedRenditionMetadata extends RenditionMetadata {
+
+  private final long width;
+  private final long height;
+  private final CropDimension cropDimension;
+  private final Integer rotation;
+
+  VirtualTransformedRenditionMetadata(Rendition rendition, long width, long height,
+      CropDimension cropDimension, Integer rotation) {
+<span class="fc" id="L49">    super(rendition);</span>
+<span class="fc" id="L50">    this.width = width;</span>
+<span class="fc" id="L51">    this.height = height;</span>
+<span class="fc" id="L52">    this.cropDimension = cropDimension;</span>
+<span class="fc" id="L53">    this.rotation = rotation;</span>
+<span class="fc" id="L54">  }</span>
+
+  @Override
+  public String getFileName(boolean contentDispositionAttachment) {
+    // replace extension based on the format supported by ImageFileServlet for rendering for this rendition
+<span class="fc" id="L59">    return ImageFileServlet.getImageFileName(super.getFileName(contentDispositionAttachment));</span>
+  }
+
+  @Override
+  public long getFileSize() {
+    // no size for virutal renditions
+<span class="nc" id="L65">    return 0L;</span>
+  }
+
+  @Override
+  public long getWidth() {
+<span class="fc" id="L70">    return this.width;</span>
+  }
+
+  @Override
+  public long getHeight() {
+<span class="fc" id="L75">    return this.height;</span>
+  }
+
+  public CropDimension getCropDimension() {
+<span class="fc" id="L79">    return this.cropDimension;</span>
+  }
+
+  public Integer getRotation() {
+<span class="fc" id="L83">    return this.rotation;</span>
+  }
+
+  @Override
+  public @NotNull String getMediaPath(boolean contentDispositionAttachment) {
+<span class="fc" id="L88">    return RenditionMetadata.buildMediaPath(getRendition().getPath()</span>
+<span class="fc" id="L89">        + &quot;.&quot; + ImageFileServlet.buildSelectorString(getWidth(), getHeight(),</span>
+            this.cropDimension, this.rotation, contentDispositionAttachment)
+<span class="fc" id="L91">        + &quot;.&quot; + MediaFileServlet.EXTENSION, getFileName(contentDispositionAttachment));</span>
+  }
+
+  @Override
+  public @Nullable String getDynamicMediaPath(boolean contentDispositionAttachment, DamContext damContext) {
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">    if (contentDispositionAttachment) {</span>
+      // do not use dynamic media for request forced with content disposition attachment
+<span class="nc" id="L98">      return null;</span>
+    }
+    else {
+      // render virtual rendition with dynamic media
+<span class="fc" id="L102">      return DynamicMediaPath.build(damContext, getWidth(), getHeight(), this.cropDimension, this.rotation);</span>
+    }
+  }
+
+  @Override
+  protected Layer getLayer() {
+<span class="fc" id="L108">    Layer layer = super.getLayer();</span>
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">    if (layer != null) {</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">      if (cropDimension != null) {</span>
+<span class="fc" id="L111">        layer.crop(cropDimension.getRectangle());</span>
+<span class="pc bpc" id="L112" title="2 of 4 branches missed.">        if (width &lt;= layer.getWidth() &amp;&amp; height &lt;= layer.getHeight()) {</span>
+<span class="fc" id="L113">          layer.resize((int)width, (int)height);</span>
+        }
+      }
+<span class="fc bfc" id="L116" title="All 2 branches covered.">      if (rotation != null) {</span>
+<span class="fc" id="L117">        layer.rotate(rotation);</span>
+      }
+    }
+<span class="fc" id="L120">    return layer;</span>
+  }
+
+  @Override
+  protected InputStream getInputStream() {
+    // currently not supported for virtual renditions
+<span class="fc" id="L126">    return null;</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="fc" id="L131">    return new HashCodeBuilder()</span>
+<span class="fc" id="L132">        .append(this.getRendition().getPath())</span>
+<span class="fc" id="L133">        .append(width)</span>
+<span class="fc" id="L134">        .append(height)</span>
+<span class="fc" id="L135">        .append(cropDimension)</span>
+<span class="fc" id="L136">        .append(rotation)</span>
+<span class="fc" id="L137">        .hashCode();</span>
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+<span class="pc bpc" id="L142" title="1 of 4 branches missed.">    if (obj == null || obj.getClass() != this.getClass()) {</span>
+<span class="fc" id="L143">      return false;</span>
+    }
+<span class="fc" id="L145">    VirtualTransformedRenditionMetadata other = (VirtualTransformedRenditionMetadata)obj;</span>
+<span class="fc" id="L146">    return new EqualsBuilder()</span>
+<span class="fc" id="L147">        .append(this.getRendition().getPath(), other.getRendition().getPath())</span>
+<span class="fc" id="L148">        .append(this.width, other.width)</span>
+<span class="fc" id="L149">        .append(this.height, other.height)</span>
+<span class="fc" id="L150">        .append(this.cropDimension, other.cropDimension)</span>
+<span class="fc" id="L151">        .append(this.rotation, other.rotation)</span>
+<span class="fc" id="L152">        .build();</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L157">    StringBuilder sb = new StringBuilder(super.toString());</span>
+<span class="nc" id="L158">    sb.append(&quot; -&gt; &quot;).append(Long.toString(this.width)).append(&quot;x&quot;).append(Long.toString(this.height));</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">    if (cropDimension != null) {</span>
+<span class="nc" id="L160">      sb.append(&quot;, &quot;).append(cropDimension.toString());</span>
+    }
+<span class="nc bnc" id="L162" title="All 2 branches missed.">    if (rotation != null) {</span>
+<span class="nc" id="L163">      sb.append(&quot;, rotation:&quot;).append(Integer.toString(rotation));</span>
+    }
+<span class="nc" id="L165">    return sb.toString();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

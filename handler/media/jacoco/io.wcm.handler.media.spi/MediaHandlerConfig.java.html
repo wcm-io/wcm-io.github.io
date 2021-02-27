@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MediaHandlerConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.spi</a> &gt; <span class="el_source">MediaHandlerConfig.java</span></div><h1>MediaHandlerConfig.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.spi;
+
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ConsumerType;
+
+import com.day.cq.wcm.api.Page;
+import com.google.common.collect.ImmutableList;
+
+import io.wcm.handler.media.MediaNameConstants;
+import io.wcm.handler.media.markup.DummyImageMediaMarkupBuilder;
+import io.wcm.handler.media.markup.SimpleImageMediaMarkupBuilder;
+import io.wcm.handler.mediasource.dam.DamMediaSource;
+import io.wcm.sling.commons.caservice.ContextAwareService;
+
+/**
+ * {@link MediaHandlerConfig} OSGi services provide application-specific configuration for media handling.
+ * Applications can set service properties or bundle headers as defined in {@link ContextAwareService} to apply this
+ * configuration only for resources that match the relevant resource paths.
+ */
+@ConsumerType
+<span class="fc" id="L43">public abstract class MediaHandlerConfig implements ContextAwareService {</span>
+
+  /**
+   * Default value for JPEG quality.
+   */
+  public static final double DEFAULT_JPEG_QUALITY = 0.98d;
+
+<span class="fc" id="L50">  private static final List&lt;Class&lt;? extends MediaSource&gt;&gt; DEFAULT_MEDIA_SOURCES = ImmutableList.&lt;Class&lt;? extends MediaSource&gt;&gt;of(</span>
+      DamMediaSource.class);
+
+<span class="fc" id="L53">  private static final List&lt;Class&lt;? extends MediaMarkupBuilder&gt;&gt; DEFAULT_MEDIA_MARKUP_BUILDERS = ImmutableList.&lt;Class&lt;? extends MediaMarkupBuilder&gt;&gt;of(</span>
+      SimpleImageMediaMarkupBuilder.class,
+      DummyImageMediaMarkupBuilder.class);
+
+  /**
+   * @return Supported media sources
+   */
+  public @NotNull List&lt;Class&lt;? extends MediaSource&gt;&gt; getSources() {
+<span class="fc" id="L61">    return DEFAULT_MEDIA_SOURCES;</span>
+  }
+
+  /**
+   * @return Available media markup builders
+   */
+  public @NotNull List&lt;Class&lt;? extends MediaMarkupBuilder&gt;&gt; getMarkupBuilders() {
+<span class="fc" id="L68">    return DEFAULT_MEDIA_MARKUP_BUILDERS;</span>
+  }
+
+  /**
+   * @return List of media metadata pre processors (optional). The processors are applied in list order.
+   */
+  public @NotNull List&lt;Class&lt;? extends MediaProcessor&gt;&gt; getPreProcessors() {
+    // no processors
+<span class="fc" id="L76">    return ImmutableList.of();</span>
+  }
+
+  /**
+   * @return List of media metadata post processors (optional). The processors are applied in list order.
+   */
+  public @NotNull List&lt;Class&lt;? extends MediaProcessor&gt;&gt; getPostProcessors() {
+    // no processors
+<span class="fc" id="L84">    return ImmutableList.of();</span>
+  }
+
+  /**
+   * Get the default quality for images in this app generated with the Layer API.
+   * The meaning of the quality parameter for the different image formats is described in
+   * {@link com.day.image.Layer#write(String, double, java.io.OutputStream)}.
+   * @param mimeType MIME-type of the output format
+   * @return Quality factor
+   */
+  public double getDefaultImageQuality(String mimeType) {
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(mimeType)) {</span>
+<span class="fc" id="L96">      String format = StringUtils.substringAfter(mimeType.toLowerCase(), &quot;image/&quot;);</span>
+<span class="fc bfc" id="L97" title="All 4 branches covered.">      if (StringUtils.equals(format, &quot;jpg&quot;) || StringUtils.equals(format, &quot;jpeg&quot;)) {</span>
+<span class="fc" id="L98">        return DEFAULT_JPEG_QUALITY;</span>
+      }
+<span class="fc bfc" id="L100" title="All 2 branches covered.">      else if (StringUtils.equals(format, &quot;gif&quot;)) {</span>
+<span class="fc" id="L101">        return 256d; // 256 colors</span>
+      }
+    }
+    // return quality &quot;1&quot; for all other mime types
+<span class="fc" id="L105">    return 1d;</span>
+  }
+
+  /**
+   * With this switch it's possible to switch all used property and node names from (legacy) wcm.io
+   * Handler standard to Adobe Standard (as used e.g. in Adobe Core WCM Components) - e.g.
+   * using &quot;fileReference&quot; instead of property name &quot;mediaRef&quot; for the asset reference.
+   * &lt;p&gt;
+   * The benefit of the wcm.io Handler standard was that it supported storage multiple asset references
+   * in one single node - but this it not well supported by the Touch UI anyway, so it's not of much
+   * use nowadays.
+   * &lt;/p&gt;
+   * &lt;p&gt;
+   * For new projects it is recommended to always use the Adobe standard names. But for backward compatibility
+   * the default values is false.
+   * &lt;/p&gt;
+   * @return If true, Adobe standard property and node names are used.
+   */
+  public boolean useAdobeStandardNames() {
+<span class="fc" id="L124">    return false;</span>
+  }
+
+  /**
+   * @return Default property name for reference to media library item
+   */
+  public @NotNull String getMediaRefProperty() {
+<span class="fc bfc" id="L131" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
+<span class="fc" id="L132">      return MediaNameConstants.PN_MEDIA_REF_STANDARD;</span>
+    }
+    else {
+<span class="fc" id="L135">      return MediaNameConstants.PN_MEDIA_REF;</span>
+    }
+  }
+
+  /**
+   * @return Default property name for cropping parameters
+   */
+  public @NotNull String getMediaCropProperty() {
+<span class="fc bfc" id="L143" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
+<span class="fc" id="L144">      return MediaNameConstants.PN_MEDIA_CROP_STANDARD;</span>
+    }
+    else {
+<span class="fc" id="L147">      return MediaNameConstants.PN_MEDIA_CROP;</span>
+    }
+  }
+
+  /**
+   * @return Default property name for rotate parameter
+   */
+  public @NotNull String getMediaRotationProperty() {
+<span class="fc bfc" id="L155" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
+<span class="fc" id="L156">      return MediaNameConstants.PN_MEDIA_ROTATION_STANDARD;</span>
+    }
+    else {
+<span class="fc" id="L159">      return MediaNameConstants.PN_MEDIA_ROTATION;</span>
+    }
+  }
+
+  /**
+   * @return Default property name for map parameter
+   */
+  public @NotNull String getMediaMapProperty() {
+<span class="fc bfc" id="L167" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
+<span class="fc" id="L168">      return MediaNameConstants.PN_MEDIA_MAP_STANDARD;</span>
+    }
+    else {
+<span class="fc" id="L171">      return MediaNameConstants.PN_MEDIA_MAP;</span>
+    }
+  }
+
+  /**
+   * @return Default property name for media alt. text
+   */
+  public @NotNull String getMediaAltTextProperty() {
+<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
+<span class="fc" id="L180">      return MediaNameConstants.PN_MEDIA_ALTTEXT_STANDARD;</span>
+    }
+    else {
+<span class="fc" id="L183">      return MediaNameConstants.PN_MEDIA_ALTTEXT;</span>
+    }
+  }
+
+  /**
+   * @return Default node name for inline media item stored in node within the content page
+   */
+  public @NotNull String getMediaInlineNodeName() {
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">    if (useAdobeStandardNames()) {</span>
+<span class="nc" id="L192">      return MediaNameConstants.NN_MEDIA_INLINE_STANDARD;</span>
+    }
+    else {
+<span class="fc" id="L195">      return MediaNameConstants.NN_MEDIA_INLINE;</span>
+    }
+  }
+
+  /**
+   * @return If set to true, web renditions generated by the DAM asset workflows (with cq5dam.web prefix) are
+   *         taken into account by default when trying to resolve the media request.
+   */
+  public boolean includeAssetWebRenditionsByDefault() {
+<span class="fc" id="L204">    return true;</span>
+  }
+
+  /**
+   * Get root path for picking assets using path field widgets.
+   * @param page Context page
+   * @return DAM root path
+   */
+  public @NotNull String getDamRootPath(@NotNull Page page) {
+<span class="nc" id="L213">    return &quot;/content/dam&quot;;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InlineImageAuthorPreviewServlet.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.impl</a> &gt; <span class="el_source">InlineImageAuthorPreviewServlet.java</span></div><h1>InlineImageAuthorPreviewServlet.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2021 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.impl;
+
+import javax.servlet.Servlet;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+
+import io.wcm.handler.media.spi.MediaHandlerConfig;
+import io.wcm.sling.commons.adapter.AdaptTo;
+import io.wcm.wcm.commons.contenttype.FileExtension;
+
+/**
+ * This servlet provides a preview image using the 'img' selector for preview in the edit dialog
+ * for inline images stored in the component's resource.
+ * It is only active if a configuration for a list of resource types is present. It should only be
+ * configured on author instances, not required on publish instances.
+ */
+@Designate(ocd = InlineImageAuthorPreviewServlet.Config.class, factory = true)
+@Component(service = Servlet.class, configurationPolicy = ConfigurationPolicy.REQUIRE, property = {
+    &quot;sling.servlet.extensions=&quot; + FileExtension.JPEG,
+    &quot;sling.servlet.extensions=jpeg&quot;, // alternative JPEG extension
+    &quot;sling.servlet.extensions=&quot; + FileExtension.PNG,
+    &quot;sling.servlet.extensions=&quot; + FileExtension.GIF,
+    &quot;sling.servlet.extensions=&quot; + FileExtension.SVG,
+    &quot;sling.servlet.selectors=&quot; + InlineImageAuthorPreviewServlet.SELECTOR,
+    &quot;sling.servlet.methods=&quot; + HttpConstants.METHOD_GET
+})
+<span class="fc" id="L53">public final class InlineImageAuthorPreviewServlet extends AbstractMediaFileServlet {</span>
+  private static final long serialVersionUID = 1L;
+
+  @ObjectClassDefinition(
+      name = &quot;wcm.io Media Handler Inline Image Author Preview Servlet&quot;,
+      description = &quot;Configures resource types for editable components that may store inline images. &quot;
+          + &quot;This servlet provides a preview image using the 'img' selector for preview in the edit dialog.&quot;)
+  @interface Config {
+
+    @AttributeDefinition(
+        name = &quot;Resource types&quot;,
+        description = &quot;List of resource types for which previews for inline image should be available on author instances.&quot;)
+    String[] sling_servlet_resourceTypes() default {};
+
+  }
+
+  /**
+   * Selector used by the FileUpload Granite UI component for displaying a preview image.
+   */
+  public static final String SELECTOR = &quot;img&quot;;
+
+  @Override
+  @SuppressWarnings({ &quot;null&quot;, &quot;unused&quot; })
+  protected Resource getBinaryDataResource(SlingHttpServletRequest request) {
+    // get node that stores the inline media (if available)
+<span class="fc" id="L78">    MediaHandlerConfig config = AdaptTo.notNull(request, MediaHandlerConfig.class);</span>
+<span class="fc" id="L79">    return request.getResource().getChild(config.getMediaInlineNodeName());</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

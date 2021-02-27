@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MediaFormatHandlerImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.format.impl</a> &gt; <span class="el_source">MediaFormatHandlerImpl.java</span></div><h1>MediaFormatHandlerImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.format.impl;
+
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.OSGiService;
+import org.apache.sling.models.annotations.injectorspecific.SlingObject;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.google.common.collect.ImmutableSortedSet;
+
+import io.wcm.handler.media.MediaFileType;
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.format.MediaFormatHandler;
+import io.wcm.handler.media.format.MediaFormatProviderManager;
+import io.wcm.handler.media.format.MediaFormatRankingComparator;
+import io.wcm.handler.media.format.MediaFormatSizeRankingComparator;
+import io.wcm.handler.media.format.Ratio;
+
+/**
+ * Media format handling.
+ */
+@Model(adaptables = {
+    SlingHttpServletRequest.class, Resource.class
+}, adapters = MediaFormatHandler.class)
+<span class="fc" id="L53">public final class MediaFormatHandlerImpl implements MediaFormatHandler {</span>
+
+  @SlingObject
+  private Resource currentResource;
+  @OSGiService
+  private MediaFormatProviderManager mediaFormatProviderManager;
+
+  // do not access directly - used for caching. use getMediaFormatsForCurrentResource() and getMediaFormatMap() instead
+  private SortedSet&lt;MediaFormat&gt; mediaFormats;
+  private Map&lt;String, MediaFormat&gt; mediaFormatMap;
+
+  private SortedSet&lt;MediaFormat&gt; getMediaFormatsForCurrentResource() {
+<span class="fc bfc" id="L65" title="All 2 branches covered.">    if (this.mediaFormats == null) {</span>
+<span class="fc" id="L66">      this.mediaFormats = mediaFormatProviderManager.getMediaFormats(currentResource);</span>
+    }
+<span class="fc" id="L68">    return this.mediaFormats;</span>
+  }
+
+  private Map&lt;String, MediaFormat&gt; getMediaFormatMap() {
+<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (this.mediaFormatMap == null) {</span>
+<span class="fc" id="L73">      this.mediaFormatMap = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">      for (MediaFormat mediaFormat : getMediaFormatsForCurrentResource()) {</span>
+<span class="fc" id="L75">        this.mediaFormatMap.put(mediaFormat.getName(), mediaFormat);</span>
+<span class="fc" id="L76">      }</span>
+    }
+<span class="fc" id="L78">    return this.mediaFormatMap;</span>
+  }
+
+  /**
+   * Resolves media format name to media format object.
+   * @param mediaFormatName Media format name
+   * @return Media format or null if no match found
+   */
+  @Override
+  public MediaFormat getMediaFormat(@NotNull String mediaFormatName) {
+<span class="fc" id="L88">    return getMediaFormatMap().get(mediaFormatName);</span>
+  }
+
+  /**
+   * Get media formats defined by a CMS application that is responsible for the given media library path.
+   * @return Media formats sorted by media format name.
+   */
+  @Override
+  public @NotNull SortedSet&lt;MediaFormat&gt; getMediaFormats() {
+<span class="fc" id="L97">    return getMediaFormatsForCurrentResource();</span>
+  }
+
+  /**
+   * Get media formats defined by a CMS application that is responsible for the given media library path.
+   * @param comparator Comparator for set
+   * @return Media formats
+   */
+  @Override
+  public @NotNull SortedSet&lt;MediaFormat&gt; getMediaFormats(@NotNull Comparator&lt;MediaFormat&gt; comparator) {
+<span class="nc" id="L107">    SortedSet&lt;MediaFormat&gt; set = new TreeSet&lt;&gt;(comparator);</span>
+<span class="nc" id="L108">    set.addAll(getMediaFormatsForCurrentResource());</span>
+<span class="nc" id="L109">    return ImmutableSortedSet.copyOf(set);</span>
+  }
+
+  /**
+   * Get list of media formats that have the same (or bigger) resolution as the requested media format
+   * and (nearly) the same aspect ratio.
+   * @param mediaFormatRequested Requested media format
+   * @param filterRenditionGroup Only check media formats of the same rendition group.
+   * @return Matching media formats, sorted by size (biggest first), ranking, name
+   */
+  @Override
+  public @NotNull SortedSet&lt;MediaFormat&gt; getSameBiggerMediaFormats(@NotNull MediaFormat mediaFormatRequested, boolean filterRenditionGroup) {
+<span class="fc" id="L121">    SortedSet&lt;MediaFormat&gt; matchingFormats = new TreeSet&lt;&gt;(new MediaFormatSizeRankingComparator());</span>
+
+    // if filter by rendition group is enabled, but the requested media format does not define one,
+    // use only the requested format
+<span class="pc bpc" id="L125" title="1 of 4 branches missed.">    if (filterRenditionGroup &amp;&amp; StringUtils.isEmpty(mediaFormatRequested.getRenditionGroup())) {</span>
+<span class="fc" id="L126">      matchingFormats.add(mediaFormatRequested);</span>
+    }
+    else {
+<span class="fc bfc" id="L129" title="All 2 branches covered.">      for (MediaFormat mediaFormat : getMediaFormats()) {</span>
+
+        // if filter by rendition group is enabled, check only media formats of same rendition group
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">        if (!filterRenditionGroup</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">            || StringUtils.equals(mediaFormat.getRenditionGroup(), mediaFormatRequested.getRenditionGroup())) {</span>
+
+          // check if size matched (image size is same or bigger)
+<span class="fc bfc" id="L136" title="All 2 branches covered.">          if (isRenditionMatchSizeSameBigger(mediaFormat, mediaFormatRequested)) { //NOPMD</span>
+
+            // if media formats have ratios, check ratio (with tolerance)
+            // otherwise add to list anyway, it *can* contain matching media items
+<span class="fc bfc" id="L140" title="All 2 branches covered.">            if (Ratio.matches(mediaFormat, mediaFormatRequested) //NOPMD</span>
+<span class="pc bpc" id="L141" title="1 of 4 branches missed.">                || !mediaFormat.hasRatio() || !mediaFormatRequested.hasRatio()) {</span>
+
+              // check for supported file extension
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">              if (isRenditionMatchExtension(mediaFormat)) { //NOPMD</span>
+<span class="fc" id="L145">                matchingFormats.add(mediaFormat);</span>
+              }
+            }
+
+          }
+
+        }
+
+<span class="fc" id="L153">      }</span>
+    }
+
+<span class="fc" id="L156">    return matchingFormats;</span>
+  }
+
+  /**
+   * Get list of possible media formats that can be rendered from the given media format, i.e. same size or smaller
+   * and (nearly) the same aspect ratio.
+   * @param mediaFormatRequested Available media format
+   * @param filterRenditionGroup Only check media formats of the same rendition group.
+   * @return Matching media formats, sorted by size (biggest first), ranking, name
+   */
+  @Override
+  public @NotNull SortedSet&lt;MediaFormat&gt; getSameSmallerMediaFormats(@NotNull MediaFormat mediaFormatRequested, boolean filterRenditionGroup) {
+<span class="fc" id="L168">    SortedSet&lt;MediaFormat&gt; matchingFormats = new TreeSet&lt;&gt;(new MediaFormatSizeRankingComparator());</span>
+
+    // if filter by rendition group is enabled, but the requested media format does not define one,
+    // use only the requested format
+<span class="pc bpc" id="L172" title="1 of 4 branches missed.">    if (filterRenditionGroup &amp;&amp; StringUtils.isEmpty(mediaFormatRequested.getRenditionGroup())) {</span>
+<span class="fc" id="L173">      matchingFormats.add(mediaFormatRequested);</span>
+    }
+    else {
+<span class="fc bfc" id="L176" title="All 2 branches covered.">      for (MediaFormat mediaFormat : getMediaFormats()) {</span>
+
+        // if filter by rendition group is enabled, check only media formats of same rendition group
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">        if (!filterRenditionGroup</span>
+<span class="fc bfc" id="L180" title="All 2 branches covered.">            || StringUtils.equals(mediaFormat.getRenditionGroup(), mediaFormatRequested.getRenditionGroup())) {</span>
+
+          // check if size matched (image size is same or smaller)
+<span class="fc bfc" id="L183" title="All 2 branches covered.">          if (isRenditionMatchSizeSameSmaller(mediaFormat, mediaFormatRequested)) { //NOPMD</span>
+
+            // if media formats have ratios, check ratio (with tolerance)
+            // otherwise add to list anyway, it *can* contain matching media items
+<span class="fc bfc" id="L187" title="All 2 branches covered.">            if (Ratio.matches(mediaFormat, mediaFormatRequested) //NOPMD</span>
+<span class="pc bpc" id="L188" title="1 of 4 branches missed.">                || !mediaFormat.hasRatio() || !mediaFormatRequested.hasRatio()) {</span>
+
+              // check for supported file extension
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">              if (isRenditionMatchExtension(mediaFormat)) { //NOPMD</span>
+<span class="fc" id="L192">                matchingFormats.add(mediaFormat);</span>
+              }
+            }
+
+          }
+
+        }
+
+<span class="fc" id="L200">      }</span>
+    }
+
+<span class="fc" id="L203">    return matchingFormats;</span>
+  }
+
+  /**
+   * Checks if the given media format size is same size or bigger than the requested one.
+   * @param mediaFormat Media format
+   * @param mediaFormatRequested Requested media format
+   * @return true if media format is same size or bigger
+   */
+  private boolean isRenditionMatchSizeSameBigger(MediaFormat mediaFormat, MediaFormat mediaFormatRequested) {
+<span class="fc" id="L213">    long widthRequested = mediaFormatRequested.getEffectiveMinWidth();</span>
+<span class="fc" id="L214">    long heightRequested = mediaFormatRequested.getEffectiveMinHeight();</span>
+
+<span class="fc" id="L216">    long widthMax = mediaFormat.getEffectiveMaxWidth();</span>
+<span class="fc" id="L217">    long heightMax = mediaFormat.getEffectiveMaxHeight();</span>
+
+<span class="fc bfc" id="L219" title="All 8 branches covered.">    return ((widthMax &gt;= widthRequested) || (widthMax == 0))</span>
+        &amp;&amp; ((heightMax &gt;= heightRequested) || (heightMax == 0));
+  }
+
+  /**
+   * Checks if the given media format size is same size or smaller than the requested one.
+   * @param mediaFormat Media format
+   * @param mediaFormatRequested Requested media format
+   * @return true if media format is same size or smaller
+   */
+  private boolean isRenditionMatchSizeSameSmaller(MediaFormat mediaFormat, MediaFormat mediaFormatRequested) {
+<span class="fc" id="L230">    long widthRequested = mediaFormatRequested.getEffectiveMinWidth();</span>
+<span class="fc" id="L231">    long heightRequested = mediaFormatRequested.getEffectiveMinHeight();</span>
+
+<span class="fc" id="L233">    long widthMin = mediaFormat.getEffectiveMinWidth();</span>
+<span class="fc" id="L234">    long heightMin = mediaFormat.getEffectiveMinHeight();</span>
+
+<span class="pc bpc" id="L236" title="1 of 4 branches missed.">    return widthMin &lt;= widthRequested &amp;&amp; heightMin &lt;= heightRequested;</span>
+  }
+
+  /**
+   * Checks if one of the extensions of the given media format are supported for renditions.
+   * @param mediaFormat Media format
+   * @return true if supported extension found
+   */
+  private boolean isRenditionMatchExtension(MediaFormat mediaFormat) {
+<span class="pc bpc" id="L245" title="1 of 2 branches missed.">    for (String extension : mediaFormat.getExtensions()) {</span>
+<span class="pc bpc" id="L246" title="1 of 2 branches missed.">      if (MediaFileType.isImage(extension)) {</span>
+<span class="fc" id="L247">        return true;</span>
+      }
+    }
+<span class="nc" id="L250">    return false;</span>
+  }
+
+  /**
+   * Detect matching media format.
+   * @param extension File extension
+   * @param fileSize File size
+   * @param width Image width (or 0 if not image)
+   * @param height Image height (or 0 if not image)
+   * @return Media format or null if no matching media format found
+   */
+  @Override
+  public MediaFormat detectMediaFormat(@Nullable String extension, long fileSize, long width, long height) {
+<span class="fc" id="L263">    SortedSet&lt;MediaFormat&gt; matchingFormats = detectMediaFormats(extension, fileSize, width, height);</span>
+<span class="fc bfc" id="L264" title="All 2 branches covered.">    return !matchingFormats.isEmpty() ? matchingFormats.first() : null;</span>
+  }
+
+  /**
+   * Detect all matching media formats.
+   * @param extension File extension
+   * @param fileSize File size
+   * @param width Image width (or 0 if not image)
+   * @param height Image height (or 0 if not image)
+   * @return Matching media formats sorted by their ranking or an empty list if no matching format was found
+   */
+  @Override
+  public @NotNull SortedSet&lt;MediaFormat&gt; detectMediaFormats(@Nullable String extension, long fileSize, long width, long height) {
+
+    // sort media formats by ranking
+<span class="fc" id="L279">    SortedSet&lt;MediaFormat&gt; matchingFormats = new TreeSet&lt;&gt;(new MediaFormatRankingComparator());</span>
+
+<span class="fc bfc" id="L281" title="All 2 branches covered.">    for (MediaFormat mediaFormat : getMediaFormats()) {</span>
+
+      // skip media formats with negative ranking
+<span class="fc bfc" id="L284" title="All 2 branches covered.">      if (mediaFormat.getRanking() &lt; 0) {</span>
+<span class="fc" id="L285">        continue;</span>
+      }
+
+      // check extension
+<span class="fc" id="L289">      boolean extensionMatch = false;</span>
+<span class="pc bpc" id="L290" title="1 of 2 branches missed.">      if (mediaFormat.getExtensions() != null) {</span>
+<span class="fc bfc" id="L291" title="All 2 branches covered.">        for (String ext : mediaFormat.getExtensions()) {</span>
+<span class="fc bfc" id="L292" title="All 2 branches covered.">          if (StringUtils.equalsIgnoreCase(ext, extension)) {</span>
+<span class="fc" id="L293">            extensionMatch = true;</span>
+<span class="fc" id="L294">            break;</span>
+          }
+        }
+      }
+      else {
+<span class="nc" id="L299">        extensionMatch = true;</span>
+      }
+
+      // check file size
+<span class="fc" id="L303">      boolean fileSizeMatch = false;</span>
+<span class="pc bpc" id="L304" title="1 of 2 branches missed.">      if (mediaFormat.getFileSizeMax() &gt; 0) {</span>
+<span class="nc bnc" id="L305" title="All 2 branches missed.">        fileSizeMatch = (fileSize &lt;= mediaFormat.getFileSizeMax());</span>
+      }
+      else {
+<span class="fc" id="L308">        fileSizeMatch = true;</span>
+      }
+
+      // width/height match
+<span class="fc" id="L312">      boolean dimensionMatch = false;</span>
+<span class="pc bpc" id="L313" title="1 of 4 branches missed.">      if (width &gt; 0 &amp;&amp; height &gt; 0) {</span>
+<span class="fc bfc" id="L314" title="All 4 branches covered.">        dimensionMatch = (mediaFormat.getEffectiveMinWidth() == 0 || width &gt;= mediaFormat.getEffectiveMinWidth())</span>
+<span class="fc bfc" id="L315" title="All 4 branches covered.">            &amp;&amp; (mediaFormat.getEffectiveMaxWidth() == 0 || width &lt;= mediaFormat.getEffectiveMaxWidth())</span>
+<span class="fc bfc" id="L316" title="All 4 branches covered.">            &amp;&amp; (mediaFormat.getEffectiveMinHeight() == 0 || height &gt;= mediaFormat.getEffectiveMinHeight())</span>
+<span class="fc bfc" id="L317" title="All 4 branches covered.">            &amp;&amp; (mediaFormat.getEffectiveMaxHeight() == 0 || height &lt;= mediaFormat.getEffectiveMaxHeight());</span>
+      }
+      else {
+<span class="fc" id="L320">        dimensionMatch = true;</span>
+      }
+
+<span class="fc" id="L323">      boolean ratioMatch = false;</span>
+<span class="pc bpc" id="L324" title="1 of 6 branches missed.">      if (mediaFormat.hasRatio() &amp;&amp; width &gt; 0 &amp;&amp; height &gt; 0) {</span>
+<span class="fc" id="L325">        double formatRatio = mediaFormat.getRatio();</span>
+<span class="fc" id="L326">        double ratio = (double)width / height;</span>
+<span class="fc" id="L327">        ratioMatch = Ratio.matches(ratio, formatRatio);</span>
+<span class="fc" id="L328">      }</span>
+      else {
+<span class="fc" id="L330">        ratioMatch = true;</span>
+      }
+
+<span class="pc bpc" id="L333" title="1 of 8 branches missed.">      if (extensionMatch &amp;&amp; fileSizeMatch &amp;&amp; dimensionMatch &amp;&amp; ratioMatch) {</span>
+<span class="fc" id="L334">        matchingFormats.add(mediaFormat);</span>
+      }
+<span class="fc" id="L336">    }</span>
+
+<span class="fc" id="L338">    return matchingFormats;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DamContext.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.impl</a> &gt; <span class="el_source">DamContext.java</span></div><h1>DamContext.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2020 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.impl;
+
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.adapter.Adaptable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.day.cq.dam.api.Asset;
+import com.day.cq.dam.scene7.api.constants.Scene7Constants;
+
+import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaSupportService;
+import io.wcm.handler.mediasource.dam.impl.dynamicmedia.ImageProfile;
+import io.wcm.handler.mediasource.dam.impl.dynamicmedia.NamedDimension;
+
+/**
+ * Context objects require in DAM support implementation.
+ */
+public final class DamContext implements Adaptable {
+
+  private final Asset asset;
+  private final DynamicMediaSupportService dynamicMediaSupportService;
+  private final Adaptable adaptable;
+
+  private Boolean dynamicMediaEnabled;
+  private String dynamicMediaObject;
+  private String dynamicMediaProductionAssetUrl;
+  private ImageProfile imageProfile;
+
+<span class="fc" id="L51">  private static final ImageProfile NO_IMAGE_PROFILE = new ImageProfile() {</span>
+    @Override
+    public @NotNull List&lt;NamedDimension&gt; getSmartCropDefinitions() {
+<span class="nc" id="L54">      return Collections.emptyList();</span>
+    }
+  };
+
+  /**
+   * @param asset DAM asset
+   * @param dynamicMediaSupportService Dynamic media support service
+   * @param adaptable Adaptable from current context
+   */
+  public DamContext(Asset asset, DynamicMediaSupportService dynamicMediaSupportService,
+<span class="fc" id="L64">      Adaptable adaptable) {</span>
+<span class="fc" id="L65">    this.asset = asset;</span>
+<span class="fc" id="L66">    this.adaptable = adaptable;</span>
+<span class="fc" id="L67">    this.dynamicMediaSupportService = dynamicMediaSupportService;</span>
+<span class="fc" id="L68">  }</span>
+
+  /**
+   * @return DAM asset
+   */
+  public Asset getAsset() {
+<span class="fc" id="L74">    return asset;</span>
+  }
+
+  /**
+   * @return Whether dynamic media is enabled on this AEM instance
+   */
+  public boolean isDynamicMediaEnabled() {
+<span class="fc bfc" id="L81" title="All 2 branches covered.">    if (dynamicMediaEnabled == null) {</span>
+<span class="fc" id="L82">      dynamicMediaEnabled = dynamicMediaSupportService.isDynamicMediaEnabled();</span>
+    }
+<span class="fc" id="L84">    return dynamicMediaEnabled;</span>
+  }
+
+  /**
+   * @return Dynamic media object identifier (value of dam:scene7File property).
+   */
+  public @Nullable String getDynamicMediaObject() {
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (dynamicMediaObject == null) {</span>
+<span class="fc" id="L92">      dynamicMediaObject = asset.getMetadataValueFromJcr(Scene7Constants.PN_S7_FILE);</span>
+    }
+<span class="fc" id="L94">    return dynamicMediaObject;</span>
+  }
+
+  /**
+   * @return true if the DAM asset from this context has dynamic media metadata applied.
+   */
+  public boolean isDynamicMediaAsset() {
+<span class="fc" id="L101">    return StringUtils.isNotBlank(getDynamicMediaObject());</span>
+  }
+
+  /**
+   * @return Get scene7 host for publish environment.
+   */
+  public @Nullable String getDynamicMediaProductionAssetUrl() {
+<span class="fc bfc" id="L108" title="All 2 branches covered.">    if (dynamicMediaProductionAssetUrl == null) {</span>
+<span class="fc" id="L109">      dynamicMediaProductionAssetUrl = dynamicMediaSupportService.getDynamicMediaProductionAssetUrl(asset);</span>
+    }
+<span class="fc" id="L111">    return dynamicMediaProductionAssetUrl;</span>
+  }
+
+  /**
+   * Get image profile for current DAM asset.
+   * @return Image profile or null if none associated/found
+   */
+  public @Nullable ImageProfile getImageProfile() {
+<span class="fc bfc" id="L119" title="All 2 branches covered.">    if (imageProfile == null) {</span>
+<span class="fc" id="L120">      imageProfile = dynamicMediaSupportService.getImageProfileForAsset(asset);</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">      if (imageProfile == null) {</span>
+<span class="fc" id="L122">        imageProfile = NO_IMAGE_PROFILE;</span>
+      }
+    }
+<span class="fc bfc" id="L125" title="All 2 branches covered.">    if (imageProfile == NO_IMAGE_PROFILE) {</span>
+<span class="fc" id="L126">      return null;</span>
+    }
+    else {
+<span class="fc" id="L129">      return imageProfile;</span>
+    }
+  }
+
+  @Override
+  public &lt;AdapterType&gt; @Nullable AdapterType adaptTo(@NotNull Class&lt;AdapterType&gt; type) {
+<span class="fc" id="L135">    return adaptable.adaptTo(type);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

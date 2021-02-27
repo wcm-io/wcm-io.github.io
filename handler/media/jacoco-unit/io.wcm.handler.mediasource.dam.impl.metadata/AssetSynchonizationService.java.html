@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AssetSynchonizationService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.impl.metadata</a> &gt; <span class="el_source">AssetSynchonizationService.java</span></div><h1>AssetSynchonizationService.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.impl.metadata;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.util.concurrent.Striped;
+
+/**
+ * Synchronized the generation of rendition metadata through the ways (metadata service, workflow process)
+ * and across threads by using Guava's striped locking. It's used in weak mode because from all the
+ * assets in the systems only a few will be processed at any time.
+ */
+@Component(service = AssetSynchonizationService.class)
+<span class="fc" id="L40">public final class AssetSynchonizationService {</span>
+
+  private static final int STRIPE_COUNT = 100;
+
+<span class="fc" id="L44">  private static final Logger log = LoggerFactory.getLogger(AssetSynchonizationService.class);</span>
+
+  private Striped&lt;Lock&gt; lazyWeakLock;
+
+  @Activate
+  private void activate() {
+<span class="fc" id="L50">    lazyWeakLock = Striped.lazyWeakLock(STRIPE_COUNT);</span>
+<span class="fc" id="L51">  }</span>
+
+  @Deactivate
+  private void deactivate() {
+<span class="fc" id="L55">    lazyWeakLock = null;</span>
+<span class="fc" id="L56">  }</span>
+
+  /**
+   * Get lock for asset.
+   * @param assetPath Asset path
+   * @return Lock
+   */
+  public Lock getLock(String assetPath) {
+<span class="fc" id="L64">    return new LockWithLogging(lazyWeakLock.get(assetPath), assetPath);</span>
+  }
+
+
+  /**
+   * Wrap the lock instance to apply trace logging on the methods that are actually used.
+   */
+  private static final class LockWithLogging implements Lock {
+
+    private final Lock delegate;
+    private final String assetPath;
+
+<span class="fc" id="L76">    private LockWithLogging(Lock delegate, String assetPath) {</span>
+<span class="fc" id="L77">      this.delegate = delegate;</span>
+<span class="fc" id="L78">      this.assetPath = assetPath;</span>
+<span class="fc" id="L79">    }</span>
+
+    @Override
+    public void lock() {
+<span class="fc" id="L83">      log.trace(&quot;Lock {}&quot;, assetPath);</span>
+<span class="fc" id="L84">      this.delegate.lock();</span>
+<span class="fc" id="L85">    }</span>
+
+    @Override
+    public void unlock() {
+<span class="fc" id="L89">      log.trace(&quot;Unlock {}&quot;, assetPath);</span>
+<span class="fc" id="L90">      this.delegate.unlock();</span>
+<span class="fc" id="L91">    }</span>
+
+    @Override
+    public void lockInterruptibly() throws InterruptedException {
+<span class="nc" id="L95">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean tryLock() {
+<span class="nc" id="L100">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+<span class="nc" id="L105">      throw new UnsupportedOperationException();</span>
+    }
+
+    @Override
+    public Condition newCondition() {
+<span class="nc" id="L110">      throw new UnsupportedOperationException();</span>
+    }
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Media.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media</a> &gt; <span class="el_source">Media.java</span></div><h1>Media.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media;
+
+import java.util.Collection;
+import java.util.List;
+
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.jdom2.Element;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.google.common.collect.ImmutableList;
+
+import io.wcm.handler.commons.dom.HtmlElement;
+import io.wcm.handler.commons.dom.Span;
+import io.wcm.handler.media.imagemap.ImageMapArea;
+import io.wcm.handler.media.spi.MediaSource;
+import io.wcm.wcm.commons.util.ToStringStyle;
+
+/**
+ * Holds information about a media request processed and resolved by {@link MediaHandler}.
+ */
+@ProviderType
+@JsonInclude(Include.NON_EMPTY)
+public final class Media {
+
+  private final @NotNull MediaSource mediaSource;
+  private @NotNull MediaRequest mediaRequest;
+  private HtmlElement&lt;?&gt; element;
+  private String url;
+  private Asset asset;
+  private Collection&lt;Rendition&gt; renditions;
+  private CropDimension cropDimension;
+  private Integer rotation;
+  private List&lt;ImageMapArea&gt; map;
+  private MediaInvalidReason mediaInvalidReason;
+  private String markup;
+
+  /**
+   * @param mediaSource Media source
+   * @param mediaRequest Processed media request
+   */
+<span class="fc" id="L65">  public Media(@NotNull MediaSource mediaSource, @NotNull MediaRequest mediaRequest) {</span>
+<span class="fc" id="L66">    this.mediaSource = mediaSource;</span>
+<span class="fc" id="L67">    this.mediaRequest = mediaRequest;</span>
+<span class="fc" id="L68">  }</span>
+
+  /**
+   * @return Media source
+   */
+  @JsonIgnore
+  public @NotNull MediaSource getMediaSource() {
+<span class="fc" id="L75">    return this.mediaSource;</span>
+  }
+
+  /**
+   * @return Media handling request
+   */
+  @JsonIgnore
+  public @NotNull MediaRequest getMediaRequest() {
+<span class="fc" id="L83">    return this.mediaRequest;</span>
+  }
+
+  /**
+   * @param mediaRequest Media handling request
+   */
+  public void setMediaRequest(@NotNull MediaRequest mediaRequest) {
+<span class="fc" id="L90">    this.mediaRequest = mediaRequest;</span>
+<span class="fc" id="L91">  }</span>
+
+  /**
+   * @return Html element
+   */
+  @JsonIgnore
+  public HtmlElement&lt;?&gt; getElement() {
+<span class="fc" id="L98">    return this.element;</span>
+  }
+
+  /**
+   * @return Media HTML element serialized to string. Returns null if media element is null.
+   */
+  @JsonIgnore
+  public String getMarkup() {
+<span class="pc bpc" id="L106" title="1 of 4 branches missed.">    if (markup == null &amp;&amp; this.element != null) {</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">      if (this.element instanceof Span) {</span>
+        // in case of span get inner HTML markup, do not include span element itself
+<span class="fc" id="L109">        StringBuilder result = new StringBuilder();</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">        for (Element child : this.element.getChildren()) {</span>
+<span class="fc" id="L111">          result.append(child.toString());</span>
+<span class="fc" id="L112">        }</span>
+<span class="fc" id="L113">        markup = result.toString();</span>
+<span class="fc" id="L114">      }</span>
+      else {
+<span class="fc" id="L116">        markup = this.element.toString();</span>
+      }
+    }
+<span class="fc" id="L119">    return markup;</span>
+  }
+
+  /**
+   * @param value Html element
+   */
+  public void setElement(HtmlElement&lt;?&gt; value) {
+<span class="fc" id="L126">    this.element = value;</span>
+<span class="fc" id="L127">    this.markup = null;</span>
+<span class="fc" id="L128">  }</span>
+
+  /**
+   * @return Media URL
+   */
+  public String getUrl() {
+<span class="fc" id="L134">    return this.url;</span>
+  }
+
+  /**
+   * @param value Media URL
+   */
+  public void setUrl(String value) {
+<span class="fc" id="L141">    this.url = value;</span>
+<span class="fc" id="L142">  }</span>
+
+  /**
+   * Get media item info that was resolved during media handler processing
+   * @return Media item
+   */
+  public Asset getAsset() {
+<span class="fc" id="L149">    return this.asset;</span>
+  }
+
+  /**
+   * Set media item that was resolved during media handler processing
+   * @param asset Media item
+   */
+  public void setAsset(Asset asset) {
+<span class="fc" id="L157">    this.asset = asset;</span>
+<span class="fc" id="L158">  }</span>
+
+  /**
+   * Get first (and best-match) rendition that was resolved during media handler processing
+   * @return Rendition
+   */
+  @JsonIgnore
+  public Rendition getRendition() {
+<span class="pc bpc" id="L166" title="1 of 4 branches missed.">    if (this.renditions == null || this.renditions.isEmpty()) {</span>
+<span class="fc" id="L167">      return null;</span>
+    }
+<span class="fc" id="L169">    return this.renditions.iterator().next();</span>
+  }
+
+  /**
+   * Get all renditions that were resolved during media handler processing
+   * @return Renditions
+   */
+  public Collection&lt;Rendition&gt; getRenditions() {
+<span class="fc bfc" id="L177" title="All 2 branches covered.">    if (this.renditions == null) {</span>
+<span class="fc" id="L178">      return ImmutableList.&lt;Rendition&gt;of();</span>
+    }
+    else {
+<span class="fc" id="L181">      return this.renditions;</span>
+    }
+  }
+
+  /**
+   * Set all renditions that was resolved during media handler processing
+   * @param renditions Renditions
+   */
+  public void setRenditions(Collection&lt;Rendition&gt; renditions) {
+<span class="fc" id="L190">    this.renditions = renditions;</span>
+<span class="fc" id="L191">  }</span>
+
+  /**
+   * @return Crop dimensions (optional)
+   */
+  @JsonIgnore
+  public @Nullable CropDimension getCropDimension() {
+<span class="fc" id="L198">    return this.cropDimension;</span>
+  }
+
+  /**
+   * @param cropDimension Crop dimensions (optional)
+   */
+  public void setCropDimension(@Nullable CropDimension cropDimension) {
+<span class="fc" id="L205">    this.cropDimension = cropDimension;</span>
+<span class="fc" id="L206">  }</span>
+
+  /**
+   * @return Image rotation (optional)
+   */
+  @JsonIgnore
+  public @Nullable Integer getRotation() {
+<span class="fc" id="L213">    return this.rotation;</span>
+  }
+
+  /**
+   * @param rotation Image Rotation (optional)
+   */
+  public void setRotation(@Nullable Integer rotation) {
+<span class="fc" id="L220">    this.rotation = rotation;</span>
+<span class="fc" id="L221">  }</span>
+
+  /**
+   * @return Image map (optional)
+   */
+  @JsonIgnore
+  public @Nullable List&lt;ImageMapArea&gt; getMap() {
+<span class="fc" id="L228">    return this.map;</span>
+  }
+
+  /**
+   * @param map Image map (optional)
+   */
+  public void setMap(@Nullable List&lt;ImageMapArea&gt; map) {
+<span class="fc" id="L235">    this.map = map;</span>
+<span class="fc" id="L236">  }</span>
+
+  /**
+   * @return true if link is valid and was resolved successfully
+   */
+  public boolean isValid() {
+<span class="fc bfc" id="L242" title="All 2 branches covered.">    return (mediaInvalidReason == null);</span>
+  }
+
+  /**
+   * @return Reason why the requested media could not be resolved and is invalid
+   */
+  @JsonIgnore
+  public MediaInvalidReason getMediaInvalidReason() {
+<span class="fc" id="L250">    return this.mediaInvalidReason;</span>
+  }
+
+  /**
+   * @param mediaInvalidReason Reason why the requested media could not be resolved and is invalid
+   */
+  public void setMediaInvalidReason(MediaInvalidReason mediaInvalidReason) {
+<span class="fc" id="L257">    this.mediaInvalidReason = mediaInvalidReason;</span>
+<span class="fc" id="L258">  }</span>
+
+  @Override
+  public String toString() {
+<span class="fc" id="L262">    return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>
