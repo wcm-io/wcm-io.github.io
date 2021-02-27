@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LinkHandlerConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Link Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.link.spi</a> &gt; <span class="el_source">LinkHandlerConfig.java</span></div><h1>LinkHandlerConfig.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.link.spi;
+
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ConsumerType;
+
+import com.day.cq.wcm.api.Page;
+import com.google.common.collect.ImmutableList;
+
+import io.wcm.handler.link.markup.DummyLinkMarkupBuilder;
+import io.wcm.handler.link.markup.SimpleLinkMarkupBuilder;
+import io.wcm.handler.link.processor.DefaultInternalLinkInheritUrlParamLinkPostProcessor;
+import io.wcm.handler.link.type.ExternalLinkType;
+import io.wcm.handler.link.type.InternalCrossContextLinkType;
+import io.wcm.handler.link.type.InternalLinkType;
+import io.wcm.handler.link.type.MediaLinkType;
+import io.wcm.handler.url.ui.SiteRoot;
+import io.wcm.sling.commons.adapter.AdaptTo;
+import io.wcm.sling.commons.caservice.ContextAwareService;
+import io.wcm.sling.commons.resource.ResourceType;
+import io.wcm.wcm.commons.util.Path;
+
+/**
+ * {@link LinkHandlerConfig} OSGi services provide application-specific configuration for link handling.
+ * Applications can set service properties or bundle headers as defined in {@link ContextAwareService} to apply this
+ * configuration only for resources that match the relevant resource paths.
+ */
+@ConsumerType
+<span class="fc" id="L51">public abstract class LinkHandlerConfig implements ContextAwareService {</span>
+
+<span class="fc" id="L53">  private static final List&lt;Class&lt;? extends LinkType&gt;&gt; DEFAULT_LINK_TYPES = ImmutableList.&lt;Class&lt;? extends LinkType&gt;&gt;of(</span>
+      InternalLinkType.class,
+      ExternalLinkType.class,
+      MediaLinkType.class);
+
+<span class="fc" id="L58">  private static final List&lt;Class&lt;? extends LinkMarkupBuilder&gt;&gt; DEFAULT_LINK_MARKUP_BUILDERS = ImmutableList.&lt;Class&lt;? extends LinkMarkupBuilder&gt;&gt;of(</span>
+      SimpleLinkMarkupBuilder.class,
+      DummyLinkMarkupBuilder.class);
+
+<span class="fc" id="L62">  private static final List&lt;Class&lt;? extends LinkProcessor&gt;&gt; DEFAULT_POST_PROCESSORS = ImmutableList.&lt;Class&lt;? extends LinkProcessor&gt;&gt;of(</span>
+      DefaultInternalLinkInheritUrlParamLinkPostProcessor.class);
+
+  private static final String REDIRECT_RESOURCE_TYPE = &quot;wcm-io/handler/link/components/page/redirect&quot;;
+
+  /**
+   * Default content root path.
+   */
+  public static final String DEFAULT_ROOT_PATH_CONTENT = &quot;/content&quot;;
+
+  /**
+   * Default media/asset root path.
+   */
+  public static final String DEFAULT_ROOT_PATH_MEDIA = &quot;/content/dam&quot;;
+
+  /**
+   * @return Supported link types
+   */
+  public @NotNull List&lt;Class&lt;? extends LinkType&gt;&gt; getLinkTypes() {
+<span class="nc" id="L81">    return DEFAULT_LINK_TYPES;</span>
+  }
+
+  /**
+   * @return Available link markup builders
+   */
+  public @NotNull List&lt;Class&lt;? extends LinkMarkupBuilder&gt;&gt; getMarkupBuilders() {
+<span class="fc" id="L88">    return DEFAULT_LINK_MARKUP_BUILDERS;</span>
+  }
+
+  /**
+   * @return List of link metadata pre processors (optional). The processors are applied in list order.
+   */
+  public @NotNull List&lt;Class&lt;? extends LinkProcessor&gt;&gt; getPreProcessors() {
+    // no processors
+<span class="fc" id="L96">    return ImmutableList.of();</span>
+  }
+
+  /**
+   * @return List of link metadata post processors (optional). The processors are applied in list order.
+   */
+  public @NotNull List&lt;Class&lt;? extends LinkProcessor&gt;&gt; getPostProcessors() {
+<span class="fc" id="L103">    return DEFAULT_POST_PROCESSORS;</span>
+  }
+
+  /**
+   * Detected if page is acceptable as link target.
+   * This is used by {@link io.wcm.handler.link.type.InternalLinkType}, other {@link LinkType} implementations
+   * may implement other logic.
+   * @param page Page
+   * @return true if Page is acceptable as link target.
+   */
+  public boolean isValidLinkTarget(@NotNull Page page) {
+    // by default accept all pages
+<span class="fc" id="L115">    return true;</span>
+  }
+
+  /**
+   * Detected if page contains redirect link information
+   * @param page Page
+   * @return true if Page is a redirect page
+   */
+  public boolean isRedirect(@NotNull Page page) {
+<span class="nc" id="L124">    return ResourceType.is(page.getContentResource(), REDIRECT_RESOURCE_TYPE);</span>
+  }
+
+  /**
+   * Get root path for picking links using path field widgets.
+   * @param page Context page
+   * @param linkTypeId Link type ID
+   * @return Root path or null
+   */
+  public @Nullable String getLinkRootPath(@NotNull Page page, @NotNull String linkTypeId) {
+<span class="fc bfc" id="L134" title="All 2 branches covered.">    if (StringUtils.equals(linkTypeId, InternalLinkType.ID)) {</span>
+      // inside an experience fragment it does not make sense to use a site root path
+<span class="fc bfc" id="L136" title="All 4 branches covered.">      if (Path.isExperienceFragmentPath(page.getPath()) || Path.isEditableTemplatePath(page.getPath())) {</span>
+<span class="fc" id="L137">        return DEFAULT_ROOT_PATH_CONTENT;</span>
+      }
+<span class="fc" id="L139">      return AdaptTo.notNull(page.getContentResource(), SiteRoot.class).getRootPath(page);</span>
+    }
+<span class="fc bfc" id="L141" title="All 2 branches covered.">    else if (StringUtils.equals(linkTypeId, InternalCrossContextLinkType.ID)) {</span>
+<span class="fc" id="L142">      return DEFAULT_ROOT_PATH_CONTENT;</span>
+    }
+<span class="fc bfc" id="L144" title="All 2 branches covered.">    else if (StringUtils.equals(linkTypeId, MediaLinkType.ID)) {</span>
+<span class="fc" id="L145">      return DEFAULT_ROOT_PATH_MEDIA;</span>
+    }
+<span class="fc" id="L147">    return null;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

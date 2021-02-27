@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HtxPageExtensionMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Handler Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.commons.servlets.impl</a> &gt; <span class="el_source">HtxPageExtensionMapper.java</span></div><h1>HtxPageExtensionMapper.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.commons.servlets.impl;
+
+import java.io.IOException;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.request.RequestPathInfo;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.wcm.api.NameConstants;
+
+import io.wcm.wcm.commons.contenttype.FileExtension;
+
+/**
+ * Virtually maps an *.htx request to a cq:Page resource to a *.html request internally (because components
+ * and JSPs are normally only registered to *.html extension). Mapping can be enabled or disabled.
+ */
+@Component(service = Servlet.class, configurationPolicy = ConfigurationPolicy.REQUIRE)
+@SlingServletResourceTypes(
+    resourceTypes = NameConstants.NT_PAGE,
+    methods = HttpConstants.METHOD_GET,
+    extensions = FileExtension.HTML_UNCACHED
+)
+@Designate(ocd = HtxPageExtensionMapper.Config.class)
+<span class="fc" id="L59">public class HtxPageExtensionMapper extends SlingSafeMethodsServlet {</span>
+  private static final long serialVersionUID = 1L;
+
+  @ObjectClassDefinition(name = &quot;wcm.io htx Page Extension Mapper&quot;,
+      description = &quot;Mapps all *.htx requests on Pages to *.html view.&quot;)
+  static @interface Config {
+
+    @AttributeDefinition(name = &quot;Enabled&quot;, description = &quot;Enable mapping.&quot;)
+    boolean enabled() default false;
+
+  }
+
+<span class="fc" id="L71">  private static final Logger log = LoggerFactory.getLogger(HtxPageExtensionMapper.class);</span>
+
+  private boolean enabled;
+
+  // ---------- SCR Integration ----------------------------------------------
+
+  protected void activate(Config config) {
+    // read config
+<span class="fc" id="L79">    this.enabled = config.enabled();</span>
+<span class="fc" id="L80">  }</span>
+
+  @Override
+  protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
+
+    // if not enabled: sent http 404
+<span class="fc bfc" id="L86" title="All 2 branches covered.">    if (!enabled) {</span>
+<span class="fc" id="L87">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="fc" id="L88">      return;</span>
+    }
+
+    // rebuild requested url, but use &quot;html&quot; as extension instead of &quot;htx&quot;
+    // to allow re-using all component definitions that are registered to &quot;html&quot;
+<span class="fc" id="L93">    RequestPathInfo info = request.getRequestPathInfo();</span>
+<span class="fc" id="L94">    StringBuilder url = new StringBuilder();</span>
+<span class="fc" id="L95">    url.append(info.getResourcePath());</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">    if (info.getSelectorString() != null) {</span>
+<span class="fc" id="L97">      url.append('.').append(info.getSelectorString());</span>
+    }
+<span class="fc" id="L99">    url.append('.').append(FileExtension.HTML); // use html extension instead of .htx extension</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (info.getSuffix() != null) {</span>
+<span class="fc" id="L101">      url.append('/').append(info.getSuffix());</span>
+    }
+
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L105">      log.debug(&quot;Dispatch request {} to {}&quot;, request.getRequestURI(), url);</span>
+    }
+
+    // execute request with *.html extension
+<span class="fc" id="L109">    RequestDispatcher requestDispatcher = request.getRequestDispatcher(url.toString());</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">    if (requestDispatcher != null) {</span>
+<span class="fc" id="L111">      requestDispatcher.include(request, response);</span>
+<span class="fc" id="L112">      return;</span>
+    }
+    else {
+<span class="nc" id="L115">      log.error(&quot;Unable to dispatch proxy request for {} referrer={}&quot;, request.getRequestURI(), request.getHeader(&quot;Referrer&quot;));</span>
+<span class="nc" id="L116">      throw new ServletException(&quot;No Content&quot;);</span>
+    }
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

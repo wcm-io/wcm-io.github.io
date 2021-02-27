@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SuffixBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">URL Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.url.suffix</a> &gt; <span class="el_source">SuffixBuilder.java</span></div><h1>SuffixBuilder.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.url.suffix;
+
+import static io.wcm.handler.url.suffix.impl.UrlSuffixUtil.KEY_VALUE_DELIMITER;
+import static io.wcm.handler.url.suffix.impl.UrlSuffixUtil.SUFFIX_PART_DELIMITER;
+import static io.wcm.handler.url.suffix.impl.UrlSuffixUtil.decodeKey;
+import static io.wcm.handler.url.suffix.impl.UrlSuffixUtil.decodeResourcePathPart;
+import static io.wcm.handler.url.suffix.impl.UrlSuffixUtil.decodeValue;
+import static io.wcm.handler.url.suffix.impl.UrlSuffixUtil.encodeKeyValuePart;
+import static io.wcm.handler.url.suffix.impl.UrlSuffixUtil.encodeResourcePathPart;
+import static io.wcm.handler.url.suffix.impl.UrlSuffixUtil.getRelativePath;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.function.Predicate;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
+
+import com.day.cq.wcm.api.Page;
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+
+import io.wcm.handler.url.suffix.impl.ExcludeNamedPartsFilter;
+import io.wcm.handler.url.suffix.impl.ExcludeResourcePartsFilter;
+import io.wcm.handler.url.suffix.impl.ExcludeSpecificResourceFilter;
+import io.wcm.handler.url.suffix.impl.FilterOperators;
+import io.wcm.handler.url.suffix.impl.IncludeAllPartsFilter;
+import io.wcm.handler.url.suffix.impl.IncludeNamedPartsFilter;
+import io.wcm.handler.url.suffix.impl.IncludeResourcePartsFilter;
+import io.wcm.sling.commons.adapter.AdaptTo;
+
+/**
+ * Builds suffixes to be used in Sling URLs and that can be parsed with {@link SuffixParser}.
+ */
+@ProviderType
+public final class SuffixBuilder {
+
+  private final List&lt;String&gt; initialSuffixParts;
+<span class="fc" id="L69">  private final Map&lt;String, Object&gt; parameterMap = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L70">  private final List&lt;String&gt; resourcePaths = new ArrayList&lt;&gt;();</span>
+
+  /**
+   * Create a {@link SuffixBuilder} which discards all existing suffix state when constructing a new suffix.
+   */
+<span class="fc" id="L75">  public SuffixBuilder() {</span>
+<span class="fc" id="L76">    this.initialSuffixParts = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L77">  }</span>
+
+  /**
+   * Create a {@link SuffixBuilder} with a custom {@link SuffixStateKeepingStrategy} (see convenience methods like
+   * {@link #thatKeepsResourceParts(SlingHttpServletRequest)} for often-used strategies)
+   * @param request Sling request
+   * @param stateStrategy the strategy to use to decide which parts of the suffix of the current request needs to be
+   *          kept in new constructed links
+   */
+<span class="fc" id="L86">  public SuffixBuilder(@NotNull SlingHttpServletRequest request, @NotNull SuffixStateKeepingStrategy stateStrategy) {</span>
+<span class="fc" id="L87">    this.initialSuffixParts = stateStrategy.getSuffixPartsToKeep(request);</span>
+<span class="fc" id="L88">  }</span>
+
+  /**
+   * Create a {@link SuffixBuilder} that keeps only the suffix parts matched by the given filter when constructing
+   * a new suffix
+   * @param request Sling request
+   * @param suffixPartFilter the filter that is called for each suffix part
+   */
+  public SuffixBuilder(@NotNull SlingHttpServletRequest request, @NotNull Predicate&lt;String&gt; suffixPartFilter) {
+<span class="fc" id="L97">    this(request, new FilteringSuffixStateStrategy(suffixPartFilter));</span>
+<span class="fc" id="L98">  }</span>
+
+  /**
+   * @return a {@link SuffixBuilder} that discards all existing suffix state when constructing a new suffix
+   */
+  public static @NotNull SuffixBuilder thatDiscardsAllSuffixState() {
+<span class="fc" id="L104">    return new SuffixBuilder();</span>
+  }
+
+  /**
+   * @param request Sling request
+   * @return a {@link SuffixBuilder} that discards everything but the *resource* parts of the suffix
+   */
+  public static @NotNull SuffixBuilder thatKeepsResourceParts(@NotNull SlingHttpServletRequest request) {
+<span class="fc" id="L112">    Predicate&lt;String&gt; filter = new IncludeResourcePartsFilter();</span>
+<span class="fc" id="L113">    return new SuffixBuilder(request, filter);</span>
+  }
+
+  /**
+   * @param request Sling request
+   * @param keysToKeep Keys to keep
+   * @return a {@link SuffixBuilder} that keeps only the named key/value-parts defined by pKeysToKeep
+   */
+  public static @NotNull SuffixBuilder thatKeepsNamedParts(@NotNull SlingHttpServletRequest request,
+      @NotNull String @NotNull... keysToKeep) {
+<span class="fc" id="L123">    Predicate&lt;String&gt; filter = new IncludeNamedPartsFilter(keysToKeep);</span>
+<span class="fc" id="L124">    return new SuffixBuilder(request, filter);</span>
+  }
+
+  /**
+   * @param request Sling request
+   * @param keysToKeep Keys to keep
+   * @return a {@link SuffixBuilder} that keeps the named key/value-parts defined by pKeysToKeep and all resource
+   *         parts
+   */
+  public static @NotNull SuffixBuilder thatKeepsNamedPartsAndResources(@NotNull SlingHttpServletRequest request,
+      @NotNull String @NotNull... keysToKeep) {
+<span class="fc" id="L135">    Predicate&lt;String&gt; filter = FilterOperators.or(new IncludeResourcePartsFilter(), new IncludeNamedPartsFilter(keysToKeep));</span>
+<span class="fc" id="L136">    return new SuffixBuilder(request, filter);</span>
+  }
+
+  /**
+   * @param request Sling request
+   * @return a {@link SuffixBuilder} that keeps all parts from the current request's suffix when constructing a new
+   *         suffix
+   */
+  public static @NotNull SuffixBuilder thatKeepsAllParts(@NotNull SlingHttpServletRequest request) {
+<span class="fc" id="L145">    return new SuffixBuilder(request, new IncludeAllPartsFilter());</span>
+  }
+
+  /**
+   * @param request Sling request
+   * @return a {@link SuffixBuilder} that will discard the resource parts, but keep all named key/value-parts
+   */
+  public static @NotNull SuffixBuilder thatDiscardsResourceParts(@NotNull SlingHttpServletRequest request) {
+<span class="fc" id="L153">    ExcludeResourcePartsFilter filter = new ExcludeResourcePartsFilter();</span>
+<span class="fc" id="L154">    return new SuffixBuilder(request, filter);</span>
+  }
+
+  /**
+   * @param request Sling request
+   * @param keysToDiscard the keys of the named parts to discard
+   * @return a {@link SuffixBuilder} that will keep all parts except those named key/value-parts defined by
+   *         pKeysToDiscard
+   */
+  public static @NotNull SuffixBuilder thatDiscardsNamedParts(@NotNull SlingHttpServletRequest request,
+      @NotNull String @NotNull... keysToDiscard) {
+<span class="fc" id="L165">    return new SuffixBuilder(request, new ExcludeNamedPartsFilter(keysToDiscard));</span>
+  }
+
+  /**
+   * @param request Sling request
+   * @param keysToDiscard the keys of the named parts to discard
+   * @return {@link SuffixBuilder} that will discard all resource parts and the named parts defined by pKeysToDiscard
+   */
+  public static @NotNull SuffixBuilder thatDiscardsResourceAndNamedParts(@NotNull SlingHttpServletRequest request,
+      @NotNull String @NotNull... keysToDiscard) {
+<span class="fc" id="L175">    Predicate&lt;String&gt; filter = FilterOperators.and(new ExcludeResourcePartsFilter(), new ExcludeNamedPartsFilter(keysToDiscard));</span>
+<span class="fc" id="L176">    return new SuffixBuilder(request, filter);</span>
+  }
+
+  /**
+   * @param request Sling request
+   * @param resourcePathToDiscard relative path of the resource to discard
+   * @param keysToDiscard the keys of the named parts to discard
+   * @return {@link SuffixBuilder} that will discard *one specific resource path* and the named parts defined by
+   *         pKeysToDiscard
+   */
+  public static @NotNull SuffixBuilder thatDiscardsSpecificResourceAndNamedParts(@NotNull SlingHttpServletRequest request,
+      @NotNull String resourcePathToDiscard, @NotNull String @NotNull... keysToDiscard) {
+<span class="fc" id="L188">    Predicate&lt;String&gt; filter = FilterOperators.and(new ExcludeSpecificResourceFilter(resourcePathToDiscard), new ExcludeNamedPartsFilter(keysToDiscard));</span>
+<span class="fc" id="L189">    return new SuffixBuilder(request, filter);</span>
+  }
+
+  /**
+   * Puts a key-value pair into the suffix.
+   * @param key the key
+   * @param value the value
+   * @return this
+   */
+  @SuppressWarnings({ &quot;null&quot;, &quot;unused&quot; })
+  public @NotNull SuffixBuilder put(@NotNull String key, @NotNull Object value) {
+<span class="fc bfc" id="L200" title="All 2 branches covered.">    if (key == null) {</span>
+<span class="fc" id="L201">      throw new IllegalArgumentException(&quot;Key must not be null&quot;);</span>
+    }
+<span class="fc bfc" id="L203" title="All 2 branches covered.">    if (value != null) {</span>
+<span class="fc" id="L204">      validateValueType(value);</span>
+<span class="fc" id="L205">      parameterMap.put(key, value);</span>
+    }
+<span class="fc" id="L207">    return this;</span>
+  }
+
+  /**
+   * Puts a map of key-value pairs into the suffix.
+   * @param map map of key-value pairs
+   * @return this
+   */
+  public @NotNull SuffixBuilder putAll(@NotNull Map&lt;String, Object&gt; map) {
+<span class="fc bfc" id="L216" title="All 2 branches covered.">    for (Map.Entry&lt;String, Object&gt; entry : map.entrySet()) {</span>
+<span class="fc" id="L217">      put(entry.getKey(), entry.getValue());</span>
+<span class="fc" id="L218">    }</span>
+<span class="fc" id="L219">    return this;</span>
+  }
+
+  private void validateValueType(Object value) {
+<span class="fc" id="L223">    Class clazz = value.getClass();</span>
+<span class="fc bfc" id="L224" title="All 8 branches covered.">    boolean isValid = (clazz == String.class</span>
+        || clazz == Boolean.class
+        || clazz == Integer.class
+        || clazz == Long.class);
+<span class="fc bfc" id="L228" title="All 2 branches covered.">    if (!isValid) {</span>
+<span class="fc" id="L229">      throw new IllegalArgumentException(&quot;Unsupported value type: &quot; + clazz.getName());</span>
+    }
+<span class="fc" id="L231">  }</span>
+
+  /**
+   * Puts a relative path of a resource into the suffix.
+   * @param resource the resource
+   * @param suffixBaseResource the base resource used to construct the relative path
+   * @return this
+   */
+  public @NotNull SuffixBuilder resource(@NotNull Resource resource, @NotNull Resource suffixBaseResource) {
+    // get relative path to base resource
+<span class="fc" id="L241">    String relativePath = getRelativePath(resource, suffixBaseResource);</span>
+<span class="fc" id="L242">    resourcePaths.add(relativePath);</span>
+<span class="fc" id="L243">    return this;</span>
+  }
+
+  /**
+   * Constructs a suffix that contains multiple key-value pairs and address resources. Depending on the
+   * {@link SuffixStateKeepingStrategy}, the suffix contains
+   * further parts from the current request that should be kept when constructing new links.
+   * @param resources resources to address
+   * @param baseResource base resource to construct relative path
+   * @return the suffix containing the map-content as encoded key value-pairs (and eventually other parts)
+   */
+  public @NotNull SuffixBuilder resources(@NotNull List&lt;Resource&gt; resources, @NotNull Resource baseResource) {
+<span class="fc bfc" id="L255" title="All 2 branches covered.">    for (Resource resource : resources) {</span>
+<span class="fc" id="L256">      resource(resource, baseResource);</span>
+<span class="fc" id="L257">    }</span>
+<span class="fc" id="L258">    return this;</span>
+  }
+
+  /**
+   * Puts a relative path of a page into the suffix.
+   * @param page the page
+   * @param suffixBasePage the base page used to construct the relative path
+   * @return this
+   */
+  public @NotNull SuffixBuilder page(@NotNull Page page, @NotNull Page suffixBasePage) {
+<span class="fc" id="L268">    return resource(AdaptTo.notNull(page, Resource.class), AdaptTo.notNull(suffixBasePage, Resource.class));</span>
+  }
+
+  /**
+   * Constructs a suffix that contains multiple key-value pairs and address pages. Depending on the
+   * {@link SuffixStateKeepingStrategy}, the suffix contains
+   * further parts from the current request that should be kept when constructing new links.
+   * @param pages pages to address
+   * @param suffixBasePage the base page used to construct the relative path
+   * @return this
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  public @NotNull SuffixBuilder pages(@NotNull List&lt;Page&gt; pages, @NotNull Page suffixBasePage) {
+<span class="fc" id="L281">    List&lt;Resource&gt; resources = Lists.transform(pages, new Function&lt;Page, Resource&gt;() {</span>
+      @Override
+      public Resource apply(Page page) {
+<span class="fc" id="L284">        return page.adaptTo(Resource.class);</span>
+      }
+    });
+<span class="fc" id="L287">    return resources(resources, AdaptTo.notNull(suffixBasePage, Resource.class));</span>
+  }
+
+  /**
+   * Build complete suffix.
+   * @return the suffix
+   */
+  public @NotNull String build() {
+<span class="fc" id="L295">    SortedMap&lt;String, Object&gt; sortedParameterMap = new TreeMap&lt;&gt;(parameterMap);</span>
+
+    // gather resource paths in a treeset (having them in a defined order helps with caching)
+<span class="fc" id="L298">    SortedSet&lt;String&gt; resourcePathsSet = new TreeSet&lt;&gt;();</span>
+
+    // iterate over all parts that should be kept from the current request
+<span class="fc bfc" id="L301" title="All 2 branches covered.">    for (String nextPart : initialSuffixParts) {</span>
+      // if this is a key-value-part:
+<span class="fc bfc" id="L303" title="All 2 branches covered.">      if (nextPart.indexOf(KEY_VALUE_DELIMITER) &gt; 0) {</span>
+<span class="fc" id="L304">        String key = decodeKey(nextPart);</span>
+        // decode and keep the part if it is not overridden in the given parameter-map
+<span class="fc bfc" id="L306" title="All 2 branches covered.">        if (!sortedParameterMap.containsKey(key)) {</span>
+<span class="fc" id="L307">          String value = decodeValue(nextPart);</span>
+<span class="fc" id="L308">          sortedParameterMap.put(key, value);</span>
+        }
+<span class="fc" id="L310">      }</span>
+      else {
+        // decode and keep the resource paths (unless they are specified again in resourcePaths)
+<span class="fc" id="L313">        String path = decodeResourcePathPart(nextPart);</span>
+<span class="pc bpc" id="L314" title="1 of 2 branches missed.">        if (!resourcePaths.contains(path)) {</span>
+<span class="fc" id="L315">          resourcePathsSet.add(path);</span>
+        }
+      }
+<span class="fc" id="L318">    }</span>
+
+    // copy the resources specified as parameters to the sorted set of paths
+<span class="pc bpc" id="L321" title="1 of 2 branches missed.">    if (resourcePaths != null) {</span>
+<span class="fc" id="L322">      resourcePathsSet.addAll(ImmutableList.copyOf(resourcePaths));</span>
+    }
+
+    // gather all suffix parts in this list
+<span class="fc" id="L326">    List&lt;String&gt; suffixParts = new ArrayList&lt;&gt;();</span>
+
+    // now encode all resource paths
+<span class="fc bfc" id="L329" title="All 2 branches covered.">    for (String path : resourcePathsSet) {</span>
+<span class="fc" id="L330">      suffixParts.add(encodeResourcePathPart(path));</span>
+<span class="fc" id="L331">    }</span>
+
+    // now encode all entries from the parameter map
+<span class="fc bfc" id="L334" title="All 2 branches covered.">    for (Entry&lt;String, Object&gt; entry : sortedParameterMap.entrySet()) {</span>
+<span class="fc" id="L335">      Object value = entry.getValue();</span>
+<span class="pc bpc" id="L336" title="1 of 2 branches missed.">      if (value == null) {</span>
+        // don't add suffix part if value is null
+<span class="nc" id="L338">        continue;</span>
+      }
+<span class="fc" id="L340">      String encodedKey = encodeKeyValuePart(entry.getKey());</span>
+<span class="fc" id="L341">      String encodedValue = encodeKeyValuePart(value.toString());</span>
+<span class="fc" id="L342">      suffixParts.add(encodedKey + KEY_VALUE_DELIMITER + encodedValue);</span>
+<span class="fc" id="L343">    }</span>
+
+    // finally join these parts to a single string
+<span class="fc" id="L346">    return StringUtils.join(suffixParts, SUFFIX_PART_DELIMITER);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

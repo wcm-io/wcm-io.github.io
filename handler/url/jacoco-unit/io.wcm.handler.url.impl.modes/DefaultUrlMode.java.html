@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DefaultUrlMode.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">URL Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.url.impl.modes</a> &gt; <span class="el_source">DefaultUrlMode.java</span></div><h1>DefaultUrlMode.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.url.impl.modes;
+
+import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.adapter.Adaptable;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.day.cq.wcm.api.Page;
+
+import io.wcm.handler.url.UrlModes;
+import io.wcm.handler.url.integrator.IntegratorHandler;
+import io.wcm.handler.url.spi.UrlHandlerConfig;
+import io.wcm.sling.commons.adapter.AdaptTo;
+import io.wcm.wcm.commons.util.Path;
+
+/**
+ * Default mode: Does generate a full externalized URL only if both siteUrl and siteUrlSecure parameter
+ * are set in context-specific configuration. If not set, only URLs without hostname are generated.
+ * If the target is an internal content page, siteUrl or siteUrlSecure is chosen automatically depending on the secure
+ * state of the page.
+ */
+<span class="fc" id="L45">public final class DefaultUrlMode extends AbstractUrlMode {</span>
+
+  @Override
+  public @NotNull String getId() {
+<span class="fc" id="L49">    return &quot;DEFAULT&quot;;</span>
+  }
+
+  @Override
+  public String getLinkUrlPrefix(@NotNull Adaptable adaptable, @NotNull Set&lt;String&gt; runModes,
+      @Nullable Page currentPage, @Nullable Page targetPage) {
+    // default to full url for content URLs
+<span class="fc" id="L56">    return UrlModes.FULL_URL.getLinkUrlPrefix(adaptable, runModes, currentPage, targetPage);</span>
+  }
+
+  @Override
+  public String getResourceUrlPrefix(@NotNull Adaptable adaptable, @NotNull Set&lt;String&gt; runModes,
+      @Nullable Page currentPage, @Nullable Resource targetResource) {
+    // in integrator template mode or if resource is from another site default to full URL mode, otherwise to no-hostname mode
+<span class="fc" id="L63">    IntegratorHandler integratorHandler = AdaptTo.notNull(adaptable, IntegratorHandler.class);</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">    if (integratorHandler.isIntegratorTemplateMode()</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        || linksToOtherDomain(adaptable, currentPage, targetResource)) {</span>
+<span class="fc" id="L66">      return UrlModes.FULL_URL.getResourceUrlPrefix(adaptable, runModes, currentPage, targetResource);</span>
+    }
+<span class="fc" id="L68">    return UrlModes.NO_HOSTNAME.getResourceUrlPrefix(adaptable, runModes, currentPage, targetResource);</span>
+  }
+
+  /**
+   * Checks if the target resource is located outsite the current site, and if for this other
+   * resource context a valid url configuration with a specific hostname exists.
+   * @param adaptable Adaptable
+   * @param currentPage Current page (may be null)
+   * @param targetResource Target resource (may be null)
+   * @return true if the target resources is located in another site/context with separate url configuration
+   */
+  private boolean linksToOtherDomain(Adaptable adaptable, Page currentPage, Resource targetResource) {
+<span class="pc bpc" id="L80" title="1 of 4 branches missed.">    if (currentPage == null || targetResource == null) {</span>
+<span class="fc" id="L81">      return false;</span>
+    }
+
+<span class="fc" id="L84">    UrlHandlerConfig urlHandlerConfig = AdaptTo.notNull(adaptable, UrlHandlerConfig.class);</span>
+<span class="fc" id="L85">    Resource currentResource = AdaptTo.notNull(currentPage, Resource.class);</span>
+<span class="fc" id="L86">    ResourceResolver resourceResolver = currentResource.getResourceResolver();</span>
+<span class="fc" id="L87">    String currentSiteRoot = getRootPath(currentPage.getPath(), urlHandlerConfig.getSiteRootLevel(currentResource), resourceResolver);</span>
+<span class="fc" id="L88">    String pathSiteRoot = getRootPath(targetResource.getPath(), urlHandlerConfig.getSiteRootLevel(targetResource), resourceResolver);</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">    boolean notInCurrentSite = !StringUtils.equals(currentSiteRoot, pathSiteRoot);</span>
+
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (notInCurrentSite) {</span>
+<span class="fc" id="L92">      UrlConfig targetUrlConfig = new UrlConfig(targetResource);</span>
+<span class="fc" id="L93">      return targetUrlConfig.isValid();</span>
+    }
+    else {
+<span class="fc" id="L96">      return false;</span>
+    }
+  }
+
+  /**
+   * Gets site root level path of a site.
+   * @param path Path of page within the site
+   * @param rootLevel Level of root page
+   * @param resourceResolver Resource resolver
+   * @return Site root path for the site. The path is not checked for validness.
+   */
+  private String getRootPath(String path, int rootLevel, ResourceResolver resourceResolver) {
+<span class="fc" id="L108">    String rootPath = Path.getAbsoluteParent(path, rootLevel, resourceResolver);</span>
+
+    // strip off everything after first &quot;.&quot; - root path may be passed with selectors/extension which is not relevant
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">    if (StringUtils.contains(rootPath, &quot;.&quot;)) {</span>
+<span class="nc" id="L112">      rootPath = StringUtils.substringBefore(rootPath, &quot;.&quot;);</span>
+    }
+
+<span class="fc" id="L115">    return rootPath;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

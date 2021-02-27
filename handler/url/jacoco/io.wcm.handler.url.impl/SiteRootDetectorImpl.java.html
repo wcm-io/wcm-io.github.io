@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SiteRootDetectorImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">URL Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.url.impl</a> &gt; <span class="el_source">SiteRootDetectorImpl.java</span></div><h1>SiteRootDetectorImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2017 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.url.impl;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.caconfig.resource.ConfigurationResourceResolver;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+
+import io.wcm.handler.url.SiteRootDetector;
+import io.wcm.wcm.commons.util.Path;
+
+/**
+ * Implements {@link SiteRootDetector}.
+ */
+@Component(service = SiteRootDetector.class)
+<span class="fc" id="L43">public class SiteRootDetectorImpl implements SiteRootDetector {</span>
+
+  private static final int INVALID_SITE_ROOT_LEVEL = -1;
+
+  @Reference
+  private ConfigurationResourceResolver configurationResourceResolver;
+
+<span class="fc" id="L50">  private static final Logger log = LoggerFactory.getLogger(SiteRootDetectorImpl.class);</span>
+
+  // cache resolving of site root level per resource path
+<span class="fc" id="L53">  private final Cache&lt;String, Integer&gt; cache = CacheBuilder.newBuilder()</span>
+<span class="fc" id="L54">      .expireAfterWrite(1, TimeUnit.MINUTES)</span>
+<span class="fc" id="L55">      .maximumSize(10000)</span>
+<span class="fc" id="L56">      .build();</span>
+
+  @Override
+  public int getSiteRootLevel(@Nullable Resource contextResource) {
+<span class="fc bfc" id="L60" title="All 2 branches covered.">    if (contextResource == null) {</span>
+<span class="fc" id="L61">      return INVALID_SITE_ROOT_LEVEL;</span>
+    }
+    try {
+<span class="fc" id="L64">      return cache.get(contextResource.getPath(), () -&gt; detectSiteRootLevel(contextResource));</span>
+    }
+<span class="nc" id="L66">    catch (ExecutionException ex) {</span>
+<span class="nc" id="L67">      log.warn(&quot;Unexpected exception.&quot;, ex);</span>
+<span class="nc" id="L68">      return INVALID_SITE_ROOT_LEVEL;</span>
+    }
+  }
+
+  private int detectSiteRootLevel(@Nullable Resource contextResource) {
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">    if (contextResource != null) {</span>
+      // assumption: inner-most context-aware configuration context path is site root path
+<span class="fc" id="L75">      String siteRootpath = configurationResourceResolver.getContextPath(contextResource);</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">      if (siteRootpath != null) {</span>
+<span class="fc" id="L77">        int level = Path.getAbsoluteLevel(siteRootpath, contextResource.getResourceResolver());</span>
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L79">          log.debug(&quot;Detect site root level for {}: {}&quot;, contextResource.getPath(), level);</span>
+        }
+<span class="fc" id="L81">        return level;</span>
+      }
+    }
+<span class="fc" id="L84">    return INVALID_SITE_ROOT_LEVEL;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

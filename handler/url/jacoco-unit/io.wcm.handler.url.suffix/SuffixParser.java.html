@@ -1,0 +1,425 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SuffixParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">URL Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.url.suffix</a> &gt; <span class="el_source">SuffixParser.java</span></div><h1>SuffixParser.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.url.suffix;
+
+import static io.wcm.handler.url.suffix.impl.UrlSuffixUtil.KEY_VALUE_DELIMITER;
+import static io.wcm.handler.url.suffix.impl.UrlSuffixUtil.decodeKey;
+import static io.wcm.handler.url.suffix.impl.UrlSuffixUtil.decodeResourcePathPart;
+import static io.wcm.handler.url.suffix.impl.UrlSuffixUtil.decodeValue;
+import static io.wcm.handler.url.suffix.impl.UrlSuffixUtil.splitSuffix;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageManager;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.wcm.sling.commons.adapter.AdaptTo;
+
+/**
+ * Parses suffixes from Sling URLs build with {@link SuffixBuilder}.
+ */
+@ProviderType
+public final class SuffixParser {
+
+  private final SlingHttpServletRequest request;
+
+  /**
+   * Create a {@link SuffixParser} with the default {@link SuffixStateKeepingStrategy} (which discards all existing
+   * suffix state when constructing a new suffix)
+   * @param request Sling request
+   */
+<span class="fc" id="L61">  public SuffixParser(@NotNull SlingHttpServletRequest request) {</span>
+<span class="fc" id="L62">    this.request = request;</span>
+<span class="fc" id="L63">  }</span>
+
+  /**
+   * Create a {@link SuffixParser} that keeps only the suffix parts matched by the given filter when constructing
+   * a new suffix
+   * @param request Sling request
+   * @param suffixPartFilter the filter that is called for each suffix part
+   */
+<span class="nc" id="L71">  public SuffixParser(@NotNull SlingHttpServletRequest request, @NotNull Predicate&lt;String&gt; suffixPartFilter) {</span>
+<span class="nc" id="L72">    this.request = request;</span>
+<span class="nc" id="L73">  }</span>
+
+  /**
+   * Extract the value of a named suffix part from this request's suffix
+   * @param key key of the suffix part
+   * @param clazz Type expected for return value.
+   *          Only String, Boolean, Integer, Long are supported.
+   * @param &lt;T&gt; Parameter type.
+   * @return the value of that named parameter (or the default value if not used)
+   */
+  @SuppressWarnings(&quot;unchecked&quot;)
+  public &lt;T&gt; @Nullable T get(@NotNull String key, @NotNull Class&lt;T&gt; clazz) {
+<span class="fc bfc" id="L85" title="All 2 branches covered.">    if (clazz == String.class) {</span>
+<span class="fc" id="L86">      return (T)getString(key, (String)null);</span>
+    }
+<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (clazz == Boolean.class) {</span>
+<span class="fc" id="L89">      return (T)(Boolean)getBoolean(key, false);</span>
+    }
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (clazz == Integer.class) {</span>
+<span class="fc" id="L92">      return (T)(Integer)getInt(key, 0);</span>
+    }
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">    if (clazz == Long.class) {</span>
+<span class="fc" id="L95">      return (T)(Long)getLong(key, 0L);</span>
+    }
+<span class="nc" id="L97">    throw new IllegalArgumentException(&quot;Unsupported type: &quot; + clazz.getName());</span>
+  }
+
+  /**
+   * Extract the value of a named suffix part from this request's suffix
+   * @param key key of the suffix part
+   * @param defaultValue the default value to return if suffix part not set.
+   *          Only String, Boolean, Integer, Long are supported.
+   * @param &lt;T&gt; Parameter type.
+   * @return the value of that named parameter (or the default value if not used)
+   */
+  @SuppressWarnings(&quot;unchecked&quot;)
+  public &lt;T&gt; @Nullable T get(@NotNull String key, @Nullable T defaultValue) {
+<span class="pc bpc" id="L110" title="1 of 4 branches missed.">    if (defaultValue instanceof String || defaultValue == null) {</span>
+<span class="fc" id="L111">      return (T)getString(key, (String)defaultValue);</span>
+    }
+<span class="fc bfc" id="L113" title="All 2 branches covered.">    if (defaultValue instanceof Boolean) {</span>
+<span class="fc" id="L114">      return (T)(Boolean)getBoolean(key, (Boolean)defaultValue);</span>
+    }
+<span class="fc bfc" id="L116" title="All 2 branches covered.">    if (defaultValue instanceof Integer) {</span>
+<span class="fc" id="L117">      return (T)(Integer)getInt(key, (Integer)defaultValue);</span>
+    }
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">    if (defaultValue instanceof Long) {</span>
+<span class="fc" id="L120">      return (T)(Long)getLong(key, (Long)defaultValue);</span>
+    }
+<span class="nc" id="L122">    throw new IllegalArgumentException(&quot;Unsupported type: &quot; + defaultValue.getClass().getName());</span>
+  }
+
+  private String getString(String key, String defaultValue) {
+<span class="fc" id="L126">    String value = findSuffixPartByKey(key);</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L128">      return defaultValue;</span>
+    }
+<span class="fc" id="L130">    return value;</span>
+  }
+
+  private boolean getBoolean(String key, boolean defaultValue) {
+<span class="fc" id="L134">    String value = findSuffixPartByKey(key);</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L136">      return defaultValue;</span>
+    }
+
+    // value must match exactly &quot;true&quot; or &quot;false&quot;
+<span class="fc bfc" id="L140" title="All 2 branches covered.">    if (&quot;true&quot;.equals(value)) {</span>
+<span class="fc" id="L141">      return true;</span>
+    }
+<span class="pc bpc" id="L143" title="1 of 2 branches missed.">    if (&quot;false&quot;.equals(value)) {</span>
+<span class="nc" id="L144">      return false;</span>
+    }
+
+    // invalid boolean value - return default
+<span class="fc" id="L148">    return defaultValue;</span>
+  }
+
+  private int getInt(String key, int defaultValue) {
+<span class="fc" id="L152">    String value = findSuffixPartByKey(key);</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L154">      return defaultValue;</span>
+    }
+<span class="fc" id="L156">    return NumberUtils.toInt(value, defaultValue);</span>
+  }
+
+  private long getLong(String key, long defaultValue) {
+<span class="fc" id="L160">    String value = findSuffixPartByKey(key);</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L162">      return defaultValue;</span>
+    }
+<span class="fc" id="L164">    return NumberUtils.toLong(value, defaultValue);</span>
+  }
+
+  /**
+   * Extract the value of a named suffix part from this request's suffix
+   * @param key key of the suffix part
+   * @return the value of that named parameter (or null if not used)
+   */
+  private String findSuffixPartByKey(String key) {
+<span class="fc bfc" id="L173" title="All 2 branches covered.">    for (String part : splitSuffix(request.getRequestPathInfo().getSuffix())) {</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">      if (part.indexOf(KEY_VALUE_DELIMITER) &gt;= 0) {</span>
+<span class="fc" id="L175">        String partKey = decodeKey(part);</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">        if (partKey.equals(key)) {</span>
+<span class="fc" id="L177">          String value = decodeValue(part);</span>
+<span class="fc" id="L178">          return value;</span>
+        }
+      }
+    }
+<span class="fc" id="L182">    return null;</span>
+  }
+
+  /**
+   * Get a resource within the current page by interpreting the suffix as a JCR path relative to this page's jcr:content
+   * node
+   * @return the Resource or null if no such resource exists
+   */
+  public @Nullable Resource getResource() {
+<span class="fc" id="L191">    return getResource((Predicate&lt;Resource&gt;)null, (Resource)null);</span>
+  }
+
+  /**
+   * Parse the suffix as resource paths and return the first resource that exists
+   * @param baseResource the suffix path is relative to this resource path (null for current page's jcr:content node)
+   * @return the resource or null if no such resource was selected by suffix
+   */
+  public @Nullable Resource getResource(@NotNull Resource baseResource) {
+<span class="fc" id="L200">    return getResource((Predicate&lt;Resource&gt;)null, baseResource);</span>
+  }
+
+  /**
+   * Parse the suffix as resource paths, return the first resource from the suffix (relativ to the current page's
+   * content) that matches the given filter.
+   * @param filter a filter that selects only the resource you're interested in.
+   * @return the resource or null if no such resource was selected by suffix
+   */
+  public @Nullable Resource getResource(@NotNull Predicate&lt;Resource&gt; filter) {
+<span class="fc" id="L210">    return getResource(filter, (Resource)null);</span>
+  }
+
+  /**
+   * Get the first item returned by {@link #getResources(Predicate, Resource)} or null if list is empty
+   * @param filter the resource filter
+   * @param baseResource the suffix path is relative to this resource path (null for current page's jcr:content node)
+   * @return the first {@link Resource} or null
+   */
+  public @Nullable Resource getResource(@Nullable Predicate&lt;Resource&gt; filter, @Nullable Resource baseResource) {
+<span class="fc" id="L220">    List&lt;Resource&gt; suffixResources = getResources(filter, baseResource);</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">    if (suffixResources.isEmpty()) {</span>
+<span class="fc" id="L222">      return null;</span>
+    }
+    else {
+<span class="fc" id="L225">      return suffixResources.get(0);</span>
+    }
+  }
+
+  /**
+   * Get the resources within the current page selected in the suffix of the URL
+   * @return a list containing the Resources
+   */
+  public @NotNull List&lt;Resource&gt; getResources() {
+<span class="nc" id="L234">    return getResources((Predicate&lt;Resource&gt;)null, (Resource)null);</span>
+  }
+
+  /**
+   * Get the resources selected in the suffix of the URL
+   * @param baseResource the suffix path is relative to this resource path (null for current page's jcr:content node)
+   * @return a list containing the Resources
+   */
+  public @NotNull List&lt;Resource&gt; getResources(@NotNull Resource baseResource) {
+<span class="nc" id="L243">    return getResources((Predicate&lt;Resource&gt;)null, baseResource);</span>
+  }
+
+  /**
+   * Get the resources selected in the suffix of the URL
+   * @param filter optional filter to select only specific resources
+   * @return a list containing the Resources
+   */
+  public @NotNull List&lt;Resource&gt; getResources(@NotNull Predicate&lt;Resource&gt; filter) {
+<span class="nc" id="L252">    return getResources(filter, (Resource)null);</span>
+  }
+
+  /**
+   * Get the resources selected in the suffix of the URL
+   * @param filter optional filter to select only specific resources
+   * @param baseResource the suffix path is relative to this resource path (null for current page's jcr:content node)
+   * @return a list containing the Resources
+   */
+  public @NotNull List&lt;Resource&gt; getResources(@Nullable Predicate&lt;Resource&gt; filter, @Nullable Resource baseResource) {
+
+    // resolve base path or fallback to current page's content if not specified
+<span class="fc" id="L264">    Resource baseResourceToUse = baseResource;</span>
+<span class="fc bfc" id="L265" title="All 2 branches covered.">    if (baseResourceToUse == null) {</span>
+<span class="fc" id="L266">      PageManager pageManager = request.getResourceResolver().adaptTo(PageManager.class);</span>
+<span class="pc bpc" id="L267" title="1 of 2 branches missed.">      if (pageManager == null) {</span>
+<span class="nc" id="L268">        throw new RuntimeException(&quot;No page manager.&quot;);</span>
+      }
+<span class="fc" id="L270">      Page currentPage = pageManager.getContainingPage(request.getResource());</span>
+<span class="pc bpc" id="L271" title="1 of 2 branches missed.">      if (currentPage != null) {</span>
+<span class="fc" id="L272">        baseResourceToUse = currentPage.getContentResource();</span>
+      }
+      else {
+<span class="nc" id="L275">        baseResourceToUse = request.getResource();</span>
+      }
+    }
+<span class="fc" id="L278">    return getResourcesWithBaseResource(filter, baseResourceToUse);</span>
+  }
+
+  /**
+   * Parse the suffix as page paths and return the first page that exists with a page path relative
+   * to the current page path.
+   * @return the page or null if no such page was selected by suffix
+   */
+  public @Nullable Page getPage() {
+<span class="fc" id="L287">    return getPage((Predicate&lt;Page&gt;)null, (Page)null);</span>
+  }
+
+  /**
+   * Parse the suffix as page paths and return the first page that exists.
+   * @param basePage the suffix page is relative to this page path (null for current page)
+   * @return the page or null if no such page was selected by suffix
+   */
+  public @Nullable Page getPage(@NotNull Page basePage) {
+<span class="nc" id="L296">    return getPage((Predicate&lt;Page&gt;)null, basePage);</span>
+  }
+
+  /**
+   * Parse the suffix as page paths, return the first page from the suffix (relativ to the current page) that matches the given filter.
+   *
+   * @param filter a filter that selects only the page you're interested in.
+   * @return the page or null if no such page was selected by suffix
+   */
+  public @Nullable Page getPage(@NotNull Predicate&lt;Page&gt; filter) {
+<span class="fc" id="L306">    return getPage(filter, (Page)null);</span>
+  }
+
+  /**
+   * Get the first item returned by {@link #getPages(Predicate, Page)} or null if list is empty
+   * @param filter the resource filter
+   * @param basePage the suffix path is relative to this page path (null for current page)
+   * @return the first {@link Page} or null
+   */
+  public @Nullable Page getPage(@Nullable Predicate&lt;Page&gt; filter, @Nullable Page basePage) {
+<span class="fc" id="L316">    List&lt;Page&gt; suffixPages = getPages(filter, basePage);</span>
+<span class="fc bfc" id="L317" title="All 2 branches covered.">    if (suffixPages.isEmpty()) {</span>
+<span class="fc" id="L318">      return null;</span>
+    }
+    else {
+<span class="fc" id="L321">      return suffixPages.get(0);</span>
+    }
+  }
+
+  /**
+   * Get the pages selected in the suffix of the URL with page paths relative
+   * to the current page path.
+   * @return a list containing the Pages
+   */
+  public @NotNull List&lt;Page&gt; getPages() {
+<span class="fc" id="L331">    return getPages((Predicate&lt;Page&gt;)null, (Page)null);</span>
+  }
+
+  /**
+   * Get the pages selected in the suffix of the URL with page paths relative
+   * to the current page path.
+   * @param filter optional filter to select only specific pages
+   * @return a list containing the Pages
+   */
+  public @NotNull List&lt;Page&gt; getPages(@NotNull Predicate&lt;Page&gt; filter) {
+<span class="fc" id="L341">    return getPages(filter, (Page)null);</span>
+  }
+
+  /**
+   * Get the pages selected in the suffix of the URL
+   * @param filter optional filter to select only specific pages
+   * @param basePage the suffix path is relative to this page path (null for current page)
+   * @return a list containing the Pages
+   */
+  public @NotNull List&lt;Page&gt; getPages(@Nullable final Predicate&lt;Page&gt; filter, @Nullable final Page basePage) {
+<span class="fc" id="L351">    Resource baseResourceToUse = null;</span>
+
+    // detect pages page to use
+<span class="pc bpc" id="L354" title="1 of 2 branches missed.">    if (basePage == null) {</span>
+<span class="fc" id="L355">      PageManager pageManager = AdaptTo.notNull(request.getResourceResolver(), PageManager.class);</span>
+<span class="fc" id="L356">      Page currentPage = pageManager.getContainingPage(request.getResource());</span>
+<span class="pc bpc" id="L357" title="1 of 2 branches missed.">      if (currentPage != null) {</span>
+<span class="fc" id="L358">        baseResourceToUse = currentPage.adaptTo(Resource.class);</span>
+      }
+<span class="fc" id="L360">    }</span>
+    else {
+<span class="nc" id="L362">      baseResourceToUse = basePage.adaptTo(Resource.class);</span>
+    }
+
+    // filter pages (as resources)
+<span class="fc" id="L366">    Predicate&lt;Resource&gt; resourceFilter = new Predicate&lt;Resource&gt;() {</span>
+      @Override
+      public boolean test(Resource resource) {
+<span class="fc" id="L369">        Page page = resource.adaptTo(Page.class);</span>
+<span class="fc bfc" id="L370" title="All 2 branches covered.">        if (page == null) {</span>
+<span class="fc" id="L371">          return false;</span>
+        }
+<span class="fc bfc" id="L373" title="All 2 branches covered.">        if (filter == null) {</span>
+<span class="fc" id="L374">          return true;</span>
+        }
+<span class="fc" id="L376">        return filter.test(page);</span>
+      }
+    };
+<span class="fc" id="L379">    List&lt;Resource&gt; resources = getResourcesWithBaseResource(resourceFilter, baseResourceToUse);</span>
+
+    // convert resources back to pages
+<span class="fc" id="L382">    return Lists.transform(resources, new Function&lt;Resource, Page&gt;() {</span>
+      @Override
+      @SuppressWarnings(&quot;null&quot;)
+      @SuppressFBWarnings(&quot;NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE&quot;)
+      public Page apply(@Nullable Resource resource) {
+<span class="fc" id="L387">        return resource.adaptTo(Page.class);</span>
+      }
+    });
+  }
+
+  private @NotNull List&lt;Resource&gt; getResourcesWithBaseResource(@Nullable Predicate&lt;Resource&gt; filter, @Nullable Resource baseResource) {
+    // split the suffix to extract the paths of the selected components
+<span class="fc" id="L394">    String[] suffixParts = splitSuffix(request.getRequestPathInfo().getSuffix());</span>
+
+    // iterate over all parts and gather those resources
+<span class="fc" id="L397">    List&lt;Resource&gt; selectedResources = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L398" title="All 2 branches covered.">    for (String path : suffixParts) {</span>
+
+      // if path contains the key/value-delimiter then don't try to resolve it as a content path
+<span class="fc bfc" id="L401" title="All 2 branches covered.">      if (StringUtils.contains(path, KEY_VALUE_DELIMITER)) {</span>
+<span class="fc" id="L402">        continue;</span>
+      }
+
+<span class="fc" id="L405">      String decodedPath = decodeResourcePathPart(path);</span>
+
+      // lookup the resource specified by the path (which is relative to the current page's content resource)
+<span class="fc" id="L408">      Resource resource = request.getResourceResolver().getResource(baseResource, decodedPath);</span>
+<span class="fc bfc" id="L409" title="All 2 branches covered.">      if (resource == null) {</span>
+        // no resource found with given path, continue with next path in suffix
+<span class="fc" id="L411">        continue;</span>
+      }
+
+      // if a filter is given - check
+<span class="fc bfc" id="L415" title="All 4 branches covered.">      if (filter == null || filter.test(resource)) {</span>
+<span class="fc" id="L416">        selectedResources.add(resource);</span>
+      }
+
+    }
+
+<span class="fc" id="L421">    return selectedResources;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

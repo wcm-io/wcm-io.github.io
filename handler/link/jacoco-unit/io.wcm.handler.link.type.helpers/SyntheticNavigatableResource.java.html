@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SyntheticNavigatableResource.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Link Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.link.type.helpers</a> &gt; <span class="el_source">SyntheticNavigatableResource.java</span></div><h1>SyntheticNavigatableResource.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2017 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.link.type.helpers;
+
+import org.apache.sling.api.resource.AbstractResource;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceMetadata;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceUtil;
+import org.jetbrains.annotations.NotNull;
+
+/**
+ * Synthetic resource implementation which support navigating it's parents until it reaches an existing resource.
+ */
+final class SyntheticNavigatableResource extends AbstractResource {
+
+  private final String path;
+  private final ResourceResolver resolver;
+  private ResourceMetadata metadata;
+
+  private static final String RESOURCE_TYPE = &quot;wcm-io/handler/link/synthetic/resource/navigatable&quot;;
+
+<span class="fc" id="L40">  private SyntheticNavigatableResource(String path, ResourceResolver resolver) {</span>
+<span class="fc" id="L41">    this.path = path;</span>
+<span class="fc" id="L42">    this.resolver = resolver;</span>
+<span class="fc" id="L43">  }</span>
+
+  @Override
+  public @NotNull String getPath() {
+<span class="fc" id="L47">    return path;</span>
+  }
+
+  @Override
+  public @NotNull String getResourceType() {
+<span class="nc" id="L52">    return RESOURCE_TYPE;</span>
+  }
+
+  @Override
+  public String getResourceSuperType() {
+<span class="nc" id="L57">    return null;</span>
+  }
+
+  @Override
+  public @NotNull ResourceMetadata getResourceMetadata() {
+<span class="nc bnc" id="L62" title="All 2 branches missed.">    if (metadata == null) {</span>
+<span class="nc" id="L63">      metadata = new ResourceMetadata();</span>
+<span class="nc" id="L64">      metadata.setResolutionPath(path);</span>
+    }
+<span class="nc" id="L66">    return metadata;</span>
+  }
+
+  @Override
+  public @NotNull ResourceResolver getResourceResolver() {
+<span class="nc" id="L71">    return resolver;</span>
+  }
+
+  @Override
+  public Resource getParent() {
+<span class="fc bfc" id="L76" title="All 2 branches covered.">    if (path == null) {</span>
+<span class="fc" id="L77">      return null;</span>
+    }
+<span class="fc" id="L79">    String parentPath = ResourceUtil.getParent(path);</span>
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">    if (parentPath == null) {</span>
+<span class="nc" id="L81">      return null;</span>
+    }
+<span class="fc" id="L83">    return SyntheticNavigatableResource.get(parentPath, resolver);</span>
+  }
+
+  /**
+   * Get resource for path. If the path does not exist a synthetic resource is created which supports
+   * navigation over it's parents until it reaches a resource that exists.
+   * @param path Path
+   * @return Resource (never null)
+   */
+  static @NotNull Resource get(String path, ResourceResolver resolver) {
+<span class="fc" id="L93">    Resource resource = resolver.getResource(path);</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (resource != null) {</span>
+<span class="fc" id="L95">      return resource;</span>
+    }
+<span class="fc" id="L97">    return new SyntheticNavigatableResource(path, resolver);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

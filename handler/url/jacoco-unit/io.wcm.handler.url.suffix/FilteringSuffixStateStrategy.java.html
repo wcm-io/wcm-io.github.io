@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FilteringSuffixStateStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">URL Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.url.suffix</a> &gt; <span class="el_source">FilteringSuffixStateStrategy.java</span></div><h1>FilteringSuffixStateStrategy.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.url.suffix;
+
+import static io.wcm.handler.url.suffix.impl.UrlSuffixUtil.splitSuffix;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
+
+/**
+ * Implementation of {@link SuffixStateKeepingStrategy} that calls a Filter for each suffix part from the
+ * current request to decide if it should be kept when constructing a new suffix.
+ */
+@ProviderType
+public final class FilteringSuffixStateStrategy implements SuffixStateKeepingStrategy {
+
+  private final Predicate&lt;String&gt; suffixPartFilter;
+
+  /**
+   * @param suffixPartFilter the {@link Predicate} that defines which suffix parts are allowed
+   */
+<span class="fc" id="L44">  public FilteringSuffixStateStrategy(Predicate&lt;String&gt; suffixPartFilter) {</span>
+<span class="fc" id="L45">    this.suffixPartFilter = suffixPartFilter;</span>
+<span class="fc" id="L46">  }</span>
+
+  @Override
+  public @NotNull List&lt;String&gt; getSuffixPartsToKeep(@NotNull SlingHttpServletRequest request) {
+
+    // get and split suffix parts from the current request
+<span class="fc" id="L52">    String existingSuffix = request.getRequestPathInfo().getSuffix();</span>
+<span class="fc" id="L53">    String[] suffixPartArray = splitSuffix(existingSuffix);</span>
+
+    // iterate over all these suffix parts and gather those that should be kept
+<span class="fc" id="L56">    List&lt;String&gt; suffixPartsToKeep = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">    for (int i = 0; i &lt; suffixPartArray.length; i++) {</span>
+<span class="fc" id="L58">      String nextPart = suffixPartArray[i];</span>
+
+      // for each part: check filter if it should be inc
+<span class="pc bpc" id="L61" title="1 of 4 branches missed.">      if (suffixPartFilter == null || suffixPartFilter.test(nextPart)) {</span>
+<span class="fc" id="L62">        suffixPartsToKeep.add(nextPart);</span>
+      }
+    }
+
+<span class="fc" id="L66">    return suffixPartsToKeep;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

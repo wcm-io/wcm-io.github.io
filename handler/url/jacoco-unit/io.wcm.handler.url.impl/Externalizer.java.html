@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Externalizer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">URL Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.url.impl</a> &gt; <span class="el_source">Externalizer.java</span></div><h1>Externalizer.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.url.impl;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import io.wcm.sling.commons.util.Escape;
+
+/**
+ * Utility methods for externalizing URLs.
+ */
+final class Externalizer {
+
+  private Externalizer() {
+    // static util methods only
+  }
+
+  /**
+   * Externalizes an URL by applying Sling Mapping. Hostname and scheme are not added because they are added by the
+   * link handler depending on site URL configuration and secure/non-secure mode. URLs that are already externalized
+   * remain untouched.
+   * @param url Unexternalized URL (without scheme or hostname)
+   * @param resolver Resource resolver
+   * @param request Request
+   * @return Exernalized URL without scheme or hostname, but with short URLs (if configured in Sling Mapping is
+   *         configured), and the path is URL-encoded if it contains special chars.
+   */
+  public static @Nullable String externalizeUrl(@NotNull String url, @NotNull ResourceResolver resolver, @Nullable SlingHttpServletRequest request) {
+
+    // apply externalization only path part
+<span class="fc" id="L57">    String path = url;</span>
+
+    // split off query string or fragment that may be appended to the URL
+<span class="fc" id="L60">    String urlRemainder = null;</span>
+<span class="fc" id="L61">    int urlRemainderPos = StringUtils.indexOfAny(path, '?', '#');</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">    if (urlRemainderPos &gt;= 0) {</span>
+<span class="fc" id="L63">      urlRemainder = path.substring(urlRemainderPos);</span>
+<span class="fc" id="L64">      path = path.substring(0, urlRemainderPos);</span>
+    }
+
+    // apply reverse mapping based on current sling mapping configuration for current request
+    // e.g. to support a host-based prefix stripping mapping configuration configured at /etc/map
+
+    // please note: the sling map method does a lot of things:
+    // 1. applies reverse mapping depending on the sling mapping configuration
+    // (this can even add a hostname if defined in sling mapping configuration)
+    // 2. applies namespace mangling (e.g. replace jcr: with _jcr_)
+    // 3. adds webapp context path if required
+    // 4. url-encodes the whole url
+<span class="fc bfc" id="L76" title="All 2 branches covered.">    if (request != null) {</span>
+<span class="fc" id="L77">      path = resolver.map(request, path);</span>
+    }
+    else {
+<span class="fc" id="L80">      path = resolver.map(path);</span>
+    }
+
+    // remove scheme and hostname (probably added by sling mapping), but leave path in escaped form
+    try {
+<span class="fc" id="L85">      path = new URI(path).getRawPath();</span>
+      // replace %2F back to / for better readability
+<span class="fc" id="L87">      path = StringUtils.replace(path, &quot;%2F&quot;, &quot;/&quot;);</span>
+    }
+<span class="nc" id="L89">    catch (URISyntaxException ex) {</span>
+<span class="nc" id="L90">      throw new RuntimeException(&quot;Sling map method returned invalid URI: &quot; + path, ex);</span>
+<span class="fc" id="L91">    }</span>
+
+    // build full URL again
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">    if (path == null) {</span>
+<span class="nc" id="L95">      return null;</span>
+    }
+    else {
+<span class="fc bfc" id="L98" title="All 2 branches covered.">      return path + (urlRemainder != null ? urlRemainder : &quot;&quot;);</span>
+    }
+  }
+
+  /**
+   * Externalizes an URL without applying Sling Mapping. Instead the servlet context path is added and sling namespace
+   * mangling is applied manually.
+   * Hostname and scheme are not added because they are added by the link handler depending on site URL configuration
+   * and secure/non-secure mode. URLs that are already externalized remain untouched.
+   * @param url Unexternalized URL (without scheme or hostname)
+   * @param request Request
+   * @return Exernalized URL without scheme or hostname, the path is URL-encoded if it contains special chars.
+   */
+  public static @NotNull String externalizeUrlWithoutMapping(@NotNull String url, @Nullable SlingHttpServletRequest request) {
+
+    // apply externalization only path part
+<span class="fc" id="L114">    String path = url;</span>
+
+    // split off query string or fragment that may be appended to the URL
+<span class="fc" id="L117">    String urlRemainder = null;</span>
+<span class="fc" id="L118">    int urlRemainderPos = StringUtils.indexOfAny(path, '?', '#');</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">    if (urlRemainderPos &gt;= 0) {</span>
+<span class="fc" id="L120">      urlRemainder = path.substring(urlRemainderPos);</span>
+<span class="fc" id="L121">      path = path.substring(0, urlRemainderPos);</span>
+    }
+
+    // apply namespace mangling (e.g. replace jcr: with _jcr_)
+<span class="fc" id="L125">    path = mangleNamespaces(path);</span>
+
+    // add webapp context path
+<span class="fc bfc" id="L128" title="All 2 branches covered.">    if (request != null) {</span>
+<span class="fc" id="L129">      path = StringUtils.defaultString(request.getContextPath()) + path; //NOPMD</span>
+    }
+
+    // url-encode path
+<span class="fc" id="L133">    path = Escape.urlEncode(path);</span>
+<span class="fc" id="L134">    path = StringUtils.replace(path, &quot;+&quot;, &quot;%20&quot;);</span>
+    // replace %2F back to / for better readability
+<span class="fc" id="L136">    path = StringUtils.replace(path, &quot;%2F&quot;, &quot;/&quot;);</span>
+
+    // build full URL again
+<span class="fc bfc" id="L139" title="All 2 branches covered.">    return path + (urlRemainder != null ? urlRemainder : &quot;&quot;);</span>
+  }
+
+  /*
+   * Detect as externalized:
+   * - everything staring with protocol and a colon is handled as externalized (http:, tel:, mailto:, javascript: etc.)
+   * - everything starting with // or # is handles as exteranlized
+   * - all other strings handles as not externalized
+   */
+<span class="fc" id="L148">  private static final Pattern EXTERNALIZED_PATTERN = Pattern.compile(&quot;^([^/]+:|//|#).*$&quot;);</span>
+
+  /**
+   * Checks if the given URL is already externalized.
+   * For this check some heuristics are applied.
+   * @param url URL
+   * @return true if path is already externalized.
+   */
+  public static boolean isExternalized(@NotNull String url) {
+<span class="fc" id="L157">    return EXTERNALIZED_PATTERN.matcher(url).matches();</span>
+  }
+
+  /**
+   * Checks if the given URL can be externalize, that means seems to be an content path that needs externalization.
+   * @param url URL
+   * @return true if url seems to be a path than needs externaliziation
+   */
+  public static boolean isExternalizable(@NotNull String url) {
+<span class="fc" id="L166">    return StringUtils.startsWith(url, &quot;/&quot;);</span>
+  }
+
+  private static final String MANGLED_NAMESPACE_PREFIX = &quot;/_&quot;;
+  private static final String MANGLED_NAMESPACE_SUFFIX = &quot;_&quot;;
+  private static final char NAMESPACE_SEPARATOR = ':';
+<span class="fc" id="L172">  private static final Pattern NAMESPACE_PATTERN = Pattern.compile(&quot;/([^:/]+):&quot;);</span>
+
+  /**
+   * Mangle the namespaces in the given path for usage in sling-based URLs.
+   * &lt;p&gt;
+   * Example: /path/jcr:content to /path/_jcr_content
+   * &lt;/p&gt;
+   * @param path Path to mangle
+   * @return Mangled path
+   */
+  public static @NotNull String mangleNamespaces(@NotNull String path) {
+<span class="fc bfc" id="L183" title="All 2 branches covered.">    if (!StringUtils.contains(path, NAMESPACE_SEPARATOR)) {</span>
+<span class="fc" id="L184">      return path;</span>
+    }
+<span class="fc" id="L186">    Matcher matcher = NAMESPACE_PATTERN.matcher(path);</span>
+<span class="fc" id="L187">    StringBuffer sb = new StringBuffer();</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">    while (matcher.find()) {</span>
+<span class="fc" id="L189">      String replacement = MANGLED_NAMESPACE_PREFIX + matcher.group(1) + MANGLED_NAMESPACE_SUFFIX;</span>
+<span class="fc" id="L190">      matcher.appendReplacement(sb, replacement);</span>
+<span class="fc" id="L191">    }</span>
+<span class="fc" id="L192">    matcher.appendTail(sb);</span>
+<span class="fc" id="L193">    return sb.toString();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

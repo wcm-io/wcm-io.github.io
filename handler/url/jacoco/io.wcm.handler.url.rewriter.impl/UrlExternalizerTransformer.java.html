@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UrlExternalizerTransformer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">URL Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.url.rewriter.impl</a> &gt; <span class="el_source">UrlExternalizerTransformer.java</span></div><h1>UrlExternalizerTransformer.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.url.rewriter.impl;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.cocoon.xml.sax.AbstractSAXPipe;
+import org.apache.cocoon.xml.sax.AttributesImpl;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.rewriter.ProcessingComponentConfiguration;
+import org.apache.sling.rewriter.ProcessingContext;
+import org.apache.sling.rewriter.Transformer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+
+import io.wcm.handler.url.UrlHandler;
+
+/**
+ * HTML transformer that rewrites URLs in certain HTML element attributes.
+ */
+<span class="fc" id="L42">class UrlExternalizerTransformer extends AbstractSAXPipe implements Transformer {</span>
+
+  private UrlExternalizerTransformerConfig transformerConfig;
+  private UrlHandler urlHandler;
+
+<span class="fc" id="L47">  private static final Logger log = LoggerFactory.getLogger(UrlExternalizerTransformer.class.getName());</span>
+
+  @Override
+  public void init(ProcessingContext pipelineContext, ProcessingComponentConfiguration config) {
+<span class="fc" id="L51">    log.trace(&quot;Initialize UrlExternalizerTransformer with config: {}&quot;, config.getConfiguration());</span>
+<span class="fc" id="L52">    transformerConfig = new UrlExternalizerTransformerConfig(config.getConfiguration());</span>
+<span class="fc" id="L53">    urlHandler = pipelineContext.getRequest().adaptTo(UrlHandler.class);</span>
+<span class="fc" id="L54">  }</span>
+
+  @Override
+  @SuppressWarnings(&quot;PMD.UseStringBufferForStringAppends&quot;)
+  public void startElement(String nsUri, String name, String raw, Attributes attrs) throws SAXException {
+
+    // check if for this element an attribute for rewriting is configured
+<span class="fc" id="L61">    String rewriteAttr = transformerConfig.getElementAttributeNames().get(name);</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">    if (rewriteAttr == null) {</span>
+<span class="fc" id="L63">      log.trace(&quot;Rewrite element {}: Skip - No rewrite attribute configured.&quot;, name);</span>
+<span class="fc" id="L64">      super.startElement(nsUri, name, raw, attrs);</span>
+<span class="fc" id="L65">      return;</span>
+    }
+
+    // validate URL handler
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">    if (urlHandler == null) {</span>
+<span class="nc" id="L70">      log.warn(&quot;Rewrite element {}: Skip - Unable to get URL handler/Integrator handler instance.&quot;, name);</span>
+<span class="nc" id="L71">      super.startElement(nsUri, name, raw, attrs);</span>
+<span class="nc" id="L72">      return;</span>
+    }
+
+    // check if attribute exists
+<span class="fc" id="L76">    int attributeIndex = attrs.getIndex(rewriteAttr);</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">    if (attributeIndex &lt; 0) {</span>
+<span class="fc" id="L78">      log.trace(&quot;Rewrite element {}: Skip - Attribute does not exist: {}&quot;, name, rewriteAttr);</span>
+<span class="fc" id="L79">      super.startElement(nsUri, name, raw, attrs);</span>
+<span class="fc" id="L80">      return;</span>
+    }
+
+    // rewrite URL
+<span class="fc" id="L84">    String url = attrs.getValue(attributeIndex);</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">    if (StringUtils.isEmpty(url)) {</span>
+<span class="fc" id="L86">      log.trace(&quot;Rewrite element {}: Skip - URL is empty.&quot;, name);</span>
+<span class="fc" id="L87">      super.startElement(nsUri, name, raw, attrs);</span>
+<span class="fc" id="L88">      return;</span>
+    }
+
+    // split off query string or fragment that may be appended to the URL
+<span class="fc" id="L92">    String urlRemainder = null;</span>
+<span class="fc" id="L93">    int urlRemainderPos = StringUtils.indexOfAny(url, '?', '#');</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (urlRemainderPos &gt;= 0) {</span>
+<span class="fc" id="L95">      urlRemainder = url.substring(urlRemainderPos);</span>
+<span class="fc" id="L96">      url = url.substring(0, urlRemainderPos);</span>
+    }
+
+    // decode URL (without URL remainder)
+    try {
+<span class="fc" id="L101">      url = URLDecoder.decode(url, StandardCharsets.UTF_8.name());</span>
+    }
+<span class="nc" id="L103">    catch (UnsupportedEncodingException ex) {</span>
+<span class="nc" id="L104">      throw new RuntimeException(&quot;Unsupported encoding.&quot;, ex);</span>
+<span class="fc" id="L105">    }</span>
+
+    // externalize URL (if it is not already externalized)
+<span class="fc" id="L108">    String rewrittenUrl = urlHandler.get(url).buildExternalResourceUrl();</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (urlRemainder != null) {</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">      if (rewrittenUrl == null) {</span>
+<span class="fc" id="L111">        rewrittenUrl = urlRemainder;</span>
+      }
+      else {
+<span class="fc" id="L114">        rewrittenUrl += urlRemainder;</span>
+      }
+    }
+
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (StringUtils.equals(url, rewrittenUrl)) {</span>
+<span class="fc" id="L119">      log.debug(&quot;Rewrite element {}: Skip - URL is already externalized: {}&quot;, name, url);</span>
+<span class="fc" id="L120">      super.startElement(nsUri, name, raw, attrs);</span>
+<span class="fc" id="L121">      return;</span>
+    }
+
+    // set new attribute value
+<span class="fc" id="L125">    log.debug(&quot;Rewrite element {}: Rewrite URL {} to {}&quot;, name, url, rewrittenUrl);</span>
+<span class="fc" id="L126">    AttributesImpl newAttrs = new AttributesImpl(attrs);</span>
+<span class="fc" id="L127">    newAttrs.setValue(attributeIndex, rewrittenUrl);</span>
+<span class="fc" id="L128">    super.startElement(nsUri, name, raw, newAttrs);</span>
+<span class="fc" id="L129">  }</span>
+
+  @Override
+  public void dispose() {
+    // nothing to do
+<span class="fc" id="L134">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

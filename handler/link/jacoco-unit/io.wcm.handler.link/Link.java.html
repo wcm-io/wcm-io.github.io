@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Link.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Link Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.link</a> &gt; <span class="el_source">Link.java</span></div><h1>Link.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.link;
+
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.jdom2.Attribute;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
+
+import com.day.cq.wcm.api.Page;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import com.google.common.collect.ImmutableList;
+
+import io.wcm.handler.commons.dom.Anchor;
+import io.wcm.handler.link.spi.LinkType;
+import io.wcm.handler.media.Asset;
+import io.wcm.handler.media.Rendition;
+import io.wcm.wcm.commons.util.ToStringStyle;
+
+/**
+ * Holds information about a link processed and resolved by {@link LinkHandler}.
+ */
+@ProviderType
+@JsonInclude(Include.NON_NULL)
+public final class Link {
+
+  private final @NotNull LinkType linkType;
+  private @NotNull LinkRequest linkRequest;
+  private boolean linkReferenceInvalid;
+  private Anchor anchor;
+  private String url;
+  private Page targetPage;
+  private Asset targetAsset;
+  private Rendition targetRendition;
+  private List&lt;Page&gt; redirectPages;
+
+  /**
+   * @param linkType Link type
+   * @param linkRequest Processed link reference
+   */
+<span class="fc" id="L67">  public Link(@NotNull LinkType linkType, @NotNull LinkRequest linkRequest) {</span>
+<span class="fc" id="L68">    this.linkRequest = linkRequest;</span>
+<span class="fc" id="L69">    this.linkType = linkType;</span>
+<span class="fc" id="L70">  }</span>
+
+  /**
+   * @return Link type
+   */
+  @JsonUnwrapped
+  public @NotNull LinkType getLinkType() {
+<span class="fc" id="L77">    return this.linkType;</span>
+  }
+
+  /**
+   * @return Link request
+   */
+  @JsonIgnore
+  public @NotNull LinkRequest getLinkRequest() {
+<span class="fc" id="L85">    return this.linkRequest;</span>
+  }
+
+  /**
+   * @param linkRequest Link request
+   */
+  public void setLinkRequest(@NotNull LinkRequest linkRequest) {
+<span class="fc" id="L92">    this.linkRequest = linkRequest;</span>
+<span class="fc" id="L93">  }</span>
+
+  /**
+   * @return true if a link reference was set, but the reference was invalid and could not be resolved
+   */
+  @JsonIgnore
+  public boolean isLinkReferenceInvalid() {
+<span class="fc" id="L100">    return this.linkReferenceInvalid;</span>
+  }
+
+  /**
+   * @param linkReferenceInvalid true if a link reference was set, but the reference was invalid and could not be
+   *          resolved
+   */
+  public void setLinkReferenceInvalid(boolean linkReferenceInvalid) {
+<span class="fc" id="L108">    this.linkReferenceInvalid = linkReferenceInvalid;</span>
+<span class="fc" id="L109">  }</span>
+
+  /**
+   * @return Anchor element
+   */
+  @JsonIgnore
+  public Anchor getAnchor() {
+<span class="fc" id="L116">    return this.anchor;</span>
+  }
+
+  /**
+   * @return Map with all attributes of the anchor element. Returns null if anchor element is null.
+   */
+  @JsonIgnore
+  public Map&lt;String, String&gt; getAnchorAttributes() {
+<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (getAnchor() == null) {</span>
+<span class="fc" id="L125">      return null;</span>
+    }
+<span class="fc" id="L127">    Map&lt;String, String&gt; attributes = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">    for (Attribute attribute : getAnchor().getAttributes()) {</span>
+<span class="fc" id="L129">      attributes.put(attribute.getName(), attribute.getValue());</span>
+<span class="fc" id="L130">    }</span>
+<span class="fc" id="L131">    return attributes;</span>
+  }
+
+  /**
+   * @param anchor Anchor element
+   */
+  public void setAnchor(Anchor anchor) {
+<span class="fc" id="L138">    this.anchor = anchor;</span>
+<span class="fc" id="L139">  }</span>
+
+  /**
+   * @return Link markup (only the opening anchor tag) or null if resolving was not successful.
+   */
+  @JsonIgnore
+  public String getMarkup() {
+<span class="fc bfc" id="L146" title="All 2 branches covered.">    if (this.anchor != null) {</span>
+<span class="fc" id="L147">      return StringUtils.removeEnd(this.anchor.toString(), &quot;&lt;/a&gt;&quot;);</span>
+    }
+    else {
+<span class="fc" id="L150">      return null;</span>
+    }
+  }
+
+  /**
+   * @return Link URL
+   */
+  public String getUrl() {
+<span class="fc" id="L158">    return this.url;</span>
+  }
+
+  /**
+   * @param url Link URL
+   */
+  public void setUrl(String url) {
+<span class="fc" id="L165">    this.url = url;</span>
+<span class="fc" id="L166">  }</span>
+
+  /**
+   * @return Target page referenced by the link (applies only for internal links)
+   */
+  @JsonIgnore
+  public Page getTargetPage() {
+<span class="fc" id="L173">    return this.targetPage;</span>
+  }
+
+  /**
+   * @param targetPage Target page referenced by the link (applies only for internal links)
+   */
+  public void setTargetPage(Page targetPage) {
+<span class="fc" id="L180">    this.targetPage = targetPage;</span>
+<span class="fc" id="L181">  }</span>
+
+  /**
+   * @return Target media item (applies only for media links)
+   */
+  @JsonIgnore
+  public Asset getTargetAsset() {
+<span class="fc" id="L188">    return this.targetAsset;</span>
+  }
+
+  /**
+   * @param targetAsset Target media item (applies only for media links)
+   */
+  public void setTargetAsset(Asset targetAsset) {
+<span class="fc" id="L195">    this.targetAsset = targetAsset;</span>
+<span class="fc" id="L196">  }</span>
+
+  /**
+   * @return Target media rendition (applies only for media links)
+   */
+  @JsonIgnore
+  public Rendition getTargetRendition() {
+<span class="fc" id="L203">    return this.targetRendition;</span>
+  }
+
+  /**
+   * @param targetRendition Target media rendition (applies only for media links)
+   */
+  public void setTargetRendition(Rendition targetRendition) {
+<span class="fc" id="L210">    this.targetRendition = targetRendition;</span>
+<span class="fc" id="L211">  }</span>
+
+  /**
+   * During link resolution one or multiple redirect pages may get resolved and replaced by the referenced
+   * link target. This page list gives access to all redirect pages that where visited and resolved
+   * during the link resolution process.
+   * @return List of links in the &quot;resolve history&quot;.
+   */
+  @JsonIgnore
+  public @NotNull List&lt;Page&gt; getRedirectPages() {
+<span class="fc bfc" id="L221" title="All 2 branches covered.">    if (redirectPages == null) {</span>
+<span class="fc" id="L222">      return ImmutableList.of();</span>
+    }
+    else {
+<span class="fc" id="L225">      return ImmutableList.copyOf(redirectPages);</span>
+    }
+  }
+
+  /**
+   * Add page to list of redirect pages (at first position of the list).
+   * @param redirectPage Redirect page
+   */
+  public void addRedirectPage(@NotNull Page redirectPage) {
+<span class="fc bfc" id="L234" title="All 2 branches covered.">    if (redirectPages == null) {</span>
+<span class="fc" id="L235">      redirectPages = new LinkedList&lt;&gt;();</span>
+    }
+<span class="fc" id="L237">    redirectPages.add(0, redirectPage);</span>
+<span class="fc" id="L238">  }</span>
+
+  /**
+   * @return true if link is valid and was resolved successfully
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  public boolean isValid() {
+<span class="fc bfc" id="L245" title="All 2 branches covered.">    return getLinkType() != null</span>
+<span class="fc bfc" id="L246" title="All 2 branches covered.">        &amp;&amp; getUrl() != null</span>
+<span class="pc bpc" id="L247" title="1 of 2 branches missed.">        &amp;&amp; !StringUtils.equals(getUrl(), LinkHandler.INVALID_LINK);</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L252">    return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UrlSuffixUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">URL Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.url.suffix.impl</a> &gt; <span class="el_source">UrlSuffixUtil.java</span></div><h1>UrlSuffixUtil.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.url.suffix.impl;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.text.translate.CharSequenceTranslator;
+import org.apache.commons.lang3.text.translate.EntityArrays;
+import org.apache.commons.lang3.text.translate.LookupTranslator;
+import org.apache.sling.api.resource.Resource;
+
+/**
+ * Static methods and constants for URL suffix handling.
+ */
+@SuppressWarnings(&quot;deprecation&quot;)
+public final class UrlSuffixUtil {
+
+  /**
+   * Delimiter char for suffix parts and key/value pairs
+   */
+  public static final char SUFFIX_PART_DELIMITER = '/';
+
+  /**
+   * Delimiter char for suffix parts and key and value
+   */
+  public static final char KEY_VALUE_DELIMITER = '=';
+
+  /**
+   * Double escaping is necessary when constructing urls so that escaping is not resolved by the webserver
+   */
+  public static final String ESCAPE_DELIMITER = &quot;~&quot;;
+
+  /**
+   * Slash value within suffix part
+   */
+<span class="fc" id="L55">  public static final String ESCAPED_SLASH = ESCAPE_DELIMITER + hexCode('/');</span>
+
+  /**
+   * Map with special chars and their replacements that are escaped with special ~ and hexcode
+   */
+<span class="fc" id="L60">  private static final String[][] SPECIAL_CHARS_MAPPING = {</span>
+    // escape delimiter chars
+    {
+<span class="fc" id="L63">      Character.toString(SUFFIX_PART_DELIMITER), ESCAPE_DELIMITER + hexCode(SUFFIX_PART_DELIMITER)</span>
+    },
+    {
+<span class="fc" id="L66">      Character.toString(KEY_VALUE_DELIMITER), ESCAPE_DELIMITER + hexCode(KEY_VALUE_DELIMITER)</span>
+    },
+    // '.' must be custom-escaped (if no file extension is added to suffix,
+    // anything after a dot would be interpreted as file extension during parsing)
+    {
+<span class="fc" id="L71">      Character.toString('.'), ESCAPE_DELIMITER + hexCode('.')</span>
+    },
+    // escape '%' to avoid confusion with URL escaping
+    {
+<span class="fc" id="L75">      Character.toString('%'), ESCAPE_DELIMITER + hexCode('%')</span>
+    },
+    // '/' must be custom-escaped (dispatcher/webserver may filter out/misinterpret urls with unescaped slashes)
+    {
+<span class="fc" id="L79">      Character.toString('/'), ESCAPE_DELIMITER + hexCode('/')</span>
+    },
+    // escape ':'
+    {
+<span class="fc" id="L83">      Character.toString(':'), ESCAPE_DELIMITER + hexCode(':')</span>
+    },
+    // escape ' ' as well (singular problem occurred once)
+    {
+<span class="fc" id="L87">      Character.toString(' '), ESCAPE_DELIMITER + hexCode(' ')</span>
+    }
+  };
+
+  /**
+   * Escape special chars for suffix.
+   */
+<span class="fc" id="L94">  private static final CharSequenceTranslator ESCAPE_SPECIAL_CHARS = new LookupTranslator(SPECIAL_CHARS_MAPPING);</span>
+
+  /**
+   * Unesacpe special chars in suffix.
+   */
+<span class="fc" id="L99">  private static final CharSequenceTranslator UNESCAPE_SPECIAL_CHARS = new LookupTranslator(EntityArrays.invert(SPECIAL_CHARS_MAPPING));</span>
+
+  private UrlSuffixUtil() {
+    // static methods only
+  }
+
+  /**
+   * Convert to hex code
+   * @param c char
+   * @return Hex code
+   */
+  public static String hexCode(char c) {
+<span class="fc" id="L111">    return Integer.toString(c, 16).toUpperCase();</span>
+  }
+
+  /**
+   * Encode resource path part
+   * @param relativePath Relative path
+   * @return Encodes path part
+   */
+  public static String encodeResourcePathPart(String relativePath) {
+<span class="fc" id="L120">    return ESCAPE_SPECIAL_CHARS.translate(relativePath);</span>
+  }
+
+  /**
+   * Decode resource path part
+   * @param suffixPart Suffix part
+   * @return Decoded path part
+   */
+  public static String decodeResourcePathPart(String suffixPart) {
+<span class="fc" id="L129">    return UNESCAPE_SPECIAL_CHARS.translate(suffixPart);</span>
+  }
+
+  /**
+   * Encode key value part
+   * @param string String
+   * @return Encoded string
+   */
+  public static String encodeKeyValuePart(String string) {
+<span class="fc" id="L138">    return ESCAPE_SPECIAL_CHARS.translate(string);</span>
+  }
+
+  /**
+   * Decode value
+   * @param suffixPart Suffix part
+   * @return Decoded value
+   */
+  public static String decodeValue(String suffixPart) {
+    // value is the part *after* KEY_VALUE_DELIMITER
+<span class="fc" id="L148">    String value = StringUtils.substringAfter(suffixPart, Character.toString(KEY_VALUE_DELIMITER));</span>
+<span class="fc" id="L149">    return UNESCAPE_SPECIAL_CHARS.translate(value);</span>
+  }
+
+  /**
+   * Decode key
+   * @param suffixPart Suffix part
+   * @return Decoded key
+   */
+  public static String decodeKey(String suffixPart) {
+    // key is the part *before* KEY_VALUE_DELIMITER
+<span class="fc" id="L159">    String key = StringUtils.substringBefore(suffixPart, Character.toString(KEY_VALUE_DELIMITER));</span>
+<span class="fc" id="L160">    return UNESCAPE_SPECIAL_CHARS.translate(key);</span>
+  }
+
+  /**
+   * Split suffix
+   * @param suffix Suffix
+   * @return Suffix parts
+   */
+  public static String[] splitSuffix(String suffix) {
+<span class="fc" id="L169">    String theSuffix = suffix;</span>
+
+    String[] parts;
+<span class="fc bfc" id="L172" title="All 2 branches covered.">    if (StringUtils.isBlank(theSuffix)) {</span>
+      // no suffix given - return empty list
+<span class="fc" id="L174">      parts = new String[0];</span>
+    }
+    else {
+      // remove leading slash
+<span class="fc bfc" id="L178" title="All 2 branches covered.">      if (theSuffix.startsWith(ESCAPED_SLASH)) {</span>
+<span class="fc" id="L179">        theSuffix = theSuffix.substring(ESCAPED_SLASH.length());</span>
+      }
+
+      // remove file extension
+<span class="fc" id="L183">      theSuffix = StringUtils.substringBeforeLast(theSuffix, &quot;.&quot;);</span>
+
+      // split the suffix to extract the paths of the selected components
+<span class="fc" id="L186">      parts = StringUtils.split(theSuffix, SUFFIX_PART_DELIMITER);</span>
+    }
+
+<span class="fc" id="L189">    return parts;</span>
+  }
+
+  /**
+   * Convert key value pair to map
+   * @param key Key
+   * @param value Value
+   * @return Map
+   */
+  public static Map&lt;String, Object&gt; keyValuePairAsMap(String key, Object value) {
+<span class="nc" id="L199">    Map&lt;String, Object&gt; paramMap = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L200">    paramMap.put(key, value);</span>
+<span class="nc" id="L201">    return paramMap;</span>
+  }
+
+  /**
+   * @param resource the resource being addressed by the relative path
+   * @param baseResource the resource used as base to resolve the relative path
+   * @return the relative path (without leading slash)
+   */
+  public static String getRelativePath(Resource resource, Resource baseResource) {
+<span class="fc bfc" id="L210" title="All 2 branches covered.">    if (baseResource == null) {</span>
+<span class="fc" id="L211">      throw new IllegalArgumentException(&quot;the base resource for constructing relative path must not be null&quot;);</span>
+    }
+<span class="fc bfc" id="L213" title="All 2 branches covered.">    if (resource == null) {</span>
+<span class="fc" id="L214">      throw new IllegalArgumentException(&quot;the resource for constructing relative path must not be null&quot;);</span>
+    }
+<span class="fc" id="L216">    String absolutePath = resource.getPath();</span>
+<span class="fc" id="L217">    String basePath = baseResource.getPath();</span>
+
+<span class="fc bfc" id="L219" title="All 2 branches covered.">    if (absolutePath.equals(basePath)) {</span>
+      // relative path for the root resource is &quot;.&quot;
+<span class="fc" id="L221">      return &quot;.&quot;;</span>
+    }
+
+    // be picky about resources not located beneath the base resource
+<span class="fc bfc" id="L225" title="All 2 branches covered.">    if (!absolutePath.startsWith(basePath + &quot;/&quot;)) {</span>
+<span class="fc" id="L226">      throw new IllegalArgumentException(&quot;the resource &quot; + resource + &quot; is not a descendent of the base resource &quot; + baseResource);</span>
+    }
+
+    // return relative path
+<span class="fc" id="L230">    return StringUtils.substringAfter(absolutePath, basePath + &quot;/&quot;);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>
