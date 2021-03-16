@@ -19,6 +19,7 @@
  */
 package io.wcm.handler.mediasource.inline;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.adapter.Adaptable;
 import org.apache.sling.api.adapter.SlingAdaptable;
@@ -29,7 +30,10 @@ import org.jetbrains.annotations.NotNull;
 import io.wcm.handler.media.Asset;
 import io.wcm.handler.media.Media;
 import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.MediaFileType;
 import io.wcm.handler.media.Rendition;
+import io.wcm.handler.media.UriTemplate;
+import io.wcm.handler.media.UriTemplateType;
 
 /**
  * {@link Asset} implementation for inline media objects stored in a node in a content page.
@@ -47,88 +51,88 @@ class InlineAsset extends SlingAdaptable implements Asset {
    * @param media Media metadata
    * @param fileName File name
    */
-<span class="fc" id="L50">  InlineAsset(Resource resource, Media media, String fileName, Adaptable adaptable) {</span>
-<span class="fc" id="L51">    this.resource = resource;</span>
-<span class="fc" id="L52">    this.media = media;</span>
-<span class="fc" id="L53">    this.defaultMediaArgs = media.getMediaRequest().getMediaArgs();</span>
-<span class="fc" id="L54">    this.fileName = fileName;</span>
-<span class="fc" id="L55">    this.adaptable = adaptable;</span>
-<span class="fc" id="L56">  }</span>
+<span class="fc" id="L54">  InlineAsset(Resource resource, Media media, String fileName, Adaptable adaptable) {</span>
+<span class="fc" id="L55">    this.resource = resource;</span>
+<span class="fc" id="L56">    this.media = media;</span>
+<span class="fc" id="L57">    this.defaultMediaArgs = media.getMediaRequest().getMediaArgs();</span>
+<span class="fc" id="L58">    this.fileName = fileName;</span>
+<span class="fc" id="L59">    this.adaptable = adaptable;</span>
+<span class="fc" id="L60">  }</span>
 
   @Override
   public String getTitle() {
-<span class="fc" id="L60">    return this.fileName;</span>
+<span class="fc" id="L64">    return this.fileName;</span>
   }
 
   @Override
   public String getAltText() {
-<span class="fc" id="L65">    return this.defaultMediaArgs.getAltText();</span>
+<span class="fc" id="L69">    return this.defaultMediaArgs.getAltText();</span>
   }
 
   @Override
   public String getDescription() {
     // not supported
-<span class="nc" id="L71">    return null;</span>
+<span class="nc" id="L75">    return null;</span>
   }
 
   @Override
   public @NotNull String getPath() {
-<span class="fc" id="L76">    return this.resource.getPath();</span>
+<span class="fc" id="L80">    return this.resource.getPath();</span>
   }
 
   @Override
   public @NotNull ValueMap getProperties() {
-<span class="nc" id="L81">    return this.resource.getValueMap();</span>
+<span class="nc" id="L85">    return this.resource.getValueMap();</span>
   }
 
   @Override
   public Rendition getDefaultRendition() {
-<span class="nc" id="L86">    return getRendition(this.defaultMediaArgs);</span>
+<span class="nc" id="L90">    return getRendition(this.defaultMediaArgs);</span>
   }
 
   @Override
   public Rendition getRendition(@NotNull MediaArgs mediaArgs) {
-<span class="fc" id="L91">    Rendition rendition = getInlineRendition(mediaArgs);</span>
+<span class="fc" id="L95">    Rendition rendition = getInlineRendition(mediaArgs);</span>
 
     // check if rendition is valid - otherwise return null
-<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (StringUtils.isEmpty(rendition.getUrl())) {</span>
-<span class="fc" id="L95">      rendition = null;</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">    if (StringUtils.isEmpty(rendition.getUrl())) {</span>
+<span class="fc" id="L99">      rendition = null;</span>
     }
 
-<span class="fc" id="L98">    return rendition;</span>
+<span class="fc" id="L102">    return rendition;</span>
   }
 
   @Override
   public Rendition getImageRendition(@NotNull MediaArgs mediaArgs) {
-<span class="fc" id="L103">    Rendition rendition = getRendition(mediaArgs);</span>
-<span class="pc bpc" id="L104" title="2 of 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isImage()) {</span>
-<span class="fc" id="L105">      return rendition;</span>
+<span class="fc" id="L107">    Rendition rendition = getRendition(mediaArgs);</span>
+<span class="pc bpc" id="L108" title="2 of 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isImage()) {</span>
+<span class="fc" id="L109">      return rendition;</span>
     }
     else {
-<span class="nc" id="L108">      return null;</span>
+<span class="nc" id="L112">      return null;</span>
     }
   }
 
   @SuppressWarnings(&quot;deprecation&quot;)
   @Override
   public Rendition getFlashRendition(@NotNull MediaArgs mediaArgs) {
-<span class="fc" id="L115">    Rendition rendition = getRendition(mediaArgs);</span>
-<span class="pc bpc" id="L116" title="2 of 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isFlash()) {</span>
-<span class="nc" id="L117">      return rendition;</span>
+<span class="fc" id="L119">    Rendition rendition = getRendition(mediaArgs);</span>
+<span class="pc bpc" id="L120" title="2 of 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isFlash()) {</span>
+<span class="nc" id="L121">      return rendition;</span>
     }
     else {
-<span class="fc" id="L120">      return null;</span>
+<span class="fc" id="L124">      return null;</span>
     }
   }
 
   @Override
   public Rendition getDownloadRendition(@NotNull MediaArgs mediaArgs) {
-<span class="fc" id="L126">    Rendition rendition = getRendition(mediaArgs);</span>
-<span class="pc bpc" id="L127" title="2 of 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isDownload()) {</span>
-<span class="nc" id="L128">      return rendition;</span>
+<span class="fc" id="L130">    Rendition rendition = getRendition(mediaArgs);</span>
+<span class="pc bpc" id="L131" title="2 of 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isDownload()) {</span>
+<span class="nc" id="L132">      return rendition;</span>
     }
     else {
-<span class="fc" id="L131">      return null;</span>
+<span class="fc" id="L135">      return null;</span>
     }
   }
 
@@ -138,16 +142,27 @@ class InlineAsset extends SlingAdaptable implements Asset {
    * @return Inline rendition instance (may be invalid rendition)
    */
   private Rendition getInlineRendition(MediaArgs mediaArgs) {
-<span class="fc" id="L141">    return new InlineRendition(this.resource, this.media, mediaArgs, this.fileName, this.adaptable);</span>
+<span class="fc" id="L145">    return new InlineRendition(this.resource, this.media, mediaArgs, this.fileName, this.adaptable);</span>
   }
 
   @Override
   @SuppressWarnings({ &quot;unchecked&quot;, &quot;null&quot; })
   public &lt;AdapterType&gt; AdapterType adaptTo(Class&lt;AdapterType&gt; type) {
-<span class="nc bnc" id="L147" title="All 2 branches missed.">    if (type == Resource.class) {</span>
-<span class="nc" id="L148">      return (AdapterType)this.resource;</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">    if (type == Resource.class) {</span>
+<span class="nc" id="L152">      return (AdapterType)this.resource;</span>
     }
-<span class="nc" id="L150">    return super.adaptTo(type);</span>
+<span class="nc" id="L154">    return super.adaptTo(type);</span>
+  }
+
+  @Override
+  public @NotNull UriTemplate getUriTemplate(@NotNull UriTemplateType type) {
+<span class="fc" id="L159">    String extension = FilenameUtils.getExtension(fileName);</span>
+<span class="pc bpc" id="L160" title="2 of 4 branches missed.">    if (!MediaFileType.isImage(extension) || MediaFileType.isVectorImage(extension)) {</span>
+<span class="nc" id="L161">      throw new UnsupportedOperationException(&quot;Unable to build URI template for this asset type: &quot; + getPath());</span>
+    }
+<span class="fc" id="L163">    Rendition originalRendition = getInlineRendition(new MediaArgs());</span>
+<span class="fc" id="L164">    return new InlineUriTemplate(type, originalRendition.getWidth(), originalRendition.getHeight(),</span>
+        this.resource, fileName, defaultMediaArgs, adaptable);
   }
 
 }

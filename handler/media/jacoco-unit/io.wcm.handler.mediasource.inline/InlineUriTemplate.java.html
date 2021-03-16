@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InlineUriTemplate.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.inline</a> &gt; <span class="el_source">InlineUriTemplate.java</span></div><h1>InlineUriTemplate.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2021 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.inline;
+
+import static io.wcm.handler.media.MediaNameConstants.URI_TEMPLATE_PLACEHOLDER_HEIGHT;
+import static io.wcm.handler.media.MediaNameConstants.URI_TEMPLATE_PLACEHOLDER_WITH;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.adapter.Adaptable;
+import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.NotNull;
+
+import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.UriTemplate;
+import io.wcm.handler.media.UriTemplateType;
+import io.wcm.handler.media.impl.ImageFileServlet;
+import io.wcm.handler.media.impl.JcrBinary;
+import io.wcm.handler.media.impl.MediaFileServlet;
+import io.wcm.handler.url.UrlHandler;
+import io.wcm.sling.commons.adapter.AdaptTo;
+
+class InlineUriTemplate implements UriTemplate {
+
+  private final String uriTemplate;
+  private final UriTemplateType type;
+  private final long width;
+  private final long height;
+
+  InlineUriTemplate(@NotNull UriTemplateType type, long width, long height,
+<span class="fc" id="L47">      @NotNull Resource resource, @NotNull String fileName, @NotNull MediaArgs mediaArgs, @NotNull Adaptable adaptable) {</span>
+<span class="fc" id="L48">    this.uriTemplate = buildUriTemplate(type, resource, fileName, mediaArgs, adaptable);</span>
+<span class="fc" id="L49">    this.type = type;</span>
+<span class="fc" id="L50">    this.width = width;</span>
+<span class="fc" id="L51">    this.height = height;</span>
+<span class="fc" id="L52">  }</span>
+
+  private static String buildUriTemplate(@NotNull UriTemplateType type, @NotNull Resource resource,
+      @NotNull String fileName, @NotNull MediaArgs mediaArgs, @NotNull Adaptable adaptable) {
+<span class="fc" id="L56">    String resourcePath = resource.getPath();</span>
+
+    // if parent resource is a nt:file resource, use this one as path for scaled image
+<span class="fc" id="L59">    Resource parentResource = resource.getParent();</span>
+<span class="pc bpc" id="L60" title="2 of 4 branches missed.">    if (parentResource != null &amp;&amp; JcrBinary.isNtFile(parentResource)) {</span>
+<span class="nc" id="L61">      resourcePath = parentResource.getPath();</span>
+    }
+
+    // URL to render scaled image via {@link InlineRenditionServlet}
+<span class="fc" id="L65">    final long DUMMY_WIDTH = 999991;</span>
+<span class="fc" id="L66">    final long DUMMY_HEIGHT = 999992;</span>
+<span class="fc" id="L67">    String path = resourcePath</span>
+<span class="fc" id="L68">        + &quot;.&quot; + ImageFileServlet.buildSelectorString(DUMMY_WIDTH, DUMMY_HEIGHT, null, null, false)</span>
+        + &quot;.&quot; + MediaFileServlet.EXTENSION + &quot;/&quot;
+        // replace extension based on the format supported by ImageFileServlet for rendering for this rendition
+<span class="fc" id="L71">        + ImageFileServlet.getImageFileName(fileName);</span>
+
+    // build externalized URL
+<span class="fc" id="L74">    UrlHandler urlHandler = AdaptTo.notNull(adaptable, UrlHandler.class);</span>
+<span class="fc" id="L75">    String url = urlHandler.get(path).urlMode(mediaArgs.getUrlMode()).buildExternalResourceUrl(resource);</span>
+
+<span class="pc bpc" id="L77" title="1 of 4 branches missed.">    switch (type) {</span>
+      case CROP_CENTER:
+<span class="fc" id="L79">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), URI_TEMPLATE_PLACEHOLDER_WITH);</span>
+<span class="fc" id="L80">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), URI_TEMPLATE_PLACEHOLDER_HEIGHT);</span>
+<span class="fc" id="L81">        break;</span>
+      case SCALE_WIDTH:
+<span class="fc" id="L83">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), URI_TEMPLATE_PLACEHOLDER_WITH);</span>
+<span class="fc" id="L84">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), &quot;0&quot;);</span>
+<span class="fc" id="L85">        break;</span>
+      case SCALE_HEIGHT:
+<span class="fc" id="L87">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), &quot;0&quot;);</span>
+<span class="fc" id="L88">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), URI_TEMPLATE_PLACEHOLDER_HEIGHT);</span>
+<span class="fc" id="L89">        break;</span>
+      default:
+<span class="nc" id="L91">        throw new IllegalArgumentException(&quot;Unsupported type: &quot; + type);</span>
+    }
+<span class="fc" id="L93">    return url;</span>
+  }
+
+  @Override
+  public String getUriTemplate() {
+<span class="fc" id="L98">    return uriTemplate;</span>
+  }
+
+  @Override
+  public UriTemplateType getType() {
+<span class="fc" id="L103">    return type;</span>
+  }
+
+  @Override
+  public long getMaxWidth() {
+<span class="fc" id="L108">    return width;</span>
+  }
+
+  @Override
+  public long getMaxHeight() {
+<span class="fc" id="L113">    return height;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L118">    return uriTemplate;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>
