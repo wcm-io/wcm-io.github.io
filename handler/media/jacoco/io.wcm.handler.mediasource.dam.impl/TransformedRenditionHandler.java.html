@@ -98,16 +98,22 @@ public class TransformedRenditionHandler extends DefaultRenditionHandler {
 <span class="pc bpc" id="L98" title="1 of 4 branches missed.">    if (original == null || original.isVectorImage()) {</span>
 <span class="fc" id="L99">      return null;</span>
     }
-<span class="fc" id="L101">    Double scaleFactor = getCropScaleFactor();</span>
-<span class="fc" id="L102">    CropDimension scaledCropDimension = new CropDimension(</span>
-<span class="fc" id="L103">        Math.round(cropDimension.getLeft() * scaleFactor),</span>
-<span class="fc" id="L104">        Math.round(cropDimension.getTop() * scaleFactor),</span>
-<span class="fc" id="L105">        Math.round(cropDimension.getWidth() * scaleFactor),</span>
-<span class="fc" id="L106">        Math.round(cropDimension.getHeight() * scaleFactor),</span>
-<span class="fc" id="L107">        cropDimension.isAutoCrop());</span>
-<span class="fc" id="L108">    return new VirtualTransformedRenditionMetadata(original.getRendition(),</span>
-<span class="fc" id="L109">        rotateMapWidth(scaledCropDimension.getWidth(), scaledCropDimension.getHeight(), rotation),</span>
-<span class="fc" id="L110">        rotateMapHeight(scaledCropDimension.getWidth(), scaledCropDimension.getHeight(), rotation),</span>
+<span class="fc" id="L101">    Double scaleFactor = getCropScaleFactor(original);</span>
+<span class="fc" id="L102">    long scaledLeft = Math.round(cropDimension.getLeft() * scaleFactor);</span>
+<span class="fc" id="L103">    long scaledTop = Math.round(cropDimension.getTop() * scaleFactor);</span>
+<span class="fc" id="L104">    long scaledWidth = Math.round(cropDimension.getWidth() * scaleFactor);</span>
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">    if (scaledWidth &gt; original.getWidth()) {</span>
+<span class="nc" id="L106">      scaledWidth = original.getWidth();</span>
+    }
+<span class="fc" id="L108">    long scaledHeight = Math.round(cropDimension.getHeight() * scaleFactor);</span>
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">    if (scaledHeight &gt; original.getHeight()) {</span>
+<span class="nc" id="L110">      scaledHeight = original.getHeight();</span>
+    }
+<span class="fc" id="L112">    CropDimension scaledCropDimension = new CropDimension(scaledLeft, scaledTop, scaledWidth, scaledHeight,</span>
+<span class="fc" id="L113">        cropDimension.isAutoCrop());</span>
+<span class="fc" id="L114">    return new VirtualTransformedRenditionMetadata(original.getRendition(),</span>
+<span class="fc" id="L115">        rotateMapWidth(scaledCropDimension.getWidth(), scaledCropDimension.getHeight(), rotation),</span>
+<span class="fc" id="L116">        rotateMapHeight(scaledCropDimension.getWidth(), scaledCropDimension.getHeight(), rotation),</span>
         scaledCropDimension, rotation);
   }
 
@@ -116,13 +122,12 @@ public class TransformedRenditionHandler extends DefaultRenditionHandler {
    * to crop the original image, so we have to scale those values to match the coordinates in the original image.
    * @return Scale factor
    */
-  private double getCropScaleFactor() {
-<span class="fc" id="L120">    RenditionMetadata original = getOriginalRendition();</span>
-<span class="fc" id="L121">    RenditionMetadata webEnabled = DamAutoCropping.getWebRenditionForCropping(getAsset());</span>
-<span class="pc bpc" id="L122" title="3 of 8 branches missed.">    if (original == null || webEnabled == null || original.getWidth() == 0 || webEnabled.getWidth() == 0) {</span>
-<span class="fc" id="L123">      return 1d;</span>
+  private double getCropScaleFactor(RenditionMetadata original) {
+<span class="fc" id="L126">    RenditionMetadata webEnabled = DamAutoCropping.getWebRenditionForCropping(getAsset());</span>
+<span class="pc bpc" id="L127" title="3 of 8 branches missed.">    if (original == null || webEnabled == null || original.getWidth() == 0 || webEnabled.getWidth() == 0) {</span>
+<span class="fc" id="L128">      return 1d;</span>
     }
-<span class="fc" id="L125">    return Ratio.get(original.getWidth(), webEnabled.getWidth());</span>
+<span class="fc" id="L130">    return Ratio.get(original.getWidth(), webEnabled.getWidth());</span>
   }
 
 }
