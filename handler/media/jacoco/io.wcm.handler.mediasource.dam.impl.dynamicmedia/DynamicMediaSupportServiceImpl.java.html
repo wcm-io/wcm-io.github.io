@@ -50,6 +50,8 @@ import com.google.common.collect.ImmutableMap;
 
 import io.wcm.handler.media.Dimension;
 import io.wcm.handler.url.SiteConfig;
+import io.wcm.handler.url.UrlMode;
+import io.wcm.handler.url.UrlModes;
 import io.wcm.sling.commons.adapter.AdaptTo;
 
 /**
@@ -57,7 +59,7 @@ import io.wcm.sling.commons.adapter.AdaptTo;
  */
 @Component(service = DynamicMediaSupportService.class, immediate = true)
 @Designate(ocd = DynamicMediaSupportServiceImpl.Config.class)
-<span class="fc" id="L60">public class DynamicMediaSupportServiceImpl implements DynamicMediaSupportService {</span>
+<span class="fc" id="L62">public class DynamicMediaSupportServiceImpl implements DynamicMediaSupportService {</span>
 
   @ObjectClassDefinition(
       name = &quot;wcm.io Media Handler Dynamic Media Support&quot;,
@@ -101,77 +103,89 @@ import io.wcm.sling.commons.adapter.AdaptTo;
 
   private static final String SERVICEUSER_SUBSERVICE = &quot;dynamic-media-support&quot;;
 
-<span class="fc" id="L104">  private static final Logger log = LoggerFactory.getLogger(DynamicMediaSupportServiceImpl.class);</span>
+<span class="fc" id="L106">  private static final Logger log = LoggerFactory.getLogger(DynamicMediaSupportServiceImpl.class);</span>
 
   @Activate
   private void activate(Config config) {
-<span class="fc" id="L108">    this.enabled = config.enabled();</span>
-<span class="fc" id="L109">    this.authorPreviewMode = config.authorPreviewMode();</span>
-<span class="fc" id="L110">    this.imageSizeLimit = new Dimension(config.imageSizeLimitWidth(), config.imageSizeLimitHeight());</span>
-<span class="fc" id="L111">  }</span>
+<span class="fc" id="L110">    this.enabled = config.enabled();</span>
+<span class="fc" id="L111">    this.authorPreviewMode = config.authorPreviewMode();</span>
+<span class="fc" id="L112">    this.imageSizeLimit = new Dimension(config.imageSizeLimitWidth(), config.imageSizeLimitHeight());</span>
+<span class="fc" id="L113">  }</span>
 
   @Override
   public boolean isDynamicMediaEnabled() {
-<span class="fc bfc" id="L115" title="All 4 branches covered.">    return this.enabled &amp;&amp; featureFlagService.isEnabled(EntitlementConstants.ASSETS_SCENE7_FEATURE_FLAG_PID);</span>
+<span class="fc bfc" id="L117" title="All 4 branches covered.">    return this.enabled &amp;&amp; featureFlagService.isEnabled(EntitlementConstants.ASSETS_SCENE7_FEATURE_FLAG_PID);</span>
   }
 
   @Override
   public @NotNull Dimension getImageSizeLimit() {
-<span class="fc" id="L120">    return this.imageSizeLimit;</span>
+<span class="fc" id="L122">    return this.imageSizeLimit;</span>
   }
 
   @Override
   public @Nullable ImageProfile getImageProfile(@NotNull String profilePath) {
-<span class="fc" id="L125">    try (ResourceResolver resourceResolver = resourceResolverFactory</span>
-<span class="fc" id="L126">        .getServiceResourceResolver(ImmutableMap.of(ResourceResolverFactory.SUBSERVICE, SERVICEUSER_SUBSERVICE))) {</span>
-<span class="fc" id="L127">      Resource profileResource = resourceResolver.getResource(profilePath);</span>
-<span class="fc bfc" id="L128" title="All 2 branches covered.">      if (profileResource != null) {</span>
-<span class="fc" id="L129">        return new ImageProfileImpl(profileResource);</span>
+<span class="fc" id="L127">    try (ResourceResolver resourceResolver = resourceResolverFactory</span>
+<span class="fc" id="L128">        .getServiceResourceResolver(ImmutableMap.of(ResourceResolverFactory.SUBSERVICE, SERVICEUSER_SUBSERVICE))) {</span>
+<span class="fc" id="L129">      Resource profileResource = resourceResolver.getResource(profilePath);</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">      if (profileResource != null) {</span>
+<span class="fc" id="L131">        return new ImageProfileImpl(profileResource);</span>
       }
     }
-<span class="nc" id="L132">    catch (LoginException ex) {</span>
-<span class="nc" id="L133">      log.error(&quot;Missing service user mapping for 'io.wcm.handler.media:dynamic-media-support' - see https://wcm.io/handler/media/configuration.html&quot;, ex);</span>
-<span class="fc" id="L134">    }</span>
-<span class="fc" id="L135">    return null;</span>
+<span class="nc" id="L134">    catch (LoginException ex) {</span>
+<span class="nc" id="L135">      log.error(&quot;Missing service user mapping for 'io.wcm.handler.media:dynamic-media-support' - see https://wcm.io/handler/media/configuration.html&quot;, ex);</span>
+<span class="fc" id="L136">    }</span>
+<span class="fc" id="L137">    return null;</span>
   }
 
   @Override
   @SuppressWarnings(&quot;null&quot;)
   public @Nullable ImageProfile getImageProfileForAsset(@NotNull Asset asset) {
-<span class="fc" id="L141">    Resource assetResource = AdaptTo.notNull(asset, Resource.class);</span>
-<span class="fc" id="L142">    Resource folderResource = assetResource.getParent();</span>
-<span class="pc bpc" id="L143" title="1 of 2 branches missed.">    if (folderResource != null) {</span>
-<span class="fc" id="L144">      Resource folderContentResource = folderResource.getChild(JCR_CONTENT);</span>
-<span class="fc bfc" id="L145" title="All 2 branches covered.">      if (folderContentResource != null) {</span>
-<span class="fc" id="L146">        InheritanceValueMap inheritanceValueMap = new HierarchyNodeInheritanceValueMap(folderContentResource);</span>
-<span class="fc" id="L147">        String imageProfilePath = inheritanceValueMap.getInherited(DamConstants.IMAGE_PROFILE, String.class);</span>
-<span class="fc bfc" id="L148" title="All 2 branches covered.">        if (imageProfilePath != null) {</span>
-<span class="fc" id="L149">          return getImageProfile(imageProfilePath);</span>
+<span class="fc" id="L143">    Resource assetResource = AdaptTo.notNull(asset, Resource.class);</span>
+<span class="fc" id="L144">    Resource folderResource = assetResource.getParent();</span>
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">    if (folderResource != null) {</span>
+<span class="fc" id="L146">      Resource folderContentResource = folderResource.getChild(JCR_CONTENT);</span>
+<span class="fc bfc" id="L147" title="All 2 branches covered.">      if (folderContentResource != null) {</span>
+<span class="fc" id="L148">        InheritanceValueMap inheritanceValueMap = new HierarchyNodeInheritanceValueMap(folderContentResource);</span>
+<span class="fc" id="L149">        String imageProfilePath = inheritanceValueMap.getInherited(DamConstants.IMAGE_PROFILE, String.class);</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        if (imageProfilePath != null) {</span>
+<span class="fc" id="L151">          return getImageProfile(imageProfilePath);</span>
         }
       }
     }
-<span class="fc" id="L153">    return null;</span>
+<span class="fc" id="L155">    return null;</span>
   }
 
   @Override
-  public @Nullable String getDynamicMediaServerUrl(@NotNull Asset asset) {
-<span class="fc" id="L158">    Resource assetResource = AdaptTo.notNull(asset, Resource.class);</span>
-<span class="fc bfc" id="L159" title="All 2 branches covered.">    if (authorPreviewMode) {</span>
+  public @Nullable String getDynamicMediaServerUrl(@NotNull Asset asset, @Nullable UrlMode urlMode) {
+<span class="fc" id="L160">    Resource assetResource = AdaptTo.notNull(asset, Resource.class);</span>
+<span class="fc bfc" id="L161" title="All 4 branches covered.">    if (authorPreviewMode &amp;&amp; !forcePublishMode(urlMode)) {</span>
       // route dynamic media requests through author instance for preview
       // return configured author URL, or empty string if none configured
-<span class="fc" id="L162">      SiteConfig siteConfig = AdaptTo.notNull(assetResource, SiteConfig.class);</span>
-<span class="fc" id="L163">      return StringUtils.defaultString(siteConfig.siteUrlAuthor());</span>
+<span class="fc" id="L164">      SiteConfig siteConfig = AdaptTo.notNull(assetResource, SiteConfig.class);</span>
+<span class="fc" id="L165">      return StringUtils.defaultString(siteConfig.siteUrlAuthor());</span>
     }
     try {
-<span class="fc" id="L166">      String[] productionAssetUrls = dynamicMediaPublishUtils.externalizeImageDeliveryAsset(assetResource);</span>
-<span class="pc bpc" id="L167" title="2 of 4 branches missed.">      if (productionAssetUrls != null &amp;&amp; productionAssetUrls.length &gt; 0) {</span>
-<span class="fc" id="L168">        return productionAssetUrls[0];</span>
+<span class="fc" id="L168">      String[] productionAssetUrls = dynamicMediaPublishUtils.externalizeImageDeliveryAsset(assetResource);</span>
+<span class="pc bpc" id="L169" title="2 of 4 branches missed.">      if (productionAssetUrls != null &amp;&amp; productionAssetUrls.length &gt; 0) {</span>
+<span class="fc" id="L170">        return productionAssetUrls[0];</span>
       }
     }
-<span class="nc" id="L171">    catch (RepositoryException ex) {</span>
-<span class="nc" id="L172">      log.warn(&quot;Unable to get dynamic media production asset URLs for {}&quot;, assetResource.getPath(), ex);</span>
-<span class="nc" id="L173">    }</span>
-<span class="nc" id="L174">    return null;</span>
+<span class="nc" id="L173">    catch (RepositoryException ex) {</span>
+<span class="nc" id="L174">      log.warn(&quot;Unable to get dynamic media production asset URLs for {}&quot;, assetResource.getPath(), ex);</span>
+<span class="nc" id="L175">    }</span>
+<span class="nc" id="L176">    return null;</span>
+  }
+
+  /**
+   * If URL mode is target for publish instance, use dynamic media production URL.
+   * @param urlMode URL mode
+   * @return true if publish mode should be forced
+   */
+  private boolean forcePublishMode(@Nullable UrlMode urlMode) {
+<span class="fc bfc" id="L185" title="All 8 branches covered.">    return (urlMode == UrlModes.FULL_URL_PUBLISH</span>
+        || urlMode == UrlModes.FULL_URL_PUBLISH_FORCENONSECURE
+        || urlMode == UrlModes.FULL_URL_PUBLISH_FORCESECURE
+        || urlMode == UrlModes.FULL_URL_PUBLISH_PROTOCOLRELATIVE);
   }
 
 }
