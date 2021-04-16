@@ -48,6 +48,13 @@ public final class DynamicMediaPath {
    */
   private static final String CONTENT_SERVER_PATH = &quot;/is/content/&quot;;
 
+  /**
+   * Suffix is appended to static content dynamic media URLs that should be served with
+   * Content-Disposition: attachment header.
+   * This is configured via a custom ruleset, see https://wcm.io/handler/media/dynamic-media.html
+   */
+  public static final String DOWNLOAD_SUFFIX = &quot;?cdh=attachment&quot;;
+
   private DynamicMediaPath() {
     // static methods only
   }
@@ -55,10 +62,16 @@ public final class DynamicMediaPath {
   /**
    * Build media path for serving static content via dynamic media/scene7.
    * @param damContext DAM context objects
+   * @param contentDispositionAttachment Whether to send content disposition: attachment header for downloads
    * @return Media path
    */
-  public static @NotNull String buildContent(@NotNull DamContext damContext) {
-<span class="fc" id="L61">    return CONTENT_SERVER_PATH + encodeDynamicMediaObject(damContext);</span>
+  public static @NotNull String buildContent(@NotNull DamContext damContext, boolean contentDispositionAttachment) {
+<span class="fc" id="L69">    StringBuilder result = new StringBuilder();</span>
+<span class="fc" id="L70">    result.append(CONTENT_SERVER_PATH).append(encodeDynamicMediaObject(damContext));</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">    if (contentDispositionAttachment) {</span>
+<span class="fc" id="L72">      result.append(DOWNLOAD_SUFFIX);</span>
+    }
+<span class="fc" id="L74">    return result.toString();</span>
   }
 
   /**
@@ -67,7 +80,7 @@ public final class DynamicMediaPath {
    * @return Media path
    */
   public static @NotNull String buildImage(@NotNull DamContext damContext) {
-<span class="fc" id="L70">    return IMAGE_SERVER_PATH + encodeDynamicMediaObject(damContext);</span>
+<span class="fc" id="L83">    return IMAGE_SERVER_PATH + encodeDynamicMediaObject(damContext);</span>
   }
 
   /**
@@ -78,7 +91,7 @@ public final class DynamicMediaPath {
    * @return Media path
    */
   public static @NotNull String buildImage(@NotNull DamContext damContext, long width, long height) {
-<span class="fc" id="L81">    return buildImage(damContext, width, height, null, null);</span>
+<span class="fc" id="L94">    return buildImage(damContext, width, height, null, null);</span>
   }
 
   /**
@@ -92,29 +105,29 @@ public final class DynamicMediaPath {
    */
   public static @NotNull String buildImage(@NotNull DamContext damContext, long width, long height,
       @Nullable CropDimension cropDimension, @Nullable Integer rotation) {
-<span class="fc" id="L95">    Dimension dimension = calcWidthHeight(damContext, width, height);</span>
+<span class="fc" id="L108">    Dimension dimension = calcWidthHeight(damContext, width, height);</span>
 
-<span class="fc bfc" id="L97" title="All 6 branches covered.">    if (cropDimension != null &amp;&amp; cropDimension.isAutoCrop() &amp;&amp; rotation == null) {</span>
+<span class="fc bfc" id="L110" title="All 6 branches covered.">    if (cropDimension != null &amp;&amp; cropDimension.isAutoCrop() &amp;&amp; rotation == null) {</span>
       // auto-crop applied - check for matching image profile and use predefined cropping preset if match found
-<span class="fc" id="L99">      Optional&lt;NamedDimension&gt; smartCroppingDef = getSmartCropDimension(damContext, width, height);</span>
-<span class="fc bfc" id="L100" title="All 2 branches covered.">      if (smartCroppingDef.isPresent()) {</span>
-<span class="fc" id="L101">        return IMAGE_SERVER_PATH + encodeDynamicMediaObject(damContext) + &quot;%3A&quot; + smartCroppingDef.get().getName();</span>
+<span class="fc" id="L112">      Optional&lt;NamedDimension&gt; smartCroppingDef = getSmartCropDimension(damContext, width, height);</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">      if (smartCroppingDef.isPresent()) {</span>
+<span class="fc" id="L114">        return IMAGE_SERVER_PATH + encodeDynamicMediaObject(damContext) + &quot;%3A&quot; + smartCroppingDef.get().getName();</span>
       }
     }
 
-<span class="fc" id="L105">    StringBuilder result = new StringBuilder();</span>
-<span class="fc" id="L106">    result.append(IMAGE_SERVER_PATH).append(encodeDynamicMediaObject(damContext)).append(&quot;?&quot;);</span>
-<span class="fc bfc" id="L107" title="All 2 branches covered.">    if (cropDimension != null) {</span>
-<span class="fc" id="L108">      result.append(&quot;crop=&quot;).append(cropDimension.getCropStringWidthHeight()).append(&quot;&amp;&quot;);</span>
+<span class="fc" id="L118">    StringBuilder result = new StringBuilder();</span>
+<span class="fc" id="L119">    result.append(IMAGE_SERVER_PATH).append(encodeDynamicMediaObject(damContext)).append(&quot;?&quot;);</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (cropDimension != null) {</span>
+<span class="fc" id="L121">      result.append(&quot;crop=&quot;).append(cropDimension.getCropStringWidthHeight()).append(&quot;&amp;&quot;);</span>
     }
-<span class="fc bfc" id="L110" title="All 2 branches covered.">    if (rotation != null) {</span>
-<span class="fc" id="L111">      result.append(&quot;rotate=&quot;).append(rotation).append(&quot;&amp;&quot;);</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">    if (rotation != null) {</span>
+<span class="fc" id="L124">      result.append(&quot;rotate=&quot;).append(rotation).append(&quot;&amp;&quot;);</span>
     }
-<span class="fc" id="L113">    result.append(&quot;wid=&quot;).append(dimension.getWidth()).append(&quot;&amp;&quot;)</span>
-<span class="fc" id="L114">        .append(&quot;hei=&quot;).append(dimension.getHeight()).append(&quot;&amp;&quot;)</span>
+<span class="fc" id="L126">    result.append(&quot;wid=&quot;).append(dimension.getWidth()).append(&quot;&amp;&quot;)</span>
+<span class="fc" id="L127">        .append(&quot;hei=&quot;).append(dimension.getHeight()).append(&quot;&amp;&quot;)</span>
         // cropping/width/height is pre-calculated to fit with original ratio, make sure there are no 1px background lines visible
-<span class="fc" id="L116">        .append(&quot;fit=stretch&quot;);</span>
-<span class="fc" id="L117">    return result.toString();</span>
+<span class="fc" id="L129">        .append(&quot;fit=stretch&quot;);</span>
+<span class="fc" id="L130">    return result.toString();</span>
   }
 
   /**
@@ -125,30 +138,30 @@ public final class DynamicMediaPath {
    * @return Dimension with capped width/height
    */
   private static Dimension calcWidthHeight(@NotNull DamContext damContext, long width, long height) {
-<span class="fc" id="L128">    Dimension sizeLimit = damContext.getDynamicMediaImageSizeLimit();</span>
-<span class="fc bfc" id="L129" title="All 2 branches covered.">    if (width &gt; sizeLimit.getWidth()) {</span>
-<span class="fc" id="L130">      double ratio = Ratio.get(width, height);</span>
-<span class="fc" id="L131">      long newWidth = sizeLimit.getWidth();</span>
-<span class="fc" id="L132">      long newHeight = Math.round(newWidth / ratio);</span>
-<span class="fc" id="L133">      return calcWidthHeight(damContext, newWidth, newHeight);</span>
+<span class="fc" id="L141">    Dimension sizeLimit = damContext.getDynamicMediaImageSizeLimit();</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">    if (width &gt; sizeLimit.getWidth()) {</span>
+<span class="fc" id="L143">      double ratio = Ratio.get(width, height);</span>
+<span class="fc" id="L144">      long newWidth = sizeLimit.getWidth();</span>
+<span class="fc" id="L145">      long newHeight = Math.round(newWidth / ratio);</span>
+<span class="fc" id="L146">      return calcWidthHeight(damContext, newWidth, newHeight);</span>
     }
-<span class="fc bfc" id="L135" title="All 2 branches covered.">    if (height &gt; sizeLimit.getHeight()) {</span>
-<span class="fc" id="L136">      double ratio = Ratio.get(width, height);</span>
-<span class="fc" id="L137">      long newHeight = sizeLimit.getHeight();</span>
-<span class="fc" id="L138">      long newWidth = Math.round(newHeight * ratio);</span>
-<span class="fc" id="L139">      return new Dimension(newWidth, newHeight);</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">    if (height &gt; sizeLimit.getHeight()) {</span>
+<span class="fc" id="L149">      double ratio = Ratio.get(width, height);</span>
+<span class="fc" id="L150">      long newHeight = sizeLimit.getHeight();</span>
+<span class="fc" id="L151">      long newWidth = Math.round(newHeight * ratio);</span>
+<span class="fc" id="L152">      return new Dimension(newWidth, newHeight);</span>
     }
-<span class="fc" id="L141">    return new Dimension(width, height);</span>
+<span class="fc" id="L154">    return new Dimension(width, height);</span>
   }
 
   private static Optional&lt;NamedDimension&gt; getSmartCropDimension(@NotNull DamContext damContext, long width, long height) {
-<span class="fc" id="L145">    ImageProfile imageProfile = damContext.getImageProfile();</span>
-<span class="fc bfc" id="L146" title="All 2 branches covered.">    if (imageProfile != null) {</span>
-<span class="fc" id="L147">      return imageProfile.getSmartCropDefinitions().stream()</span>
-<span class="pc bpc" id="L148" title="1 of 4 branches missed.">          .filter(def -&gt; (def.getWidth() == width) &amp;&amp; (def.getHeight() == height))</span>
-<span class="fc" id="L149">          .findFirst();</span>
+<span class="fc" id="L158">    ImageProfile imageProfile = damContext.getImageProfile();</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">    if (imageProfile != null) {</span>
+<span class="fc" id="L160">      return imageProfile.getSmartCropDefinitions().stream()</span>
+<span class="pc bpc" id="L161" title="1 of 4 branches missed.">          .filter(def -&gt; (def.getWidth() == width) &amp;&amp; (def.getHeight() == height))</span>
+<span class="fc" id="L162">          .findFirst();</span>
     }
-<span class="fc" id="L151">    return Optional.empty();</span>
+<span class="fc" id="L164">    return Optional.empty();</span>
   }
 
   /**
@@ -157,16 +170,16 @@ public final class DynamicMediaPath {
    * @return Encoded path
    */
   private static String encodeDynamicMediaObject(@NotNull DamContext damContext) {
-<span class="fc" id="L160">    String[] pathParts = StringUtils.split(damContext.getDynamicMediaObject(), &quot;/&quot;);</span>
+<span class="fc" id="L173">    String[] pathParts = StringUtils.split(damContext.getDynamicMediaObject(), &quot;/&quot;);</span>
     try {
-<span class="fc bfc" id="L162" title="All 2 branches covered.">      for (int i = 0; i &lt; pathParts.length; i++) {</span>
-<span class="fc" id="L163">        pathParts[i] = URLEncoder.encode(pathParts[i], StandardCharsets.UTF_8.name());</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">      for (int i = 0; i &lt; pathParts.length; i++) {</span>
+<span class="fc" id="L176">        pathParts[i] = URLEncoder.encode(pathParts[i], StandardCharsets.UTF_8.name());</span>
       }
     }
-<span class="nc" id="L166">    catch (UnsupportedEncodingException ex) {</span>
-<span class="nc" id="L167">      throw new RuntimeException(&quot;Unsupported encoding.&quot;, ex);</span>
-<span class="fc" id="L168">    }</span>
-<span class="fc" id="L169">    return StringUtils.join(pathParts, &quot;/&quot;);</span>
+<span class="nc" id="L179">    catch (UnsupportedEncodingException ex) {</span>
+<span class="nc" id="L180">      throw new RuntimeException(&quot;Unsupported encoding.&quot;, ex);</span>
+<span class="fc" id="L181">    }</span>
+<span class="fc" id="L182">    return StringUtils.join(pathParts, &quot;/&quot;);</span>
   }
 
 }
