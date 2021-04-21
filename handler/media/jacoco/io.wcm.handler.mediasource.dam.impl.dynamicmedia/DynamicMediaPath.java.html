@@ -107,27 +107,34 @@ public final class DynamicMediaPath {
       @Nullable CropDimension cropDimension, @Nullable Integer rotation) {
 <span class="fc" id="L108">    Dimension dimension = calcWidthHeight(damContext, width, height);</span>
 
-<span class="fc bfc" id="L110" title="All 6 branches covered.">    if (cropDimension != null &amp;&amp; cropDimension.isAutoCrop() &amp;&amp; rotation == null) {</span>
+<span class="fc" id="L110">    StringBuilder result = new StringBuilder();</span>
+<span class="fc" id="L111">    result.append(IMAGE_SERVER_PATH).append(encodeDynamicMediaObject(damContext));</span>
+
+<span class="fc bfc" id="L113" title="All 6 branches covered.">    if (cropDimension != null &amp;&amp; cropDimension.isAutoCrop() &amp;&amp; rotation == null) {</span>
       // auto-crop applied - check for matching image profile and use predefined cropping preset if match found
-<span class="fc" id="L112">      Optional&lt;NamedDimension&gt; smartCroppingDef = getSmartCropDimension(damContext, width, height);</span>
-<span class="fc bfc" id="L113" title="All 2 branches covered.">      if (smartCroppingDef.isPresent()) {</span>
-<span class="fc" id="L114">        return IMAGE_SERVER_PATH + encodeDynamicMediaObject(damContext) + &quot;%3A&quot; + smartCroppingDef.get().getName();</span>
+<span class="fc" id="L115">      Optional&lt;NamedDimension&gt; smartCroppingDef = getSmartCropDimension(damContext, width, height);</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">      if (smartCroppingDef.isPresent()) {</span>
+<span class="fc" id="L117">        result.append(&quot;%3A&quot;).append(smartCroppingDef.get().getName()).append(&quot;?&quot;)</span>
+<span class="fc" id="L118">            .append(&quot;wid=&quot;).append(dimension.getWidth()).append(&quot;&amp;&quot;)</span>
+<span class="fc" id="L119">            .append(&quot;hei=&quot;).append(dimension.getHeight()).append(&quot;&amp;&quot;)</span>
+            // cropping/width/height is pre-calculated to fit with original ratio, make sure there are no 1px background lines visible
+<span class="fc" id="L121">            .append(&quot;fit=stretch&quot;);</span>
+<span class="fc" id="L122">        return result.toString();</span>
       }
     }
 
-<span class="fc" id="L118">    StringBuilder result = new StringBuilder();</span>
-<span class="fc" id="L119">    result.append(IMAGE_SERVER_PATH).append(encodeDynamicMediaObject(damContext)).append(&quot;?&quot;);</span>
-<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (cropDimension != null) {</span>
-<span class="fc" id="L121">      result.append(&quot;crop=&quot;).append(cropDimension.getCropStringWidthHeight()).append(&quot;&amp;&quot;);</span>
+<span class="fc" id="L126">    result.append(&quot;?&quot;);</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">    if (cropDimension != null) {</span>
+<span class="fc" id="L128">      result.append(&quot;crop=&quot;).append(cropDimension.getCropStringWidthHeight()).append(&quot;&amp;&quot;);</span>
     }
-<span class="fc bfc" id="L123" title="All 2 branches covered.">    if (rotation != null) {</span>
-<span class="fc" id="L124">      result.append(&quot;rotate=&quot;).append(rotation).append(&quot;&amp;&quot;);</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">    if (rotation != null) {</span>
+<span class="fc" id="L131">      result.append(&quot;rotate=&quot;).append(rotation).append(&quot;&amp;&quot;);</span>
     }
-<span class="fc" id="L126">    result.append(&quot;wid=&quot;).append(dimension.getWidth()).append(&quot;&amp;&quot;)</span>
-<span class="fc" id="L127">        .append(&quot;hei=&quot;).append(dimension.getHeight()).append(&quot;&amp;&quot;)</span>
+<span class="fc" id="L133">    result.append(&quot;wid=&quot;).append(dimension.getWidth()).append(&quot;&amp;&quot;)</span>
+<span class="fc" id="L134">        .append(&quot;hei=&quot;).append(dimension.getHeight()).append(&quot;&amp;&quot;)</span>
         // cropping/width/height is pre-calculated to fit with original ratio, make sure there are no 1px background lines visible
-<span class="fc" id="L129">        .append(&quot;fit=stretch&quot;);</span>
-<span class="fc" id="L130">    return result.toString();</span>
+<span class="fc" id="L136">        .append(&quot;fit=stretch&quot;);</span>
+<span class="fc" id="L137">    return result.toString();</span>
   }
 
   /**
@@ -138,30 +145,32 @@ public final class DynamicMediaPath {
    * @return Dimension with capped width/height
    */
   private static Dimension calcWidthHeight(@NotNull DamContext damContext, long width, long height) {
-<span class="fc" id="L141">    Dimension sizeLimit = damContext.getDynamicMediaImageSizeLimit();</span>
-<span class="fc bfc" id="L142" title="All 2 branches covered.">    if (width &gt; sizeLimit.getWidth()) {</span>
-<span class="fc" id="L143">      double ratio = Ratio.get(width, height);</span>
-<span class="fc" id="L144">      long newWidth = sizeLimit.getWidth();</span>
-<span class="fc" id="L145">      long newHeight = Math.round(newWidth / ratio);</span>
-<span class="fc" id="L146">      return calcWidthHeight(damContext, newWidth, newHeight);</span>
+<span class="fc" id="L148">    Dimension sizeLimit = damContext.getDynamicMediaImageSizeLimit();</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">    if (width &gt; sizeLimit.getWidth()) {</span>
+<span class="fc" id="L150">      double ratio = Ratio.get(width, height);</span>
+<span class="fc" id="L151">      long newWidth = sizeLimit.getWidth();</span>
+<span class="fc" id="L152">      long newHeight = Math.round(newWidth / ratio);</span>
+<span class="fc" id="L153">      return calcWidthHeight(damContext, newWidth, newHeight);</span>
     }
-<span class="fc bfc" id="L148" title="All 2 branches covered.">    if (height &gt; sizeLimit.getHeight()) {</span>
-<span class="fc" id="L149">      double ratio = Ratio.get(width, height);</span>
-<span class="fc" id="L150">      long newHeight = sizeLimit.getHeight();</span>
-<span class="fc" id="L151">      long newWidth = Math.round(newHeight * ratio);</span>
-<span class="fc" id="L152">      return new Dimension(newWidth, newHeight);</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">    if (height &gt; sizeLimit.getHeight()) {</span>
+<span class="fc" id="L156">      double ratio = Ratio.get(width, height);</span>
+<span class="fc" id="L157">      long newHeight = sizeLimit.getHeight();</span>
+<span class="fc" id="L158">      long newWidth = Math.round(newHeight * ratio);</span>
+<span class="fc" id="L159">      return new Dimension(newWidth, newHeight);</span>
     }
-<span class="fc" id="L154">    return new Dimension(width, height);</span>
+<span class="fc" id="L161">    return new Dimension(width, height);</span>
   }
 
-  private static Optional&lt;NamedDimension&gt; getSmartCropDimension(@NotNull DamContext damContext, long width, long height) {
-<span class="fc" id="L158">    ImageProfile imageProfile = damContext.getImageProfile();</span>
-<span class="fc bfc" id="L159" title="All 2 branches covered.">    if (imageProfile != null) {</span>
-<span class="fc" id="L160">      return imageProfile.getSmartCropDefinitions().stream()</span>
-<span class="pc bpc" id="L161" title="1 of 4 branches missed.">          .filter(def -&gt; (def.getWidth() == width) &amp;&amp; (def.getHeight() == height))</span>
-<span class="fc" id="L162">          .findFirst();</span>
+  private static Optional&lt;@NotNull NamedDimension&gt; getSmartCropDimension(@NotNull DamContext damContext, long width, long height) {
+<span class="fc" id="L165">    Double requestedRatio = Ratio.get(width, height);</span>
+<span class="fc" id="L166">    ImageProfile imageProfile = damContext.getImageProfile();</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">    if (imageProfile == null) {</span>
+<span class="fc" id="L168">      return Optional.empty();</span>
     }
-<span class="fc" id="L164">    return Optional.empty();</span>
+<span class="fc" id="L170">    Optional&lt;NamedDimension&gt; matchingDimension = imageProfile.getSmartCropDefinitions().stream()</span>
+<span class="fc" id="L171">        .filter(def -&gt; Ratio.matches(Ratio.get(def), requestedRatio))</span>
+<span class="fc" id="L172">        .findFirst();</span>
+<span class="fc" id="L173">    return matchingDimension.map(def -&gt; new NamedDimension(def.getName(), width, height));</span>
   }
 
   /**
@@ -170,18 +179,18 @@ public final class DynamicMediaPath {
    * @return Encoded path
    */
   private static String encodeDynamicMediaObject(@NotNull DamContext damContext) {
-<span class="fc" id="L173">    String[] pathParts = StringUtils.split(damContext.getDynamicMediaObject(), &quot;/&quot;);</span>
+<span class="fc" id="L182">    String[] pathParts = StringUtils.split(damContext.getDynamicMediaObject(), &quot;/&quot;);</span>
     try {
-<span class="fc bfc" id="L175" title="All 2 branches covered.">      for (int i = 0; i &lt; pathParts.length; i++) {</span>
-<span class="fc" id="L176">        pathParts[i] = URLEncoder.encode(pathParts[i], StandardCharsets.UTF_8.name());</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">      for (int i = 0; i &lt; pathParts.length; i++) {</span>
+<span class="fc" id="L185">        pathParts[i] = URLEncoder.encode(pathParts[i], StandardCharsets.UTF_8.name());</span>
         // replace &quot;+&quot; with %20 in URL paths
-<span class="fc" id="L178">        pathParts[i] = StringUtils.replace(pathParts[i], &quot;+&quot;, &quot;%20&quot;);</span>
+<span class="fc" id="L187">        pathParts[i] = StringUtils.replace(pathParts[i], &quot;+&quot;, &quot;%20&quot;);</span>
       }
     }
-<span class="nc" id="L181">    catch (UnsupportedEncodingException ex) {</span>
-<span class="nc" id="L182">      throw new RuntimeException(&quot;Unsupported encoding.&quot;, ex);</span>
-<span class="fc" id="L183">    }</span>
-<span class="fc" id="L184">    return StringUtils.join(pathParts, &quot;/&quot;);</span>
+<span class="nc" id="L190">    catch (UnsupportedEncodingException ex) {</span>
+<span class="nc" id="L191">      throw new RuntimeException(&quot;Unsupported encoding.&quot;, ex);</span>
+<span class="fc" id="L192">    }</span>
+<span class="fc" id="L193">    return StringUtils.join(pathParts, &quot;/&quot;);</span>
   }
 
 }
