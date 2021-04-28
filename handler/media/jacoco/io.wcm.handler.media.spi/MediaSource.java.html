@@ -432,54 +432,65 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
 
   private boolean resolveRenditionsWithMediaFormats(@NotNull Asset asset, @NotNull MediaArgs mediaArgs,
       @NotNull List&lt;MediaFormatOption&gt; mediaFormatOptions, @NotNull List&lt;Rendition&gt; resolvedRenditions) {
-<span class="fc" id="L435">    boolean allMandatoryResolved = true;</span>
-<span class="fc bfc" id="L436" title="All 2 branches covered.">    for (MediaFormatOption mediaFormatOption : mediaFormatOptions) {</span>
-<span class="fc" id="L437">      MediaArgs renditionMediaArgs = mediaArgs.clone();</span>
-<span class="fc" id="L438">      renditionMediaArgs.mediaFormat(mediaFormatOption.getMediaFormat());</span>
-<span class="fc" id="L439">      Rendition rendition = asset.getRendition(renditionMediaArgs);</span>
-<span class="fc bfc" id="L440" title="All 2 branches covered.">      if (rendition != null) {</span>
-<span class="fc" id="L441">        resolvedRenditions.add(rendition);</span>
+
+    // collect &quot;fallback&quot; renditions that do not fully fulfill the media request (e.g. ignored explicit cropping)
+    // separately and add them last in the returned list
+<span class="fc" id="L438">    List&lt;Rendition&gt; fallbackRenditions = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L440">    boolean allMandatoryResolved = true;</span>
+<span class="fc bfc" id="L441" title="All 2 branches covered.">    for (MediaFormatOption mediaFormatOption : mediaFormatOptions) {</span>
+<span class="fc" id="L442">      MediaArgs renditionMediaArgs = mediaArgs.clone();</span>
+<span class="fc" id="L443">      renditionMediaArgs.mediaFormat(mediaFormatOption.getMediaFormat());</span>
+<span class="fc" id="L444">      Rendition rendition = asset.getRendition(renditionMediaArgs);</span>
+<span class="fc bfc" id="L445" title="All 2 branches covered.">      if (rendition != null) {</span>
+<span class="fc bfc" id="L446" title="All 2 branches covered.">        if (rendition.isFallback()) {</span>
+<span class="fc" id="L447">          fallbackRenditions.add(rendition);</span>
+        }
+        else {
+<span class="fc" id="L450">          resolvedRenditions.add(rendition);</span>
+        }
       }
-<span class="fc bfc" id="L443" title="All 2 branches covered.">      else if (mediaFormatOption.isMandatory()) {</span>
-<span class="fc" id="L444">        allMandatoryResolved = false;</span>
+<span class="fc bfc" id="L453" title="All 2 branches covered.">      else if (mediaFormatOption.isMandatory()) {</span>
+<span class="fc" id="L454">        allMandatoryResolved = false;</span>
       }
-<span class="fc" id="L446">    }</span>
-<span class="fc" id="L447">    return allMandatoryResolved;</span>
+<span class="fc" id="L456">    }</span>
+<span class="fc" id="L457">    resolvedRenditions.addAll(fallbackRenditions);</span>
+<span class="fc" id="L458">    return allMandatoryResolved;</span>
   }
 
   @NotNull
   private List&lt;MediaFormatOption&gt; getParentMediaFormats(@NotNull MediaArgs mediaArgs) {
-<span class="fc" id="L452">    return Arrays.stream(mediaArgs.getMediaFormatOptions())</span>
-<span class="fc" id="L453">        .filter(this::isParentMediaFormat)</span>
-<span class="fc" id="L454">        .collect(Collectors.toList());</span>
+<span class="fc" id="L463">    return Arrays.stream(mediaArgs.getMediaFormatOptions())</span>
+<span class="fc" id="L464">        .filter(this::isParentMediaFormat)</span>
+<span class="fc" id="L465">        .collect(Collectors.toList());</span>
   }
 
   @NotNull
   private List&lt;MediaFormatOption&gt; getChildMediaFormats(@NotNull MediaArgs mediaArgs, @NotNull final MediaFormat parentMediaFormat) {
-<span class="fc" id="L459">    return Arrays.stream(mediaArgs.getMediaFormatOptions())</span>
-<span class="fc" id="L460">        .filter(this::isChildMediaFormat)</span>
-<span class="fc" id="L461">        .filter(childMediaFormat -&gt; hasParent(childMediaFormat, parentMediaFormat))</span>
-<span class="fc" id="L462">        .collect(Collectors.toList());</span>
+<span class="fc" id="L470">    return Arrays.stream(mediaArgs.getMediaFormatOptions())</span>
+<span class="fc" id="L471">        .filter(this::isChildMediaFormat)</span>
+<span class="fc" id="L472">        .filter(childMediaFormat -&gt; hasParent(childMediaFormat, parentMediaFormat))</span>
+<span class="fc" id="L473">        .collect(Collectors.toList());</span>
   }
 
   private boolean isParentMediaFormat(@NotNull MediaFormatOption mediaFormatOption) {
-<span class="fc" id="L466">    return Objects.isNull(getParentMediaFormat(mediaFormatOption.getMediaFormat()));</span>
+<span class="fc" id="L477">    return Objects.isNull(getParentMediaFormat(mediaFormatOption.getMediaFormat()));</span>
   }
 
   private boolean isChildMediaFormat(@NotNull MediaFormatOption mediaFormatOption) {
-<span class="fc" id="L470">    return Objects.nonNull(getParentMediaFormat(mediaFormatOption.getMediaFormat()));</span>
+<span class="fc" id="L481">    return Objects.nonNull(getParentMediaFormat(mediaFormatOption.getMediaFormat()));</span>
   }
 
   private boolean hasParent(@NotNull MediaFormatOption childMediaFormat, @NotNull MediaFormat parentMediaFormat) {
-<span class="fc" id="L474">    return parentMediaFormat.equals(getParentMediaFormat(childMediaFormat.getMediaFormat()));</span>
+<span class="fc" id="L485">    return parentMediaFormat.equals(getParentMediaFormat(childMediaFormat.getMediaFormat()));</span>
   }
 
   @Nullable
   private MediaFormat getParentMediaFormat(@Nullable MediaFormat mediaFormat) {
-<span class="pc bpc" id="L479" title="1 of 2 branches missed.">    if (mediaFormat == null) {</span>
-<span class="nc" id="L480">      return null;</span>
+<span class="pc bpc" id="L490" title="1 of 2 branches missed.">    if (mediaFormat == null) {</span>
+<span class="nc" id="L491">      return null;</span>
     }
-<span class="fc" id="L482">    return mediaFormat.getProperties().get(MEDIAFORMAT_PROP_PARENT_MEDIA_FORMAT, MediaFormat.class);</span>
+<span class="fc" id="L493">    return mediaFormat.getProperties().get(MEDIAFORMAT_PROP_PARENT_MEDIA_FORMAT, MediaFormat.class);</span>
   }
 
 }

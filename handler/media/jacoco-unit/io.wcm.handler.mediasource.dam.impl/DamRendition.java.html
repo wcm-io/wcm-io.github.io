@@ -46,145 +46,147 @@ class DamRendition extends SlingAdaptable implements Rendition {
   private final DamContext damContext;
   private final MediaArgs mediaArgs;
   private final RenditionMetadata rendition;
+  private boolean fallback;
 
   /**
    * @param cropDimension Crop dimension
    * @param mediaArgs Media args
    * @param damContext DAM context objects
    */
-<span class="fc" id="L55">  DamRendition(CropDimension cropDimension, Integer rotation, MediaArgs mediaArgs, DamContext damContext) {</span>
-<span class="fc" id="L56">    this.damContext = damContext;</span>
-<span class="fc" id="L57">    this.mediaArgs = mediaArgs;</span>
-<span class="fc" id="L58">    RenditionMetadata resolvedRendition = null;</span>
+<span class="fc" id="L56">  DamRendition(CropDimension cropDimension, Integer rotation, MediaArgs mediaArgs, DamContext damContext) {</span>
+<span class="fc" id="L57">    this.damContext = damContext;</span>
+<span class="fc" id="L58">    this.mediaArgs = mediaArgs;</span>
+<span class="fc" id="L59">    RenditionMetadata resolvedRendition = null;</span>
 
     // if no transformation parameters are given find non-transformed matching rendition
-<span class="fc bfc" id="L61" title="All 4 branches covered.">    if (cropDimension == null &amp;&amp; rotation == null) {</span>
-<span class="fc" id="L62">      RenditionHandler renditionHandler = new DefaultRenditionHandler(damContext);</span>
-<span class="fc" id="L63">      resolvedRendition = renditionHandler.getRendition(mediaArgs);</span>
-<span class="fc" id="L64">    }</span>
+<span class="fc bfc" id="L62" title="All 4 branches covered.">    if (cropDimension == null &amp;&amp; rotation == null) {</span>
+<span class="fc" id="L63">      RenditionHandler renditionHandler = new DefaultRenditionHandler(damContext);</span>
+<span class="fc" id="L64">      resolvedRendition = renditionHandler.getRendition(mediaArgs);</span>
+<span class="fc" id="L65">    }</span>
 
     else {
       // try to match with all transformations that are configured
-<span class="fc" id="L68">      RenditionHandler renditionHandler = new TransformedRenditionHandler(cropDimension, rotation, damContext);</span>
-<span class="fc" id="L69">      resolvedRendition = renditionHandler.getRendition(mediaArgs);</span>
+<span class="fc" id="L69">      RenditionHandler renditionHandler = new TransformedRenditionHandler(cropDimension, rotation, damContext);</span>
+<span class="fc" id="L70">      resolvedRendition = renditionHandler.getRendition(mediaArgs);</span>
 
       // if no match was found check against renditions without applying the explicit cropping
-<span class="pc bpc" id="L72" title="1 of 4 branches missed.">      if (resolvedRendition == null &amp;&amp; cropDimension != null) {</span>
-<span class="pc bpc" id="L73" title="1 of 2 branches missed.">        if (rotation != null) {</span>
-<span class="nc" id="L74">          renditionHandler = new TransformedRenditionHandler(null, rotation, damContext);</span>
-<span class="nc" id="L75">          resolvedRendition = renditionHandler.getRendition(mediaArgs);</span>
+<span class="pc bpc" id="L73" title="1 of 4 branches missed.">      if (resolvedRendition == null &amp;&amp; cropDimension != null) {</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">        if (rotation != null) {</span>
+<span class="nc" id="L75">          renditionHandler = new TransformedRenditionHandler(null, rotation, damContext);</span>
+<span class="nc" id="L76">          resolvedRendition = renditionHandler.getRendition(mediaArgs);</span>
         }
         else {
-<span class="fc" id="L78">          renditionHandler = new DefaultRenditionHandler(damContext);</span>
-<span class="fc" id="L79">          resolvedRendition = renditionHandler.getRendition(mediaArgs);</span>
+<span class="fc" id="L79">          renditionHandler = new DefaultRenditionHandler(damContext);</span>
+<span class="fc" id="L80">          resolvedRendition = renditionHandler.getRendition(mediaArgs);</span>
         }
+<span class="fc" id="L82">        fallback = true;</span>
       }
     }
 
     // if no match was found and auto-cropping is enabled, try to build a transformed rendition
     // with automatically devised cropping parameters
-<span class="fc bfc" id="L86" title="All 4 branches covered.">    if (resolvedRendition == null &amp;&amp; mediaArgs.isAutoCrop()) {</span>
-<span class="fc" id="L87">      DamAutoCropping autoCropping = new DamAutoCropping(damContext.getAsset(), mediaArgs);</span>
-<span class="fc" id="L88">      List&lt;CropDimension&gt; autoCropDimensions = autoCropping.calculateAutoCropDimensions();</span>
-<span class="fc bfc" id="L89" title="All 2 branches covered.">      for (CropDimension autoCropDimension : autoCropDimensions) {</span>
-<span class="fc" id="L90">        RenditionHandler renditionHandler = new TransformedRenditionHandler(autoCropDimension, rotation, damContext);</span>
-<span class="fc" id="L91">        resolvedRendition = renditionHandler.getRendition(mediaArgs);</span>
-<span class="fc bfc" id="L92" title="All 2 branches covered.">        if (resolvedRendition != null) {</span>
-<span class="fc" id="L93">          break;</span>
+<span class="fc bfc" id="L88" title="All 4 branches covered.">    if (resolvedRendition == null &amp;&amp; mediaArgs.isAutoCrop()) {</span>
+<span class="fc" id="L89">      DamAutoCropping autoCropping = new DamAutoCropping(damContext.getAsset(), mediaArgs);</span>
+<span class="fc" id="L90">      List&lt;CropDimension&gt; autoCropDimensions = autoCropping.calculateAutoCropDimensions();</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">      for (CropDimension autoCropDimension : autoCropDimensions) {</span>
+<span class="fc" id="L92">        RenditionHandler renditionHandler = new TransformedRenditionHandler(autoCropDimension, rotation, damContext);</span>
+<span class="fc" id="L93">        resolvedRendition = renditionHandler.getRendition(mediaArgs);</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        if (resolvedRendition != null) {</span>
+<span class="fc" id="L95">          break;</span>
         }
-<span class="fc" id="L95">      }</span>
+<span class="fc" id="L97">      }</span>
     }
-<span class="fc" id="L97">    this.rendition = resolvedRendition;</span>
-<span class="fc" id="L98">  }</span>
+<span class="fc" id="L99">    this.rendition = resolvedRendition;</span>
+<span class="fc" id="L100">  }</span>
 
   @Override
   public String getUrl() {
-<span class="fc bfc" id="L102" title="All 2 branches covered.">    if (this.rendition == null) {</span>
-<span class="fc" id="L103">      return null;</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">    if (this.rendition == null) {</span>
+<span class="fc" id="L105">      return null;</span>
     }
-<span class="fc" id="L105">    String url = null;</span>
-<span class="pc bpc" id="L106" title="1 of 6 branches missed.">    if (!mediaArgs.isDynamicMediaDisabled() &amp;&amp; damContext.isDynamicMediaEnabled() &amp;&amp; damContext.isDynamicMediaAsset()) {</span>
+<span class="fc" id="L107">    String url = null;</span>
+<span class="pc bpc" id="L108" title="1 of 6 branches missed.">    if (!mediaArgs.isDynamicMediaDisabled() &amp;&amp; damContext.isDynamicMediaEnabled() &amp;&amp; damContext.isDynamicMediaAsset()) {</span>
       // if DM is enabled: try to get rendition URL from dynamic media
-<span class="fc" id="L108">      String dynamicMediaPath = this.rendition.getDynamicMediaPath(this.mediaArgs.isContentDispositionAttachment(), damContext);</span>
-<span class="pc bpc" id="L109" title="1 of 2 branches missed.">      if (dynamicMediaPath != null) {</span>
-<span class="fc" id="L110">        String productionAssetUrl = damContext.getDynamicMediaServerUrl();</span>
-<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        if (productionAssetUrl != null) {</span>
-<span class="fc" id="L112">          url = productionAssetUrl + dynamicMediaPath;</span>
+<span class="fc" id="L110">      String dynamicMediaPath = this.rendition.getDynamicMediaPath(this.mediaArgs.isContentDispositionAttachment(), damContext);</span>
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">      if (dynamicMediaPath != null) {</span>
+<span class="fc" id="L112">        String productionAssetUrl = damContext.getDynamicMediaServerUrl();</span>
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">        if (productionAssetUrl != null) {</span>
+<span class="fc" id="L114">          url = productionAssetUrl + dynamicMediaPath;</span>
         }
       }
     }
-<span class="fc bfc" id="L116" title="All 2 branches covered.">    if (url == null) {</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (url == null) {</span>
       // Render renditions in AEM: build externalized URL
-<span class="fc" id="L118">      UrlHandler urlHandler = AdaptTo.notNull(damContext, UrlHandler.class);</span>
-<span class="fc" id="L119">      String mediaPath = this.rendition.getMediaPath(this.mediaArgs.isContentDispositionAttachment());</span>
-<span class="fc" id="L120">      url = urlHandler.get(mediaPath).urlMode(this.mediaArgs.getUrlMode())</span>
-<span class="fc" id="L121">          .buildExternalResourceUrl(this.rendition.adaptTo(Resource.class));</span>
+<span class="fc" id="L120">      UrlHandler urlHandler = AdaptTo.notNull(damContext, UrlHandler.class);</span>
+<span class="fc" id="L121">      String mediaPath = this.rendition.getMediaPath(this.mediaArgs.isContentDispositionAttachment());</span>
+<span class="fc" id="L122">      url = urlHandler.get(mediaPath).urlMode(this.mediaArgs.getUrlMode())</span>
+<span class="fc" id="L123">          .buildExternalResourceUrl(this.rendition.adaptTo(Resource.class));</span>
     }
-<span class="fc" id="L123">    return url;</span>
+<span class="fc" id="L125">    return url;</span>
   }
 
   @Override
   public String getPath() {
-<span class="pc bpc" id="L128" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
-<span class="fc" id="L129">      return this.rendition.getRendition().getPath();</span>
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
+<span class="fc" id="L131">      return this.rendition.getRendition().getPath();</span>
     }
     else {
-<span class="nc" id="L132">      return null;</span>
+<span class="nc" id="L134">      return null;</span>
     }
   }
 
   @Override
   public String getFileName() {
-<span class="pc bpc" id="L138" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
-<span class="fc" id="L139">      return this.rendition.getFileName(this.mediaArgs.isContentDispositionAttachment());</span>
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
+<span class="fc" id="L141">      return this.rendition.getFileName(this.mediaArgs.isContentDispositionAttachment());</span>
     }
     else {
-<span class="nc" id="L142">      return null;</span>
+<span class="nc" id="L144">      return null;</span>
     }
   }
 
   @Override
   public String getFileExtension() {
-<span class="fc" id="L148">    return FilenameUtils.getExtension(getFileName());</span>
+<span class="fc" id="L150">    return FilenameUtils.getExtension(getFileName());</span>
   }
 
   @Override
   public long getFileSize() {
-<span class="nc bnc" id="L153" title="All 2 branches missed.">    if (this.rendition != null) {</span>
-<span class="nc" id="L154">      return this.rendition.getFileSize();</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">    if (this.rendition != null) {</span>
+<span class="nc" id="L156">      return this.rendition.getFileSize();</span>
     }
     else {
-<span class="nc" id="L157">      return 0L;</span>
+<span class="nc" id="L159">      return 0L;</span>
     }
   }
 
   @Override
   public String getMimeType() {
-<span class="pc bpc" id="L163" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
-<span class="fc" id="L164">      return this.rendition.getMimeType();</span>
+<span class="pc bpc" id="L165" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
+<span class="fc" id="L166">      return this.rendition.getMimeType();</span>
     }
     else {
-<span class="nc" id="L167">      return null;</span>
+<span class="nc" id="L169">      return null;</span>
     }
   }
 
   @Override
   public Date getModificationDate() {
-<span class="nc bnc" id="L173" title="All 2 branches missed.">    if (this.rendition != null) {</span>
-<span class="nc" id="L174">      return ModificationDate.get(this.rendition.getRendition().adaptTo(Resource.class));</span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">    if (this.rendition != null) {</span>
+<span class="nc" id="L176">      return ModificationDate.get(this.rendition.getRendition().adaptTo(Resource.class));</span>
     }
     else {
-<span class="nc" id="L177">      return null;</span>
+<span class="nc" id="L179">      return null;</span>
     }
   }
 
   @Override
   public MediaFormat getMediaFormat() {
-<span class="pc bpc" id="L183" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
-<span class="fc" id="L184">      return this.rendition.getMediaFormat();</span>
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
+<span class="fc" id="L186">      return this.rendition.getMediaFormat();</span>
     }
     else {
-<span class="nc" id="L187">      return null;</span>
+<span class="nc" id="L189">      return null;</span>
     }
   }
 
@@ -192,78 +194,83 @@ class DamRendition extends SlingAdaptable implements Rendition {
   @SuppressWarnings(&quot;null&quot;)
   @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
   public @NotNull ValueMap getProperties() {
-<span class="pc bpc" id="L195" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
-<span class="fc" id="L196">      return this.rendition.getRendition().adaptTo(Resource.class).getValueMap();</span>
+<span class="pc bpc" id="L197" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
+<span class="fc" id="L198">      return this.rendition.getRendition().adaptTo(Resource.class).getValueMap();</span>
     }
     else {
-<span class="nc" id="L199">      return ValueMap.EMPTY;</span>
+<span class="nc" id="L201">      return ValueMap.EMPTY;</span>
     }
   }
 
   @Override
   public boolean isImage() {
-<span class="nc" id="L205">    return MediaFileType.isImage(getFileExtension());</span>
+<span class="nc" id="L207">    return MediaFileType.isImage(getFileExtension());</span>
   }
 
   @Override
   public boolean isBrowserImage() {
-<span class="fc" id="L210">    return MediaFileType.isBrowserImage(getFileExtension());</span>
+<span class="fc" id="L212">    return MediaFileType.isBrowserImage(getFileExtension());</span>
   }
 
   @Override
   public boolean isVectorImage() {
-<span class="fc" id="L215">    return MediaFileType.isVectorImage(getFileExtension());</span>
+<span class="fc" id="L217">    return MediaFileType.isVectorImage(getFileExtension());</span>
   }
 
   @Override
   @SuppressWarnings(&quot;deprecation&quot;)
   public boolean isFlash() {
-<span class="nc" id="L221">    return MediaFileType.isFlash(getFileExtension());</span>
+<span class="nc" id="L223">    return MediaFileType.isFlash(getFileExtension());</span>
   }
 
   @Override
   public boolean isDownload() {
-<span class="nc bnc" id="L226" title="All 4 branches missed.">    return !isImage() &amp;&amp; !isFlash();</span>
+<span class="nc bnc" id="L228" title="All 4 branches missed.">    return !isImage() &amp;&amp; !isFlash();</span>
   }
 
   @Override
   public long getWidth() {
-<span class="pc bpc" id="L231" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
-<span class="fc" id="L232">      return this.rendition.getWidth();</span>
+<span class="pc bpc" id="L233" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
+<span class="fc" id="L234">      return this.rendition.getWidth();</span>
     }
     else {
-<span class="nc" id="L235">      return 0;</span>
+<span class="nc" id="L237">      return 0;</span>
     }
   }
 
   @Override
   public long getHeight() {
-<span class="pc bpc" id="L241" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
-<span class="fc" id="L242">      return this.rendition.getHeight();</span>
+<span class="pc bpc" id="L243" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
+<span class="fc" id="L244">      return this.rendition.getHeight();</span>
     }
     else {
-<span class="nc" id="L245">      return 0;</span>
+<span class="nc" id="L247">      return 0;</span>
     }
+  }
+
+  @Override
+  public boolean isFallback() {
+<span class="fc" id="L253">    return fallback;</span>
   }
 
   @Override
   @SuppressWarnings(&quot;null&quot;)
   public &lt;AdapterType&gt; AdapterType adaptTo(Class&lt;AdapterType&gt; type) {
-<span class="pc bpc" id="L252" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
-<span class="fc" id="L253">      AdapterType result = this.rendition.adaptTo(type);</span>
-<span class="pc bpc" id="L254" title="1 of 2 branches missed.">      if (result != null) {</span>
-<span class="fc" id="L255">        return result;</span>
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">    if (this.rendition != null) {</span>
+<span class="fc" id="L260">      AdapterType result = this.rendition.adaptTo(type);</span>
+<span class="pc bpc" id="L261" title="1 of 2 branches missed.">      if (result != null) {</span>
+<span class="fc" id="L262">        return result;</span>
       }
     }
-<span class="nc" id="L258">    return super.adaptTo(type);</span>
+<span class="nc" id="L265">    return super.adaptTo(type);</span>
   }
 
   @Override
   public String toString() {
-<span class="nc bnc" id="L263" title="All 2 branches missed.">    if (rendition != null) {</span>
-<span class="nc" id="L264">      return rendition.toString();</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">    if (rendition != null) {</span>
+<span class="nc" id="L271">      return rendition.toString();</span>
     }
-<span class="nc" id="L266">    return super.toString();</span>
+<span class="nc" id="L273">    return super.toString();</span>
   }
 
 }
