@@ -178,29 +178,39 @@ import io.wcm.wcm.commons.util.RunMode;
 <span class="fc" id="L178">      String fragment = linkArgs.getFragment();</span>
 
       // optionally override query parameters and fragment from link resource
-<span class="fc" id="L181">      queryString = props.get(LinkNameConstants.PN_LINK_QUERY_PARAM, queryString);</span>
-<span class="fc" id="L182">      fragment = props.get(LinkNameConstants.PN_LINK_FRAGMENT, fragment);</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">      if (queryString == null) {</span>
+<span class="fc" id="L182">        queryString = props.get(LinkNameConstants.PN_LINK_QUERY_PARAM, String.class);</span>
+      }
+      else {
+<span class="fc" id="L185">        queryString = props.get(LinkNameConstants.PN_LINK_QUERY_PARAM, queryString);</span>
+      }
+<span class="fc bfc" id="L187" title="All 2 branches covered.">      if (fragment == null) {</span>
+<span class="fc" id="L188">        fragment = props.get(LinkNameConstants.PN_LINK_FRAGMENT, String.class);</span>
+      }
+      else {
+<span class="fc" id="L191">        fragment = props.get(LinkNameConstants.PN_LINK_FRAGMENT, fragment);</span>
+      }
 
       // build link url
-<span class="fc" id="L185">      linkUrl = resolvingUrlHandler.get(targetPage)</span>
-<span class="fc" id="L186">          .selectors(selectors)</span>
-<span class="fc" id="L187">          .extension(fileExtension)</span>
-<span class="fc" id="L188">          .suffix(suffix)</span>
-<span class="fc" id="L189">          .queryString(queryString)</span>
-<span class="fc" id="L190">          .fragment(fragment)</span>
-<span class="fc" id="L191">          .urlMode(linkArgs.getUrlMode())</span>
-<span class="fc" id="L192">          .buildExternalLinkUrl(targetPage);</span>
+<span class="fc" id="L195">      linkUrl = resolvingUrlHandler.get(targetPage)</span>
+<span class="fc" id="L196">          .selectors(selectors)</span>
+<span class="fc" id="L197">          .extension(fileExtension)</span>
+<span class="fc" id="L198">          .suffix(suffix)</span>
+<span class="fc" id="L199">          .queryString(queryString)</span>
+<span class="fc" id="L200">          .fragment(fragment)</span>
+<span class="fc" id="L201">          .urlMode(linkArgs.getUrlMode())</span>
+<span class="fc" id="L202">          .buildExternalLinkUrl(targetPage);</span>
     }
 
     // mark link as invalid if a reference was set that could not be resolved
-<span class="fc bfc" id="L196" title="All 4 branches covered.">    if (linkUrl == null &amp;&amp; referenceSet) {</span>
-<span class="fc" id="L197">      link.setLinkReferenceInvalid(true);</span>
+<span class="fc bfc" id="L206" title="All 4 branches covered.">    if (linkUrl == null &amp;&amp; referenceSet) {</span>
+<span class="fc" id="L207">      link.setLinkReferenceInvalid(true);</span>
     }
 
     // set link url
-<span class="fc" id="L201">    link.setUrl(linkUrl);</span>
+<span class="fc" id="L211">    link.setUrl(linkUrl);</span>
 
-<span class="fc" id="L203">    return link;</span>
+<span class="fc" id="L213">    return link;</span>
   }
 
   /**
@@ -213,30 +223,30 @@ import io.wcm.wcm.commons.util.RunMode;
   private Link recursiveResolveLink(Page redirectPage, Link link) {
 
     // set link reference to content resource of redirect page, keep other parameters
-<span class="fc" id="L216">    LinkRequest linkRequest = link.getLinkRequest();</span>
-<span class="fc" id="L217">    LinkRequest redirectLinkRequest = new LinkRequest(</span>
-<span class="fc" id="L218">        redirectPage.getContentResource(),</span>
+<span class="fc" id="L226">    LinkRequest linkRequest = link.getLinkRequest();</span>
+<span class="fc" id="L227">    LinkRequest redirectLinkRequest = new LinkRequest(</span>
+<span class="fc" id="L228">        redirectPage.getContentResource(),</span>
         null,
-<span class="fc" id="L220">        linkRequest.getLinkArgs());</span>
+<span class="fc" id="L230">        linkRequest.getLinkArgs());</span>
 
     // check of maximum recursive calls via threadlocal to avoid endless loops, return invalid link if one is detected
-<span class="fc" id="L223">    LinkResolveCounter linkResolveCounter = LinkResolveCounter.get();</span>
+<span class="fc" id="L233">    LinkResolveCounter linkResolveCounter = LinkResolveCounter.get();</span>
     try {
-<span class="fc" id="L225">      linkResolveCounter.increaseCount();</span>
+<span class="fc" id="L235">      linkResolveCounter.increaseCount();</span>
 
-<span class="fc bfc" id="L227" title="All 2 branches covered.">      if (linkResolveCounter.isMaximumReached()) {</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">      if (linkResolveCounter.isMaximumReached()) {</span>
         // endless loop detected - set link to invalid link
-<span class="fc" id="L229">        link.setUrl(null);</span>
-<span class="fc" id="L230">        return link;</span>
+<span class="fc" id="L239">        link.setUrl(null);</span>
+<span class="fc" id="L240">        return link;</span>
       }
 
       // resolve link by recursive call to link handler, track recursion count
-<span class="fc" id="L234">      Link resolvedLink = linkHandler.get(redirectLinkRequest).build();</span>
-<span class="fc" id="L235">      resolvedLink.addRedirectPage(redirectPage);</span>
-<span class="fc" id="L236">      return resolvedLink;</span>
+<span class="fc" id="L244">      Link resolvedLink = linkHandler.get(redirectLinkRequest).build();</span>
+<span class="fc" id="L245">      resolvedLink.addRedirectPage(redirectPage);</span>
+<span class="fc" id="L246">      return resolvedLink;</span>
     }
     finally {
-<span class="fc" id="L239">      linkResolveCounter.decreaseCount();</span>
+<span class="fc" id="L249">      linkResolveCounter.decreaseCount();</span>
     }
   }
 
@@ -248,29 +258,29 @@ import io.wcm.wcm.commons.util.RunMode;
    */
   private Page getTargetPage(String targetPath, InternalLinkResolverOptions options) {
 
-<span class="fc bfc" id="L251" title="All 2 branches covered.">    if (StringUtils.isEmpty(targetPath)) {</span>
-<span class="fc" id="L252">      return null;</span>
+<span class="fc bfc" id="L261" title="All 2 branches covered.">    if (StringUtils.isEmpty(targetPath)) {</span>
+<span class="fc" id="L262">      return null;</span>
     }
 
     // Rewrite target to current site context
     String rewrittenPath;
-<span class="fc bfc" id="L257" title="All 4 branches covered.">    if (options.isRewritePathToContext() &amp;&amp; !useTargetContext(options)) {</span>
-<span class="fc" id="L258">      rewrittenPath = urlHandler.rewritePathToContext(SyntheticNavigatableResource.get(targetPath, resourceResolver));</span>
+<span class="fc bfc" id="L267" title="All 4 branches covered.">    if (options.isRewritePathToContext() &amp;&amp; !useTargetContext(options)) {</span>
+<span class="fc" id="L268">      rewrittenPath = urlHandler.rewritePathToContext(SyntheticNavigatableResource.get(targetPath, resourceResolver));</span>
     }
     else {
-<span class="fc" id="L261">      rewrittenPath = targetPath;</span>
+<span class="fc" id="L271">      rewrittenPath = targetPath;</span>
     }
-<span class="pc bpc" id="L263" title="1 of 2 branches missed.">    if (StringUtils.isEmpty(rewrittenPath)) {</span>
-<span class="nc" id="L264">      return null;</span>
+<span class="pc bpc" id="L273" title="1 of 2 branches missed.">    if (StringUtils.isEmpty(rewrittenPath)) {</span>
+<span class="nc" id="L274">      return null;</span>
     }
 
     // Get target page referenced by target path and check for acceptance
-<span class="fc" id="L268">    Page targetPage = pageManager.getPage(rewrittenPath);</span>
-<span class="fc bfc" id="L269" title="All 2 branches covered.">    if (acceptPage(targetPage, options)) {</span>
-<span class="fc" id="L270">      return targetPage;</span>
+<span class="fc" id="L278">    Page targetPage = pageManager.getPage(rewrittenPath);</span>
+<span class="fc bfc" id="L279" title="All 2 branches covered.">    if (acceptPage(targetPage, options)) {</span>
+<span class="fc" id="L280">      return targetPage;</span>
     }
     else {
-<span class="fc" id="L273">      return null;</span>
+<span class="fc" id="L283">      return null;</span>
     }
   }
 
@@ -280,15 +290,15 @@ import io.wcm.wcm.commons.util.RunMode;
    * @return true if target context should be used
    */
   private boolean useTargetContext(InternalLinkResolverOptions options) {
-<span class="pc bpc" id="L283" title="1 of 4 branches missed.">    if (options.isUseTargetContext() &amp;&amp; !options.isRewritePathToContext()) {</span>
-<span class="fc" id="L284">      return true;</span>
+<span class="pc bpc" id="L293" title="1 of 4 branches missed.">    if (options.isUseTargetContext() &amp;&amp; !options.isRewritePathToContext()) {</span>
+<span class="fc" id="L294">      return true;</span>
     }
     // even is use target context is not activated use it if current page is an experience fragment
     // otherwise it will be always impossible to resolve internal links
-<span class="pc bpc" id="L288" title="1 of 4 branches missed.">    else if (currentPage != null &amp;&amp; Path.isExperienceFragmentPath(currentPage.getPath())) {</span>
-<span class="fc" id="L289">      return true;</span>
+<span class="pc bpc" id="L298" title="1 of 4 branches missed.">    else if (currentPage != null &amp;&amp; Path.isExperienceFragmentPath(currentPage.getPath())) {</span>
+<span class="fc" id="L299">      return true;</span>
     }
-<span class="fc" id="L291">    return false;</span>
+<span class="fc" id="L301">    return false;</span>
   }
 
 }
