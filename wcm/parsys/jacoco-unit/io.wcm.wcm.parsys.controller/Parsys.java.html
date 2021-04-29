@@ -158,7 +158,7 @@ import io.wcm.wcm.parsys.ParsysItem;
     }
 <span class="fc bfc" id="L159" title="All 2 branches covered.">    for (Resource childResource : parsysParentResource.getChildren()) {</span>
 <span class="fc" id="L160">      Item item = createResourceItem(childResource);</span>
-<span class="pc bpc" id="L161" title="1 of 4 branches missed.">      if (wcmMode != WCMMode.DISABLED || item.isValid()) {</span>
+<span class="fc bfc" id="L161" title="All 4 branches covered.">      if (wcmMode != WCMMode.DISABLED || item.isValid()) {</span>
 <span class="fc" id="L162">        items.add(item);</span>
       }
 <span class="fc" id="L164">    }</span>
@@ -198,10 +198,10 @@ import io.wcm.wcm.parsys.ParsysItem;
 
     // try to check valid state of paragraph item
 <span class="fc" id="L200">    boolean valid = true;</span>
-<span class="pc bpc" id="L201" title="1 of 2 branches missed.">    if (paragraphValidate) {</span>
-<span class="nc" id="L202">      Optional&lt;Boolean&gt; validStatus = isParagraphValid(resource);</span>
-<span class="nc bnc" id="L203" title="All 2 branches missed.">      if (validStatus.isPresent()) {</span>
-<span class="nc" id="L204">        valid = validStatus.get();</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">    if (paragraphValidate) {</span>
+<span class="fc" id="L202">      Optional&lt;Boolean&gt; validStatus = isParagraphValid(resource);</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">      if (validStatus.isPresent()) {</span>
+<span class="fc" id="L204">        valid = validStatus.get();</span>
       }
     }
 
@@ -218,20 +218,27 @@ import io.wcm.wcm.parsys.ParsysItem;
    * @return if the return value is empty there is no model associated with this resource, or
    *         it does not support validation via {@link ParsysItem} interface. Otherwise it contains the valid status.
    */
+  @SuppressWarnings({ &quot;null&quot;, &quot;unused&quot; })
   private Optional&lt;@NotNull Boolean&gt; isParagraphValid(Resource resource) {
-    try {
-      // try to get model associated with the resource, and check if it implements the ParsysItem interface
-<span class="nc" id="L224">      Object model = modelFactory.getModelFromResource(resource);</span>
-<span class="nc bnc" id="L225" title="All 2 branches missed.">      if (model instanceof ParsysItem) {</span>
-<span class="nc" id="L226">        return Optional.of(((ParsysItem)model).isValid());</span>
-      }
+    // try to get model adapting from request associated with the resource implementing ParsysItem
+<span class="fc" id="L224">    ParsysItem parsysItem = modelFactory.getModelFromWrappedRequest(request, resource, ParsysItem.class);</span>
+<span class="fc bfc" id="L225" title="All 2 branches covered.">    if (parsysItem != null) {</span>
+<span class="fc" id="L226">      return Optional.of(parsysItem.isValid());</span>
     }
-<span class="nc" id="L229">    catch (ModelClassException ex) {</span>
-      // ignore if no model was registered for this resource type
-<span class="nc" id="L231">    }</span>
-<span class="nc" id="L232">    return Optional.empty();</span>
+    else {
+      try {
+        // alternatively try to get model adapting from resource, and check if it implements the ParsysItem interface
+<span class="fc" id="L231">        Object model = modelFactory.getModelFromResource(resource);</span>
+<span class="pc bpc" id="L232" title="1 of 2 branches missed.">        if (model instanceof ParsysItem) {</span>
+<span class="fc" id="L233">          return Optional.of(((ParsysItem)model).isValid());</span>
+        }
+      }
+<span class="fc" id="L236">      catch (ModelClassException ex) {</span>
+        // ignore if no model was registered for this resource type
+<span class="nc" id="L238">      }</span>
+    }
+<span class="fc" id="L240">    return Optional.empty();</span>
   }
-
 
   /**
    * Get HTML tag attributes from component.
@@ -239,40 +246,40 @@ import io.wcm.wcm.parsys.ParsysItem;
    * @return Map (never null)
    */
   private Map&lt;String, String&gt; getComponentHtmlTagAttributes(String resourceType) {
-<span class="pc bpc" id="L242" title="1 of 2 branches missed.">    if (StringUtils.isNotEmpty(resourceType)) {</span>
-<span class="fc" id="L243">      Component component = componentManager().getComponent(resourceType);</span>
-<span class="pc bpc" id="L244" title="1 of 4 branches missed.">      if (component != null &amp;&amp; component.getHtmlTagAttributes() != null) {</span>
-<span class="fc" id="L245">        return component.getHtmlTagAttributes();</span>
+<span class="pc bpc" id="L249" title="1 of 2 branches missed.">    if (StringUtils.isNotEmpty(resourceType)) {</span>
+<span class="fc" id="L250">      Component component = componentManager().getComponent(resourceType);</span>
+<span class="pc bpc" id="L251" title="1 of 4 branches missed.">      if (component != null &amp;&amp; component.getHtmlTagAttributes() != null) {</span>
+<span class="fc" id="L252">        return component.getHtmlTagAttributes();</span>
       }
     }
-<span class="fc" id="L248">    return ImmutableMap.of();</span>
+<span class="fc" id="L255">    return ImmutableMap.of();</span>
   }
 
   private ComponentManager componentManager() {
-<span class="fc bfc" id="L252" title="All 2 branches covered.">    if (componentManager == null) {</span>
-<span class="fc" id="L253">      componentManager = AdaptTo.notNull(this.resolver, ComponentManager.class);</span>
+<span class="fc bfc" id="L259" title="All 2 branches covered.">    if (componentManager == null) {</span>
+<span class="fc" id="L260">      componentManager = AdaptTo.notNull(this.resolver, ComponentManager.class);</span>
     }
-<span class="fc" id="L255">    return componentManager;</span>
+<span class="fc" id="L262">    return componentManager;</span>
   }
 
   private Item createNewAreaItem() {
-<span class="fc" id="L259">    String style = null;</span>
-<span class="fc" id="L260">    CssBuilder css = new CssBuilder();</span>
-<span class="fc" id="L261">    css.add(NEWAREA_CSS_CLASS_NAME);</span>
-<span class="fc bfc" id="L262" title="All 2 branches covered.">    if (generateDefaultCss) {</span>
-<span class="fc" id="L263">      style = NEWAREA_STYLE;</span>
-<span class="fc" id="L264">      css.add(SECTION_DEFAULT_CLASS_NAME);</span>
+<span class="fc" id="L266">    String style = null;</span>
+<span class="fc" id="L267">    CssBuilder css = new CssBuilder();</span>
+<span class="fc" id="L268">    css.add(NEWAREA_CSS_CLASS_NAME);</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">    if (generateDefaultCss) {</span>
+<span class="fc" id="L270">      style = NEWAREA_STYLE;</span>
+<span class="fc" id="L271">      css.add(SECTION_DEFAULT_CLASS_NAME);</span>
     }
-<span class="fc" id="L266">    css.add(newAreaCss);</span>
-<span class="fc" id="L267">    String newAreaElementName = StringUtils.defaultString(paragraphElementName, DEFAULT_ELEMENT_NAME);</span>
-<span class="fc" id="L268">    String newAreaResourceType = getNewAreaResourceType(componentContext.getComponent().getPath());</span>
-<span class="fc" id="L269">    return new Item(NEWAREA_RESOURCE_PATH)</span>
-<span class="fc" id="L270">        .newArea(true)</span>
-<span class="fc" id="L271">        .resourceType(newAreaResourceType)</span>
-<span class="fc" id="L272">        .elementName(newAreaElementName)</span>
-<span class="fc" id="L273">        .style(style)</span>
-<span class="fc" id="L274">        .cssClassName(css.build())</span>
-<span class="fc" id="L275">        .decorate(true);</span>
+<span class="fc" id="L273">    css.add(newAreaCss);</span>
+<span class="fc" id="L274">    String newAreaElementName = StringUtils.defaultString(paragraphElementName, DEFAULT_ELEMENT_NAME);</span>
+<span class="fc" id="L275">    String newAreaResourceType = getNewAreaResourceType(componentContext.getComponent().getPath());</span>
+<span class="fc" id="L276">    return new Item(NEWAREA_RESOURCE_PATH)</span>
+<span class="fc" id="L277">        .newArea(true)</span>
+<span class="fc" id="L278">        .resourceType(newAreaResourceType)</span>
+<span class="fc" id="L279">        .elementName(newAreaElementName)</span>
+<span class="fc" id="L280">        .style(style)</span>
+<span class="fc" id="L281">        .cssClassName(css.build())</span>
+<span class="fc" id="L282">        .decorate(true);</span>
   }
 
   /**
@@ -281,17 +288,17 @@ import io.wcm.wcm.parsys.ParsysItem;
    * @return Resource type (never null)
    */
   private String getNewAreaResourceType(String componentPath) {
-<span class="fc" id="L284">    Resource componentResource = resolver.getResource(componentPath);</span>
-<span class="pc bpc" id="L285" title="1 of 2 branches missed.">    if (componentResource != null) {</span>
-<span class="fc bfc" id="L286" title="All 2 branches covered.">      if (componentResource.getChild(NEWAREA_CHILD_NAME) != null) {</span>
-<span class="fc" id="L287">        return componentPath + &quot;/&quot; + NEWAREA_CHILD_NAME;</span>
+<span class="fc" id="L291">    Resource componentResource = resolver.getResource(componentPath);</span>
+<span class="pc bpc" id="L292" title="1 of 2 branches missed.">    if (componentResource != null) {</span>
+<span class="fc bfc" id="L293" title="All 2 branches covered.">      if (componentResource.getChild(NEWAREA_CHILD_NAME) != null) {</span>
+<span class="fc" id="L294">        return componentPath + &quot;/&quot; + NEWAREA_CHILD_NAME;</span>
       }
-<span class="fc" id="L289">      String resourceSuperType = componentResource.getResourceSuperType();</span>
-<span class="fc bfc" id="L290" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(resourceSuperType)) {</span>
-<span class="fc" id="L291">        return getNewAreaResourceType(resourceSuperType);</span>
+<span class="fc" id="L296">      String resourceSuperType = componentResource.getResourceSuperType();</span>
+<span class="fc bfc" id="L297" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(resourceSuperType)) {</span>
+<span class="fc" id="L298">        return getNewAreaResourceType(resourceSuperType);</span>
       }
     }
-<span class="fc" id="L294">    return FALLBACK_NEWAREA_RESOURCE_TYPE;</span>
+<span class="fc" id="L301">    return FALLBACK_NEWAREA_RESOURCE_TYPE;</span>
   }
 
   /**
@@ -299,7 +306,7 @@ import io.wcm.wcm.parsys.ParsysItem;
    */
   @JsonIgnore
   public List&lt;Item&gt; getItems() {
-<span class="fc" id="L302">    return items;</span>
+<span class="fc" id="L309">    return items;</span>
   }
 
   /**
@@ -307,7 +314,7 @@ import io.wcm.wcm.parsys.ParsysItem;
    */
   @JsonIgnore
   public String getWrapperElementName() {
-<span class="fc" id="L310">    return StringUtils.defaultString(wrapperElementName, DEFAULT_ELEMENT_NAME);</span>
+<span class="fc" id="L317">    return StringUtils.defaultString(wrapperElementName, DEFAULT_ELEMENT_NAME);</span>
   }
 
   /**
@@ -315,7 +322,7 @@ import io.wcm.wcm.parsys.ParsysItem;
    */
   @JsonIgnore
   public String getWrapperCss() {
-<span class="fc" id="L318">    return this.wrapperCss;</span>
+<span class="fc" id="L325">    return this.wrapperCss;</span>
   }
 
   /**
@@ -323,45 +330,45 @@ import io.wcm.wcm.parsys.ParsysItem;
    */
   @JsonIgnore
   public boolean isWrapperElement() {
-<span class="fc" id="L326">    return StringUtils.isNotBlank(wrapperElementName);</span>
+<span class="fc" id="L333">    return StringUtils.isNotBlank(wrapperElementName);</span>
   }
 
   @Override
   public @NotNull String getExportedType() {
-<span class="fc" id="L331">    return currentResource.getResourceType();</span>
+<span class="fc" id="L338">    return currentResource.getResourceType();</span>
   }
 
   @Override
   public @NotNull Map&lt;String, ? extends ComponentExporter&gt; getExportedItems() {
-<span class="pc bpc" id="L336" title="1 of 2 branches missed.">    if (childModels == null) {</span>
-<span class="fc" id="L337">      childModels = getChildModels(ComponentExporter.class);</span>
+<span class="pc bpc" id="L343" title="1 of 2 branches missed.">    if (childModels == null) {</span>
+<span class="fc" id="L344">      childModels = getChildModels(ComponentExporter.class);</span>
     }
-<span class="fc" id="L339">    return childModels;</span>
+<span class="fc" id="L346">    return childModels;</span>
   }
 
   @Override
   public String @NotNull [] getExportedItemsOrder() {
-<span class="pc bpc" id="L344" title="1 of 2 branches missed.">    if (exportedItemsOrder == null) {</span>
-<span class="fc" id="L345">      Map&lt;String, ? extends ComponentExporter&gt; models = getExportedItems();</span>
-<span class="pc bpc" id="L346" title="1 of 2 branches missed.">      if (!models.isEmpty()) {</span>
-<span class="fc" id="L347">        exportedItemsOrder = models.keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY);</span>
+<span class="pc bpc" id="L351" title="1 of 2 branches missed.">    if (exportedItemsOrder == null) {</span>
+<span class="fc" id="L352">      Map&lt;String, ? extends ComponentExporter&gt; models = getExportedItems();</span>
+<span class="pc bpc" id="L353" title="1 of 2 branches missed.">      if (!models.isEmpty()) {</span>
+<span class="fc" id="L354">        exportedItemsOrder = models.keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY);</span>
       }
       else {
-<span class="nc" id="L350">        exportedItemsOrder = ArrayUtils.EMPTY_STRING_ARRAY;</span>
+<span class="nc" id="L357">        exportedItemsOrder = ArrayUtils.EMPTY_STRING_ARRAY;</span>
       }
     }
-<span class="fc" id="L353">    return Arrays.copyOf(exportedItemsOrder, exportedItemsOrder.length);</span>
+<span class="fc" id="L360">    return Arrays.copyOf(exportedItemsOrder, exportedItemsOrder.length);</span>
   }
 
   private &lt;T&gt; Map&lt;String, T&gt; getChildModels(@NotNull Class&lt;T&gt; modelClass) {
-<span class="fc" id="L357">    Map&lt;String, T&gt; models = new LinkedHashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L358" title="All 2 branches covered.">    for (Resource child : slingModelFilter.filterChildResources(currentResource.getChildren())) {</span>
-<span class="fc" id="L359">      T model = modelFactory.getModelFromWrappedRequest(request, child, modelClass);</span>
-<span class="pc bpc" id="L360" title="1 of 2 branches missed.">      if (model != null) {</span>
-<span class="fc" id="L361">        models.put(child.getName(), model);</span>
+<span class="fc" id="L364">    Map&lt;String, T&gt; models = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L365" title="All 2 branches covered.">    for (Resource child : slingModelFilter.filterChildResources(currentResource.getChildren())) {</span>
+<span class="fc" id="L366">      T model = modelFactory.getModelFromWrappedRequest(request, child, modelClass);</span>
+<span class="pc bpc" id="L367" title="1 of 2 branches missed.">      if (model != null) {</span>
+<span class="fc" id="L368">        models.put(child.getName(), model);</span>
       }
-<span class="fc" id="L363">    }</span>
-<span class="fc" id="L364">    return models;</span>
+<span class="fc" id="L370">    }</span>
+<span class="fc" id="L371">    return models;</span>
   }
 
   /**
@@ -378,92 +385,92 @@ import io.wcm.wcm.parsys.ParsysItem;
     private boolean newArea;
     private boolean valid;
 
-<span class="fc" id="L381">    Item(String resourcePath) {</span>
-<span class="fc" id="L382">      this.resourcePath = resourcePath;</span>
-<span class="fc" id="L383">    }</span>
+<span class="fc" id="L388">    Item(String resourcePath) {</span>
+<span class="fc" id="L389">      this.resourcePath = resourcePath;</span>
+<span class="fc" id="L390">    }</span>
 
     Item resourceType(String value) {
-<span class="fc" id="L386">      this.resourceType = value;</span>
-<span class="fc" id="L387">      return this;</span>
+<span class="fc" id="L393">      this.resourceType = value;</span>
+<span class="fc" id="L394">      return this;</span>
     }
 
     Item elementName(String value) {
-<span class="fc" id="L391">      this.elementName = value;</span>
-<span class="fc" id="L392">      return this;</span>
+<span class="fc" id="L398">      this.elementName = value;</span>
+<span class="fc" id="L399">      return this;</span>
     }
 
     Item style(String value) {
-<span class="fc" id="L396">      this.style = value;</span>
-<span class="fc" id="L397">      return this;</span>
+<span class="fc" id="L403">      this.style = value;</span>
+<span class="fc" id="L404">      return this;</span>
     }
 
     Item cssClassName(String value) {
-<span class="fc" id="L401">      this.cssClassName = value;</span>
-<span class="fc" id="L402">      return this;</span>
+<span class="fc" id="L408">      this.cssClassName = value;</span>
+<span class="fc" id="L409">      return this;</span>
     }
 
     Item decorate(boolean value) {
-<span class="fc" id="L406">      this.decorate = value;</span>
-<span class="fc" id="L407">      return this;</span>
+<span class="fc" id="L413">      this.decorate = value;</span>
+<span class="fc" id="L414">      return this;</span>
     }
 
     Item newArea(boolean value) {
-<span class="fc" id="L411">      this.newArea = value;</span>
-<span class="fc" id="L412">      return this;</span>
+<span class="fc" id="L418">      this.newArea = value;</span>
+<span class="fc" id="L419">      return this;</span>
     }
 
     Item valid(boolean value) {
-<span class="fc" id="L416">      this.valid = value;</span>
-<span class="fc" id="L417">      return this;</span>
+<span class="fc" id="L423">      this.valid = value;</span>
+<span class="fc" id="L424">      return this;</span>
     }
 
     /**
      * @return Resource path
      */
     public String getResourcePath() {
-<span class="fc" id="L424">      return resourcePath;</span>
+<span class="fc" id="L431">      return resourcePath;</span>
     }
 
     /**
      * @return Resource type
      */
     public String getResourceType() {
-<span class="fc" id="L431">      return resourceType;</span>
+<span class="fc" id="L438">      return resourceType;</span>
     }
 
     /**
      * @return Name for item element
      */
     public String getElementName() {
-<span class="fc" id="L438">      return elementName;</span>
+<span class="fc" id="L445">      return elementName;</span>
     }
 
     /**
      * @return Style string
      */
     public String getStyle() {
-<span class="fc" id="L445">      return style;</span>
+<span class="fc" id="L452">      return style;</span>
     }
 
     /**
      * @return CSS classes
      */
     public String getCssClassName() {
-<span class="fc" id="L452">      return cssClassName;</span>
+<span class="fc" id="L459">      return cssClassName;</span>
     }
 
     /**
      * @return Render with decoration tag
      */
     public boolean isDecorate() {
-<span class="fc" id="L459">      return this.decorate;</span>
+<span class="fc" id="L466">      return this.decorate;</span>
     }
 
     /**
      * @return true if this is the new area
      */
     public boolean isNewArea() {
-<span class="fc" id="L466">      return newArea;</span>
+<span class="fc" id="L473">      return newArea;</span>
     }
 
     /**
@@ -471,7 +478,7 @@ import io.wcm.wcm.parsys.ParsysItem;
      *         If not it should be hidded when wcmmode=disabled.
      */
     public boolean isValid() {
-<span class="fc" id="L474">      return this.valid;</span>
+<span class="fc" id="L481">      return this.valid;</span>
     }
 
   }
