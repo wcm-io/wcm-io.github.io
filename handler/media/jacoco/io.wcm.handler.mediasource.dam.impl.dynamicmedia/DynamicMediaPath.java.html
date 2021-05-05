@@ -27,6 +27,8 @@ import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.wcm.handler.media.CropDimension;
 import io.wcm.handler.media.Dimension;
@@ -55,6 +57,8 @@ public final class DynamicMediaPath {
    */
   public static final String DOWNLOAD_SUFFIX = &quot;?cdh=attachment&quot;;
 
+<span class="fc" id="L60">  private static final Logger log = LoggerFactory.getLogger(DynamicMediaPath.class);</span>
+
   private DynamicMediaPath() {
     // static methods only
   }
@@ -66,12 +70,12 @@ public final class DynamicMediaPath {
    * @return Media path
    */
   public static @NotNull String buildContent(@NotNull DamContext damContext, boolean contentDispositionAttachment) {
-<span class="fc" id="L69">    StringBuilder result = new StringBuilder();</span>
-<span class="fc" id="L70">    result.append(CONTENT_SERVER_PATH).append(encodeDynamicMediaObject(damContext));</span>
-<span class="fc bfc" id="L71" title="All 2 branches covered.">    if (contentDispositionAttachment) {</span>
-<span class="fc" id="L72">      result.append(DOWNLOAD_SUFFIX);</span>
+<span class="fc" id="L73">    StringBuilder result = new StringBuilder();</span>
+<span class="fc" id="L74">    result.append(CONTENT_SERVER_PATH).append(encodeDynamicMediaObject(damContext));</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">    if (contentDispositionAttachment) {</span>
+<span class="fc" id="L76">      result.append(DOWNLOAD_SUFFIX);</span>
     }
-<span class="fc" id="L74">    return result.toString();</span>
+<span class="fc" id="L78">    return result.toString();</span>
   }
 
   /**
@@ -80,7 +84,7 @@ public final class DynamicMediaPath {
    * @return Media path
    */
   public static @NotNull String buildImage(@NotNull DamContext damContext) {
-<span class="fc" id="L83">    return IMAGE_SERVER_PATH + encodeDynamicMediaObject(damContext);</span>
+<span class="fc" id="L87">    return IMAGE_SERVER_PATH + encodeDynamicMediaObject(damContext);</span>
   }
 
   /**
@@ -91,7 +95,7 @@ public final class DynamicMediaPath {
    * @return Media path
    */
   public static @NotNull String buildImage(@NotNull DamContext damContext, long width, long height) {
-<span class="fc" id="L94">    return buildImage(damContext, width, height, null, null);</span>
+<span class="fc" id="L98">    return buildImage(damContext, width, height, null, null);</span>
   }
 
   /**
@@ -105,37 +109,45 @@ public final class DynamicMediaPath {
    */
   public static @NotNull String buildImage(@NotNull DamContext damContext, long width, long height,
       @Nullable CropDimension cropDimension, @Nullable Integer rotation) {
-<span class="fc" id="L108">    Dimension dimension = calcWidthHeight(damContext, width, height);</span>
+<span class="fc" id="L112">    Dimension dimension = calcWidthHeight(damContext, width, height);</span>
 
-<span class="fc" id="L110">    StringBuilder result = new StringBuilder();</span>
-<span class="fc" id="L111">    result.append(IMAGE_SERVER_PATH).append(encodeDynamicMediaObject(damContext));</span>
+<span class="fc" id="L114">    StringBuilder result = new StringBuilder();</span>
+<span class="fc" id="L115">    result.append(IMAGE_SERVER_PATH).append(encodeDynamicMediaObject(damContext));</span>
 
-<span class="fc bfc" id="L113" title="All 6 branches covered.">    if (cropDimension != null &amp;&amp; cropDimension.isAutoCrop() &amp;&amp; rotation == null) {</span>
+<span class="fc bfc" id="L117" title="All 6 branches covered.">    if (cropDimension != null &amp;&amp; cropDimension.isAutoCrop() &amp;&amp; rotation == null) {</span>
       // auto-crop applied - check for matching image profile and use predefined cropping preset if match found
-<span class="fc" id="L115">      Optional&lt;NamedDimension&gt; smartCroppingDef = getSmartCropDimension(damContext, width, height);</span>
-<span class="fc bfc" id="L116" title="All 2 branches covered.">      if (smartCroppingDef.isPresent()) {</span>
-<span class="fc" id="L117">        result.append(&quot;%3A&quot;).append(smartCroppingDef.get().getName()).append(&quot;?&quot;)</span>
-<span class="fc" id="L118">            .append(&quot;wid=&quot;).append(dimension.getWidth()).append(&quot;&amp;&quot;)</span>
-<span class="fc" id="L119">            .append(&quot;hei=&quot;).append(dimension.getHeight()).append(&quot;&amp;&quot;)</span>
+<span class="fc" id="L119">      Optional&lt;NamedDimension&gt; smartCroppingDef = getSmartCropDimension(damContext, width, height);</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">      if (smartCroppingDef.isPresent()) {</span>
+<span class="fc" id="L121">        result.append(&quot;%3A&quot;).append(smartCroppingDef.get().getName()).append(&quot;?&quot;)</span>
+<span class="fc" id="L122">            .append(&quot;wid=&quot;).append(dimension.getWidth()).append(&quot;&amp;&quot;)</span>
+<span class="fc" id="L123">            .append(&quot;hei=&quot;).append(dimension.getHeight()).append(&quot;&amp;&quot;)</span>
             // cropping/width/height is pre-calculated to fit with original ratio, make sure there are no 1px background lines visible
-<span class="fc" id="L121">            .append(&quot;fit=stretch&quot;);</span>
-<span class="fc" id="L122">        return result.toString();</span>
+<span class="fc" id="L125">            .append(&quot;fit=stretch&quot;);</span>
+<span class="fc" id="L126">        logResult(damContext, result);</span>
+<span class="fc" id="L127">        return result.toString();</span>
       }
     }
 
-<span class="fc" id="L126">    result.append(&quot;?&quot;);</span>
-<span class="fc bfc" id="L127" title="All 2 branches covered.">    if (cropDimension != null) {</span>
-<span class="fc" id="L128">      result.append(&quot;crop=&quot;).append(cropDimension.getCropStringWidthHeight()).append(&quot;&amp;&quot;);</span>
+<span class="fc" id="L131">    result.append(&quot;?&quot;);</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">    if (cropDimension != null) {</span>
+<span class="fc" id="L133">      result.append(&quot;crop=&quot;).append(cropDimension.getCropStringWidthHeight()).append(&quot;&amp;&quot;);</span>
     }
-<span class="fc bfc" id="L130" title="All 2 branches covered.">    if (rotation != null) {</span>
-<span class="fc" id="L131">      result.append(&quot;rotate=&quot;).append(rotation).append(&quot;&amp;&quot;);</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">    if (rotation != null) {</span>
+<span class="fc" id="L136">      result.append(&quot;rotate=&quot;).append(rotation).append(&quot;&amp;&quot;);</span>
     }
-<span class="fc" id="L133">    result.append(&quot;wid=&quot;).append(dimension.getWidth()).append(&quot;&amp;&quot;)</span>
-<span class="fc" id="L134">        .append(&quot;hei=&quot;).append(dimension.getHeight()).append(&quot;&amp;&quot;)</span>
+<span class="fc" id="L138">    result.append(&quot;wid=&quot;).append(dimension.getWidth()).append(&quot;&amp;&quot;)</span>
+<span class="fc" id="L139">        .append(&quot;hei=&quot;).append(dimension.getHeight()).append(&quot;&amp;&quot;)</span>
         // cropping/width/height is pre-calculated to fit with original ratio, make sure there are no 1px background lines visible
-<span class="fc" id="L136">        .append(&quot;fit=stretch&quot;);</span>
-<span class="fc" id="L137">    return result.toString();</span>
+<span class="fc" id="L141">        .append(&quot;fit=stretch&quot;);</span>
+<span class="fc" id="L142">    logResult(damContext, result);</span>
+<span class="fc" id="L143">    return result.toString();</span>
   }
+
+  private static void logResult(@NotNull DamContext damContext, @NotNull StringBuilder result) {
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">    if (log.isTraceEnabled()) {</span>
+<span class="nc" id="L148">      log.trace(&quot;Build dynamic media path for {}: {}&quot;, damContext.getAsset().getPath(), result);</span>
+    }
+<span class="fc" id="L150">  }</span>
 
   /**
    * Checks if width or height is bigger than the allowed max. width/height.
@@ -145,32 +157,32 @@ public final class DynamicMediaPath {
    * @return Dimension with capped width/height
    */
   private static Dimension calcWidthHeight(@NotNull DamContext damContext, long width, long height) {
-<span class="fc" id="L148">    Dimension sizeLimit = damContext.getDynamicMediaImageSizeLimit();</span>
-<span class="fc bfc" id="L149" title="All 2 branches covered.">    if (width &gt; sizeLimit.getWidth()) {</span>
-<span class="fc" id="L150">      double ratio = Ratio.get(width, height);</span>
-<span class="fc" id="L151">      long newWidth = sizeLimit.getWidth();</span>
-<span class="fc" id="L152">      long newHeight = Math.round(newWidth / ratio);</span>
-<span class="fc" id="L153">      return calcWidthHeight(damContext, newWidth, newHeight);</span>
+<span class="fc" id="L160">    Dimension sizeLimit = damContext.getDynamicMediaImageSizeLimit();</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">    if (width &gt; sizeLimit.getWidth()) {</span>
+<span class="fc" id="L162">      double ratio = Ratio.get(width, height);</span>
+<span class="fc" id="L163">      long newWidth = sizeLimit.getWidth();</span>
+<span class="fc" id="L164">      long newHeight = Math.round(newWidth / ratio);</span>
+<span class="fc" id="L165">      return calcWidthHeight(damContext, newWidth, newHeight);</span>
     }
-<span class="fc bfc" id="L155" title="All 2 branches covered.">    if (height &gt; sizeLimit.getHeight()) {</span>
-<span class="fc" id="L156">      double ratio = Ratio.get(width, height);</span>
-<span class="fc" id="L157">      long newHeight = sizeLimit.getHeight();</span>
-<span class="fc" id="L158">      long newWidth = Math.round(newHeight * ratio);</span>
-<span class="fc" id="L159">      return new Dimension(newWidth, newHeight);</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">    if (height &gt; sizeLimit.getHeight()) {</span>
+<span class="fc" id="L168">      double ratio = Ratio.get(width, height);</span>
+<span class="fc" id="L169">      long newHeight = sizeLimit.getHeight();</span>
+<span class="fc" id="L170">      long newWidth = Math.round(newHeight * ratio);</span>
+<span class="fc" id="L171">      return new Dimension(newWidth, newHeight);</span>
     }
-<span class="fc" id="L161">    return new Dimension(width, height);</span>
+<span class="fc" id="L173">    return new Dimension(width, height);</span>
   }
 
   private static Optional&lt;@NotNull NamedDimension&gt; getSmartCropDimension(@NotNull DamContext damContext, long width, long height) {
-<span class="fc" id="L165">    Double requestedRatio = Ratio.get(width, height);</span>
-<span class="fc" id="L166">    ImageProfile imageProfile = damContext.getImageProfile();</span>
-<span class="fc bfc" id="L167" title="All 2 branches covered.">    if (imageProfile == null) {</span>
-<span class="fc" id="L168">      return Optional.empty();</span>
+<span class="fc" id="L177">    Double requestedRatio = Ratio.get(width, height);</span>
+<span class="fc" id="L178">    ImageProfile imageProfile = damContext.getImageProfile();</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (imageProfile == null) {</span>
+<span class="fc" id="L180">      return Optional.empty();</span>
     }
-<span class="fc" id="L170">    Optional&lt;NamedDimension&gt; matchingDimension = imageProfile.getSmartCropDefinitions().stream()</span>
-<span class="fc" id="L171">        .filter(def -&gt; Ratio.matches(Ratio.get(def), requestedRatio))</span>
-<span class="fc" id="L172">        .findFirst();</span>
-<span class="fc" id="L173">    return matchingDimension.map(def -&gt; new NamedDimension(def.getName(), width, height));</span>
+<span class="fc" id="L182">    Optional&lt;NamedDimension&gt; matchingDimension = imageProfile.getSmartCropDefinitions().stream()</span>
+<span class="fc" id="L183">        .filter(def -&gt; Ratio.matches(Ratio.get(def), requestedRatio))</span>
+<span class="fc" id="L184">        .findFirst();</span>
+<span class="fc" id="L185">    return matchingDimension.map(def -&gt; new NamedDimension(def.getName(), width, height));</span>
   }
 
   /**
@@ -179,18 +191,18 @@ public final class DynamicMediaPath {
    * @return Encoded path
    */
   private static String encodeDynamicMediaObject(@NotNull DamContext damContext) {
-<span class="fc" id="L182">    String[] pathParts = StringUtils.split(damContext.getDynamicMediaObject(), &quot;/&quot;);</span>
+<span class="fc" id="L194">    String[] pathParts = StringUtils.split(damContext.getDynamicMediaObject(), &quot;/&quot;);</span>
     try {
-<span class="fc bfc" id="L184" title="All 2 branches covered.">      for (int i = 0; i &lt; pathParts.length; i++) {</span>
-<span class="fc" id="L185">        pathParts[i] = URLEncoder.encode(pathParts[i], StandardCharsets.UTF_8.name());</span>
+<span class="fc bfc" id="L196" title="All 2 branches covered.">      for (int i = 0; i &lt; pathParts.length; i++) {</span>
+<span class="fc" id="L197">        pathParts[i] = URLEncoder.encode(pathParts[i], StandardCharsets.UTF_8.name());</span>
         // replace &quot;+&quot; with %20 in URL paths
-<span class="fc" id="L187">        pathParts[i] = StringUtils.replace(pathParts[i], &quot;+&quot;, &quot;%20&quot;);</span>
+<span class="fc" id="L199">        pathParts[i] = StringUtils.replace(pathParts[i], &quot;+&quot;, &quot;%20&quot;);</span>
       }
     }
-<span class="nc" id="L190">    catch (UnsupportedEncodingException ex) {</span>
-<span class="nc" id="L191">      throw new RuntimeException(&quot;Unsupported encoding.&quot;, ex);</span>
-<span class="fc" id="L192">    }</span>
-<span class="fc" id="L193">    return StringUtils.join(pathParts, &quot;/&quot;);</span>
+<span class="nc" id="L202">    catch (UnsupportedEncodingException ex) {</span>
+<span class="nc" id="L203">      throw new RuntimeException(&quot;Unsupported encoding.&quot;, ex);</span>
+<span class="fc" id="L204">    }</span>
+<span class="fc" id="L205">    return StringUtils.join(pathParts, &quot;/&quot;);</span>
   }
 
 }
