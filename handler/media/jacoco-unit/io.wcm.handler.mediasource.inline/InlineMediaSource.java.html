@@ -23,7 +23,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.adapter.Adaptable;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.models.annotations.Model;
 import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
@@ -54,7 +53,7 @@ import io.wcm.sling.commons.util.Escape;
     SlingHttpServletRequest.class, Resource.class
 })
 @ProviderType
-<span class="fc" id="L57">public final class InlineMediaSource extends MediaSource {</span>
+<span class="fc" id="L56">public final class InlineMediaSource extends MediaSource {</span>
 
   @Self
   private Adaptable adaptable;
@@ -70,95 +69,93 @@ import io.wcm.sling.commons.util.Escape;
 
   @Override
   public @NotNull String getId() {
-<span class="nc" id="L73">    return ID;</span>
+<span class="nc" id="L72">    return ID;</span>
   }
 
   @Override
   public boolean accepts(@NotNull MediaRequest mediaRequest) {
     // if no media source id is defined fallback to auto-detection of inline media object in resource
-<span class="fc" id="L79">    String mediaSourceId = mediaRequest.getResourceProperties().get(MediaNameConstants.PN_MEDIA_SOURCE, String.class);</span>
-<span class="pc bpc" id="L80" title="1 of 2 branches missed.">    if (StringUtils.isEmpty(mediaSourceId)) {</span>
+<span class="fc" id="L78">    String mediaSourceId = mediaRequest.getResourceProperties().get(MediaNameConstants.PN_MEDIA_SOURCE, String.class);</span>
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">    if (StringUtils.isEmpty(mediaSourceId)) {</span>
       // accept for inline media if &quot;mediaInline&quot; child node is present
-<span class="fc bfc" id="L82" title="All 2 branches covered.">      return getMediaInlineResource(mediaRequest) != null;</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">      return getMediaInlineResource(mediaRequest) != null;</span>
     }
     else {
-<span class="nc" id="L85">      return super.accepts(mediaRequest);</span>
+<span class="nc" id="L84">      return super.accepts(mediaRequest);</span>
     }
   }
 
   @Override
   public boolean accepts(@Nullable String mediaRef) {
     // not supported
-<span class="nc" id="L92">    return false;</span>
+<span class="nc" id="L91">    return false;</span>
   }
 
   @Override
   public @Nullable String getPrimaryMediaRefProperty() {
     // not supported
-<span class="nc" id="L98">    return null;</span>
+<span class="nc" id="L97">    return null;</span>
   }
 
   @Override
   public @NotNull Media resolveMedia(@NotNull Media media) {
-<span class="fc" id="L103">    MediaArgs mediaArgs = media.getMediaRequest().getMediaArgs();</span>
+<span class="fc" id="L102">    MediaArgs mediaArgs = media.getMediaRequest().getMediaArgs();</span>
 
     // the resource that was referenced originally (and may contain additional attributes)
-<span class="fc" id="L106">    Resource referencedResource = media.getMediaRequest().getResource();</span>
-<span class="fc" id="L107">    Resource ntFileResource = null;</span>
-<span class="fc" id="L108">    Resource ntResourceResource = null;</span>
+<span class="fc" id="L105">    Resource referencedResource = media.getMediaRequest().getResource();</span>
+<span class="fc" id="L106">    Resource ntFileResource = null;</span>
+<span class="fc" id="L107">    Resource ntResourceResource = null;</span>
 
     // get and check resource holding binary data (with primary node type nt:resource)
-<span class="fc" id="L111">    Resource mediaInlineResource = getMediaInlineResource(media.getMediaRequest());</span>
-<span class="pc bpc" id="L112" title="1 of 2 branches missed.">    if (mediaInlineResource != null) {</span>
-<span class="fc bfc" id="L113" title="All 2 branches covered.">      if (JcrBinary.isNtFile(mediaInlineResource)) {</span>
-<span class="fc" id="L114">        ntFileResource = mediaInlineResource;</span>
-<span class="fc" id="L115">        ntResourceResource = mediaInlineResource.getChild(JcrConstants.JCR_CONTENT);</span>
+<span class="fc" id="L110">    Resource mediaInlineResource = getMediaInlineResource(media.getMediaRequest());</span>
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">    if (mediaInlineResource != null) {</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">      if (JcrBinary.isNtFile(mediaInlineResource)) {</span>
+<span class="fc" id="L113">        ntFileResource = mediaInlineResource;</span>
+<span class="fc" id="L114">        ntResourceResource = mediaInlineResource.getChild(JcrConstants.JCR_CONTENT);</span>
       }
-<span class="pc bpc" id="L117" title="1 of 2 branches missed.">      else if (JcrBinary.isNtResource(mediaInlineResource)) {</span>
-<span class="fc" id="L118">        ntResourceResource = mediaInlineResource;</span>
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">      else if (JcrBinary.isNtResource(mediaInlineResource)) {</span>
+<span class="fc" id="L117">        ntResourceResource = mediaInlineResource;</span>
       }
     }
 
     // skip further processing if nor binary resource found
-<span class="pc bpc" id="L123" title="1 of 2 branches missed.">    if (ntResourceResource == null) {</span>
-<span class="nc" id="L124">      media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_INVALID);</span>
-<span class="nc" id="L125">      return media;</span>
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">    if (ntResourceResource == null) {</span>
+<span class="nc" id="L123">      media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_INVALID);</span>
+<span class="nc" id="L124">      return media;</span>
     }
 
-    // Alternative text - if there is a custom alt text specified in the media args then use that one
-<span class="pc bpc" id="L129" title="1 of 4 branches missed.">    if (StringUtils.isEmpty(mediaArgs.getAltText()) &amp;&amp; referencedResource != null) {</span>
-      // otherwise check if there is a custom altText specified in the component's properties
-<span class="fc" id="L131">      ValueMap props = referencedResource.getValueMap();</span>
-<span class="fc" id="L132">      mediaArgs.altText(props.get(mediaHandlerConfig.getMediaAltTextProperty(), String.class));</span>
+    // Update media args settings from resource (e.g. alt. text setings)
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">    if (referencedResource != null) {</span>
+<span class="fc" id="L129">      updateMediaArgsFromResource(mediaArgs, referencedResource, mediaHandlerConfig);</span>
     }
 
     // Check for transformations
-<span class="fc" id="L136">    media.setCropDimension(getMediaCropDimension(media.getMediaRequest(), mediaHandlerConfig));</span>
-<span class="fc" id="L137">    media.setRotation(getMediaRotation(media.getMediaRequest(), mediaHandlerConfig));</span>
-<span class="fc" id="L138">    media.setMap(getMediaMap(media.getMediaRequest(), mediaHandlerConfig));</span>
+<span class="fc" id="L133">    media.setCropDimension(getMediaCropDimension(media.getMediaRequest(), mediaHandlerConfig));</span>
+<span class="fc" id="L134">    media.setRotation(getMediaRotation(media.getMediaRequest(), mediaHandlerConfig));</span>
+<span class="fc" id="L135">    media.setMap(getMediaMap(media.getMediaRequest(), mediaHandlerConfig));</span>
 
     // detect and clean up file name
-<span class="fc" id="L141">    String fileName = detectFileName(referencedResource, ntFileResource, ntResourceResource);</span>
-<span class="fc" id="L142">    fileName = cleanupFileName(fileName);</span>
+<span class="fc" id="L138">    String fileName = detectFileName(referencedResource, ntFileResource, ntResourceResource);</span>
+<span class="fc" id="L139">    fileName = cleanupFileName(fileName);</span>
 
     // generate media item and rendition for inline media
-<span class="fc" id="L145">    Asset asset = getInlineAsset(ntResourceResource, media, fileName);</span>
-<span class="fc" id="L146">    media.setAsset(asset);</span>
+<span class="fc" id="L142">    Asset asset = getInlineAsset(ntResourceResource, media, fileName);</span>
+<span class="fc" id="L143">    media.setAsset(asset);</span>
 
     // resolve rendition
-<span class="fc" id="L149">    boolean renditionsResolved = resolveRenditions(media, asset, mediaArgs);</span>
+<span class="fc" id="L146">    boolean renditionsResolved = resolveRenditions(media, asset, mediaArgs);</span>
 
     // set media invalid reason
-<span class="fc bfc" id="L152" title="All 2 branches covered.">    if (!renditionsResolved) {</span>
-<span class="fc bfc" id="L153" title="All 2 branches covered.">      if (media.getRenditions().isEmpty()) {</span>
-<span class="fc" id="L154">        media.setMediaInvalidReason(MediaInvalidReason.NO_MATCHING_RENDITION);</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">    if (!renditionsResolved) {</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">      if (media.getRenditions().isEmpty()) {</span>
+<span class="fc" id="L151">        media.setMediaInvalidReason(MediaInvalidReason.NO_MATCHING_RENDITION);</span>
       }
       else {
-<span class="fc" id="L157">        media.setMediaInvalidReason(MediaInvalidReason.NOT_ENOUGH_MATCHING_RENDITIONS);</span>
+<span class="fc" id="L154">        media.setMediaInvalidReason(MediaInvalidReason.NOT_ENOUGH_MATCHING_RENDITIONS);</span>
       }
     }
 
-<span class="fc" id="L161">    return media;</span>
+<span class="fc" id="L158">    return media;</span>
   }
 
   /**
@@ -169,7 +166,7 @@ import io.wcm.sling.commons.util.Escape;
    * @return Inline media item instance
    */
   private Asset getInlineAsset(Resource ntResourceResource, Media media, String fileName) {
-<span class="fc" id="L172">    return new InlineAsset(ntResourceResource, media, fileName, adaptable);</span>
+<span class="fc" id="L169">    return new InlineAsset(ntResourceResource, media, fileName, adaptable);</span>
   }
 
   /**
@@ -182,40 +179,40 @@ import io.wcm.sling.commons.util.Escape;
   private String detectFileName(Resource referencedResource, Resource ntFileResource,
       Resource ntResourceResource) {
     // detect file name
-<span class="fc" id="L185">    String fileName = null;</span>
+<span class="fc" id="L182">    String fileName = null;</span>
     // if referenced resource is not the nt:file node check for &lt;nodename&gt;Name property
-<span class="fc bfc" id="L187" title="All 4 branches covered.">    if (ntFileResource != null &amp;&amp; !referencedResource.equals(ntFileResource)) {</span>
-<span class="fc" id="L188">      fileName = referencedResource.getValueMap().get(ntFileResource.getName() + &quot;Name&quot;, String.class);</span>
+<span class="fc bfc" id="L184" title="All 4 branches covered.">    if (ntFileResource != null &amp;&amp; !referencedResource.equals(ntFileResource)) {</span>
+<span class="fc" id="L185">      fileName = referencedResource.getValueMap().get(ntFileResource.getName() + &quot;Name&quot;, String.class);</span>
     }
     // if not nt:file node exists and the referenced resource is not the nt:resource node check for &lt;nodename&gt;Name property
-<span class="fc bfc" id="L191" title="All 4 branches covered.">    else if (ntFileResource == null &amp;&amp; !referencedResource.equals(ntResourceResource)) {</span>
-<span class="fc" id="L192">      fileName = referencedResource.getValueMap().get(ntResourceResource.getName() + &quot;Name&quot;, String.class);</span>
+<span class="fc bfc" id="L188" title="All 4 branches covered.">    else if (ntFileResource == null &amp;&amp; !referencedResource.equals(ntResourceResource)) {</span>
+<span class="fc" id="L189">      fileName = referencedResource.getValueMap().get(ntResourceResource.getName() + &quot;Name&quot;, String.class);</span>
     }
     // otherwise use node name of nt:file resource if it exists
-<span class="fc bfc" id="L195" title="All 2 branches covered.">    else if (ntFileResource != null) {</span>
-<span class="fc" id="L196">      fileName = ntFileResource.getName();</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">    else if (ntFileResource != null) {</span>
+<span class="fc" id="L193">      fileName = ntFileResource.getName();</span>
     }
     // make sure filename has an extension, otherwise build virtual file name
-<span class="fc bfc" id="L199" title="All 2 branches covered.">    if (!StringUtils.contains(fileName, &quot;.&quot;)) {</span>
-<span class="fc" id="L200">      fileName = null;</span>
+<span class="fc bfc" id="L196" title="All 2 branches covered.">    if (!StringUtils.contains(fileName, &quot;.&quot;)) {</span>
+<span class="fc" id="L197">      fileName = null;</span>
     }
 
     // if no filename found detect extension from mime type and build virtual filename
-<span class="fc bfc" id="L204" title="All 2 branches covered.">    if (StringUtils.isBlank(fileName)) {</span>
-<span class="fc" id="L205">      String fileExtension = null;</span>
-<span class="pc bpc" id="L206" title="1 of 2 branches missed.">      if (ntResourceResource != null) {</span>
-<span class="fc" id="L207">        String mimeType = ntResourceResource.getValueMap().get(JcrConstants.JCR_MIMETYPE, String.class);</span>
-<span class="pc bpc" id="L208" title="2 of 4 branches missed.">        if (StringUtils.isNotEmpty(mimeType) &amp;&amp; mimeTypeService != null) {</span>
-<span class="fc" id="L209">          fileExtension = mimeTypeService.getExtension(mimeType);</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">    if (StringUtils.isBlank(fileName)) {</span>
+<span class="fc" id="L202">      String fileExtension = null;</span>
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">      if (ntResourceResource != null) {</span>
+<span class="fc" id="L204">        String mimeType = ntResourceResource.getValueMap().get(JcrConstants.JCR_MIMETYPE, String.class);</span>
+<span class="pc bpc" id="L205" title="2 of 4 branches missed.">        if (StringUtils.isNotEmpty(mimeType) &amp;&amp; mimeTypeService != null) {</span>
+<span class="fc" id="L206">          fileExtension = mimeTypeService.getExtension(mimeType);</span>
         }
       }
-<span class="pc bpc" id="L212" title="1 of 2 branches missed.">      if (StringUtils.isEmpty(fileExtension)) {</span>
-<span class="nc" id="L213">        fileExtension = &quot;bin&quot;;</span>
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">      if (StringUtils.isEmpty(fileExtension)) {</span>
+<span class="nc" id="L210">        fileExtension = &quot;bin&quot;;</span>
       }
-<span class="fc" id="L215">      fileName = &quot;file.&quot; + fileExtension;</span>
+<span class="fc" id="L212">      fileName = &quot;file.&quot; + fileExtension;</span>
     }
 
-<span class="fc" id="L218">    return fileName;</span>
+<span class="fc" id="L215">    return fileName;</span>
   }
 
   /**
@@ -224,20 +221,20 @@ import io.wcm.sling.commons.util.Escape;
    * @return Cleaned up file name
    */
   private String cleanupFileName(String fileName) {
-<span class="fc" id="L227">    String processedFileName = fileName;</span>
+<span class="fc" id="L224">    String processedFileName = fileName;</span>
 
     // strip off path parts
-<span class="pc bpc" id="L230" title="1 of 2 branches missed.">    if (StringUtils.contains(processedFileName, &quot;/&quot;)) {</span>
-<span class="nc" id="L231">      processedFileName = StringUtils.substringAfterLast(processedFileName, &quot;/&quot;);</span>
+<span class="pc bpc" id="L227" title="1 of 2 branches missed.">    if (StringUtils.contains(processedFileName, &quot;/&quot;)) {</span>
+<span class="nc" id="L228">      processedFileName = StringUtils.substringAfterLast(processedFileName, &quot;/&quot;);</span>
     }
-<span class="pc bpc" id="L233" title="1 of 2 branches missed.">    if (StringUtils.contains(processedFileName, &quot;\\&quot;)) {</span>
-<span class="nc" id="L234">      processedFileName = StringUtils.substringAfterLast(processedFileName, &quot;\\&quot;);</span>
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">    if (StringUtils.contains(processedFileName, &quot;\\&quot;)) {</span>
+<span class="nc" id="L231">      processedFileName = StringUtils.substringAfterLast(processedFileName, &quot;\\&quot;);</span>
     }
 
     // make sure filename does not contain any invalid characters
-<span class="fc" id="L238">    processedFileName = Escape.validFilename(processedFileName);</span>
+<span class="fc" id="L235">    processedFileName = Escape.validFilename(processedFileName);</span>
 
-<span class="fc" id="L240">    return processedFileName;</span>
+<span class="fc" id="L237">    return processedFileName;</span>
   }
 
   /**
@@ -246,36 +243,36 @@ import io.wcm.sling.commons.util.Escape;
    * @return Resource or null if not present
    */
   private Resource getMediaInlineResource(MediaRequest mediaRequest) {
-<span class="fc" id="L249">    Resource resource = mediaRequest.getResource();</span>
-<span class="fc bfc" id="L250" title="All 2 branches covered.">    if (resource == null) {</span>
-<span class="fc" id="L251">      return null;</span>
+<span class="fc" id="L246">    Resource resource = mediaRequest.getResource();</span>
+<span class="fc bfc" id="L247" title="All 2 branches covered.">    if (resource == null) {</span>
+<span class="fc" id="L248">      return null;</span>
     }
 
     // check if resource itself is a nt:file node
-<span class="fc bfc" id="L255" title="All 2 branches covered.">    if (JcrBinary.isNtFileOrResource(resource)) {</span>
-<span class="fc" id="L256">      return resource;</span>
+<span class="fc bfc" id="L252" title="All 2 branches covered.">    if (JcrBinary.isNtFileOrResource(resource)) {</span>
+<span class="fc" id="L253">      return resource;</span>
     }
 
     // check if child node exists which is a nt:file node
-<span class="fc" id="L260">    String refProperty = StringUtils.defaultString(mediaRequest.getMediaPropertyNames().getRefProperty(),</span>
-<span class="fc" id="L261">        mediaHandlerConfig.getMediaInlineNodeName());</span>
-<span class="fc" id="L262">    Resource mediaInlineResource = resource.getChild(refProperty);</span>
-<span class="fc bfc" id="L263" title="All 2 branches covered.">    if (JcrBinary.isNtFileOrResource(mediaInlineResource)) {</span>
-<span class="fc" id="L264">      return mediaInlineResource;</span>
+<span class="fc" id="L257">    String refProperty = StringUtils.defaultString(mediaRequest.getMediaPropertyNames().getRefProperty(),</span>
+<span class="fc" id="L258">        mediaHandlerConfig.getMediaInlineNodeName());</span>
+<span class="fc" id="L259">    Resource mediaInlineResource = resource.getChild(refProperty);</span>
+<span class="fc bfc" id="L260" title="All 2 branches covered.">    if (JcrBinary.isNtFileOrResource(mediaInlineResource)) {</span>
+<span class="fc" id="L261">      return mediaInlineResource;</span>
     }
 
     // not found
-<span class="fc" id="L268">    return null;</span>
+<span class="fc" id="L265">    return null;</span>
   }
 
   @Override
   public void enableMediaDrop(@NotNull HtmlElement element, @NotNull MediaRequest mediaRequest) {
     // not supported
-<span class="nc" id="L274">  }</span>
+<span class="nc" id="L271">  }</span>
 
   @Override
   public String toString() {
-<span class="nc" id="L278">    return ID;</span>
+<span class="nc" id="L275">    return ID;</span>
   }
 
 }
