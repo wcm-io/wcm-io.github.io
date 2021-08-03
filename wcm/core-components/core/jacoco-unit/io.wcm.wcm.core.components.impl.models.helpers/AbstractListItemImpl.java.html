@@ -26,6 +26,7 @@ import org.apache.sling.api.resource.Resource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import com.adobe.cq.wcm.core.components.commons.link.Link;
 import com.adobe.cq.wcm.core.components.models.ListItem;
 import com.adobe.cq.wcm.core.components.models.datalayer.ComponentData;
 import com.adobe.cq.wcm.core.components.models.datalayer.builder.DataLayerBuilder;
@@ -49,32 +50,33 @@ public abstract class AbstractListItemImpl extends AbstractComponentImpl impleme
    * @param parentComponent The component that contains this list item
    */
   protected AbstractListItemImpl(@NotNull Resource resource,
-<span class="fc" id="L52">      @Nullable String parentId, @Nullable Component parentComponent) {</span>
-<span class="fc" id="L53">    this.parentId = parentId;</span>
-<span class="fc" id="L54">    this.resource = resource;</span>
-<span class="fc bfc" id="L55" title="All 2 branches covered.">    this.dataLayerType = parentComponent != null ? parentComponent.getResourceType() + &quot;/&quot; + ITEM_ID_PREFIX : null;</span>
-<span class="fc" id="L56">  }</span>
+<span class="fc" id="L53">      @Nullable String parentId, @Nullable Component parentComponent) {</span>
+<span class="fc" id="L54">    this.parentId = parentId;</span>
+<span class="fc" id="L55">    this.resource = resource;</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">    this.dataLayerType = parentComponent != null ? parentComponent.getResourceType() + &quot;/&quot; + ITEM_ID_PREFIX : null;</span>
+<span class="fc" id="L57">  }</span>
 
   protected String getItemIdPrefix() {
-<span class="nc" id="L59">    return ITEM_ID_PREFIX;</span>
+<span class="nc" id="L60">    return ITEM_ID_PREFIX;</span>
   }
 
   @Override
   public @Nullable String getId() {
-<span class="nc bnc" id="L64" title="All 2 branches missed.">    if (this.resource == null) {</span>
-<span class="nc" id="L65">      return null;</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">    if (this.resource == null) {</span>
+<span class="nc" id="L66">      return null;</span>
     }
-<span class="nc" id="L67">    return ComponentUtils.generateId(StringUtils.join(parentId, ComponentUtils.ID_SEPARATOR, getItemIdPrefix()), resource.getPath());</span>
+<span class="nc" id="L68">    return ComponentUtils.generateId(StringUtils.join(parentId, ComponentUtils.ID_SEPARATOR, getItemIdPrefix()), resource.getPath());</span>
   }
 
   @Override
+  @SuppressWarnings(&quot;null&quot;)
   protected @NotNull ComponentData getComponentData() {
-<span class="fc" id="L72">    return DataLayerBuilder.extending(super.getComponentData())</span>
-<span class="fc" id="L73">        .asComponent()</span>
-<span class="pc" id="L74">        .withType(() -&gt; Optional.ofNullable(this.dataLayerType).orElseGet(() -&gt; super.getComponentData().getType()))</span>
-<span class="fc" id="L75">        .withTitle(this::getTitle)</span>
-<span class="fc" id="L76">        .withLinkUrl(this::getURL)</span>
-<span class="fc" id="L77">        .build();</span>
+<span class="fc" id="L74">    return DataLayerBuilder.extending(super.getComponentData())</span>
+<span class="fc" id="L75">        .asComponent()</span>
+<span class="pc" id="L76">        .withType(() -&gt; Optional.ofNullable(this.dataLayerType).orElseGet(() -&gt; super.getComponentData().getType()))</span>
+<span class="fc" id="L77">        .withTitle(this::getTitle)</span>
+<span class="pc" id="L78">        .withLinkUrl(() -&gt; Optional.ofNullable(this.getLink()).map(Link::getURL).orElse(null))</span>
+<span class="fc" id="L79">        .build();</span>
   }
 
 }

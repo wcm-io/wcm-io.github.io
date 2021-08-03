@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DownloadV1V2Impl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Core Components</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.core.components.impl.models.v1</a> &gt; <span class="el_source">DownloadV1V2Impl.java</span></div><h1>DownloadV1V2Impl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2019 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.core.components.impl.models.v1;
+
+import static com.day.cq.commons.jcr.JcrConstants.JCR_DESCRIPTION;
+import static com.day.cq.commons.jcr.JcrConstants.JCR_TITLE;
+import static com.day.cq.dam.api.DamConstants.DC_DESCRIPTION;
+import static com.day.cq.dam.api.DamConstants.DC_TITLE;
+
+import javax.annotation.PostConstruct;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.models.annotations.Exporter;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
+import org.apache.sling.models.annotations.injectorspecific.Self;
+import org.apache.sling.models.annotations.injectorspecific.ValueMapValue;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.adobe.cq.export.json.ComponentExporter;
+import com.adobe.cq.export.json.ExporterConstants;
+import com.adobe.cq.wcm.core.components.models.Download;
+import com.day.cq.wcm.api.designer.Style;
+
+import io.wcm.handler.media.Asset;
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.MediaHandler;
+import io.wcm.handler.media.Rendition;
+import io.wcm.sling.models.annotations.AemObject;
+import io.wcm.wcm.core.components.impl.models.helpers.AbstractComponentImpl;
+import io.wcm.wcm.core.components.models.mixin.MediaMixin;
+
+/**
+ * wcm.io-based enhancements for {@link Download}:
+ * &lt;ul&gt;
+ * &lt;li&gt;Get download asset link and metadata via Media handler&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Model(adaptables = SlingHttpServletRequest.class,
+    adapters = { Download.class, ComponentExporter.class },
+    resourceType = { DownloadV1V2Impl.RESOURCE_TYPE_V1, DownloadV1V2Impl.RESOURCE_TYPE_V2 })
+@Exporter(
+    name = ExporterConstants.SLING_MODEL_EXPORTER_NAME,
+    extensions = ExporterConstants.SLING_MODEL_EXTENSION)
+<span class="fc" id="L67">public class DownloadV1V2Impl extends AbstractComponentImpl implements Download, MediaMixin {</span>
+
+  static final String RESOURCE_TYPE_V1 = &quot;wcm-io/wcm/core/components/download/v1/download&quot;;
+  static final String RESOURCE_TYPE_V2 = &quot;wcm-io/wcm/core/components/download/v2/download&quot;;
+
+  @AemObject
+  private Style currentStyle;
+
+  @ValueMapValue(name = JCR_TITLE, injectionStrategy = InjectionStrategy.OPTIONAL)
+  private @Nullable String title;
+  @ValueMapValue(name = JCR_DESCRIPTION, injectionStrategy = InjectionStrategy.OPTIONAL)
+  private @Nullable String description;
+  @ValueMapValue(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private @Nullable String actionText;
+
+  @Self
+  private MediaHandler mediaHandler;
+
+  private boolean titleFromAsset;
+  private boolean descriptionFromAsset;
+  private boolean inline;
+  private boolean displaySize;
+  private boolean displayFormat;
+  private boolean displayFilename;
+  private boolean hideTitleLink;
+
+  private String titleType;
+  private String filename;
+  private String format;
+  private String size;
+  private String extension;
+
+  private Media media;
+
+  @PostConstruct
+  @SuppressWarnings(&quot;null&quot;)
+  protected void initModel() {
+<span class="fc" id="L104">    ValueMap properties = resource.getValueMap();</span>
+
+<span class="fc" id="L106">    titleFromAsset = properties.get(PN_TITLE_FROM_ASSET, titleFromAsset);</span>
+<span class="fc" id="L107">    descriptionFromAsset = properties.get(PN_DESCRIPTION_FROM_ASSET, descriptionFromAsset);</span>
+<span class="fc" id="L108">    inline = properties.get(PN_INLINE, inline);</span>
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">    if (currentStyle != null) {</span>
+<span class="fc" id="L110">      titleType = currentStyle.get(PN_TITLE_TYPE, String.class);</span>
+<span class="fc" id="L111">      displaySize = currentStyle.get(PN_DISPLAY_SIZE, true);</span>
+<span class="fc" id="L112">      displayFormat = currentStyle.get(PN_DISPLAY_FORMAT, true);</span>
+<span class="fc" id="L113">      displayFilename = currentStyle.get(PN_DISPLAY_FILENAME, true);</span>
+<span class="fc" id="L114">      hideTitleLink = currentStyle.get(PN_HIDE_TITLE_LINK, false);</span>
+    }
+
+<span class="fc" id="L117">    media = mediaHandler.get(resource, new MediaArgs()</span>
+        // only allow linking to &quot;download&quot; media formats
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        .download(true)</span>
+        // set content disposition attachment when not inline
+<span class="fc" id="L121">        .contentDispositionAttachment(!inline))</span>
+<span class="fc" id="L122">        .build();</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">    if (media.isValid()) {</span>
+<span class="fc" id="L124">      initPropertiesFromMedia();</span>
+    }
+<span class="fc" id="L126">  }</span>
+
+  private void initPropertiesFromMedia() {
+<span class="fc" id="L129">    Rendition rendition = media.getRendition();</span>
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">    if (rendition != null) {</span>
+<span class="fc" id="L131">      filename = rendition.getFileName();</span>
+<span class="fc" id="L132">      format = rendition.getMimeType();</span>
+<span class="fc" id="L133">      size = FileUtils.byteCountToDisplaySize(rendition.getFileSize());</span>
+<span class="fc" id="L134">      extension = rendition.getFileExtension();</span>
+    }
+
+<span class="fc" id="L137">    Asset asset = media.getAsset();</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">    if (asset != null) {</span>
+<span class="fc" id="L139">      com.day.cq.dam.api.Asset damAsset = asset.adaptTo(com.day.cq.dam.api.Asset.class);</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">      if (damAsset != null) {</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">        if (titleFromAsset) {</span>
+<span class="fc" id="L142">          title = damAsset.getMetadataValueFromJcr(DC_TITLE);</span>
+        }
+<span class="fc bfc" id="L144" title="All 2 branches covered.">        if (descriptionFromAsset) {</span>
+<span class="fc" id="L145">          String assetDescription = damAsset.getMetadataValueFromJcr(DC_DESCRIPTION);</span>
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">          if (StringUtils.isNotEmpty(assetDescription)) {</span>
+<span class="fc" id="L147">            description = assetDescription;</span>
+          }
+        }
+      }
+    }
+<span class="fc" id="L152">  }</span>
+
+  @Override
+  @NotNull
+  public Media getMediaObject() {
+<span class="fc" id="L157">    return media;</span>
+  }
+
+  @Override
+  public String getUrl() {
+<span class="fc" id="L162">    return media.getUrl();</span>
+  }
+
+  @Override
+  public String getTitle() {
+<span class="fc" id="L167">    return title;</span>
+  }
+
+  @Override
+  public String getDescription() {
+<span class="fc" id="L172">    return description;</span>
+  }
+
+  @Override
+  public String getActionText() {
+<span class="fc" id="L177">    return actionText;</span>
+  }
+
+  @Override
+  public String getTitleType() {
+<span class="fc" id="L182">    return titleType;</span>
+  }
+
+  @Override
+  public String getFilename() {
+<span class="fc" id="L187">    return filename;</span>
+  }
+
+  @Override
+  public String getFormat() {
+<span class="fc" id="L192">    return format;</span>
+  }
+
+  @Override
+  public String getSize() {
+<span class="fc" id="L197">    return size;</span>
+  }
+
+  @Override
+  public boolean displaySize() {
+<span class="fc" id="L202">    return displaySize;</span>
+  }
+
+  @Override
+  public boolean displayFormat() {
+<span class="fc" id="L207">    return displayFormat;</span>
+  }
+
+  @Override
+  public boolean displayFilename() {
+<span class="fc" id="L212">    return displayFilename;</span>
+  }
+
+  @Override
+  public boolean hideTitleLink() {
+<span class="fc" id="L217">    return hideTitleLink;</span>
+  }
+
+  @Override
+  public String getExtension() {
+<span class="fc" id="L222">    return extension;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

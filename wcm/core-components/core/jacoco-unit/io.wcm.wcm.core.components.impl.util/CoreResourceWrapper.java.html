@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CoreResourceWrapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Core Components</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.core.components.impl.util</a> &gt; <span class="el_source">CoreResourceWrapper.java</span></div><h1>CoreResourceWrapper.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2021 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.core.components.impl.util;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceWrapper;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.api.wrappers.ValueMapDecorator;
+import org.apache.sling.models.annotations.Exporter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.adobe.cq.export.json.ExporterConstants;
+
+/**
+ * Resource wrapper that overwrites the resource type of the target resource.
+ * Additionally supports overwriting and hiding some properties.
+ */
+@Exporter(name = ExporterConstants.SLING_MODEL_EXPORTER_NAME, extensions = ExporterConstants.SLING_MODEL_EXTENSION)
+public class CoreResourceWrapper extends ResourceWrapper {
+
+  private ValueMap valueMap;
+  private String overriddenResourceType;
+
+  /**
+   * @param resource Target resource
+   * @param overriddenResourceType New resource type
+   */
+  public CoreResourceWrapper(@NotNull Resource resource, @NotNull String overriddenResourceType) {
+<span class="fc" id="L53">    this(resource, overriddenResourceType, null, null);</span>
+<span class="fc" id="L54">  }</span>
+
+  /**
+   * @param resource Target resource
+   * @param overriddenResourceType New resource type
+   * @param overriddenProperties Properties to add/overwrite in value map
+   * @param hiddenProperties Properties to hide from value map
+   */
+  public CoreResourceWrapper(@NotNull Resource resource, @NotNull String overriddenResourceType,
+      @Nullable Map&lt;String, Object&gt; overriddenProperties, @Nullable Set&lt;String&gt; hiddenProperties) {
+<span class="fc" id="L64">    super(resource);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">    if (StringUtils.isEmpty(overriddenResourceType)) {</span>
+<span class="fc" id="L66">      throw new IllegalArgumentException(&quot;The &quot; + CoreResourceWrapper.class.getName() + &quot; needs to override the resource type of &quot; +</span>
+          &quot;the wrapped resource, but the resourceType argument was null or empty.&quot;);
+    }
+<span class="fc" id="L69">    this.overriddenResourceType = overriddenResourceType;</span>
+<span class="fc" id="L70">    valueMap = new ValueMapDecorator(new HashMap&lt;&gt;(resource.getValueMap()));</span>
+<span class="fc" id="L71">    valueMap.put(ResourceResolver.PROPERTY_RESOURCE_TYPE, overriddenResourceType);</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (overriddenProperties != null) {</span>
+<span class="fc" id="L73">      valueMap.putAll(overriddenProperties);</span>
+    }
+<span class="fc bfc" id="L75" title="All 2 branches covered.">    if (hiddenProperties != null) {</span>
+<span class="fc" id="L76">      hiddenProperties.forEach(valueMap::remove);</span>
+    }
+<span class="fc" id="L78">  }</span>
+
+  @Override
+  @SuppressWarnings(&quot;unchecked&quot;)
+  public &lt;AdapterType&gt; AdapterType adaptTo(Class&lt;AdapterType&gt; type) {
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">    if (type == ValueMap.class) {</span>
+<span class="fc" id="L84">      return (AdapterType)valueMap;</span>
+    }
+<span class="nc" id="L86">    return super.adaptTo(type);</span>
+  }
+
+  @Override
+  @NotNull
+  public ValueMap getValueMap() {
+<span class="fc" id="L92">    return valueMap;</span>
+  }
+
+  @Override
+  @NotNull
+  public String getResourceType() {
+<span class="fc" id="L98">    return overriddenResourceType;</span>
+  }
+
+  @Override
+  public boolean isResourceType(String resourceType) {
+<span class="fc" id="L103">    return this.getResourceResolver().isResourceType(this, resourceType);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

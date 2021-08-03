@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TitleV3Impl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Core Components</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.core.components.impl.models.v3</a> &gt; <span class="el_source">TitleV3Impl.java</span></div><h1>TitleV3Impl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2021 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.core.components.impl.models.v3;
+
+import javax.annotation.PostConstruct;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.models.annotations.Exporter;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.Via;
+import org.apache.sling.models.annotations.injectorspecific.Self;
+import org.apache.sling.models.annotations.via.ResourceSuperType;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.adobe.cq.export.json.ComponentExporter;
+import com.adobe.cq.export.json.ExporterConstants;
+import com.adobe.cq.wcm.core.components.commons.link.Link;
+import com.adobe.cq.wcm.core.components.models.Title;
+import com.adobe.cq.wcm.core.components.models.datalayer.ComponentData;
+import com.adobe.cq.wcm.core.components.models.datalayer.builder.DataLayerBuilder;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import io.wcm.handler.link.LinkHandler;
+import io.wcm.wcm.core.components.impl.link.LinkWrapper;
+import io.wcm.wcm.core.components.impl.models.helpers.AbstractComponentImpl;
+import io.wcm.wcm.core.components.impl.util.HandlerUnwrapper;
+
+/**
+ * wcm.io-based enhancements for {@link Title}:
+ * &lt;ul&gt;
+ * &lt;li&gt;Build link using Link handler&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Model(adaptables = SlingHttpServletRequest.class,
+    adapters = { Title.class, ComponentExporter.class },
+    resourceType = TitleV3Impl.RESOURCE_TYPE)
+@Exporter(
+    name = ExporterConstants.SLING_MODEL_EXPORTER_NAME,
+    extensions = ExporterConstants.SLING_MODEL_EXTENSION)
+<span class="fc" id="L58">public class TitleV3Impl extends AbstractComponentImpl implements Title {</span>
+
+  static final String RESOURCE_TYPE = &quot;wcm-io/wcm/core/components/title/v3/title&quot;;
+
+  @Self
+  @Via(type = ResourceSuperType.class)
+  private Title delegate;
+
+  @Self
+  private LinkHandler linkHandler;
+  protected LinkWrapper link;
+
+  @PostConstruct
+  private void activate() {
+<span class="fc" id="L72">    link = new LinkWrapper(HandlerUnwrapper.get(linkHandler, resource).build());</span>
+<span class="fc" id="L73">  }</span>
+
+  @Override
+  public @Nullable Link getLink() {
+<span class="fc" id="L77">    return link.orNull();</span>
+  }
+
+  // --- fallback implementations ---
+
+  @Override
+  @Deprecated
+  @JsonIgnore
+  public String getLinkURL() {
+<span class="fc" id="L86">    return link.getURL();</span>
+  }
+
+  // --- delegated methods ---
+
+  @Override
+  public @Nullable String getId() {
+<span class="fc" id="L93">    return this.delegate.getId();</span>
+  }
+
+  @Override
+  public String getText() {
+<span class="fc" id="L98">    return this.delegate.getText();</span>
+  }
+
+  @Override
+  public String getType() {
+<span class="fc" id="L103">    return this.delegate.getType();</span>
+  }
+
+  @Override
+  public boolean isLinkDisabled() {
+<span class="fc" id="L108">    return this.delegate.isLinkDisabled();</span>
+  }
+
+  // --- data layer ---
+
+  @Override
+  protected @NotNull ComponentData getComponentData() {
+<span class="fc" id="L115">    return DataLayerBuilder.extending(super.getComponentData()).asComponent()</span>
+<span class="fc" id="L116">        .withTitle(this::getText)</span>
+<span class="fc" id="L117">        .withLinkUrl(link::getURL)</span>
+<span class="fc" id="L118">        .build();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

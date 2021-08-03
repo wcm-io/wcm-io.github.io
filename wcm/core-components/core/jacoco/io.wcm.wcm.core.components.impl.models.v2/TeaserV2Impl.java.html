@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TeaserV2Impl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Core Components</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.core.components.impl.models.v2</a> &gt; <span class="el_source">TeaserV2Impl.java</span></div><h1>TeaserV2Impl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2021 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.core.components.impl.models.v2;
+
+import static com.day.cq.commons.jcr.JcrConstants.JCR_DESCRIPTION;
+import static com.day.cq.commons.jcr.JcrConstants.JCR_TITLE;
+import static io.wcm.handler.media.MediaNameConstants.PROP_CSS_CLASS;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import javax.annotation.PostConstruct;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.models.annotations.Exporter;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.Self;
+import org.jetbrains.annotations.NotNull;
+
+import com.adobe.cq.export.json.ComponentExporter;
+import com.adobe.cq.export.json.ExporterConstants;
+import com.adobe.cq.wcm.core.components.commons.link.Link;
+import com.adobe.cq.wcm.core.components.models.ListItem;
+import com.adobe.cq.wcm.core.components.models.Teaser;
+import com.adobe.cq.wcm.core.components.models.datalayer.ComponentData;
+import com.adobe.cq.wcm.core.components.models.datalayer.builder.DataLayerBuilder;
+import com.adobe.cq.wcm.core.components.util.ComponentUtils;
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.designer.Style;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import io.wcm.handler.link.LinkHandler;
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.MediaHandler;
+import io.wcm.handler.richtext.RichTextHandler;
+import io.wcm.handler.richtext.TextMode;
+import io.wcm.sling.models.annotations.AemObject;
+import io.wcm.wcm.core.components.impl.link.LinkWrapper;
+import io.wcm.wcm.core.components.impl.models.helpers.AbstractComponentImpl;
+import io.wcm.wcm.core.components.impl.models.helpers.LinkListItemV2Impl;
+import io.wcm.wcm.core.components.impl.util.HandlerUnwrapper;
+import io.wcm.wcm.core.components.models.mixin.MediaMixin;
+
+/**
+ * wcm.io-based enhancements for {@link Teaser}:
+ * &lt;ul&gt;
+ * &lt;li&gt;Build image using Media handler&lt;/li&gt;
+ * &lt;li&gt;Build links using Link handler&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Model(adaptables = SlingHttpServletRequest.class,
+    adapters = { Teaser.class, ComponentExporter.class },
+    resourceType = TeaserV2Impl.RESOURCE_TYPE)
+@Exporter(name = ExporterConstants.SLING_MODEL_EXPORTER_NAME,
+    extensions = ExporterConstants.SLING_MODEL_EXTENSION)
+<span class="fc" id="L77">public class TeaserV2Impl extends AbstractComponentImpl implements Teaser, MediaMixin {</span>
+
+  static final String RESOURCE_TYPE = &quot;wcm-io/wcm/core/components/teaser/v2/teaser&quot;;
+
+  private static final String CTA_ID_PREFIX = &quot;cta&quot;;
+
+  @AemObject
+  private Style currentStyle;
+  @Self
+  private MediaHandler mediaHandler;
+  @Self
+  private LinkHandler linkHandler;
+  @Self
+  private RichTextHandler richTextHandler;
+
+  private Media media;
+  protected LinkWrapper link;
+<span class="fc" id="L94">  private final List&lt;ListItem&gt; actions = new ArrayList&lt;&gt;();</span>
+  private Page targetPage;
+
+  private String pretitle;
+  private String title;
+  private String description;
+  private String titleType;
+  private boolean showTitleType;
+  private boolean actionsEnabled;
+  private boolean imageLinkHidden;
+  private boolean titleLinkHidden;
+
+  @PostConstruct
+  private void activate() {
+<span class="fc" id="L108">    ValueMap properties = resource.getValueMap();</span>
+
+    // read style properties
+<span class="fc" id="L111">    boolean pretitleHidden = currentStyle.get(PN_PRETITLE_HIDDEN, false);</span>
+<span class="fc" id="L112">    boolean titleHidden = currentStyle.get(PN_TITLE_HIDDEN, false);</span>
+<span class="fc" id="L113">    boolean descriptionHidden = currentStyle.get(PN_DESCRIPTION_HIDDEN, false);</span>
+<span class="fc" id="L114">    titleType = currentStyle.get(PN_TITLE_TYPE, (String)null);</span>
+<span class="fc" id="L115">    showTitleType = currentStyle.get(Teaser.PN_SHOW_TITLE_TYPE, false);</span>
+<span class="fc" id="L116">    imageLinkHidden = currentStyle.get(PN_IMAGE_LINK_HIDDEN, false);</span>
+<span class="fc" id="L117">    titleLinkHidden = currentStyle.get(PN_TITLE_LINK_HIDDEN, false);</span>
+<span class="fc" id="L118">    boolean actionsDisabled = currentStyle.get(PN_ACTIONS_DISABLED, false);</span>
+
+    // read component properties
+<span class="fc bfc" id="L121" title="All 4 branches covered.">    actionsEnabled = properties.get(PN_ACTIONS_ENABLED, false) &amp;&amp; !actionsDisabled;</span>
+<span class="fc" id="L122">    boolean titleFromPage = properties.get(PN_TITLE_FROM_PAGE, false);</span>
+<span class="fc" id="L123">    boolean descriptionFromPage = properties.get(PN_DESCRIPTION_FROM_PAGE, false);</span>
+
+    // resolve actions with links
+<span class="fc bfc" id="L126" title="All 2 branches covered.">    if (actionsEnabled) {</span>
+<span class="fc" id="L127">      Resource actionsNode = resource.getChild(NN_ACTIONS);</span>
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">      if (actionsNode != null) {</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">        for (Resource actionResource : actionsNode.getChildren()) {</span>
+<span class="fc" id="L130">          String actionTitle = actionResource.getValueMap().get(PN_ACTION_TEXT, String.class);</span>
+<span class="fc" id="L131">          LinkWrapper actionLink = new LinkWrapper(linkHandler.get(actionResource).build());</span>
+<span class="pc bpc" id="L132" title="1 of 4 branches missed.">          if (actionTitle != null &amp;&amp; actionLink.isValid()) {</span>
+<span class="fc" id="L133">            actions.add(newLinkListItem(actionTitle, actionLink, CTA_ID_PREFIX));</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">            if (targetPage == null) {</span>
+              // get target page from first action
+<span class="fc" id="L136">              targetPage = actionLink.getLinkObject().getTargetPage();</span>
+            }
+          }
+<span class="fc" id="L139">        }</span>
+      }
+      // primary link is not enabled when actions are enabled
+<span class="fc" id="L142">      link = new LinkWrapper(linkHandler.invalid());</span>
+<span class="fc" id="L143">    }</span>
+
+    // if no actions enabled, resolve primary teaser link
+    else {
+<span class="fc" id="L147">      link = new LinkWrapper(HandlerUnwrapper.get(linkHandler, resource).build());</span>
+<span class="fc" id="L148">      targetPage = link.getLinkObject().getTargetPage();</span>
+    }
+
+    // resolve teaser media
+<span class="fc" id="L152">    media = HandlerUnwrapper.get(mediaHandler, resource)</span>
+<span class="fc" id="L153">        .property(PROP_CSS_CLASS, &quot;cmp-image__image&quot;)</span>
+<span class="fc" id="L154">        .build();</span>
+
+    // if no valid media is present in this component, try to get featured image from target page
+<span class="fc bfc" id="L157" title="All 4 branches covered.">    if (!media.isValid() &amp;&amp; targetPage != null) {</span>
+<span class="fc" id="L158">      Resource featuredImageResource = ComponentUtils.getFeaturedImage(targetPage);</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">      if (featuredImageResource != null) {</span>
+<span class="fc" id="L160">        media = HandlerUnwrapper.get(mediaHandler, featuredImageResource)</span>
+<span class="fc" id="L161">            .property(PROP_CSS_CLASS, &quot;cmp-image__image&quot;)</span>
+<span class="fc" id="L162">            .build();</span>
+      }
+    }
+
+    // read title and description
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">    if (!pretitleHidden) {</span>
+<span class="fc" id="L168">      pretitle = properties.get(&quot;pretitle&quot;, String.class);</span>
+    }
+<span class="fc bfc" id="L170" title="All 2 branches covered.">    if (!titleHidden) {</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">      if (titleFromPage) {</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">        if (targetPage != null) {</span>
+<span class="fc" id="L173">          title = StringUtils.defaultIfEmpty(targetPage.getPageTitle(), targetPage.getTitle());</span>
+        }
+      }
+      else {
+<span class="fc" id="L177">        title = properties.get(JCR_TITLE, String.class);</span>
+      }
+    }
+<span class="fc bfc" id="L180" title="All 2 branches covered.">    if (!descriptionHidden) {</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">      if (descriptionFromPage) {</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">        if (targetPage != null) {</span>
+<span class="fc" id="L183">          description = targetPage.getDescription();</span>
+          // page description is by default no rich text
+<span class="fc" id="L185">          description = richTextHandler.get(description).textMode(TextMode.PLAIN).buildMarkup();</span>
+        }
+      }
+      else {
+<span class="fc" id="L189">        description = properties.get(JCR_DESCRIPTION, String.class);</span>
+        // description in teaser is rich text
+<span class="fc" id="L191">        description = richTextHandler.get(description).textMode(TextMode.XHTML).buildMarkup();</span>
+      }
+    }
+
+
+<span class="fc" id="L196">  }</span>
+
+  @Override
+  public @NotNull Media getMediaObject() {
+<span class="fc" id="L200">    return media;</span>
+  }
+
+  @Override
+  public boolean isActionsEnabled() {
+<span class="fc" id="L205">    return actionsEnabled;</span>
+  }
+
+  @Override
+  public List&lt;ListItem&gt; getActions() {
+<span class="fc" id="L210">    return Collections.unmodifiableList(actions);</span>
+  }
+
+  @Override
+  public Link getLink() {
+<span class="fc" id="L215">    return link.orNull();</span>
+  }
+
+  @Override
+  @Deprecated
+  @JsonIgnore
+  public String getLinkURL() {
+<span class="fc" id="L222">    return link.getURL();</span>
+  }
+
+  @Override
+  public boolean isImageLinkHidden() {
+<span class="fc" id="L227">    return imageLinkHidden;</span>
+  }
+
+  @Override
+  public String getTitle() {
+<span class="fc" id="L232">    return title;</span>
+  }
+
+  @Override
+  public String getPretitle() {
+<span class="nc" id="L237">    return pretitle;</span>
+  }
+
+  @Override
+  public boolean isTitleLinkHidden() {
+<span class="fc" id="L242">    return titleLinkHidden;</span>
+  }
+
+  @Override
+  public String getDescription() {
+<span class="fc" id="L247">    return description;</span>
+  }
+
+  @Override
+  public String getTitleType() {
+<span class="fc bfc" id="L252" title="All 2 branches covered.">    if (showTitleType) {</span>
+<span class="fc" id="L253">      titleType = resource.getValueMap().get(Teaser.PN_TITLE_TYPE, titleType);</span>
+    }
+<span class="fc" id="L255">    return titleType;</span>
+  }
+
+
+  // --- data layer ---
+
+  @Override
+  protected @NotNull ComponentData getComponentData() {
+<span class="fc" id="L263">    return DataLayerBuilder.extending(super.getComponentData()).asComponent()</span>
+<span class="fc" id="L264">        .withTitle(this::getTitle)</span>
+<span class="fc" id="L265">        .withLinkUrl(this::getLinkURL)</span>
+<span class="fc" id="L266">        .withDescription(this::getDescription)</span>
+<span class="fc" id="L267">        .build();</span>
+  }
+
+  protected ListItem newLinkListItem(@NotNull String newTitle, @NotNull LinkWrapper newLink, @NotNull String itemIdPrefix) {
+<span class="fc" id="L271">    return new LinkListItemV2Impl(newTitle, newLink, itemIdPrefix,</span>
+<span class="fc" id="L272">        getId(), this.componentContext.getComponent(), this.resource);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
