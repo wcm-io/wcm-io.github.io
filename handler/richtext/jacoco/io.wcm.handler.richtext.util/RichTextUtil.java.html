@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jdom2.Content;
@@ -47,16 +48,28 @@ public final class RichTextUtil {
 
   private static final int EMPTYTEXT_DEFAULT_TRESHOLD = 20;
 
-<span class="fc" id="L50">  private static final String XHTML_ENTITY_DEF =</span>
-<span class="fc" id="L51">      &quot;&lt;!ENTITY % HTMLlat1 PUBLIC \&quot;&quot; + XHtmlResource.ENTITIES_LAT1.getPublicId() + &quot;\&quot; &quot;</span>
-<span class="fc" id="L52">          + &quot;\&quot;&quot; + XHtmlResource.ENTITIES_LAT1.getSystemId() + &quot;\&quot;&gt;&quot;</span>
+<span class="fc" id="L51">  private static final String XHTML_ENTITY_DEF =</span>
+<span class="fc" id="L52">      &quot;&lt;!ENTITY % HTMLlat1 PUBLIC \&quot;&quot; + XHtmlResource.ENTITIES_LAT1.getPublicId() + &quot;\&quot; &quot;</span>
+<span class="fc" id="L53">          + &quot;\&quot;&quot; + XHtmlResource.ENTITIES_LAT1.getSystemId() + &quot;\&quot;&gt;&quot;</span>
           + &quot;%HTMLlat1;&quot;
-<span class="fc" id="L54">          + &quot;&lt;!ENTITY % HTMLsymbol PUBLIC \&quot;&quot; + XHtmlResource.ENTITIES_SYMBOL.getPublicId() + &quot;\&quot; &quot;</span>
-<span class="fc" id="L55">          + &quot;\&quot;&quot; + XHtmlResource.ENTITIES_SYMBOL.getSystemId() + &quot;\&quot;&gt;&quot;</span>
+<span class="fc" id="L55">          + &quot;&lt;!ENTITY % HTMLsymbol PUBLIC \&quot;&quot; + XHtmlResource.ENTITIES_SYMBOL.getPublicId() + &quot;\&quot; &quot;</span>
+<span class="fc" id="L56">          + &quot;\&quot;&quot; + XHtmlResource.ENTITIES_SYMBOL.getSystemId() + &quot;\&quot;&gt;&quot;</span>
           + &quot;%HTMLsymbol;&quot;
-<span class="fc" id="L57">          + &quot;&lt;!ENTITY % HTMLspecial PUBLIC \&quot;&quot; + XHtmlResource.ENTITIES_SPECIAL.getPublicId() + &quot;\&quot; &quot;</span>
-<span class="fc" id="L58">          + &quot;\&quot;&quot; + XHtmlResource.ENTITIES_SPECIAL.getSystemId() + &quot;\&quot;&gt;&quot;</span>
+<span class="fc" id="L58">          + &quot;&lt;!ENTITY % HTMLspecial PUBLIC \&quot;&quot; + XHtmlResource.ENTITIES_SPECIAL.getPublicId() + &quot;\&quot; &quot;</span>
+<span class="fc" id="L59">          + &quot;\&quot;&quot; + XHtmlResource.ENTITIES_SPECIAL.getSystemId() + &quot;\&quot;&gt;&quot;</span>
           + &quot;%HTMLspecial;&quot;;
+
+  /*
+   * Pattern that matches with all characters that are not allowed in XML 1.0 (https://www.w3.org/TR/REC-xml/#charsets).
+   * Actual regex pattern from https://stackoverflow.com/a/4237934
+   * Additionally to this list we remove &quot;\r&quot; to use only unix-style new lines.
+   */
+<span class="fc" id="L67">  private static final Pattern CONTROL_CHARS_NOT_ALLOWED_IN_XML10 = Pattern.compile(&quot;[^&quot;</span>
+      + &quot;\u0009\n&quot;
+      + &quot;\u0020-\uD7FF&quot;
+      + &quot;\uE000-\uFFFD&quot;
+      + &quot;\ud800\udc00-\udbff\udfff&quot;
+      + &quot;]&quot;);
 
   /**
    * Check if the given formatted text block is empty.
@@ -66,7 +79,7 @@ public final class RichTextUtil {
    * @return true if text block is empty
    */
   public static boolean isEmpty(@Nullable String text) {
-<span class="fc" id="L69">    return isEmpty(text, EMPTYTEXT_DEFAULT_TRESHOLD);</span>
+<span class="fc" id="L82">    return isEmpty(text, EMPTYTEXT_DEFAULT_TRESHOLD);</span>
   }
 
   /**
@@ -81,22 +94,22 @@ public final class RichTextUtil {
   public static boolean isEmpty(@Nullable String text, int treshold) {
 
     // check if text block is really empty
-<span class="fc bfc" id="L84" title="All 2 branches covered.">    if (StringUtils.isEmpty(text)) {</span>
-<span class="fc" id="L85">      return true;</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">    if (StringUtils.isEmpty(text)) {</span>
+<span class="fc" id="L98">      return true;</span>
     }
 
     // check if text block has more than 20 chars
-<span class="fc bfc" id="L89" title="All 2 branches covered.">    if (text.length() &gt; treshold) {</span>
-<span class="fc" id="L90">      return false;</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">    if (text.length() &gt; treshold) {</span>
+<span class="fc" id="L103">      return false;</span>
     }
 
     // replace all whitespaces and nbsp's
-<span class="fc" id="L94">    String cleanedText = StringUtils.replace(text, &quot; &quot;, &quot;&quot;);</span>
-<span class="fc" id="L95">    cleanedText = StringUtils.replace(cleanedText, &quot;&amp;#160;&quot;, &quot;&quot;);</span>
-<span class="fc" id="L96">    cleanedText = StringUtils.replace(cleanedText, &quot;&amp;nbsp;&quot;, &quot;&quot;);</span>
-<span class="fc" id="L97">    cleanedText = StringUtils.replace(cleanedText, &quot;\n&quot;, &quot;&quot;);</span>
-<span class="fc" id="L98">    cleanedText = StringUtils.replace(cleanedText, &quot;\r&quot;, &quot;&quot;);</span>
-<span class="fc bfc" id="L99" title="All 4 branches covered.">    return StringUtils.isEmpty(cleanedText) || &quot;&lt;p&gt;&lt;/p&gt;&quot;.equals(cleanedText);</span>
+<span class="fc" id="L107">    String cleanedText = StringUtils.replace(text, &quot; &quot;, &quot;&quot;);</span>
+<span class="fc" id="L108">    cleanedText = StringUtils.replace(cleanedText, &quot;&amp;#160;&quot;, &quot;&quot;);</span>
+<span class="fc" id="L109">    cleanedText = StringUtils.replace(cleanedText, &quot;&amp;nbsp;&quot;, &quot;&quot;);</span>
+<span class="fc" id="L110">    cleanedText = StringUtils.replace(cleanedText, &quot;\n&quot;, &quot;&quot;);</span>
+<span class="fc" id="L111">    cleanedText = StringUtils.replace(cleanedText, &quot;\r&quot;, &quot;&quot;);</span>
+<span class="fc bfc" id="L112" title="All 4 branches covered.">    return StringUtils.isEmpty(cleanedText) || &quot;&lt;p&gt;&lt;/p&gt;&quot;.equals(cleanedText);</span>
   }
 
   /**
@@ -106,8 +119,8 @@ public final class RichTextUtil {
    * @throws JDOMException Is thrown if the text could not be parsed as XHTML
    */
   public static void addParsedText(@NotNull Element parent, @NotNull String text) throws JDOMException {
-<span class="nc" id="L109">    addParsedText(parent, text, false);</span>
-<span class="nc" id="L110">  }</span>
+<span class="nc" id="L122">    addParsedText(parent, text, false);</span>
+<span class="nc" id="L123">  }</span>
 
   /**
    * Parses XHTML text string, and adds to parsed content to the given parent element.
@@ -117,9 +130,9 @@ public final class RichTextUtil {
    * @throws JDOMException Is thrown if the text could not be parsed as XHTML
    */
   public static void addParsedText(@NotNull Element parent, @NotNull String text, boolean xhtmlEntities) throws JDOMException {
-<span class="nc" id="L120">    Element root = parseText(text, xhtmlEntities);</span>
-<span class="nc" id="L121">    parent.addContent(root.cloneContent());</span>
-<span class="nc" id="L122">  }</span>
+<span class="nc" id="L133">    Element root = parseText(text, xhtmlEntities);</span>
+<span class="nc" id="L134">    parent.addContent(root.cloneContent());</span>
+<span class="nc" id="L135">  }</span>
 
   /**
    * Parses XHTML text string. Adds a wrapping &quot;root&quot; element before parsing and returns this root element.
@@ -128,7 +141,7 @@ public final class RichTextUtil {
    * @throws JDOMException Is thrown if the text could not be parsed as XHTML
    */
   public static Element parseText(@NotNull String text) throws JDOMException {
-<span class="fc" id="L131">    return parseText(text, false);</span>
+<span class="fc" id="L144">    return parseText(text, false);</span>
   }
 
   /**
@@ -140,25 +153,35 @@ public final class RichTextUtil {
    */
   public static @NotNull Element parseText(@NotNull String text, boolean xhtmlEntities) throws JDOMException {
 
-    // add root element
-<span class="fc bfc" id="L144" title="All 2 branches covered.">    String xhtmlString =</span>
+    // add root element, remove invalid chars from input text
+<span class="fc bfc" id="L157" title="All 2 branches covered.">    String xhtmlString =</span>
         (xhtmlEntities ? &quot;&lt;!DOCTYPE root [&quot; + XHTML_ENTITY_DEF + &quot;]&gt;&quot; : &quot;&quot;)
-        + &quot;&lt;root&gt;&quot; + text + &quot;&lt;/root&gt;&quot;;
+<span class="fc" id="L159">        + &quot;&lt;root&gt;&quot; + removeCharsNotAllowedInXML10(text) + &quot;&lt;/root&gt;&quot;;</span>
 
     try {
-<span class="fc" id="L149">      SAXBuilder saxBuilder = new SAXBuilder();</span>
+<span class="fc" id="L162">      SAXBuilder saxBuilder = new SAXBuilder();</span>
 
-<span class="fc bfc" id="L151" title="All 2 branches covered.">      if (xhtmlEntities) {</span>
-<span class="fc" id="L152">        saxBuilder.setEntityResolver(XHtmlEntityResolver.getInstance());</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">      if (xhtmlEntities) {</span>
+<span class="fc" id="L165">        saxBuilder.setEntityResolver(XHtmlEntityResolver.getInstance());</span>
       }
 
-<span class="fc" id="L155">      Document doc = saxBuilder.build(new StringReader(xhtmlString));</span>
-<span class="fc" id="L156">      return doc.getRootElement();</span>
+<span class="fc" id="L168">      Document doc = saxBuilder.build(new StringReader(xhtmlString));</span>
+<span class="fc" id="L169">      return doc.getRootElement();</span>
     }
-<span class="nc" id="L158">    catch (IOException ex) {</span>
-<span class="nc" id="L159">      throw new RuntimeException(&quot;Error parsing XHTML fragment.&quot;, ex);</span>
+<span class="nc" id="L171">    catch (IOException ex) {</span>
+<span class="nc" id="L172">      throw new RuntimeException(&quot;Error parsing XHTML fragment.&quot;, ex);</span>
     }
 
+  }
+
+  /**
+   * Removes all control chars and other chars which are not allowed in XML 1.0.
+   * See &lt;a href=&quot;https://www.w3.org/TR/xml/#charsets&quot;&gt;https://www.w3.org/TR/xml/#charsets&lt;/a&gt;.
+   * @param value String which should be parsed to XML 1.0
+   * @return Cleaned up string
+   */
+  private static String removeCharsNotAllowedInXML10(String value) {
+<span class="fc" id="L184">    return CONTROL_CHARS_NOT_ALLOWED_IN_XML10.matcher(value).replaceAll(&quot;&quot;);</span>
   }
 
   /**
@@ -170,93 +193,93 @@ public final class RichTextUtil {
   public static void rewriteContent(@NotNull Element parent, @NotNull RewriteContentHandler rewriteContentHandler) {
 
     // iterate through content list and build new content list
-<span class="fc" id="L173">    List&lt;Content&gt; originalContent = parent.getContent();</span>
-<span class="fc" id="L174">    List&lt;Content&gt; newContent = new ArrayList&lt;Content&gt;();</span>
-<span class="fc bfc" id="L175" title="All 2 branches covered.">    for (Content contentElement : originalContent) {</span>
+<span class="fc" id="L196">    List&lt;Content&gt; originalContent = parent.getContent();</span>
+<span class="fc" id="L197">    List&lt;Content&gt; newContent = new ArrayList&lt;Content&gt;();</span>
+<span class="fc bfc" id="L198" title="All 2 branches covered.">    for (Content contentElement : originalContent) {</span>
 
       // handle element
-<span class="fc bfc" id="L178" title="All 2 branches covered.">      if (contentElement instanceof Element) {</span>
-<span class="fc" id="L179">        Element element = (Element)contentElement;</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">      if (contentElement instanceof Element) {</span>
+<span class="fc" id="L202">        Element element = (Element)contentElement;</span>
 
         // check if rewrite is needed for element
-<span class="fc" id="L182">        List&lt;Content&gt; rewriteContent = rewriteContentHandler.rewriteElement(element);</span>
-<span class="fc bfc" id="L183" title="All 2 branches covered.">        if (rewriteContent != null) {</span>
+<span class="fc" id="L205">        List&lt;Content&gt; rewriteContent = rewriteContentHandler.rewriteElement(element);</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">        if (rewriteContent != null) {</span>
           // element was removed
-<span class="fc bfc" id="L185" title="All 2 branches covered.">          if (rewriteContent.isEmpty()) {</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">          if (rewriteContent.isEmpty()) {</span>
             // do not add to newContent
           }
 
           // element is the same - rewrite child elements
-<span class="fc bfc" id="L190" title="All 4 branches covered.">          else if (rewriteContent.size() == 1 &amp;&amp; rewriteContent.get(0) == element) { //NOPMD</span>
-<span class="fc" id="L191">            rewriteContent(element, rewriteContentHandler);</span>
-<span class="fc" id="L192">            newContent.add(element);</span>
+<span class="fc bfc" id="L213" title="All 4 branches covered.">          else if (rewriteContent.size() == 1 &amp;&amp; rewriteContent.get(0) == element) { //NOPMD</span>
+<span class="fc" id="L214">            rewriteContent(element, rewriteContentHandler);</span>
+<span class="fc" id="L215">            newContent.add(element);</span>
           }
 
           // element was replaced with other content - rewrite and add instead
           else {
-<span class="fc bfc" id="L197" title="All 2 branches covered.">            for (Content newContentItem : rewriteContent) {</span>
-<span class="pc bpc" id="L198" title="1 of 2 branches missed.">              if (newContentItem instanceof Element) {</span>
-<span class="fc" id="L199">                Element newElement = (Element)newContentItem;</span>
-<span class="fc" id="L200">                rewriteContent(newElement, rewriteContentHandler);</span>
+<span class="fc bfc" id="L220" title="All 2 branches covered.">            for (Content newContentItem : rewriteContent) {</span>
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">              if (newContentItem instanceof Element) {</span>
+<span class="fc" id="L222">                Element newElement = (Element)newContentItem;</span>
+<span class="fc" id="L223">                rewriteContent(newElement, rewriteContentHandler);</span>
               }
-<span class="fc" id="L202">              newContent.add(newContentItem.clone());</span>
-<span class="fc" id="L203">            }</span>
+<span class="fc" id="L225">              newContent.add(newContentItem.clone());</span>
+<span class="fc" id="L226">            }</span>
           }
         }
 
         // nothing to rewrite - do nothing, but rewrite child element
         else {
-<span class="fc" id="L209">          rewriteContent(element, rewriteContentHandler);</span>
-<span class="fc" id="L210">          newContent.add(element);</span>
+<span class="fc" id="L232">          rewriteContent(element, rewriteContentHandler);</span>
+<span class="fc" id="L233">          newContent.add(element);</span>
         }
 
-<span class="fc" id="L213">      }</span>
+<span class="fc" id="L236">      }</span>
 
       // handle text node
-<span class="fc bfc" id="L216" title="All 2 branches covered.">      else if (contentElement instanceof Text) {</span>
-<span class="fc" id="L217">        Text text = (Text)contentElement;</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">      else if (contentElement instanceof Text) {</span>
+<span class="fc" id="L240">        Text text = (Text)contentElement;</span>
 
         // check if rewrite is needed for text node
-<span class="fc" id="L220">        List&lt;Content&gt; rewriteContent = rewriteContentHandler.rewriteText(text);</span>
-<span class="fc bfc" id="L221" title="All 2 branches covered.">        if (rewriteContent != null) {</span>
+<span class="fc" id="L243">        List&lt;Content&gt; rewriteContent = rewriteContentHandler.rewriteText(text);</span>
+<span class="fc bfc" id="L244" title="All 2 branches covered.">        if (rewriteContent != null) {</span>
           // element was removed
-<span class="pc bpc" id="L223" title="1 of 2 branches missed.">          if (rewriteContent.isEmpty()) {</span>
+<span class="pc bpc" id="L246" title="1 of 2 branches missed.">          if (rewriteContent.isEmpty()) {</span>
             // do not add to newContent
           }
 
           // element is the same - ignore
-<span class="pc bpc" id="L228" title="2 of 4 branches missed.">          else if (rewriteContent.size() == 1 &amp;&amp; rewriteContent.get(0) == text) { //NOPMD</span>
+<span class="pc bpc" id="L251" title="2 of 4 branches missed.">          else if (rewriteContent.size() == 1 &amp;&amp; rewriteContent.get(0) == text) { //NOPMD</span>
             // add original element
-<span class="nc" id="L230">            newContent.add(text);</span>
+<span class="nc" id="L253">            newContent.add(text);</span>
           }
 
           // element was replaced with other content - add instead
           else {
-<span class="fc bfc" id="L235" title="All 2 branches covered.">            for (Content newContentItem : rewriteContent) {</span>
-<span class="fc" id="L236">              newContent.add(newContentItem.clone());</span>
-<span class="fc" id="L237">            }</span>
+<span class="fc bfc" id="L258" title="All 2 branches covered.">            for (Content newContentItem : rewriteContent) {</span>
+<span class="fc" id="L259">              newContent.add(newContentItem.clone());</span>
+<span class="fc" id="L260">            }</span>
           }
         }
 
         // nothing to rewrite - do nothing, but add original text element
         else {
-<span class="fc" id="L243">          newContent.add(text);</span>
+<span class="fc" id="L266">          newContent.add(text);</span>
         }
 
-<span class="fc" id="L246">      }</span>
+<span class="fc" id="L269">      }</span>
 
       // unknown element - just add to new content
       else {
-<span class="fc" id="L250">        newContent.add(contentElement);</span>
+<span class="fc" id="L273">        newContent.add(contentElement);</span>
       }
 
-<span class="fc" id="L253">    }</span>
+<span class="fc" id="L276">    }</span>
 
     // replace original content with new content
-<span class="fc" id="L256">    parent.removeContent();</span>
-<span class="fc" id="L257">    parent.addContent(newContent);</span>
+<span class="fc" id="L279">    parent.removeContent();</span>
+<span class="fc" id="L280">    parent.addContent(newContent);</span>
 
-<span class="fc" id="L259">  }</span>
+<span class="fc" id="L282">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
