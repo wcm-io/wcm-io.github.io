@@ -33,8 +33,6 @@ import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.HttpConstants;
 import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
-import org.apache.sling.settings.SlingSettingsService;
-import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -49,7 +47,7 @@ import io.wcm.sling.commons.request.RequestParam;
 import io.wcm.sling.commons.resource.ResourceType;
 import io.wcm.wcm.commons.contenttype.ContentType;
 import io.wcm.wcm.commons.contenttype.FileExtension;
-import io.wcm.wcm.commons.util.RunMode;
+import io.wcm.wcm.commons.instancetype.InstanceTypeService;
 import io.wcm.wcm.parsys.componentinfo.AllowedComponentsProvider;
 
 /**
@@ -61,80 +59,79 @@ import io.wcm.wcm.parsys.componentinfo.AllowedComponentsProvider;
     &quot;sling.servlet.resourceTypes=sling/servlet/default&quot;,
     &quot;sling.servlet.methods=&quot; + HttpConstants.METHOD_GET
 })
-<span class="fc" id="L64">public final class ParsysComponentsServlet extends SlingSafeMethodsServlet {</span>
+<span class="fc" id="L62">public final class ParsysComponentsServlet extends SlingSafeMethodsServlet {</span>
   private static final long serialVersionUID = 1L;
 
   static final String RP_PATH = &quot;path&quot;;
   static final String RP_RESOURCE_TYPE = &quot;resourceType&quot;;
   static final String SELECTOR = &quot;wcmio-parsys-components&quot;;
 
-<span class="fc" id="L71">  private static final Logger log = LoggerFactory.getLogger(ParsysComponentsServlet.class);</span>
+<span class="fc" id="L69">  private static final Logger log = LoggerFactory.getLogger(ParsysComponentsServlet.class);</span>
 
   @Reference
   private AllowedComponentsProvider allowedComponentsProvider;
 
   @Reference
-  private SlingSettingsService slingSettings;
+  private InstanceTypeService instanceTypeService;
 
   private boolean enabled;
 
   @Activate
-  @SuppressWarnings(&quot;deprecation&quot;)
-  protected void activate(ComponentContext componentContext) {
+  protected void activate() {
     // Activate only in author mode
-<span class="fc bfc" id="L85" title="All 2 branches covered.">    enabled = !RunMode.disableIfNotAuthor(slingSettings.getRunModes(), componentContext, log);</span>
-<span class="fc" id="L86">  }</span>
+<span class="fc" id="L82">    enabled = instanceTypeService.isAuthor();</span>
+<span class="fc" id="L83">  }</span>
 
   @SuppressWarnings({ &quot;null&quot;, &quot;deprecation&quot; })
   @Override
   protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
-<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (!enabled) {</span>
-<span class="fc" id="L92">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
-<span class="fc" id="L93">      return;</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (!enabled) {</span>
+<span class="fc" id="L89">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="fc" id="L90">      return;</span>
     }
 
-<span class="fc" id="L96">    ResourceResolver resolver = request.getResourceResolver();</span>
-<span class="fc" id="L97">    PageManager pageManager = AdaptTo.notNull(resolver, PageManager.class);</span>
-<span class="fc" id="L98">    Page currentPage = pageManager.getContainingPage(request.getResource());</span>
+<span class="fc" id="L93">    ResourceResolver resolver = request.getResourceResolver();</span>
+<span class="fc" id="L94">    PageManager pageManager = AdaptTo.notNull(resolver, PageManager.class);</span>
+<span class="fc" id="L95">    Page currentPage = pageManager.getContainingPage(request.getResource());</span>
 
-<span class="pc bpc" id="L100" title="1 of 2 branches missed.">    if (currentPage == null) {</span>
-<span class="nc" id="L101">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
-<span class="nc" id="L102">      return;</span>
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">    if (currentPage == null) {</span>
+<span class="nc" id="L98">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="nc" id="L99">      return;</span>
     }
 
-<span class="fc" id="L105">    long startTime = 0;</span>
-<span class="pc bpc" id="L106" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L107">      startTime = System.currentTimeMillis();</span>
+<span class="fc" id="L102">    long startTime = 0;</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L104">      startTime = System.currentTimeMillis();</span>
     }
 
-<span class="fc" id="L110">    response.setContentType(ContentType.JSON);</span>
+<span class="fc" id="L107">    response.setContentType(ContentType.JSON);</span>
 
-<span class="fc" id="L112">    org.apache.sling.commons.json.JSONArray allowedComponents = new org.apache.sling.commons.json.JSONArray();</span>
+<span class="fc" id="L109">    org.apache.sling.commons.json.JSONArray allowedComponents = new org.apache.sling.commons.json.JSONArray();</span>
 
-<span class="fc" id="L114">    String relativePath = RequestParam.get(request, RP_PATH);</span>
-<span class="fc" id="L115">    String resourceType = RequestParam.get(request, RP_RESOURCE_TYPE);</span>
-<span class="fc bfc" id="L116" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(relativePath)) {</span>
+<span class="fc" id="L111">    String relativePath = RequestParam.get(request, RP_PATH);</span>
+<span class="fc" id="L112">    String resourceType = RequestParam.get(request, RP_RESOURCE_TYPE);</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(relativePath)) {</span>
       // get resource from paragraph system
-<span class="fc" id="L118">      Set&lt;String&gt; allowed = allowedComponentsProvider.getAllowedComponents(currentPage, relativePath, resourceType, resolver);</span>
+<span class="fc" id="L115">      Set&lt;String&gt; allowed = allowedComponentsProvider.getAllowedComponents(currentPage, relativePath, resourceType, resolver);</span>
 
       // create set with relative resource type paths
-<span class="fc" id="L121">      Set&lt;String&gt; allowedComponentsRelative = new TreeSet&lt;String&gt;();</span>
-<span class="fc bfc" id="L122" title="All 2 branches covered.">      for (String allowedResourceType : allowed) {</span>
-<span class="fc" id="L123">        allowedComponentsRelative.add(ResourceType.makeAbsolute(allowedResourceType, resolver));</span>
-<span class="fc" id="L124">      }</span>
+<span class="fc" id="L118">      Set&lt;String&gt; allowedComponentsRelative = new TreeSet&lt;String&gt;();</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">      for (String allowedResourceType : allowed) {</span>
+<span class="fc" id="L120">        allowedComponentsRelative.add(ResourceType.makeAbsolute(allowedResourceType, resolver));</span>
+<span class="fc" id="L121">      }</span>
 
-<span class="fc" id="L126">      allowedComponents = new org.apache.sling.commons.json.JSONArray(allowedComponentsRelative);</span>
+<span class="fc" id="L123">      allowedComponents = new org.apache.sling.commons.json.JSONArray(allowedComponentsRelative);</span>
     }
 
-<span class="fc" id="L129">    response.getWriter().write(allowedComponents.toString());</span>
+<span class="fc" id="L126">    response.getWriter().write(allowedComponents.toString());</span>
 
     // output profiling info in DEBUG mode
-<span class="pc bpc" id="L132" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L133">      long endTime = System.currentTimeMillis();</span>
-<span class="nc" id="L134">      long duration = endTime - startTime;</span>
-<span class="nc" id="L135">      log.debug(&quot;ParsysComponentsServlet for &quot; + currentPage.getPath() + &quot;/&quot; + relativePath + &quot; took &quot; + duration + &quot;ms&quot;);</span>
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L130">      long endTime = System.currentTimeMillis();</span>
+<span class="nc" id="L131">      long duration = endTime - startTime;</span>
+<span class="nc" id="L132">      log.debug(&quot;ParsysComponentsServlet for &quot; + currentPage.getPath() + &quot;/&quot; + relativePath + &quot; took &quot; + duration + &quot;ms&quot;);</span>
     }
-<span class="fc" id="L137">  }</span>
+<span class="fc" id="L134">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
