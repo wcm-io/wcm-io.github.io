@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InstanceTypeServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.commons.instancetype.impl</a> &gt; <span class="el_source">InstanceTypeServiceImpl.java</span></div><h1>InstanceTypeServiceImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2021 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.commons.instancetype.impl;
+
+import static org.osgi.framework.Constants.SERVICE_PID;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.service.cm.Configuration;
+import org.osgi.service.cm.ConfigurationAdmin;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.osgi.service.metatype.annotations.Option;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.wcm.api.WCMMode;
+
+import io.wcm.wcm.commons.instancetype.InstanceTypeService;
+import io.wcm.wcm.commons.util.RunMode;
+
+/**
+ * Implements {@link InstanceTypeService}.
+ */
+@Component(service = InstanceTypeService.class)
+@Designate(ocd = InstanceTypeServiceImpl.Config.class)
+<span class="fc" id="L53">public class InstanceTypeServiceImpl implements InstanceTypeService {</span>
+
+  @ObjectClassDefinition(name = &quot;wcm.io Commons AEM Instance Type&quot;,
+      description = &quot;Configures if the current instance is an author or publish instance, and makes this information accessible for other services.&quot;)
+  @interface Config {
+
+    @AttributeDefinition(name = &quot;Instance Type&quot;,
+        description = &quot;Should be explicitely configured to 'author' or 'publish'. If not set, instance type will be guessed by heuristics from other OSGi configurations.&quot;,
+        options = {
+            @Option(value = RunMode.AUTHOR, label = &quot;Author&quot;),
+            @Option(value = RunMode.PUBLISH, label = &quot;Publish&quot;),
+            @Option(value = InstanceTypeServiceImpl.TYPE_AUTO, label = &quot;Detect automatically (not recommended)&quot;)
+        })
+    String instance_type() default InstanceTypeServiceImpl.TYPE_AUTO;
+
+  }
+
+  static final String TYPE_AUTO = &quot;auto&quot;;
+
+  static final String WCM_REQUEST_FILTER_PID = &quot;com.day.cq.wcm.core.WCMRequestFilter&quot;;
+  static final String WCM_MODE_PROPERTY = &quot;wcmfilter.mode&quot;;
+
+  private boolean isAuthor;
+  private Set&lt;String&gt; runModes;
+
+  @Reference
+  private ConfigurationAdmin configAdmin;
+
+<span class="fc" id="L81">  private final Logger log = LoggerFactory.getLogger(InstanceTypeServiceImpl.class);</span>
+
+  @Activate
+  private void activate(Config config) {
+    // detect instance type
+<span class="fc" id="L86">    String instanceType = config.instance_type();</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">    if (StringUtils.equals(instanceType, RunMode.AUTHOR)) {</span>
+<span class="fc" id="L88">      isAuthor = true;</span>
+    }
+<span class="fc bfc" id="L90" title="All 2 branches covered.">    else if (StringUtils.equals(instanceType, RunMode.PUBLISH)) {</span>
+<span class="fc" id="L91">      isAuthor = false;</span>
+    }
+    else {
+      // not configured or set to &quot;auto&quot; - rely on guessing author mode
+<span class="fc" id="L95">      isAuthor = detectAutorMode();</span>
+
+<span class="fc bfc" id="L97" title="All 2 branches covered.">      log.warn(&quot;Please provide a 'wcm.io Commons AEM Instance Type' configuration &quot;</span>
+          + &quot;- falling back to guessing instance type from other configuration =&gt; {}.&quot;,
+          isAuthor ? RunMode.AUTHOR : RunMode.PUBLISH);
+    }
+
+    // set matching run mode set
+<span class="fc bfc" id="L103" title="All 2 branches covered.">    if (isAuthor) {</span>
+<span class="fc" id="L104">      runModes = Collections.singleton(RunMode.AUTHOR);</span>
+    }
+    else {
+<span class="fc" id="L107">      runModes = Collections.singleton(RunMode.PUBLISH);</span>
+    }
+<span class="fc" id="L109">  }</span>
+
+  private boolean detectAutorMode() {
+    try {
+<span class="fc" id="L113">      Configuration[] configs = configAdmin.listConfigurations(&quot;(&quot; + SERVICE_PID + &quot;=&quot; + WCM_REQUEST_FILTER_PID + &quot;)&quot;);</span>
+<span class="pc bpc" id="L114" title="1 of 4 branches missed.">      if (configs != null &amp;&amp; configs.length &gt; 0) {</span>
+<span class="fc" id="L115">        Object defaultWcmMode = configs[0].getProperties().get(WCM_MODE_PROPERTY);</span>
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">        if (defaultWcmMode instanceof String) {</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">          return !StringUtils.equalsIgnoreCase(WCMMode.DISABLED.name(), (String)defaultWcmMode);</span>
+        }
+      }
+    }
+<span class="nc" id="L121">    catch (IOException | InvalidSyntaxException ex) {</span>
+<span class="nc" id="L122">      log.warn(&quot;Unable to read OSGi configuration: {}&quot;, WCM_REQUEST_FILTER_PID, ex);</span>
+<span class="fc" id="L123">    }</span>
+<span class="fc" id="L124">    return false;</span>
+  }
+
+  @Override
+  public boolean isAuthor() {
+<span class="fc" id="L129">    return isAuthor;</span>
+  }
+
+  @Override
+  public boolean isPublish() {
+<span class="fc bfc" id="L134" title="All 2 branches covered.">    return !isAuthor;</span>
+  }
+
+  @Override
+  public @NotNull Set&lt;String&gt; getRunModes() {
+<span class="fc" id="L139">    return Collections.unmodifiableSet(runModes);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
