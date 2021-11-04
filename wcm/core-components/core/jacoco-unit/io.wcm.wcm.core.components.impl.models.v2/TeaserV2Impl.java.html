@@ -45,7 +45,6 @@ import com.adobe.cq.wcm.core.components.models.ListItem;
 import com.adobe.cq.wcm.core.components.models.Teaser;
 import com.adobe.cq.wcm.core.components.models.datalayer.ComponentData;
 import com.adobe.cq.wcm.core.components.models.datalayer.builder.DataLayerBuilder;
-import com.adobe.cq.wcm.core.components.util.ComponentUtils;
 import com.day.cq.wcm.api.Page;
 import com.day.cq.wcm.api.designer.Style;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -59,6 +58,7 @@ import io.wcm.sling.models.annotations.AemObject;
 import io.wcm.wcm.core.components.impl.link.LinkWrapper;
 import io.wcm.wcm.core.components.impl.models.helpers.AbstractComponentImpl;
 import io.wcm.wcm.core.components.impl.models.helpers.LinkListItemV2Impl;
+import io.wcm.wcm.core.components.impl.util.ComponentFeatureImageResolver;
 import io.wcm.wcm.core.components.impl.util.HandlerUnwrapper;
 import io.wcm.wcm.core.components.models.mixin.MediaMixin;
 
@@ -148,111 +148,101 @@ import io.wcm.wcm.core.components.models.mixin.MediaMixin;
 <span class="fc" id="L148">      targetPage = link.getLinkObject().getTargetPage();</span>
     }
 
-    // resolve teaser media
-<span class="fc" id="L152">    media = HandlerUnwrapper.get(mediaHandler, resource)</span>
-<span class="fc" id="L153">        .property(PROP_CSS_CLASS, &quot;cmp-image__image&quot;)</span>
-<span class="fc" id="L154">        .build();</span>
-
-    // if no valid media is present in this component, try to get featured image from target page
-<span class="fc bfc" id="L157" title="All 4 branches covered.">    if (!media.isValid() &amp;&amp; targetPage != null) {</span>
-<span class="fc" id="L158">      Resource featuredImageResource = ComponentUtils.getFeaturedImage(targetPage);</span>
-<span class="fc bfc" id="L159" title="All 2 branches covered.">      if (featuredImageResource != null) {</span>
-<span class="fc" id="L160">        media = HandlerUnwrapper.get(mediaHandler, featuredImageResource)</span>
-<span class="fc" id="L161">            .property(PROP_CSS_CLASS, &quot;cmp-image__image&quot;)</span>
-<span class="fc" id="L162">            .build();</span>
-      }
-    }
+    // resolve teaser image and alt. text
+<span class="fc" id="L152">    media = new ComponentFeatureImageResolver(resource, getCurrentPage(), currentStyle, mediaHandler)</span>
+<span class="fc" id="L153">        .targetPage(targetPage)</span>
+<span class="fc" id="L154">        .mediaHandlerProperty(PROP_CSS_CLASS, &quot;cmp-image__image&quot;)</span>
+<span class="fc" id="L155">        .buildMedia();</span>
 
     // read title and description
-<span class="pc bpc" id="L167" title="1 of 2 branches missed.">    if (!pretitleHidden) {</span>
-<span class="fc" id="L168">      pretitle = properties.get(&quot;pretitle&quot;, String.class);</span>
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">    if (!pretitleHidden) {</span>
+<span class="fc" id="L159">      pretitle = properties.get(&quot;pretitle&quot;, String.class);</span>
     }
-<span class="fc bfc" id="L170" title="All 2 branches covered.">    if (!titleHidden) {</span>
-<span class="fc bfc" id="L171" title="All 2 branches covered.">      if (titleFromPage) {</span>
-<span class="fc bfc" id="L172" title="All 2 branches covered.">        if (targetPage != null) {</span>
-<span class="fc" id="L173">          title = StringUtils.defaultIfEmpty(targetPage.getPageTitle(), targetPage.getTitle());</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">    if (!titleHidden) {</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">      if (titleFromPage) {</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">        if (targetPage != null) {</span>
+<span class="fc" id="L164">          title = StringUtils.defaultIfEmpty(targetPage.getPageTitle(), targetPage.getTitle());</span>
         }
       }
       else {
-<span class="fc" id="L177">        title = properties.get(JCR_TITLE, String.class);</span>
+<span class="fc" id="L168">        title = properties.get(JCR_TITLE, String.class);</span>
       }
     }
-<span class="fc bfc" id="L180" title="All 2 branches covered.">    if (!descriptionHidden) {</span>
-<span class="fc bfc" id="L181" title="All 2 branches covered.">      if (descriptionFromPage) {</span>
-<span class="fc bfc" id="L182" title="All 2 branches covered.">        if (targetPage != null) {</span>
-<span class="fc" id="L183">          description = targetPage.getDescription();</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">    if (!descriptionHidden) {</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">      if (descriptionFromPage) {</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">        if (targetPage != null) {</span>
+<span class="fc" id="L174">          description = targetPage.getDescription();</span>
           // page description is by default no rich text
-<span class="fc" id="L185">          description = richTextHandler.get(description).textMode(TextMode.PLAIN).buildMarkup();</span>
+<span class="fc" id="L176">          description = richTextHandler.get(description).textMode(TextMode.PLAIN).buildMarkup();</span>
         }
       }
       else {
-<span class="fc" id="L189">        description = properties.get(JCR_DESCRIPTION, String.class);</span>
+<span class="fc" id="L180">        description = properties.get(JCR_DESCRIPTION, String.class);</span>
         // description in teaser is rich text
-<span class="fc" id="L191">        description = richTextHandler.get(description).textMode(TextMode.XHTML).buildMarkup();</span>
+<span class="fc" id="L182">        description = richTextHandler.get(description).textMode(TextMode.XHTML).buildMarkup();</span>
       }
     }
 
-
-<span class="fc" id="L196">  }</span>
+<span class="fc" id="L186">  }</span>
 
   @Override
   public @NotNull Media getMediaObject() {
-<span class="fc" id="L200">    return media;</span>
+<span class="fc" id="L190">    return media;</span>
   }
 
   @Override
   public boolean isActionsEnabled() {
-<span class="fc" id="L205">    return actionsEnabled;</span>
+<span class="fc" id="L195">    return actionsEnabled;</span>
   }
 
   @Override
   public List&lt;ListItem&gt; getActions() {
-<span class="fc" id="L210">    return Collections.unmodifiableList(actions);</span>
+<span class="fc" id="L200">    return Collections.unmodifiableList(actions);</span>
   }
 
   @Override
   public Link getLink() {
-<span class="fc" id="L215">    return link.orNull();</span>
+<span class="fc" id="L205">    return link.orNull();</span>
   }
 
   @Override
   @Deprecated
   @JsonIgnore
   public String getLinkURL() {
-<span class="fc" id="L222">    return link.getURL();</span>
+<span class="fc" id="L212">    return link.getURL();</span>
   }
 
   @Override
   public boolean isImageLinkHidden() {
-<span class="fc" id="L227">    return imageLinkHidden;</span>
+<span class="fc" id="L217">    return imageLinkHidden;</span>
   }
 
   @Override
   public String getTitle() {
-<span class="fc" id="L232">    return title;</span>
+<span class="fc" id="L222">    return title;</span>
   }
 
   @Override
   public String getPretitle() {
-<span class="nc" id="L237">    return pretitle;</span>
+<span class="nc" id="L227">    return pretitle;</span>
   }
 
   @Override
   public boolean isTitleLinkHidden() {
-<span class="fc" id="L242">    return titleLinkHidden;</span>
+<span class="fc" id="L232">    return titleLinkHidden;</span>
   }
 
   @Override
   public String getDescription() {
-<span class="fc" id="L247">    return description;</span>
+<span class="fc" id="L237">    return description;</span>
   }
 
   @Override
   public String getTitleType() {
-<span class="fc bfc" id="L252" title="All 2 branches covered.">    if (showTitleType) {</span>
-<span class="fc" id="L253">      titleType = resource.getValueMap().get(Teaser.PN_TITLE_TYPE, titleType);</span>
+<span class="fc bfc" id="L242" title="All 2 branches covered.">    if (showTitleType) {</span>
+<span class="fc" id="L243">      titleType = resource.getValueMap().get(Teaser.PN_TITLE_TYPE, titleType);</span>
     }
-<span class="fc" id="L255">    return titleType;</span>
+<span class="fc" id="L245">    return titleType;</span>
   }
 
 
@@ -260,16 +250,16 @@ import io.wcm.wcm.core.components.models.mixin.MediaMixin;
 
   @Override
   protected @NotNull ComponentData getComponentData() {
-<span class="fc" id="L263">    return DataLayerBuilder.extending(super.getComponentData()).asComponent()</span>
-<span class="fc" id="L264">        .withTitle(this::getTitle)</span>
-<span class="fc" id="L265">        .withLinkUrl(this::getLinkURL)</span>
-<span class="fc" id="L266">        .withDescription(this::getDescription)</span>
-<span class="fc" id="L267">        .build();</span>
+<span class="fc" id="L253">    return DataLayerBuilder.extending(super.getComponentData()).asComponent()</span>
+<span class="fc" id="L254">        .withTitle(this::getTitle)</span>
+<span class="fc" id="L255">        .withLinkUrl(this::getLinkURL)</span>
+<span class="fc" id="L256">        .withDescription(this::getDescription)</span>
+<span class="fc" id="L257">        .build();</span>
   }
 
   protected ListItem newLinkListItem(@NotNull String newTitle, @NotNull LinkWrapper newLink, @NotNull String itemIdPrefix) {
-<span class="fc" id="L271">    return new LinkListItemV2Impl(newTitle, newLink, itemIdPrefix,</span>
-<span class="fc" id="L272">        getId(), this.componentContext.getComponent(), this.resource);</span>
+<span class="fc" id="L261">    return new LinkListItemV2Impl(newTitle, newLink, itemIdPrefix,</span>
+<span class="fc" id="L262">        getId(), getParentComponent(), this.resource);</span>
   }
 
 }

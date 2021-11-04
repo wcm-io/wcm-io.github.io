@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ComponentFeatureImageResolver.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Core Components</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.core.components.impl.util</a> &gt; <span class="el_source">ComponentFeatureImageResolver.java</span></div><h1>ComponentFeatureImageResolver.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2021 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.core.components.impl.util;
+
+import static com.adobe.cq.wcm.core.components.models.Image.PN_ALT_VALUE_FROM_DAM;
+import static com.adobe.cq.wcm.core.components.models.Image.PN_ALT_VALUE_FROM_PAGE_IMAGE;
+import static com.adobe.cq.wcm.core.components.models.Image.PN_IMAGE_FROM_PAGE_IMAGE;
+import static com.adobe.cq.wcm.core.components.models.Image.PN_IS_DECORATIVE;
+import static io.wcm.handler.media.MediaNameConstants.PN_MEDIA_ALTTEXT_STANDARD;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ValueMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.adobe.cq.wcm.core.components.util.ComponentUtils;
+import com.day.cq.wcm.api.NameConstants;
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.designer.Style;
+
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.MediaBuilder;
+import io.wcm.handler.media.MediaHandler;
+
+/**
+ * Resolves images and alt. texts for components either from the component resource,
+ * or the feature image from a target page, depending on the components configuration.
+ * This is currently used for Teaser and Responsive Image components.
+ */
+public class ComponentFeatureImageResolver {
+
+  private final Resource componentResource;
+  private final Page currentPage;
+  private final MediaHandler mediaHandler;
+<span class="fc" id="L56">  private final Map&lt;String, Object&gt; mediaHandlerProperties = new HashMap&lt;&gt;();</span>
+
+  private final boolean imageFromPageImage;
+  private final boolean altValueFromPageImage;
+  private final boolean altValueFromDam;
+  private final boolean isDecorative;
+  private final String componentAltText;
+
+  private Page targetPage;
+
+  /**
+   * @param componentResource Component resource
+   * @param currentPage Current page
+   * @param mediaHandler Media handler
+   */
+  public ComponentFeatureImageResolver(@NotNull Resource componentResource,
+      @NotNull Page currentPage, @NotNull Style currentStyle,
+<span class="fc" id="L73">      @NotNull MediaHandler mediaHandler) {</span>
+<span class="fc" id="L74">    this.componentResource = componentResource;</span>
+<span class="fc" id="L75">    this.currentPage = currentPage;</span>
+<span class="fc" id="L76">    this.mediaHandler = mediaHandler;</span>
+
+    // component properties
+<span class="fc" id="L79">    ValueMap props = componentResource.getValueMap();</span>
+<span class="fc" id="L80">    this.imageFromPageImage = props.get(PN_IMAGE_FROM_PAGE_IMAGE, false);</span>
+<span class="fc" id="L81">    this.altValueFromPageImage = props.get(PN_ALT_VALUE_FROM_PAGE_IMAGE, false);</span>
+<span class="fc" id="L82">    this.altValueFromDam = props.get(PN_ALT_VALUE_FROM_DAM, false);</span>
+<span class="fc" id="L83">    this.isDecorative = props.get(PN_IS_DECORATIVE, currentStyle.get(PN_IS_DECORATIVE, false));</span>
+<span class="fc" id="L84">    this.componentAltText = props.get(PN_MEDIA_ALTTEXT_STANDARD, String.class);</span>
+<span class="fc" id="L85">  }</span>
+
+  /**
+   * Set target page to get feature image from.
+   * @param value Set target link page
+   * @return self
+   */
+  public ComponentFeatureImageResolver targetPage(@Nullable Page value) {
+<span class="fc" id="L93">    this.targetPage = value;</span>
+<span class="fc" id="L94">    return this;</span>
+  }
+
+  /**
+   * Add custom media handler property.
+   * @param key Key
+   * @param value Value
+   * @return self
+   */
+  public ComponentFeatureImageResolver mediaHandlerProperty(@NotNull String key, @NotNull String value) {
+<span class="fc" id="L104">    this.mediaHandlerProperties.put(key, value);</span>
+<span class="fc" id="L105">    return this;</span>
+  }
+
+  /**
+   * Build media after resolving feature images and alt. texts.
+   * @return Media
+   */
+  public @NotNull Media buildMedia() {
+    Media media;
+
+<span class="fc bfc" id="L115" title="All 2 branches covered.">    if (imageFromPageImage) {</span>
+      // try to get feature image from target page
+<span class="fc bfc" id="L117" title="All 2 branches covered.">      if (targetPage != null) {</span>
+<span class="fc" id="L118">        Resource featuredImageResource = ComponentUtils.getFeaturedImage(targetPage);</span>
+<span class="fc" id="L119">        media = buildMedia(wrapFeatureImageResource(featuredImageResource));</span>
+<span class="fc" id="L120">      }</span>
+      else {
+<span class="fc" id="L122">        media = mediaHandler.invalid();</span>
+      }
+      // if target page is not present or has not valid feature image, try to get it from current page
+<span class="fc bfc" id="L125" title="All 4 branches covered.">      if (!media.isValid() &amp;&amp; isComponentInCurrentPage()) {</span>
+<span class="fc" id="L126">        Resource featuredImageResource = ComponentUtils.getFeaturedImage(currentPage);</span>
+<span class="fc" id="L127">        media = buildMedia(wrapFeatureImageResource(featuredImageResource));</span>
+<span class="fc" id="L128">      }</span>
+    }
+    else {
+      // image from teaser resource
+<span class="fc" id="L132">      media = buildMedia(componentResource);</span>
+    }
+
+<span class="fc" id="L135">    return media;</span>
+  }
+
+  /**
+   * Wraps the given resource and applies the original resource type from the component.
+   * @param resource Resource
+   * @return Wrapped resource
+   */
+  private @Nullable Resource wrapFeatureImageResource(@Nullable Resource resource) {
+<span class="fc bfc" id="L144" title="All 2 branches covered.">    if (resource == null) {</span>
+<span class="fc" id="L145">      return null;</span>
+    }
+<span class="fc" id="L147">    return new CoreResourceWrapper(resource, HandlerUnwrapper.getResourceType(componentResource));</span>
+  }
+
+  /**
+   * Build media applying special CSS class derived from core components.
+   * @param mediaResource Resource
+   * @return Media
+   */
+  private @NotNull Media buildMedia(@Nullable Resource mediaResource) {
+<span class="fc bfc" id="L156" title="All 2 branches covered.">    if (mediaResource == null) {</span>
+<span class="fc" id="L157">      return mediaHandler.invalid();</span>
+    }
+<span class="fc" id="L159">    MediaBuilder builder = HandlerUnwrapper.get(mediaHandler, mediaResource);</span>
+
+<span class="fc bfc" id="L161" title="All 2 branches covered.">    if (isDecorative) {</span>
+      // skip all text. text if image is decorative
+<span class="fc" id="L163">      builder.decorative(true);</span>
+    }
+<span class="pc bpc" id="L165" title="1 of 4 branches missed.">    else if (!(altValueFromPageImage || altValueFromDam)) {</span>
+      // explicitly apply alt. text from component if none of the &quot;automatic features&quot; is activated
+      // otherwise rely to default media handler behavior
+<span class="fc" id="L168">      builder.altText(componentAltText);</span>
+    }
+
+    // apply custom media handling properties
+<span class="fc" id="L172">    mediaHandlerProperties.entrySet().forEach(entry -&gt; builder.property(entry.getKey(), entry.getValue()));</span>
+
+<span class="fc" id="L174">    return builder.build();</span>
+  }
+
+  /**
+   * Fallback to current page is only done if the component resource is actually located in the current page
+   * (or it's template).
+   * @return true if component in current page
+   */
+  private boolean isComponentInCurrentPage() {
+<span class="fc" id="L183">    String pageContentPath = currentPage.getContentResource().getPath();</span>
+<span class="fc" id="L184">    String templatePath = currentPage.getProperties().get(NameConstants.PN_TEMPLATE, String.class);</span>
+<span class="pc bpc" id="L185" title="1 of 4 branches missed.">    return isChildResource(pageContentPath) || isChildResource(templatePath);</span>
+  }
+
+  private boolean isChildResource(@Nullable String parentPath) {
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">    if (parentPath == null) {</span>
+<span class="nc" id="L190">      return false;</span>
+    }
+<span class="fc" id="L192">    return StringUtils.startsWith(componentResource.getPath(), parentPath + &quot;/&quot;);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
