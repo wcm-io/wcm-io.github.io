@@ -49,10 +49,10 @@ import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaSupportServi
  */
 public final class DamAsset extends SlingAdaptable implements Asset {
 
+  private final com.day.cq.dam.api.Asset damAsset;
   private final CropDimension cropDimension;
   private final Integer rotation;
   private final MediaArgs defaultMediaArgs;
-  private final ValueMap properties;
   private final DamContext damContext;
 
   /**
@@ -64,10 +64,10 @@ public final class DamAsset extends SlingAdaptable implements Asset {
    */
   public DamAsset(Media media, com.day.cq.dam.api.Asset damAsset, MediaHandlerConfig mediaHandlerConfig,
 <span class="fc" id="L66">      DynamicMediaSupportService dynamicMediaSupportService, Adaptable adaptable) {</span>
-<span class="fc" id="L67">    this.cropDimension = media.getCropDimension();</span>
-<span class="fc" id="L68">    this.rotation = media.getRotation();</span>
-<span class="fc" id="L69">    this.defaultMediaArgs = media.getMediaRequest().getMediaArgs();</span>
-<span class="fc" id="L70">    this.properties = new ValueMapDecorator(damAsset.getMetadata());</span>
+<span class="fc" id="L67">    this.damAsset = damAsset;</span>
+<span class="fc" id="L68">    this.cropDimension = media.getCropDimension();</span>
+<span class="fc" id="L69">    this.rotation = media.getRotation();</span>
+<span class="fc" id="L70">    this.defaultMediaArgs = media.getMediaRequest().getMediaArgs();</span>
 <span class="fc" id="L71">    this.damContext = new DamContext(damAsset, defaultMediaArgs.getUrlMode(), mediaHandlerConfig,</span>
         dynamicMediaSupportService, adaptable);
 <span class="fc" id="L73">  }</span>
@@ -86,20 +86,20 @@ public final class DamAsset extends SlingAdaptable implements Asset {
    * @return Single value
    */
   private @Nullable String getPropertyAwareOfArray(@NotNull String propertyName) {
-<span class="fc" id="L89">    Object value = this.properties.get(DamConstants.DC_TITLE);</span>
-<span class="fc bfc" id="L90" title="All 2 branches covered.">    if (value != null) {</span>
-      //
-<span class="pc bpc" id="L92" title="1 of 2 branches missed.">      if (value instanceof Object[]) {</span>
-<span class="nc" id="L93">        Object[] valueArray = (Object[])value;</span>
+<span class="fc" id="L89">    Object valueObject = damAsset.getMetadataValueFromJcr(propertyName);</span>
+<span class="fc" id="L90">    String value = null;</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">    if (valueObject != null) {</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">      if (valueObject instanceof Object[]) {</span>
+<span class="nc" id="L93">        Object[] valueArray = (Object[])valueObject;</span>
 <span class="nc bnc" id="L94" title="All 2 branches missed.">        if (valueArray.length &gt; 0) {</span>
-<span class="nc" id="L95">          return valueArray[0].toString();</span>
+<span class="nc" id="L95">          value = valueArray[0].toString();</span>
         }
 <span class="nc" id="L97">      }</span>
       else {
-<span class="fc" id="L99">        return value.toString();</span>
+<span class="fc" id="L99">        value = valueObject.toString();</span>
       }
     }
-<span class="fc" id="L102">    return null;</span>
+<span class="fc" id="L102">    return StringUtils.defaultIfBlank(value, null);</span>
   }
 
   @Override
@@ -115,7 +115,7 @@ public final class DamAsset extends SlingAdaptable implements Asset {
 
   @Override
   public String getDescription() {
-<span class="fc" id="L118">    return this.properties.get(DamConstants.DC_DESCRIPTION, String.class);</span>
+<span class="fc" id="L118">    return getPropertyAwareOfArray(DamConstants.DC_DESCRIPTION);</span>
   }
 
   @Override
@@ -125,7 +125,7 @@ public final class DamAsset extends SlingAdaptable implements Asset {
 
   @Override
   public @NotNull ValueMap getProperties() {
-<span class="fc" id="L128">    return this.properties;</span>
+<span class="fc" id="L128">    return new ValueMapDecorator(damAsset.getMetadata());</span>
   }
 
   @Override
