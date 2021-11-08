@@ -21,10 +21,9 @@ package io.wcm.wcm.ui.granite.resource;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceMetadata;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -37,7 +36,6 @@ import org.osgi.annotation.versioning.ProviderType;
 
 import com.day.cq.commons.jcr.JcrConstants;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 /**
  * Extended version of {@link SyntheticResource} that allows to pass an own value map and optional child resources.
@@ -49,66 +47,71 @@ import com.google.common.collect.Lists;
 public final class GraniteUiSyntheticResource extends SyntheticResource {
 
   private final ValueMap props;
-  private final List&lt;Resource&gt; children;
+  private final Map&lt;String, Resource&gt; children;
 
   private GraniteUiSyntheticResource(ResourceResolver resourceResolver,
       ResourceMetadata resourceMetadata, String resourceType,
       ValueMap props, Iterable&lt;Resource&gt; children) {
-<span class="fc" id="L57">    super(resourceResolver, resourceMetadata, resourceType);</span>
-<span class="fc" id="L58">    this.props = props;</span>
-<span class="fc" id="L59">    this.children = Lists.newArrayList(children);</span>
-<span class="fc" id="L60">  }</span>
+<span class="fc" id="L55">    super(resourceResolver, resourceMetadata, resourceType);</span>
+<span class="fc" id="L56">    this.props = props;</span>
+<span class="fc" id="L57">    this.children = childrenMap(children);</span>
+<span class="fc" id="L58">  }</span>
 
   private GraniteUiSyntheticResource(ResourceResolver resourceResolver,
       String path,
       String resourceType,
       ValueMap props,
       Iterable&lt;Resource&gt; children) {
-<span class="fc" id="L67">    super(resourceResolver, path, resourceType);</span>
-<span class="fc" id="L68">    this.props = props;</span>
-<span class="fc" id="L69">    this.children = Lists.newArrayList(children);</span>
-<span class="fc" id="L70">  }</span>
+<span class="fc" id="L65">    super(resourceResolver, path, resourceType);</span>
+<span class="fc" id="L66">    this.props = props;</span>
+<span class="fc" id="L67">    this.children = childrenMap(children);</span>
+<span class="fc" id="L68">  }</span>
+
+  private static Map&lt;String, Resource&gt; childrenMap(Iterable&lt;Resource&gt; children) {
+<span class="fc" id="L71">    Map&lt;String, Resource&gt; result = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L72">    children.forEach(resource -&gt; result.put(resource.getName(), resource));</span>
+<span class="fc" id="L73">    return result;</span>
+  }
 
   @SuppressWarnings({ &quot;unchecked&quot;, &quot;null&quot; })
   @Override
   public &lt;Type&gt; Type adaptTo(Class&lt;Type&gt; type) {
-<span class="fc bfc" id="L75" title="All 2 branches covered.">    if (ValueMap.class.equals(type)) {</span>
-<span class="fc" id="L76">      return (Type)props;</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    if (ValueMap.class.equals(type)) {</span>
+<span class="fc" id="L80">      return (Type)props;</span>
     }
     else {
-<span class="fc" id="L79">      return super.adaptTo(type);</span>
+<span class="fc" id="L83">      return super.adaptTo(type);</span>
     }
   }
 
   @Override
   public Iterator&lt;Resource&gt; listChildren() {
-<span class="fc" id="L85">    return children.iterator();</span>
+<span class="fc" id="L89">    return children.values().iterator();</span>
   }
 
   @Override
   public Iterable&lt;Resource&gt; getChildren() {
-<span class="fc" id="L90">    return children;</span>
+<span class="fc" id="L94">    return children.values();</span>
   }
 
   @Override
   public boolean hasChildren() {
-<span class="fc" id="L95">    return children.iterator().hasNext();</span>
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">    return !children.isEmpty();</span>
   }
 
   @Override
   public Resource getChild(String relPath) {
-<span class="fc bfc" id="L100" title="All 2 branches covered.">    for (Resource resource : children) {</span>
-      // naive implementation that only covers the simplest-possible case to detect the correct child
-<span class="fc bfc" id="L102" title="All 2 branches covered.">      if (StringUtils.equals(resource.getName(), relPath)) {</span>
-<span class="fc" id="L103">        return resource;</span>
-      }
-<span class="fc" id="L105">    }</span>
-<span class="fc" id="L106">    return super.getChild(relPath);</span>
+    // naive implementation that only covers the simplest-possible case to detect the correct child
+<span class="fc" id="L105">    Resource child = children.get(relPath);</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">    if (child != null) {</span>
+<span class="fc" id="L107">      return child;</span>
+    }
+<span class="fc" id="L109">    return super.getChild(relPath);</span>
   }
 
   private void addChild(Resource child) {
-<span class="fc" id="L110">    children.add(child);</span>
-<span class="fc" id="L111">  }</span>
+<span class="fc" id="L113">    children.put(child.getName(), child);</span>
+<span class="fc" id="L114">  }</span>
 
   /**
    * Create synthetic resource.
@@ -117,7 +120,7 @@ public final class GraniteUiSyntheticResource extends SyntheticResource {
    * @return Resource
    */
   public static Resource create(@NotNull ResourceResolver resourceResolver, @NotNull ValueMap valueMap) {
-<span class="fc" id="L120">    return create(resourceResolver, null, JcrConstants.NT_UNSTRUCTURED, valueMap);</span>
+<span class="fc" id="L123">    return create(resourceResolver, null, JcrConstants.NT_UNSTRUCTURED, valueMap);</span>
   }
 
   /**
@@ -128,7 +131,7 @@ public final class GraniteUiSyntheticResource extends SyntheticResource {
    * @return Resource
    */
   public static Resource create(@NotNull ResourceResolver resourceResolver, @Nullable String path, @NotNull String resourceType) {
-<span class="fc" id="L131">    return create(resourceResolver, path, resourceType, ValueMap.EMPTY);</span>
+<span class="fc" id="L134">    return create(resourceResolver, path, resourceType, ValueMap.EMPTY);</span>
   }
 
   /**
@@ -141,11 +144,11 @@ public final class GraniteUiSyntheticResource extends SyntheticResource {
    */
   public static Resource create(@NotNull ResourceResolver resourceResolver, @Nullable String path, @NotNull String resourceType,
       @NotNull ValueMap valueMap) {
-<span class="fc" id="L144">    return new GraniteUiSyntheticResource(resourceResolver,</span>
+<span class="fc" id="L147">    return new GraniteUiSyntheticResource(resourceResolver,</span>
         path,
         resourceType,
         valueMap,
-<span class="fc" id="L148">        ImmutableList.&lt;Resource&gt;of());</span>
+<span class="fc" id="L151">        ImmutableList.&lt;Resource&gt;of());</span>
   }
 
   /**
@@ -154,7 +157,7 @@ public final class GraniteUiSyntheticResource extends SyntheticResource {
    * @return Resource
    */
   public static Resource wrap(@NotNull Resource resource) {
-<span class="fc" id="L157">    return wrap(resource, resource.getValueMap(), resource.getChildren());</span>
+<span class="fc" id="L160">    return wrap(resource, resource.getValueMap(), resource.getChildren());</span>
   }
 
   /**
@@ -164,7 +167,7 @@ public final class GraniteUiSyntheticResource extends SyntheticResource {
    * @return Resource
    */
   public static Resource wrap(@NotNull Resource resource, @NotNull ValueMap valueMap) {
-<span class="fc" id="L167">    return wrap(resource, valueMap, resource.getChildren());</span>
+<span class="fc" id="L170">    return wrap(resource, valueMap, resource.getChildren());</span>
   }
 
   /**
@@ -175,16 +178,16 @@ public final class GraniteUiSyntheticResource extends SyntheticResource {
    * @return Resource
    */
   public static Resource wrapMerge(@NotNull Resource resource, @NotNull ValueMap valueMap) {
-<span class="fc" id="L178">    Map&lt;String, Object&gt; mergedProperties = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L179">    mergedProperties.putAll(resource.getValueMap());</span>
-<span class="fc" id="L180">    mergedProperties.putAll(valueMap);</span>
-<span class="fc" id="L181">    return wrap(resource, new ValueMapDecorator(mergedProperties), resource.getChildren());</span>
+<span class="fc" id="L181">    Map&lt;String, Object&gt; mergedProperties = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L182">    mergedProperties.putAll(resource.getValueMap());</span>
+<span class="fc" id="L183">    mergedProperties.putAll(valueMap);</span>
+<span class="fc" id="L184">    return wrap(resource, new ValueMapDecorator(mergedProperties), resource.getChildren());</span>
   }
 
   private static Resource wrap(Resource resource, ValueMap valueMap, Iterable&lt;Resource&gt; children) {
-<span class="fc" id="L185">    return new GraniteUiSyntheticResource(resource.getResourceResolver(),</span>
-<span class="fc" id="L186">        resource.getResourceMetadata(),</span>
-<span class="fc" id="L187">        resource.getResourceType(),</span>
+<span class="fc" id="L188">    return new GraniteUiSyntheticResource(resource.getResourceResolver(),</span>
+<span class="fc" id="L189">        resource.getResourceMetadata(),</span>
+<span class="fc" id="L190">        resource.getResourceType(),</span>
         valueMap,
         children);
   }
@@ -197,7 +200,7 @@ public final class GraniteUiSyntheticResource extends SyntheticResource {
    * @return Resource
    */
   public static Resource child(@NotNull Resource parentResource, @NotNull String name, @NotNull String resourceType) {
-<span class="fc" id="L200">    return child(parentResource, name, resourceType, ValueMap.EMPTY);</span>
+<span class="fc" id="L203">    return child(parentResource, name, resourceType, ValueMap.EMPTY);</span>
   }
 
   /**
@@ -210,18 +213,18 @@ public final class GraniteUiSyntheticResource extends SyntheticResource {
    */
   public static Resource child(@NotNull Resource parentResource, @NotNull String name, @NotNull String resourceType,
       @NotNull ValueMap valueMap) {
-<span class="fc" id="L213">    Resource child = new GraniteUiSyntheticResource(parentResource.getResourceResolver(),</span>
-<span class="fc" id="L214">        parentResource.getPath() + &quot;/&quot; + name,</span>
+<span class="fc" id="L216">    Resource child = new GraniteUiSyntheticResource(parentResource.getResourceResolver(),</span>
+<span class="fc" id="L217">        parentResource.getPath() + &quot;/&quot; + name,</span>
         resourceType,
         valueMap,
-<span class="fc" id="L217">        ImmutableList.&lt;Resource&gt;of());</span>
-<span class="pc bpc" id="L218" title="1 of 2 branches missed.">    if (parentResource instanceof GraniteUiSyntheticResource) {</span>
-<span class="fc" id="L219">      ((GraniteUiSyntheticResource)parentResource).addChild(child);</span>
+<span class="fc" id="L220">        ImmutableList.&lt;Resource&gt;of());</span>
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">    if (parentResource instanceof GraniteUiSyntheticResource) {</span>
+<span class="fc" id="L222">      ((GraniteUiSyntheticResource)parentResource).addChild(child);</span>
     }
     else {
-<span class="nc" id="L222">      throw new IllegalArgumentException(&quot;Resource is not a GraniteUiSyntheticResource.&quot;);</span>
+<span class="nc" id="L225">      throw new IllegalArgumentException(&quot;Resource is not a GraniteUiSyntheticResource.&quot;);</span>
     }
-<span class="fc" id="L224">    return child;</span>
+<span class="fc" id="L227">    return child;</span>
   }
 
   /**
@@ -230,11 +233,11 @@ public final class GraniteUiSyntheticResource extends SyntheticResource {
    * @param source Source resource
    */
   public static void copySubtree(@NotNull Resource targetParent, @NotNull Resource source) {
-<span class="fc" id="L233">    Resource targetChild = GraniteUiSyntheticResource.child(targetParent, source.getName(), source.getResourceType(), source.getValueMap());</span>
-<span class="fc bfc" id="L234" title="All 2 branches covered.">    for (Resource sourceChild : source.getChildren()) {</span>
-<span class="fc" id="L235">      copySubtree(targetChild, sourceChild);</span>
-<span class="fc" id="L236">    }</span>
-<span class="fc" id="L237">  }</span>
+<span class="fc" id="L236">    Resource targetChild = GraniteUiSyntheticResource.child(targetParent, source.getName(), source.getResourceType(), source.getValueMap());</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">    for (Resource sourceChild : source.getChildren()) {</span>
+<span class="fc" id="L238">      copySubtree(targetChild, sourceChild);</span>
+<span class="fc" id="L239">    }</span>
+<span class="fc" id="L240">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
