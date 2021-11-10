@@ -30,6 +30,7 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.models.annotations.Model;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 import io.wcm.handler.link.Link;
@@ -45,7 +46,7 @@ import io.wcm.handler.link.spi.LinkType;
     SlingHttpServletRequest.class, Resource.class
 })
 @ProviderType
-<span class="fc" id="L48">public final class ExternalLinkType extends LinkType {</span>
+<span class="fc" id="L49">public final class ExternalLinkType extends LinkType {</span>
 
   /**
    * Link type ID
@@ -56,53 +57,58 @@ import io.wcm.handler.link.spi.LinkType;
    * Matches all strings that seem to have a proper URL scheme - e.g. starting with http://, https://, mailto:, tel:
    * It also allows anchor links staring with #
    */
-<span class="fc" id="L59">  private static final Pattern EXTERNALIZED_PATTERN = Pattern.compile(&quot;^(([^/]+:|//)|#).*$&quot;);</span>
+<span class="fc" id="L60">  private static final Pattern EXTERNALIZED_PATTERN = Pattern.compile(&quot;^(([^/]+:|//)|#).*$&quot;);</span>
 
   /**
    * @return Link type ID (is stored as identifier in repository)
    */
   @Override
   public @NotNull String getId() {
-<span class="fc" id="L66">    return ID;</span>
+<span class="fc" id="L67">    return ID;</span>
   }
 
   @Override
   public @NotNull String getLabel() {
-<span class="nc" id="L71">    return &quot;External&quot;;</span>
+<span class="nc" id="L72">    return &quot;External&quot;;</span>
   }
 
   @Override
   public String getPrimaryLinkRefProperty() {
-<span class="fc" id="L76">    return LinkNameConstants.PN_LINK_EXTERNAL_REF;</span>
+<span class="fc" id="L77">    return LinkNameConstants.PN_LINK_EXTERNAL_REF;</span>
+  }
+
+  @Override
+  public @Nullable String getEditComponentResourceType() {
+<span class="nc" id="L82">    return &quot;wcm-io/handler/link/components/granite/form/linktype/external&quot;;</span>
   }
 
   @Override
   @SuppressWarnings({ &quot;unused&quot;, &quot;null&quot; })
   public boolean accepts(@NotNull String linkRef) {
     // test for null because earlier versions of this method did not have the @NotNull annotation
-<span class="pc bpc" id="L83" title="1 of 2 branches missed.">    if (linkRef == null) {</span>
-<span class="nc" id="L84">      return false;</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">    if (linkRef == null) {</span>
+<span class="nc" id="L90">      return false;</span>
     }
     // accept as external link if the ref contains &quot;://&quot; and mailto links
-<span class="fc" id="L87">    return EXTERNALIZED_PATTERN.matcher(linkRef).matches();</span>
+<span class="fc" id="L93">    return EXTERNALIZED_PATTERN.matcher(linkRef).matches();</span>
   }
 
   @Override
   public @NotNull Link resolveLink(@NotNull Link link) {
-<span class="fc" id="L92">    ValueMap props = link.getLinkRequest().getResourceProperties();</span>
+<span class="fc" id="L98">    ValueMap props = link.getLinkRequest().getResourceProperties();</span>
 
     // get external URL from link properties
-<span class="fc" id="L95">    String linkUrl = props.get(LinkNameConstants.PN_LINK_EXTERNAL_REF, link.getLinkRequest().getReference());</span>
+<span class="fc" id="L101">    String linkUrl = props.get(LinkNameConstants.PN_LINK_EXTERNAL_REF, link.getLinkRequest().getReference());</span>
 
     // check external link url
-<span class="fc bfc" id="L98" title="All 2 branches covered.">    if (StringUtils.isBlank(linkUrl)) {</span>
-<span class="fc" id="L99">      linkUrl = null;</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">    if (StringUtils.isBlank(linkUrl)) {</span>
+<span class="fc" id="L105">      linkUrl = null;</span>
     }
 
     // set link url
-<span class="fc" id="L103">    link.setUrl(linkUrl);</span>
+<span class="fc" id="L109">    link.setUrl(linkUrl);</span>
 
-<span class="fc" id="L105">    return link;</span>
+<span class="fc" id="L111">    return link;</span>
   }
 
   /**
@@ -116,10 +122,10 @@ import io.wcm.handler.link.spi.LinkType;
    */
   public static @NotNull Resource getSyntheticLinkResource(@NotNull ResourceResolver resourceResolver,
       @NotNull String path, @NotNull String url) {
-<span class="fc" id="L119">    Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L120">    map.put(LinkNameConstants.PN_LINK_TYPE, ID);</span>
-<span class="fc" id="L121">    map.put(LinkNameConstants.PN_LINK_EXTERNAL_REF, url);</span>
-<span class="fc" id="L122">    return new SyntheticLinkResource(resourceResolver, path, map);</span>
+<span class="fc" id="L125">    Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L126">    map.put(LinkNameConstants.PN_LINK_TYPE, ID);</span>
+<span class="fc" id="L127">    map.put(LinkNameConstants.PN_LINK_EXTERNAL_REF, url);</span>
+<span class="fc" id="L128">    return new SyntheticLinkResource(resourceResolver, path, map);</span>
   }
 
   /**
@@ -131,15 +137,15 @@ import io.wcm.handler.link.spi.LinkType;
    */
   @Deprecated
   public static @NotNull Resource getSyntheticLinkResource(@NotNull ResourceResolver resourceResolver, @NotNull String url) {
-<span class="fc" id="L134">    Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L135">    map.put(LinkNameConstants.PN_LINK_TYPE, ID);</span>
-<span class="fc" id="L136">    map.put(LinkNameConstants.PN_LINK_EXTERNAL_REF, url);</span>
-<span class="fc" id="L137">    return new SyntheticLinkResource(resourceResolver, map);</span>
+<span class="fc" id="L140">    Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L141">    map.put(LinkNameConstants.PN_LINK_TYPE, ID);</span>
+<span class="fc" id="L142">    map.put(LinkNameConstants.PN_LINK_EXTERNAL_REF, url);</span>
+<span class="fc" id="L143">    return new SyntheticLinkResource(resourceResolver, map);</span>
   }
 
   @Override
   public String toString() {
-<span class="nc" id="L142">    return ID;</span>
+<span class="nc" id="L148">    return ID;</span>
   }
 
 }
