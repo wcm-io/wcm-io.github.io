@@ -35,6 +35,8 @@ import org.apache.sling.api.resource.ValueMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 
@@ -62,7 +64,7 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
  * &lt;/p&gt;
  */
 @ConsumerType
-<span class="fc" id="L65">public abstract class MediaSource {</span>
+<span class="fc" id="L67">public abstract class MediaSource {</span>
 
   /**
    * @return Media source ID
@@ -74,6 +76,8 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
    */
   public abstract @Nullable String getPrimaryMediaRefProperty();
 
+<span class="fc" id="L79">  private static final Logger log = LoggerFactory.getLogger(MediaSource.class);</span>
+
   /**
    * Checks whether a media request can be handled by this media source
    * @param mediaRequest Media request
@@ -81,22 +85,22 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
    */
   public boolean accepts(@NotNull MediaRequest mediaRequest) {
     // if an explicit media request is set check this first
-<span class="fc bfc" id="L84" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(mediaRequest.getMediaRef())) {</span>
-<span class="fc" id="L85">      return accepts(mediaRequest.getMediaRef());</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(mediaRequest.getMediaRef())) {</span>
+<span class="fc" id="L89">      return accepts(mediaRequest.getMediaRef());</span>
     }
     // otherwise check resource which contains media request properties
-<span class="fc" id="L88">    ValueMap props = mediaRequest.getResourceProperties();</span>
+<span class="fc" id="L92">    ValueMap props = mediaRequest.getResourceProperties();</span>
     // check for matching media source ID in media resource
-<span class="fc" id="L90">    String mediaSourceId = props.get(MediaNameConstants.PN_MEDIA_SOURCE, String.class);</span>
-<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(mediaSourceId)) {</span>
-<span class="fc" id="L92">      return StringUtils.equals(mediaSourceId, getId());</span>
+<span class="fc" id="L94">    String mediaSourceId = props.get(MediaNameConstants.PN_MEDIA_SOURCE, String.class);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(mediaSourceId)) {</span>
+<span class="fc" id="L96">      return StringUtils.equals(mediaSourceId, getId());</span>
     }
     // if no media source ID is set at all check if media ref attribute contains a valid reference
     else {
-<span class="fc" id="L96">      String refProperty = StringUtils.defaultString(mediaRequest.getMediaPropertyNames().getRefProperty(),</span>
-<span class="fc" id="L97">          getPrimaryMediaRefProperty());</span>
-<span class="fc" id="L98">      String mediaRef = props.get(refProperty, String.class);</span>
-<span class="fc" id="L99">      return accepts(mediaRef);</span>
+<span class="fc" id="L100">      String refProperty = StringUtils.defaultString(mediaRequest.getMediaPropertyNames().getRefProperty(),</span>
+<span class="fc" id="L101">          getPrimaryMediaRefProperty());</span>
+<span class="fc" id="L102">      String mediaRef = props.get(refProperty, String.class);</span>
+<span class="fc" id="L103">      return accepts(mediaRef);</span>
     }
   }
 
@@ -129,7 +133,7 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
    */
   public void setCustomIPECropRatios(@NotNull HtmlElement&lt;?&gt; element, @NotNull MediaRequest mediaRequest) {
     // can be implemented by subclasses
-<span class="nc" id="L132">  }</span>
+<span class="nc" id="L136">  }</span>
 
   /**
    * Get media request path to media library
@@ -139,7 +143,7 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
    */
   @Deprecated
   protected final @Nullable String getMediaRef(@NotNull MediaRequest mediaRequest) {
-<span class="nc" id="L142">    return getMediaRef(mediaRequest, null);</span>
+<span class="nc" id="L146">    return getMediaRef(mediaRequest, null);</span>
   }
 
   /**
@@ -152,15 +156,15 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
   @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
   protected final @Nullable String getMediaRef(@NotNull MediaRequest mediaRequest,
       @Nullable MediaHandlerConfig mediaHandlerConfig) {
-<span class="fc bfc" id="L155" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(mediaRequest.getMediaRef())) {</span>
-<span class="fc" id="L156">      return mediaRequest.getMediaRef();</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(mediaRequest.getMediaRef())) {</span>
+<span class="fc" id="L160">      return mediaRequest.getMediaRef();</span>
     }
-<span class="fc bfc" id="L158" title="All 2 branches covered.">    else if (mediaRequest.getResource() != null) {</span>
-<span class="fc" id="L159">      String refProperty = getMediaRefProperty(mediaRequest, mediaHandlerConfig);</span>
-<span class="fc" id="L160">      return mediaRequest.getResource().getValueMap().get(refProperty, String.class);</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">    else if (mediaRequest.getResource() != null) {</span>
+<span class="fc" id="L163">      String refProperty = getMediaRefProperty(mediaRequest, mediaHandlerConfig);</span>
+<span class="fc" id="L164">      return mediaRequest.getResource().getValueMap().get(refProperty, String.class);</span>
     }
     else {
-<span class="fc" id="L163">      return null;</span>
+<span class="fc" id="L167">      return null;</span>
     }
   }
 
@@ -172,7 +176,7 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
    */
   @Deprecated
   protected final @Nullable String getMediaRefProperty(@NotNull MediaRequest mediaRequest) {
-<span class="nc" id="L175">    return getMediaRefProperty(mediaRequest, null);</span>
+<span class="nc" id="L179">    return getMediaRefProperty(mediaRequest, null);</span>
   }
 
   /**
@@ -184,16 +188,16 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
   @SuppressWarnings(&quot;null&quot;)
   protected final @NotNull String getMediaRefProperty(@NotNull MediaRequest mediaRequest,
       @Nullable MediaHandlerConfig mediaHandlerConfig) {
-<span class="fc" id="L187">    String refProperty = mediaRequest.getMediaPropertyNames().getRefProperty();</span>
-<span class="fc bfc" id="L188" title="All 2 branches covered.">    if (StringUtils.isEmpty(refProperty)) {</span>
-<span class="pc bpc" id="L189" title="1 of 2 branches missed.">      if (mediaHandlerConfig != null) {</span>
-<span class="fc" id="L190">        refProperty = mediaHandlerConfig.getMediaRefProperty();</span>
+<span class="fc" id="L191">    String refProperty = mediaRequest.getMediaPropertyNames().getRefProperty();</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">    if (StringUtils.isEmpty(refProperty)) {</span>
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">      if (mediaHandlerConfig != null) {</span>
+<span class="fc" id="L194">        refProperty = mediaHandlerConfig.getMediaRefProperty();</span>
       }
       else {
-<span class="nc" id="L193">        refProperty = MediaNameConstants.PN_MEDIA_REF;</span>
+<span class="nc" id="L197">        refProperty = MediaNameConstants.PN_MEDIA_REF;</span>
       }
     }
-<span class="fc" id="L196">    return refProperty;</span>
+<span class="fc" id="L200">    return refProperty;</span>
   }
 
   /**
@@ -204,7 +208,7 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
    */
   @Deprecated
   protected final @Nullable CropDimension getMediaCropDimension(@NotNull MediaRequest mediaRequest) {
-<span class="nc" id="L207">    return getMediaCropDimension(mediaRequest, null);</span>
+<span class="nc" id="L211">    return getMediaCropDimension(mediaRequest, null);</span>
   }
 
   /**
@@ -217,19 +221,19 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
   @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
   protected final @Nullable CropDimension getMediaCropDimension(@NotNull MediaRequest mediaRequest,
       @Nullable MediaHandlerConfig mediaHandlerConfig) {
-<span class="fc bfc" id="L220" title="All 2 branches covered.">    if (mediaRequest.getResource() != null) {</span>
-<span class="fc" id="L221">      String cropProperty = getMediaCropProperty(mediaRequest, mediaHandlerConfig);</span>
-<span class="fc" id="L222">      String cropString = mediaRequest.getResource().getValueMap().get(cropProperty, String.class);</span>
-<span class="fc bfc" id="L223" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(cropString)) {</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">    if (mediaRequest.getResource() != null) {</span>
+<span class="fc" id="L225">      String cropProperty = getMediaCropProperty(mediaRequest, mediaHandlerConfig);</span>
+<span class="fc" id="L226">      String cropString = mediaRequest.getResource().getValueMap().get(cropProperty, String.class);</span>
+<span class="fc bfc" id="L227" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(cropString)) {</span>
         try {
-<span class="fc" id="L225">          return CropDimension.fromCropString(cropString);</span>
+<span class="fc" id="L229">          return CropDimension.fromCropString(cropString);</span>
         }
-<span class="nc" id="L227">        catch (IllegalArgumentException ex) {</span>
+<span class="nc" id="L231">        catch (IllegalArgumentException ex) {</span>
           // ignore
         }
       }
     }
-<span class="fc" id="L232">    return null;</span>
+<span class="fc" id="L236">    return null;</span>
   }
 
   /**
@@ -240,7 +244,7 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
    */
   @Deprecated
   protected final @NotNull String getMediaCropProperty(@NotNull MediaRequest mediaRequest) {
-<span class="nc" id="L243">    return getMediaCropProperty(mediaRequest, null);</span>
+<span class="nc" id="L247">    return getMediaCropProperty(mediaRequest, null);</span>
   }
 
   /**
@@ -252,16 +256,16 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
   @SuppressWarnings(&quot;null&quot;)
   protected final @NotNull String getMediaCropProperty(@NotNull MediaRequest mediaRequest,
       @Nullable MediaHandlerConfig mediaHandlerConfig) {
-<span class="fc" id="L255">    String cropProperty = mediaRequest.getMediaPropertyNames().getCropProperty();</span>
-<span class="fc bfc" id="L256" title="All 2 branches covered.">    if (StringUtils.isEmpty(cropProperty)) {</span>
-<span class="pc bpc" id="L257" title="1 of 2 branches missed.">      if (mediaHandlerConfig != null) {</span>
-<span class="fc" id="L258">        cropProperty = mediaHandlerConfig.getMediaCropProperty();</span>
+<span class="fc" id="L259">    String cropProperty = mediaRequest.getMediaPropertyNames().getCropProperty();</span>
+<span class="fc bfc" id="L260" title="All 2 branches covered.">    if (StringUtils.isEmpty(cropProperty)) {</span>
+<span class="pc bpc" id="L261" title="1 of 2 branches missed.">      if (mediaHandlerConfig != null) {</span>
+<span class="fc" id="L262">        cropProperty = mediaHandlerConfig.getMediaCropProperty();</span>
       }
       else {
-<span class="nc" id="L261">        cropProperty = MediaNameConstants.PN_MEDIA_CROP;</span>
+<span class="nc" id="L265">        cropProperty = MediaNameConstants.PN_MEDIA_CROP;</span>
       }
     }
-<span class="fc" id="L264">    return cropProperty;</span>
+<span class="fc" id="L268">    return cropProperty;</span>
   }
 
   /**
@@ -274,17 +278,17 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
   @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
   protected final @Nullable Integer getMediaRotation(@NotNull MediaRequest mediaRequest,
       @NotNull MediaHandlerConfig mediaHandlerConfig) {
-<span class="fc bfc" id="L277" title="All 2 branches covered.">    if (mediaRequest.getResource() != null) {</span>
-<span class="fc" id="L278">      String rotationProperty = getMediaRotationProperty(mediaRequest, mediaHandlerConfig);</span>
-<span class="fc" id="L279">      String stringValue = mediaRequest.getResource().getValueMap().get(rotationProperty, String.class);</span>
-<span class="fc bfc" id="L280" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(stringValue)) {</span>
-<span class="fc" id="L281">        int rotationValue = NumberUtils.toInt(stringValue);</span>
-<span class="pc bpc" id="L282" title="1 of 2 branches missed.">        if (isValidRotation(rotationValue)) {</span>
-<span class="fc" id="L283">          return rotationValue;</span>
+<span class="fc bfc" id="L281" title="All 2 branches covered.">    if (mediaRequest.getResource() != null) {</span>
+<span class="fc" id="L282">      String rotationProperty = getMediaRotationProperty(mediaRequest, mediaHandlerConfig);</span>
+<span class="fc" id="L283">      String stringValue = mediaRequest.getResource().getValueMap().get(rotationProperty, String.class);</span>
+<span class="fc bfc" id="L284" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(stringValue)) {</span>
+<span class="fc" id="L285">        int rotationValue = NumberUtils.toInt(stringValue);</span>
+<span class="pc bpc" id="L286" title="1 of 2 branches missed.">        if (isValidRotation(rotationValue)) {</span>
+<span class="fc" id="L287">          return rotationValue;</span>
         }
       }
     }
-<span class="fc" id="L287">    return null;</span>
+<span class="fc" id="L291">    return null;</span>
   }
 
   /**
@@ -296,11 +300,11 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
   @SuppressWarnings(&quot;null&quot;)
   protected final @NotNull String getMediaRotationProperty(@NotNull MediaRequest mediaRequest,
       @NotNull MediaHandlerConfig mediaHandlerConfig) {
-<span class="fc" id="L299">    String rotationProperty = mediaRequest.getMediaPropertyNames().getRotationProperty();</span>
-<span class="fc bfc" id="L300" title="All 2 branches covered.">    if (StringUtils.isEmpty(rotationProperty)) {</span>
-<span class="fc" id="L301">      rotationProperty = mediaHandlerConfig.getMediaRotationProperty();</span>
+<span class="fc" id="L303">    String rotationProperty = mediaRequest.getMediaPropertyNames().getRotationProperty();</span>
+<span class="fc bfc" id="L304" title="All 2 branches covered.">    if (StringUtils.isEmpty(rotationProperty)) {</span>
+<span class="fc" id="L305">      rotationProperty = mediaHandlerConfig.getMediaRotationProperty();</span>
     }
-<span class="fc" id="L303">    return rotationProperty;</span>
+<span class="fc" id="L307">    return rotationProperty;</span>
   }
 
   /**
@@ -313,17 +317,17 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
   @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
   protected final @Nullable List&lt;ImageMapArea&gt; getMediaMap(@NotNull MediaRequest mediaRequest,
       @NotNull MediaHandlerConfig mediaHandlerConfig) {
-<span class="fc bfc" id="L316" title="All 2 branches covered.">    if (mediaRequest.getResource() != null) {</span>
-<span class="fc" id="L317">      String mapProperty = getMediaMapProperty(mediaRequest, mediaHandlerConfig);</span>
-<span class="fc" id="L318">      String stringValue = mediaRequest.getResource().getValueMap().get(mapProperty, String.class);</span>
-<span class="fc bfc" id="L319" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(stringValue)) {</span>
-<span class="fc" id="L320">        ImageMapParser imageMapParser = mediaRequest.getResource().adaptTo(ImageMapParser.class);</span>
-<span class="pc bpc" id="L321" title="1 of 2 branches missed.">        if (imageMapParser != null) {</span>
-<span class="fc" id="L322">          return imageMapParser.parseMap(stringValue);</span>
+<span class="fc bfc" id="L320" title="All 2 branches covered.">    if (mediaRequest.getResource() != null) {</span>
+<span class="fc" id="L321">      String mapProperty = getMediaMapProperty(mediaRequest, mediaHandlerConfig);</span>
+<span class="fc" id="L322">      String stringValue = mediaRequest.getResource().getValueMap().get(mapProperty, String.class);</span>
+<span class="fc bfc" id="L323" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(stringValue)) {</span>
+<span class="fc" id="L324">        ImageMapParser imageMapParser = mediaRequest.getResource().adaptTo(ImageMapParser.class);</span>
+<span class="pc bpc" id="L325" title="1 of 2 branches missed.">        if (imageMapParser != null) {</span>
+<span class="fc" id="L326">          return imageMapParser.parseMap(stringValue);</span>
         }
       }
     }
-<span class="fc" id="L326">    return null;</span>
+<span class="fc" id="L330">    return null;</span>
   }
 
   /**
@@ -335,11 +339,11 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
   @SuppressWarnings(&quot;null&quot;)
   protected final @NotNull String getMediaMapProperty(@NotNull MediaRequest mediaRequest,
       @NotNull MediaHandlerConfig mediaHandlerConfig) {
-<span class="fc" id="L338">    String mapProperty = mediaRequest.getMediaPropertyNames().getMapProperty();</span>
-<span class="fc bfc" id="L339" title="All 2 branches covered.">    if (StringUtils.isEmpty(mapProperty)) {</span>
-<span class="fc" id="L340">      mapProperty = mediaHandlerConfig.getMediaMapProperty();</span>
+<span class="fc" id="L342">    String mapProperty = mediaRequest.getMediaPropertyNames().getMapProperty();</span>
+<span class="fc bfc" id="L343" title="All 2 branches covered.">    if (StringUtils.isEmpty(mapProperty)) {</span>
+<span class="fc" id="L344">      mapProperty = mediaHandlerConfig.getMediaMapProperty();</span>
     }
-<span class="fc" id="L342">    return mapProperty;</span>
+<span class="fc" id="L346">    return mapProperty;</span>
   }
 
   /**
@@ -353,17 +357,17 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
       @NotNull MediaHandlerConfig mediaHandlerConfig) {
 
     // Get alt. text-relevant properties from current resource - if not set in media args
-<span class="fc" id="L356">    ValueMap props = resource.getValueMap();</span>
-<span class="fc bfc" id="L357" title="All 2 branches covered.">    if (StringUtils.isEmpty(mediaArgs.getAltText())) {</span>
-<span class="fc" id="L358">      mediaArgs.altText(props.get(mediaHandlerConfig.getMediaAltTextProperty(), String.class));</span>
+<span class="fc" id="L360">    ValueMap props = resource.getValueMap();</span>
+<span class="fc bfc" id="L361" title="All 2 branches covered.">    if (StringUtils.isEmpty(mediaArgs.getAltText())) {</span>
+<span class="fc" id="L362">      mediaArgs.altText(props.get(mediaHandlerConfig.getMediaAltTextProperty(), String.class));</span>
     }
-<span class="fc bfc" id="L360" title="All 2 branches covered.">    if (!mediaArgs.isDecorative()) {</span>
-<span class="fc" id="L361">      mediaArgs.decorative(props.get(mediaHandlerConfig.getMediaIsDecorativeProperty(), false));</span>
+<span class="fc bfc" id="L364" title="All 2 branches covered.">    if (!mediaArgs.isDecorative()) {</span>
+<span class="fc" id="L365">      mediaArgs.decorative(props.get(mediaHandlerConfig.getMediaIsDecorativeProperty(), false));</span>
     }
-<span class="fc bfc" id="L363" title="All 2 branches covered.">    if (mediaArgs.isForceAltValueFromAsset()) {</span>
-<span class="fc" id="L364">      mediaArgs.forceAltValueFromAsset(props.get(mediaHandlerConfig.getMediaForceAltTextFromAssetProperty(), true));</span>
+<span class="fc bfc" id="L367" title="All 2 branches covered.">    if (mediaArgs.isForceAltValueFromAsset()) {</span>
+<span class="fc" id="L368">      mediaArgs.forceAltValueFromAsset(props.get(mediaHandlerConfig.getMediaForceAltTextFromAssetProperty(), true));</span>
     }
-<span class="fc" id="L366">  }</span>
+<span class="fc" id="L370">  }</span>
 
   /**
    * Resolves single rendition (or multiple renditions if any of the {@link MediaFormatOption#isMandatory()} is set to
@@ -375,15 +379,15 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
    *         mandatory)
    */
   protected final boolean resolveRenditions(Media media, Asset asset, MediaArgs mediaArgs) {
-<span class="fc bfc" id="L378" title="All 2 branches covered.">    boolean anyMandatory = mediaArgs.getMediaFormatOptions() != null</span>
-<span class="fc" id="L379">        &amp;&amp; Arrays.stream(mediaArgs.getMediaFormatOptions())</span>
-<span class="fc bfc" id="L380" title="All 2 branches covered.">        .anyMatch(MediaFormatOption::isMandatory);</span>
-<span class="fc bfc" id="L381" title="All 6 branches covered.">    if (mediaArgs.getMediaFormats() != null &amp;&amp; mediaArgs.getMediaFormats().length &gt; 1</span>
-<span class="pc bpc" id="L382" title="1 of 4 branches missed.">        &amp;&amp; (anyMandatory || mediaArgs.getImageSizes() != null || mediaArgs.getPictureSources() != null)) {</span>
-<span class="fc" id="L383">      return resolveAllRenditions(media, asset, mediaArgs);</span>
+<span class="fc bfc" id="L382" title="All 2 branches covered.">    boolean anyMandatory = mediaArgs.getMediaFormatOptions() != null</span>
+<span class="fc" id="L383">        &amp;&amp; Arrays.stream(mediaArgs.getMediaFormatOptions())</span>
+<span class="fc bfc" id="L384" title="All 2 branches covered.">        .anyMatch(MediaFormatOption::isMandatory);</span>
+<span class="fc bfc" id="L385" title="All 6 branches covered.">    if (mediaArgs.getMediaFormats() != null &amp;&amp; mediaArgs.getMediaFormats().length &gt; 1</span>
+<span class="pc bpc" id="L386" title="1 of 4 branches missed.">        &amp;&amp; (anyMandatory || mediaArgs.getImageSizes() != null || mediaArgs.getPictureSources() != null)) {</span>
+<span class="fc" id="L387">      return resolveAllRenditions(media, asset, mediaArgs);</span>
     }
     else {
-<span class="fc" id="L386">      return resolveFirstMatchRenditions(media, asset, mediaArgs);</span>
+<span class="fc" id="L390">      return resolveFirstMatchRenditions(media, asset, mediaArgs);</span>
     }
   }
 
@@ -396,13 +400,15 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
    * @return true if a rendition was found
    */
   private boolean resolveFirstMatchRenditions(Media media, Asset asset, MediaArgs mediaArgs) {
-<span class="fc" id="L399">    Rendition rendition = asset.getRendition(mediaArgs);</span>
-<span class="fc bfc" id="L400" title="All 2 branches covered.">    if (rendition != null) {</span>
-<span class="fc" id="L401">      media.setRenditions(ImmutableList.of(rendition));</span>
-<span class="fc" id="L402">      media.setUrl(rendition.getUrl());</span>
-<span class="fc" id="L403">      return true;</span>
+<span class="fc" id="L403">    Rendition rendition = asset.getRendition(mediaArgs);</span>
+<span class="fc" id="L404">    boolean renditionFound = false;</span>
+<span class="fc bfc" id="L405" title="All 2 branches covered.">    if (rendition != null) {</span>
+<span class="fc" id="L406">      media.setRenditions(ImmutableList.of(rendition));</span>
+<span class="fc" id="L407">      media.setUrl(rendition.getUrl());</span>
+<span class="fc" id="L408">      renditionFound = true;</span>
     }
-<span class="fc" id="L405">    return false;</span>
+<span class="fc" id="L410">    log.trace(&quot;resolveFirstMatchRenditions: renditionFound={}, rendition={}&quot;, renditionFound, rendition);</span>
+<span class="fc" id="L411">    return renditionFound;</span>
   }
 
   /**
@@ -414,44 +420,46 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
    * @return true if for all mandatory or for at least one media formats a rendition could be found.
    */
   private boolean resolveAllRenditions(@NotNull Media media, @NotNull Asset asset, @NotNull final MediaArgs mediaArgs) {
-<span class="fc" id="L417">    boolean anyResolved = false;</span>
+<span class="fc" id="L423">    boolean anyResolved = false;</span>
     boolean allMandatoryResolved;
-<span class="fc" id="L419">    final List&lt;Rendition&gt; resolvedRenditions = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L425">    final List&lt;Rendition&gt; resolvedRenditions = new ArrayList&lt;&gt;();</span>
 
-    // 1. resolve main media formats (ignore responsive child formats)
-<span class="fc" id="L422">    List&lt;MediaFormatOption&gt; parentMediaFormatOptions = getParentMediaFormats(mediaArgs);</span>
-<span class="fc" id="L423">    allMandatoryResolved = resolveRenditionsWithMediaFormats(asset, mediaArgs, parentMediaFormatOptions, resolvedRenditions);</span>
+    // resolve main media formats (ignore responsive child formats)
+<span class="fc" id="L428">    List&lt;MediaFormatOption&gt; parentMediaFormatOptions = getParentMediaFormats(mediaArgs);</span>
+<span class="fc" id="L429">    allMandatoryResolved = resolveRenditionsWithMediaFormats(asset, mediaArgs, parentMediaFormatOptions, resolvedRenditions);</span>
 
-<span class="fc bfc" id="L425" title="All 2 branches covered.">    if (allMandatoryResolved) {</span>
+<span class="fc bfc" id="L431" title="All 2 branches covered.">    if (allMandatoryResolved) {</span>
       final List&lt;MediaFormat&gt; resolvedMediaFormats;
 
-<span class="fc bfc" id="L428" title="All 2 branches covered.">      if (!resolvedRenditions.isEmpty()) {</span>
-<span class="fc" id="L429">        resolvedMediaFormats = resolvedRenditions.stream()</span>
-<span class="fc" id="L430">            .map(Rendition::getMediaFormat)</span>
-<span class="fc" id="L431">            .filter(Objects::nonNull)</span>
-<span class="fc" id="L432">            .collect(Collectors.toList());</span>
+<span class="fc bfc" id="L434" title="All 2 branches covered.">      if (!resolvedRenditions.isEmpty()) {</span>
+<span class="fc" id="L435">        resolvedMediaFormats = resolvedRenditions.stream()</span>
+<span class="fc" id="L436">            .map(Rendition::getMediaFormat)</span>
+<span class="fc" id="L437">            .filter(Objects::nonNull)</span>
+<span class="fc" id="L438">            .collect(Collectors.toList());</span>
       }
       else {
         // parent formats didn't match any rendition, but they are all optional.
         // try to resolve their child formats
-<span class="fc" id="L437">        resolvedMediaFormats = parentMediaFormatOptions.stream()</span>
-<span class="fc" id="L438">            .map(MediaFormatOption::getMediaFormat)</span>
-<span class="fc" id="L439">            .filter(Objects::nonNull)</span>
-<span class="fc" id="L440">            .collect(Collectors.toList());</span>
+<span class="fc" id="L443">        resolvedMediaFormats = parentMediaFormatOptions.stream()</span>
+<span class="fc" id="L444">            .map(MediaFormatOption::getMediaFormat)</span>
+<span class="fc" id="L445">            .filter(Objects::nonNull)</span>
+<span class="fc" id="L446">            .collect(Collectors.toList());</span>
       }
 
-<span class="fc bfc" id="L443" title="All 2 branches covered.">      for (MediaFormat mediaFormat : resolvedMediaFormats) {</span>
-<span class="fc" id="L444">        List&lt;MediaFormatOption&gt; childMediaFormatOptions = getChildMediaFormats(mediaArgs, mediaFormat);</span>
-<span class="pc bpc" id="L445" title="1 of 4 branches missed.">        allMandatoryResolved = resolveRenditionsWithMediaFormats(asset, mediaArgs, childMediaFormatOptions, resolvedRenditions) &amp;&amp; allMandatoryResolved;</span>
-<span class="fc" id="L446">      }</span>
+<span class="fc bfc" id="L449" title="All 2 branches covered.">      for (MediaFormat mediaFormat : resolvedMediaFormats) {</span>
+<span class="fc" id="L450">        List&lt;MediaFormatOption&gt; childMediaFormatOptions = getChildMediaFormats(mediaArgs, mediaFormat);</span>
+<span class="pc bpc" id="L451" title="1 of 4 branches missed.">        allMandatoryResolved = resolveRenditionsWithMediaFormats(asset, mediaArgs, childMediaFormatOptions, resolvedRenditions) &amp;&amp; allMandatoryResolved;</span>
+<span class="fc" id="L452">      }</span>
     }
 
-<span class="fc" id="L449">    media.setRenditions(resolvedRenditions);</span>
-<span class="pc bpc" id="L450" title="1 of 2 branches missed.">    if (!resolvedRenditions.isEmpty()) {</span>
-<span class="fc" id="L451">      anyResolved = true;</span>
-<span class="fc" id="L452">      media.setUrl(resolvedRenditions.get(0).getUrl());</span>
+<span class="fc" id="L455">    media.setRenditions(resolvedRenditions);</span>
+<span class="pc bpc" id="L456" title="1 of 2 branches missed.">    if (!resolvedRenditions.isEmpty()) {</span>
+<span class="fc" id="L457">      anyResolved = true;</span>
+<span class="fc" id="L458">      media.setUrl(resolvedRenditions.get(0).getUrl());</span>
     }
-<span class="pc bpc" id="L454" title="1 of 4 branches missed.">    return anyResolved &amp;&amp; allMandatoryResolved;</span>
+
+<span class="fc" id="L461">    log.trace(&quot;resolveAllRenditions: anyResolved={}, allMandatoryResolved={}, resolvedRenditions={}&quot;, anyResolved, allMandatoryResolved, resolvedRenditions);</span>
+<span class="pc bpc" id="L462" title="1 of 4 branches missed.">    return anyResolved &amp;&amp; allMandatoryResolved;</span>
   }
 
   private boolean resolveRenditionsWithMediaFormats(@NotNull Asset asset, @NotNull MediaArgs mediaArgs,
@@ -459,62 +467,62 @@ import io.wcm.handler.media.imagemap.ImageMapParser;
 
     // collect &quot;fallback&quot; renditions that do not fully fulfill the media request (e.g. ignored explicit cropping)
     // separately and add them last in the returned list
-<span class="fc" id="L462">    List&lt;Rendition&gt; fallbackRenditions = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L470">    List&lt;Rendition&gt; fallbackRenditions = new ArrayList&lt;&gt;();</span>
 
-<span class="fc" id="L464">    boolean allMandatoryResolved = true;</span>
-<span class="fc bfc" id="L465" title="All 2 branches covered.">    for (MediaFormatOption mediaFormatOption : mediaFormatOptions) {</span>
-<span class="fc" id="L466">      MediaArgs renditionMediaArgs = mediaArgs.clone();</span>
-<span class="fc" id="L467">      renditionMediaArgs.mediaFormat(mediaFormatOption.getMediaFormat());</span>
-<span class="fc" id="L468">      Rendition rendition = asset.getRendition(renditionMediaArgs);</span>
-<span class="fc bfc" id="L469" title="All 2 branches covered.">      if (rendition != null) {</span>
-<span class="fc bfc" id="L470" title="All 2 branches covered.">        if (rendition.isFallback()) {</span>
-<span class="fc" id="L471">          fallbackRenditions.add(rendition);</span>
+<span class="fc" id="L472">    boolean allMandatoryResolved = true;</span>
+<span class="fc bfc" id="L473" title="All 2 branches covered.">    for (MediaFormatOption mediaFormatOption : mediaFormatOptions) {</span>
+<span class="fc" id="L474">      MediaArgs renditionMediaArgs = mediaArgs.clone();</span>
+<span class="fc" id="L475">      renditionMediaArgs.mediaFormat(mediaFormatOption.getMediaFormat());</span>
+<span class="fc" id="L476">      Rendition rendition = asset.getRendition(renditionMediaArgs);</span>
+<span class="fc bfc" id="L477" title="All 2 branches covered.">      if (rendition != null) {</span>
+<span class="fc bfc" id="L478" title="All 2 branches covered.">        if (rendition.isFallback()) {</span>
+<span class="fc" id="L479">          fallbackRenditions.add(rendition);</span>
         }
         else {
-<span class="fc" id="L474">          resolvedRenditions.add(rendition);</span>
+<span class="fc" id="L482">          resolvedRenditions.add(rendition);</span>
         }
       }
-<span class="fc bfc" id="L477" title="All 2 branches covered.">      else if (mediaFormatOption.isMandatory()) {</span>
-<span class="fc" id="L478">        allMandatoryResolved = false;</span>
+<span class="fc bfc" id="L485" title="All 2 branches covered.">      else if (mediaFormatOption.isMandatory()) {</span>
+<span class="fc" id="L486">        allMandatoryResolved = false;</span>
       }
-<span class="fc" id="L480">    }</span>
-<span class="fc" id="L481">    resolvedRenditions.addAll(fallbackRenditions);</span>
-<span class="fc" id="L482">    return allMandatoryResolved;</span>
+<span class="fc" id="L488">    }</span>
+<span class="fc" id="L489">    resolvedRenditions.addAll(fallbackRenditions);</span>
+<span class="fc" id="L490">    return allMandatoryResolved;</span>
   }
 
   @NotNull
   private List&lt;MediaFormatOption&gt; getParentMediaFormats(@NotNull MediaArgs mediaArgs) {
-<span class="fc" id="L487">    return Arrays.stream(mediaArgs.getMediaFormatOptions())</span>
-<span class="fc" id="L488">        .filter(this::isParentMediaFormat)</span>
-<span class="fc" id="L489">        .collect(Collectors.toList());</span>
+<span class="fc" id="L495">    return Arrays.stream(mediaArgs.getMediaFormatOptions())</span>
+<span class="fc" id="L496">        .filter(this::isParentMediaFormat)</span>
+<span class="fc" id="L497">        .collect(Collectors.toList());</span>
   }
 
   @NotNull
   private List&lt;MediaFormatOption&gt; getChildMediaFormats(@NotNull MediaArgs mediaArgs, @NotNull final MediaFormat parentMediaFormat) {
-<span class="fc" id="L494">    return Arrays.stream(mediaArgs.getMediaFormatOptions())</span>
-<span class="fc" id="L495">        .filter(this::isChildMediaFormat)</span>
-<span class="fc" id="L496">        .filter(childMediaFormat -&gt; hasParent(childMediaFormat, parentMediaFormat))</span>
-<span class="fc" id="L497">        .collect(Collectors.toList());</span>
+<span class="fc" id="L502">    return Arrays.stream(mediaArgs.getMediaFormatOptions())</span>
+<span class="fc" id="L503">        .filter(this::isChildMediaFormat)</span>
+<span class="fc" id="L504">        .filter(childMediaFormat -&gt; hasParent(childMediaFormat, parentMediaFormat))</span>
+<span class="fc" id="L505">        .collect(Collectors.toList());</span>
   }
 
   private boolean isParentMediaFormat(@NotNull MediaFormatOption mediaFormatOption) {
-<span class="fc" id="L501">    return Objects.isNull(getParentMediaFormat(mediaFormatOption.getMediaFormat()));</span>
+<span class="fc" id="L509">    return Objects.isNull(getParentMediaFormat(mediaFormatOption.getMediaFormat()));</span>
   }
 
   private boolean isChildMediaFormat(@NotNull MediaFormatOption mediaFormatOption) {
-<span class="fc" id="L505">    return Objects.nonNull(getParentMediaFormat(mediaFormatOption.getMediaFormat()));</span>
+<span class="fc" id="L513">    return Objects.nonNull(getParentMediaFormat(mediaFormatOption.getMediaFormat()));</span>
   }
 
   private boolean hasParent(@NotNull MediaFormatOption childMediaFormat, @NotNull MediaFormat parentMediaFormat) {
-<span class="fc" id="L509">    return parentMediaFormat.equals(getParentMediaFormat(childMediaFormat.getMediaFormat()));</span>
+<span class="fc" id="L517">    return parentMediaFormat.equals(getParentMediaFormat(childMediaFormat.getMediaFormat()));</span>
   }
 
   @Nullable
   private MediaFormat getParentMediaFormat(@Nullable MediaFormat mediaFormat) {
-<span class="pc bpc" id="L514" title="1 of 2 branches missed.">    if (mediaFormat == null) {</span>
-<span class="nc" id="L515">      return null;</span>
+<span class="pc bpc" id="L522" title="1 of 2 branches missed.">    if (mediaFormat == null) {</span>
+<span class="nc" id="L523">      return null;</span>
     }
-<span class="fc" id="L517">    return mediaFormat.getProperties().get(MEDIAFORMAT_PROP_PARENT_MEDIA_FORMAT, MediaFormat.class);</span>
+<span class="fc" id="L525">    return mediaFormat.getProperties().get(MEDIAFORMAT_PROP_PARENT_MEDIA_FORMAT, MediaFormat.class);</span>
   }
 
 }

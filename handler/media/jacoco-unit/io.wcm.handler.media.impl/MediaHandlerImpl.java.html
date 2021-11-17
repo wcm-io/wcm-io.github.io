@@ -31,6 +31,8 @@ import org.apache.sling.models.annotations.injectorspecific.OSGiService;
 import org.apache.sling.models.annotations.injectorspecific.Self;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 
@@ -57,7 +59,7 @@ import io.wcm.wcm.commons.component.ComponentPropertyResolverFactory;
 @Model(adaptables = {
     SlingHttpServletRequest.class, Resource.class
 }, adapters = MediaHandler.class)
-<span class="fc" id="L60">public final class MediaHandlerImpl implements MediaHandler {</span>
+<span class="fc" id="L62">public final class MediaHandlerImpl implements MediaHandler {</span>
 
   @Self
   private Adaptable adaptable;
@@ -68,44 +70,46 @@ import io.wcm.wcm.commons.component.ComponentPropertyResolverFactory;
   @OSGiService(injectionStrategy = InjectionStrategy.OPTIONAL)
   private ComponentPropertyResolverFactory componentPropertyResolverFactory;
 
+<span class="fc" id="L73">  private static final Logger log = LoggerFactory.getLogger(MediaHandlerImpl.class);</span>
+
   @Override
   public @NotNull MediaBuilder get(Resource resource) {
-<span class="fc" id="L73">    return new MediaBuilderImpl(resource, this, componentPropertyResolverFactory);</span>
+<span class="fc" id="L77">    return new MediaBuilderImpl(resource, this, componentPropertyResolverFactory);</span>
   }
 
   @Override
   public @NotNull MediaBuilder get(Resource resource, MediaArgs mediaArgs) {
-<span class="fc" id="L78">    return get(resource).args(mediaArgs);</span>
+<span class="fc" id="L82">    return get(resource).args(mediaArgs);</span>
   }
 
   @Override
   public @NotNull MediaBuilder get(Resource resource, MediaFormat... mediaFormats) {
-<span class="nc" id="L83">    return get(resource).mediaFormats(mediaFormats);</span>
+<span class="nc" id="L87">    return get(resource).mediaFormats(mediaFormats);</span>
   }
 
   @Override
   public @NotNull MediaBuilder get(String mediaRef) {
-<span class="fc" id="L88">    return new MediaBuilderImpl(mediaRef, this);</span>
+<span class="fc" id="L92">    return new MediaBuilderImpl(mediaRef, this);</span>
   }
 
   @Override
   public @NotNull MediaBuilder get(String mediaRef, @Nullable Resource contextResource) {
-<span class="fc" id="L93">    return new MediaBuilderImpl(mediaRef, contextResource, this, componentPropertyResolverFactory);</span>
+<span class="fc" id="L97">    return new MediaBuilderImpl(mediaRef, contextResource, this, componentPropertyResolverFactory);</span>
   }
 
   @Override
   public @NotNull MediaBuilder get(String mediaRef, MediaArgs mediaArgs) {
-<span class="fc" id="L98">    return get(mediaRef).args(mediaArgs);</span>
+<span class="fc" id="L102">    return get(mediaRef).args(mediaArgs);</span>
   }
 
   @Override
   public @NotNull MediaBuilder get(String mediaRef, MediaFormat... mediaFormats) {
-<span class="fc" id="L103">    return get(mediaRef).mediaFormats(mediaFormats);</span>
+<span class="fc" id="L107">    return get(mediaRef).mediaFormats(mediaFormats);</span>
   }
 
   @Override
   public @NotNull MediaBuilder get(@NotNull MediaRequest mediaRequest) {
-<span class="fc" id="L108">    return new MediaBuilderImpl(mediaRequest, this);</span>
+<span class="fc" id="L112">    return new MediaBuilderImpl(mediaRequest, this);</span>
   }
 
   /**
@@ -119,89 +123,98 @@ import io.wcm.wcm.commons.component.ComponentPropertyResolverFactory;
   Media processRequest(@NotNull final MediaRequest mediaRequest) {
 
     // detect media source
-<span class="fc" id="L122">    MediaSource mediaSource = null;</span>
-<span class="fc" id="L123">    List&lt;Class&lt;? extends MediaSource&gt;&gt; mediaSources = mediaHandlerConfig.getSources();</span>
-<span class="pc bpc" id="L124" title="2 of 4 branches missed.">    if (mediaSources == null || mediaSources.isEmpty()) {</span>
-<span class="nc" id="L125">      throw new RuntimeException(&quot;No media sources defined.&quot;);</span>
+<span class="fc" id="L126">    MediaSource mediaSource = null;</span>
+<span class="fc" id="L127">    List&lt;Class&lt;? extends MediaSource&gt;&gt; mediaSources = mediaHandlerConfig.getSources();</span>
+<span class="pc bpc" id="L128" title="2 of 4 branches missed.">    if (mediaSources == null || mediaSources.isEmpty()) {</span>
+<span class="nc" id="L129">      throw new RuntimeException(&quot;No media sources defined.&quot;);</span>
     }
-<span class="fc" id="L127">    MediaSource firstMediaSource = null;</span>
-<span class="fc bfc" id="L128" title="All 2 branches covered.">    for (Class&lt;? extends MediaSource&gt; candidateMediaSourceClass : mediaSources) {</span>
-<span class="fc" id="L129">      MediaSource candidateMediaSource = AdaptTo.notNull(adaptable, candidateMediaSourceClass);</span>
-<span class="fc bfc" id="L130" title="All 2 branches covered.">      if (candidateMediaSource.accepts(mediaRequest)) {</span>
-<span class="fc" id="L131">        mediaSource = candidateMediaSource;</span>
-<span class="fc" id="L132">        break;</span>
+<span class="fc" id="L131">    MediaSource firstMediaSource = null;</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">    for (Class&lt;? extends MediaSource&gt; candidateMediaSourceClass : mediaSources) {</span>
+<span class="fc" id="L133">      MediaSource candidateMediaSource = AdaptTo.notNull(adaptable, candidateMediaSourceClass);</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">      if (candidateMediaSource.accepts(mediaRequest)) {</span>
+<span class="fc" id="L135">        mediaSource = candidateMediaSource;</span>
+<span class="fc" id="L136">        break;</span>
       }
-<span class="fc bfc" id="L134" title="All 2 branches covered.">      else if (firstMediaSource == null) {</span>
-<span class="fc" id="L135">        firstMediaSource = candidateMediaSource;</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">      else if (firstMediaSource == null) {</span>
+<span class="fc" id="L139">        firstMediaSource = candidateMediaSource;</span>
       }
-<span class="fc" id="L137">    }</span>
+<span class="fc" id="L141">    }</span>
     // if no media source was detected use first media resource defined
-<span class="fc bfc" id="L139" title="All 2 branches covered.">    if (mediaSource == null) {</span>
-<span class="fc" id="L140">      mediaSource = firstMediaSource;</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">    if (mediaSource == null) {</span>
+<span class="fc" id="L144">      mediaSource = firstMediaSource;</span>
     }
-<span class="fc" id="L142">    Media media = new Media(mediaSource, mediaRequest);</span>
+<span class="fc" id="L146">    Media media = new Media(mediaSource, mediaRequest);</span>
 
     // resolve media format names to media formats
-<span class="fc" id="L145">    MediaFormatResolver mediaFormatResolver = new MediaFormatResolver(mediaFormatHandler);</span>
-<span class="fc bfc" id="L146" title="All 2 branches covered.">    if (!mediaFormatResolver.resolve(mediaRequest.getMediaArgs())) {</span>
-<span class="fc" id="L147">      media.setMediaInvalidReason(MediaInvalidReason.INVALID_MEDIA_FORMAT);</span>
-<span class="fc" id="L148">      return media;</span>
+<span class="fc" id="L149">    MediaFormatResolver mediaFormatResolver = new MediaFormatResolver(mediaFormatHandler);</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">    if (!mediaFormatResolver.resolve(mediaRequest.getMediaArgs())) {</span>
+<span class="fc" id="L151">      media.setMediaInvalidReason(MediaInvalidReason.INVALID_MEDIA_FORMAT);</span>
+<span class="fc" id="L152">      return media;</span>
     }
 
     // if only downloads are accepted prepare media format filter set which only contains download media formats
-<span class="pc bpc" id="L152" title="1 of 2 branches missed.">    if (!resolveDownloadMediaFormats(mediaRequest.getMediaArgs())) {</span>
-<span class="nc" id="L153">      media.setMediaInvalidReason(MediaInvalidReason.INVALID_MEDIA_FORMAT);</span>
-<span class="nc" id="L154">      return media;</span>
+<span class="pc bpc" id="L156" title="1 of 2 branches missed.">    if (!resolveDownloadMediaFormats(mediaRequest.getMediaArgs())) {</span>
+<span class="nc" id="L157">      media.setMediaInvalidReason(MediaInvalidReason.INVALID_MEDIA_FORMAT);</span>
+<span class="nc" id="L158">      return media;</span>
     }
 
     // apply defaults to media args
-<span class="fc bfc" id="L158" title="All 2 branches covered.">    if (mediaRequest.getMediaArgs().isIncludeAssetWebRenditions() == null) {</span>
-<span class="fc" id="L159">      mediaRequest.getMediaArgs().includeAssetWebRenditions(mediaHandlerConfig.includeAssetWebRenditionsByDefault());</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">    if (mediaRequest.getMediaArgs().isIncludeAssetWebRenditions() == null) {</span>
+<span class="fc" id="L163">      mediaRequest.getMediaArgs().includeAssetWebRenditions(mediaHandlerConfig.includeAssetWebRenditionsByDefault());</span>
+    }
+
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">    if (log.isTraceEnabled()) {</span>
+<span class="nc" id="L167">      log.trace(&quot;Start processing media request (mediaSource={}): {}&quot;, mediaSource.getId(), mediaRequest);</span>
     }
 
     // preprocess media request before resolving
-<span class="fc" id="L163">    List&lt;Class&lt;? extends MediaProcessor&gt;&gt; mediaPreProcessors = mediaHandlerConfig.getPreProcessors();</span>
-<span class="pc bpc" id="L164" title="1 of 2 branches missed.">    if (mediaPreProcessors != null) {</span>
-<span class="fc bfc" id="L165" title="All 2 branches covered.">      for (Class&lt;? extends MediaProcessor&gt; processorClass : mediaPreProcessors) {</span>
-<span class="fc" id="L166">        MediaProcessor processor = AdaptTo.notNull(adaptable, processorClass);</span>
-<span class="fc" id="L167">        media = processor.process(media);</span>
-<span class="pc bpc" id="L168" title="1 of 2 branches missed.">        if (media == null) {</span>
-<span class="nc" id="L169">          throw new RuntimeException(&quot;MediaPreProcessor '&quot; + processor + &quot;' returned null, request: &quot; + mediaRequest);</span>
+<span class="fc" id="L171">    List&lt;Class&lt;? extends MediaProcessor&gt;&gt; mediaPreProcessors = mediaHandlerConfig.getPreProcessors();</span>
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">    if (mediaPreProcessors != null) {</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">      for (Class&lt;? extends MediaProcessor&gt; processorClass : mediaPreProcessors) {</span>
+<span class="fc" id="L174">        log.trace(&quot;Apply pre processor ({}): {}&quot;, processorClass, mediaRequest);</span>
+<span class="fc" id="L175">        MediaProcessor processor = AdaptTo.notNull(adaptable, processorClass);</span>
+<span class="fc" id="L176">        media = processor.process(media);</span>
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">        if (media == null) {</span>
+<span class="nc" id="L178">          throw new RuntimeException(&quot;MediaPreProcessor '&quot; + processor + &quot;' returned null, request: &quot; + mediaRequest);</span>
         }
-<span class="fc" id="L171">      }</span>
+<span class="fc" id="L180">      }</span>
     }
 
     // resolve media request
-<span class="fc" id="L175">    media = mediaSource.resolveMedia(media);</span>
-<span class="pc bpc" id="L176" title="1 of 2 branches missed.">    if (media == null) {</span>
-<span class="nc" id="L177">      throw new RuntimeException(&quot;MediaType '&quot; + mediaSource + &quot;' returned null, request: &quot; + mediaRequest);</span>
+<span class="fc" id="L184">    media = mediaSource.resolveMedia(media);</span>
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">    if (media == null) {</span>
+<span class="nc" id="L186">      throw new RuntimeException(&quot;MediaType '&quot; + mediaSource + &quot;' returned null, request: &quot; + mediaRequest);</span>
     }
 
     // generate markup (if markup builder is available) - first accepting wins
-<span class="fc" id="L181">    List&lt;Class&lt;? extends MediaMarkupBuilder&gt;&gt; mediaMarkupBuilders = mediaHandlerConfig.getMarkupBuilders();</span>
-<span class="pc bpc" id="L182" title="1 of 2 branches missed.">    if (mediaMarkupBuilders != null) {</span>
-<span class="fc bfc" id="L183" title="All 2 branches covered.">      for (Class&lt;? extends MediaMarkupBuilder&gt; mediaMarkupBuilderClass : mediaMarkupBuilders) {</span>
-<span class="fc" id="L184">        MediaMarkupBuilder mediaMarkupBuilder = AdaptTo.notNull(adaptable, mediaMarkupBuilderClass);</span>
-<span class="fc bfc" id="L185" title="All 2 branches covered.">        if (mediaMarkupBuilder.accepts(media)) {</span>
-<span class="fc" id="L186">          media.setElement(mediaMarkupBuilder.build(media));</span>
-<span class="fc" id="L187">          break;</span>
+<span class="fc" id="L190">    List&lt;Class&lt;? extends MediaMarkupBuilder&gt;&gt; mediaMarkupBuilders = mediaHandlerConfig.getMarkupBuilders();</span>
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">    if (mediaMarkupBuilders != null) {</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">      for (Class&lt;? extends MediaMarkupBuilder&gt; mediaMarkupBuilderClass : mediaMarkupBuilders) {</span>
+<span class="fc" id="L193">        MediaMarkupBuilder mediaMarkupBuilder = AdaptTo.notNull(adaptable, mediaMarkupBuilderClass);</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        if (mediaMarkupBuilder.accepts(media)) {</span>
+<span class="fc" id="L195">          log.trace(&quot;Apply media markup builder ({}): {}&quot;, mediaMarkupBuilderClass, mediaRequest);</span>
+<span class="fc" id="L196">          media.setElement(mediaMarkupBuilder.build(media));</span>
+<span class="fc" id="L197">          break;</span>
         }
-<span class="fc" id="L189">      }</span>
+<span class="fc" id="L199">      }</span>
     }
 
     // postprocess media request after resolving
-<span class="fc" id="L193">    List&lt;Class&lt;? extends MediaProcessor&gt;&gt; mediaPostProcessors = mediaHandlerConfig.getPostProcessors();</span>
-<span class="pc bpc" id="L194" title="1 of 2 branches missed.">    if (mediaPostProcessors != null) {</span>
-<span class="fc bfc" id="L195" title="All 2 branches covered.">      for (Class&lt;? extends MediaProcessor&gt; processorClass : mediaPostProcessors) {</span>
-<span class="fc" id="L196">        MediaProcessor processor = AdaptTo.notNull(adaptable, processorClass);</span>
-<span class="fc" id="L197">        media = processor.process(media);</span>
-<span class="pc bpc" id="L198" title="1 of 2 branches missed.">        if (media == null) {</span>
-<span class="nc" id="L199">          throw new RuntimeException(&quot;MediaPostProcessor '&quot; + processor + &quot;' returned null, request: &quot; + mediaRequest);</span>
+<span class="fc" id="L203">    List&lt;Class&lt;? extends MediaProcessor&gt;&gt; mediaPostProcessors = mediaHandlerConfig.getPostProcessors();</span>
+<span class="pc bpc" id="L204" title="1 of 2 branches missed.">    if (mediaPostProcessors != null) {</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">      for (Class&lt;? extends MediaProcessor&gt; processorClass : mediaPostProcessors) {</span>
+<span class="fc" id="L206">        log.trace(&quot;Apply post processor ({}): {}&quot;, processorClass, mediaRequest);</span>
+<span class="fc" id="L207">        MediaProcessor processor = AdaptTo.notNull(adaptable, processorClass);</span>
+<span class="fc" id="L208">        media = processor.process(media);</span>
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">        if (media == null) {</span>
+<span class="nc" id="L210">          throw new RuntimeException(&quot;MediaPostProcessor '&quot; + processor + &quot;' returned null, request: &quot; + mediaRequest);</span>
         }
-<span class="fc" id="L201">      }</span>
+<span class="fc" id="L212">      }</span>
     }
 
-<span class="fc" id="L204">    return media;</span>
+<span class="fc" id="L215">    log.debug(&quot;Finished media processing: {}&quot;, media);</span>
+
+<span class="fc" id="L217">    return media;</span>
   }
 
   @Override
@@ -209,22 +222,22 @@ import io.wcm.wcm.commons.component.ComponentPropertyResolverFactory;
   public boolean isValidElement(HtmlElement&lt;?&gt; element) {
 
     // if it is null it is always invalid
-<span class="fc bfc" id="L212" title="All 2 branches covered.">    if (element == null) {</span>
-<span class="fc" id="L213">      return false;</span>
+<span class="fc bfc" id="L225" title="All 2 branches covered.">    if (element == null) {</span>
+<span class="fc" id="L226">      return false;</span>
     }
 
     // otherwise check if any media markup builder is available that rates this html element valid
-<span class="fc" id="L217">    List&lt;Class&lt;? extends MediaMarkupBuilder&gt;&gt; mediaMarkupBuilders = mediaHandlerConfig.getMarkupBuilders();</span>
-<span class="pc bpc" id="L218" title="1 of 2 branches missed.">    if (mediaMarkupBuilders != null) {</span>
-<span class="fc bfc" id="L219" title="All 2 branches covered.">      for (Class&lt;? extends MediaMarkupBuilder&gt; mediaMarkupBuilderClass : mediaMarkupBuilders) {</span>
-<span class="fc" id="L220">        MediaMarkupBuilder mediaMarkupBuilder = AdaptTo.notNull(adaptable, mediaMarkupBuilderClass);</span>
-<span class="fc bfc" id="L221" title="All 2 branches covered.">        if (mediaMarkupBuilder.isValidMedia(element)) {</span>
-<span class="fc" id="L222">          return true;</span>
+<span class="fc" id="L230">    List&lt;Class&lt;? extends MediaMarkupBuilder&gt;&gt; mediaMarkupBuilders = mediaHandlerConfig.getMarkupBuilders();</span>
+<span class="pc bpc" id="L231" title="1 of 2 branches missed.">    if (mediaMarkupBuilders != null) {</span>
+<span class="fc bfc" id="L232" title="All 2 branches covered.">      for (Class&lt;? extends MediaMarkupBuilder&gt; mediaMarkupBuilderClass : mediaMarkupBuilders) {</span>
+<span class="fc" id="L233">        MediaMarkupBuilder mediaMarkupBuilder = AdaptTo.notNull(adaptable, mediaMarkupBuilderClass);</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">        if (mediaMarkupBuilder.isValidMedia(element)) {</span>
+<span class="fc" id="L235">          return true;</span>
         }
-<span class="fc" id="L224">      }</span>
+<span class="fc" id="L237">      }</span>
     }
 
-<span class="fc" id="L227">    return false;</span>
+<span class="fc" id="L240">    return false;</span>
   }
 
   /**
@@ -238,30 +251,30 @@ import io.wcm.wcm.commons.component.ComponentPropertyResolverFactory;
    * @return true if resolving was successful
    */
   private boolean resolveDownloadMediaFormats(MediaArgs mediaArgs) {
-<span class="fc bfc" id="L241" title="All 2 branches covered.">    if (!mediaArgs.isDownload()) {</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">    if (!mediaArgs.isDownload()) {</span>
       // not filtering for downloads
-<span class="fc" id="L243">      return true;</span>
+<span class="fc" id="L256">      return true;</span>
     }
-<span class="fc" id="L245">    List&lt;MediaFormat&gt; candidates = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L246">    boolean fallbackToAllMediaFormats = false;</span>
-<span class="pc bpc" id="L247" title="1 of 2 branches missed.">    if (mediaArgs.getMediaFormats() != null) {</span>
-<span class="nc" id="L248">      candidates.addAll(ImmutableList.copyOf(mediaArgs.getMediaFormats()));</span>
+<span class="fc" id="L258">    List&lt;MediaFormat&gt; candidates = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L259">    boolean fallbackToAllMediaFormats = false;</span>
+<span class="pc bpc" id="L260" title="1 of 2 branches missed.">    if (mediaArgs.getMediaFormats() != null) {</span>
+<span class="nc" id="L261">      candidates.addAll(ImmutableList.copyOf(mediaArgs.getMediaFormats()));</span>
     }
     else {
-<span class="fc" id="L251">      candidates.addAll(mediaFormatHandler.getMediaFormats());</span>
-<span class="fc" id="L252">      fallbackToAllMediaFormats = true;</span>
+<span class="fc" id="L264">      candidates.addAll(mediaFormatHandler.getMediaFormats());</span>
+<span class="fc" id="L265">      fallbackToAllMediaFormats = true;</span>
     }
-<span class="fc" id="L254">    MediaFormat[] result = candidates.stream()</span>
-<span class="fc" id="L255">        .filter(MediaFormat::isDownload)</span>
-<span class="fc" id="L256">        .toArray(size -&gt; new MediaFormat[size]);</span>
-<span class="pc bpc" id="L257" title="1 of 2 branches missed.">    if (result.length &gt; 0) {</span>
-<span class="fc" id="L258">      mediaArgs.mediaFormats(result);</span>
-<span class="fc" id="L259">      return true;</span>
+<span class="fc" id="L267">    MediaFormat[] result = candidates.stream()</span>
+<span class="fc" id="L268">        .filter(MediaFormat::isDownload)</span>
+<span class="fc" id="L269">        .toArray(size -&gt; new MediaFormat[size]);</span>
+<span class="pc bpc" id="L270" title="1 of 2 branches missed.">    if (result.length &gt; 0) {</span>
+<span class="fc" id="L271">      mediaArgs.mediaFormats(result);</span>
+<span class="fc" id="L272">      return true;</span>
     }
     else {
       // not successful when an explicit list of media formats was given, and this did not contain any download format
       // successful when no media format was given, and the global list of all formats does not contain any download format
-<span class="nc" id="L264">      return fallbackToAllMediaFormats;</span>
+<span class="nc" id="L277">      return fallbackToAllMediaFormats;</span>
     }
   }
 
@@ -270,14 +283,14 @@ import io.wcm.wcm.commons.component.ComponentPropertyResolverFactory;
   @SuppressFBWarnings(&quot;NP_NONNULL_PARAM_VIOLATION&quot;)
   public Media invalid() {
     // build invalid media with first media source
-<span class="fc" id="L273">    Class&lt;? extends MediaSource&gt; mediaSourceClass = mediaHandlerConfig.getSources().stream().findFirst().orElse(null);</span>
-<span class="pc bpc" id="L274" title="1 of 2 branches missed.">    if (mediaSourceClass == null) {</span>
-<span class="nc" id="L275">      throw new RuntimeException(&quot;No media sources defined.&quot;);</span>
+<span class="fc" id="L286">    Class&lt;? extends MediaSource&gt; mediaSourceClass = mediaHandlerConfig.getSources().stream().findFirst().orElse(null);</span>
+<span class="pc bpc" id="L287" title="1 of 2 branches missed.">    if (mediaSourceClass == null) {</span>
+<span class="nc" id="L288">      throw new RuntimeException(&quot;No media sources defined.&quot;);</span>
     }
-<span class="fc" id="L277">    MediaSource mediaSource = AdaptTo.notNull(adaptable, mediaSourceClass);</span>
-<span class="fc" id="L278">    Media media = new Media(mediaSource, new MediaRequest((String)null, null));</span>
-<span class="fc" id="L279">    media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_MISSING);</span>
-<span class="fc" id="L280">    return media;</span>
+<span class="fc" id="L290">    MediaSource mediaSource = AdaptTo.notNull(adaptable, mediaSourceClass);</span>
+<span class="fc" id="L291">    Media media = new Media(mediaSource, new MediaRequest((String)null, null));</span>
+<span class="fc" id="L292">    media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_MISSING);</span>
+<span class="fc" id="L293">    return media;</span>
   }
 
 }
