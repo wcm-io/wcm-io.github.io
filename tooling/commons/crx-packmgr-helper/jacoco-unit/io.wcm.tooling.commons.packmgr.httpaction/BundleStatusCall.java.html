@@ -20,13 +20,13 @@
 package io.wcm.tooling.commons.packmgr.httpaction;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 
@@ -39,59 +39,51 @@ import io.wcm.tooling.commons.packmgr.PackageManagerHttpActionException;
 public final class BundleStatusCall implements HttpCall&lt;BundleStatus&gt; {
 
   private final CloseableHttpClient httpClient;
+  private final HttpClientContext context;
   private final String bundleStatusURL;
   private final List&lt;Pattern&gt; bundleStatusWhitelistBundleNames;
   private final Logger log;
 
   /**
    * @param httpClient HTTP client
+   * @param context HTTP client context
    * @param bundleStatusURL Bundle status URL
    * @param bundleStatusWhitelistBundleNames Patterns of bundle names to be ignored
    * @param log Logger
    */
-  public BundleStatusCall(CloseableHttpClient httpClient, String bundleStatusURL,
-<span class="nc" id="L53">      List&lt;Pattern&gt; bundleStatusWhitelistBundleNames, Logger log) {</span>
-<span class="nc" id="L54">    this.httpClient = httpClient;</span>
-<span class="nc" id="L55">    this.bundleStatusURL = bundleStatusURL;</span>
-<span class="nc" id="L56">    this.bundleStatusWhitelistBundleNames = bundleStatusWhitelistBundleNames;</span>
-<span class="nc" id="L57">    this.log = log;</span>
-<span class="nc" id="L58">  }</span>
-
-  /**
-   * @param httpClient HTTP client
-   * @param bundleStatusURL Bundle status URL
-   * @param log Logger
-   * @deprecated Please use {@link #BundleStatusCall(CloseableHttpClient, String, List, Logger)}
-   */
-  @Deprecated
-  public BundleStatusCall(CloseableHttpClient httpClient, String bundleStatusURL, Logger log) {
-<span class="nc" id="L68">    this(httpClient, bundleStatusURL, Collections.emptyList(), log);</span>
-<span class="nc" id="L69">  }</span>
+  public BundleStatusCall(CloseableHttpClient httpClient, HttpClientContext context, String bundleStatusURL,
+<span class="nc" id="L55">      List&lt;Pattern&gt; bundleStatusWhitelistBundleNames, Logger log) {</span>
+<span class="nc" id="L56">    this.httpClient = httpClient;</span>
+<span class="nc" id="L57">    this.context = context;</span>
+<span class="nc" id="L58">    this.bundleStatusURL = bundleStatusURL;</span>
+<span class="nc" id="L59">    this.bundleStatusWhitelistBundleNames = bundleStatusWhitelistBundleNames;</span>
+<span class="nc" id="L60">    this.log = log;</span>
+<span class="nc" id="L61">  }</span>
 
   @Override
   public BundleStatus execute() {
-<span class="nc bnc" id="L73" title="All 2 branches missed.">    if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L74">      log.debug(&quot;Call URL: &quot; + bundleStatusURL);</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L66">      log.debug(&quot;Call URL: &quot; + bundleStatusURL);</span>
     }
 
-<span class="nc" id="L77">    HttpGet method = new HttpGet(bundleStatusURL);</span>
-<span class="nc" id="L78">    try (CloseableHttpResponse response = httpClient.execute(method)) {</span>
+<span class="nc" id="L69">    HttpGet method = new HttpGet(bundleStatusURL);</span>
+<span class="nc" id="L70">    try (CloseableHttpResponse response = httpClient.execute(method, context)) {</span>
 
-<span class="nc" id="L80">      String responseString = EntityUtils.toString(response.getEntity());</span>
-<span class="nc bnc" id="L81" title="All 2 branches missed.">      if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {</span>
-<span class="nc" id="L82">        throw PackageManagerHttpActionException.forHttpError(bundleStatusURL, response.getStatusLine(), responseString);</span>
+<span class="nc" id="L72">      String responseString = EntityUtils.toString(response.getEntity());</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">      if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {</span>
+<span class="nc" id="L74">        throw PackageManagerHttpActionException.forHttpError(bundleStatusURL, response.getStatusLine(), responseString);</span>
       }
 
-<span class="nc" id="L85">      return toBundleStatus(responseString);</span>
+<span class="nc" id="L77">      return toBundleStatus(responseString);</span>
     }
-<span class="nc" id="L87">    catch (IOException ex) {</span>
-<span class="nc" id="L88">      throw PackageManagerHttpActionException.forIOException(bundleStatusURL, ex);</span>
+<span class="nc" id="L79">    catch (IOException ex) {</span>
+<span class="nc" id="L80">      throw PackageManagerHttpActionException.forIOException(bundleStatusURL, ex);</span>
     }
   }
 
   private BundleStatus toBundleStatus(String jsonString) {
-<span class="nc" id="L93">    BundleStatusParser parser = new BundleStatusParser(bundleStatusWhitelistBundleNames);</span>
-<span class="nc" id="L94">    return parser.parse(jsonString);</span>
+<span class="nc" id="L85">    BundleStatusParser parser = new BundleStatusParser(bundleStatusWhitelistBundleNames);</span>
+<span class="nc" id="L86">    return parser.parse(jsonString);</span>
   }
 
 }

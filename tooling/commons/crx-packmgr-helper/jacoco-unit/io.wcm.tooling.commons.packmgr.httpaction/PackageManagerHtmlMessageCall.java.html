@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 
@@ -39,6 +40,7 @@ import io.wcm.tooling.commons.packmgr.PackageManagerHttpActionException;
 public final class PackageManagerHtmlMessageCall implements HttpCall&lt;String&gt; {
 
   private final CloseableHttpClient httpClient;
+  private final HttpClientContext context;
   private final HttpRequestBase method;
   private final Logger log;
 
@@ -46,57 +48,59 @@ public final class PackageManagerHtmlMessageCall implements HttpCall&lt;String&g
 
   /**
    * @param httpClient HTTP client
+   * @param context HTTP client context
    * @param method HTTP method
    * @param log Logger
    */
-<span class="nc" id="L52">  public PackageManagerHtmlMessageCall(CloseableHttpClient httpClient, HttpRequestBase method, Logger log) {</span>
-<span class="nc" id="L53">    this.httpClient = httpClient;</span>
-<span class="nc" id="L54">    this.method = method;</span>
-<span class="nc" id="L55">    this.log = log;</span>
-<span class="nc" id="L56">  }</span>
+<span class="nc" id="L55">  public PackageManagerHtmlMessageCall(CloseableHttpClient httpClient, HttpClientContext context, HttpRequestBase method, Logger log) {</span>
+<span class="nc" id="L56">    this.httpClient = httpClient;</span>
+<span class="nc" id="L57">    this.context = context;</span>
+<span class="nc" id="L58">    this.method = method;</span>
+<span class="nc" id="L59">    this.log = log;</span>
+<span class="nc" id="L60">  }</span>
 
   @Override
   public String execute() {
-<span class="nc bnc" id="L60" title="All 2 branches missed.">    if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L61">      log.debug(&quot;Call URL: &quot; + method.getURI());</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L65">      log.debug(&quot;Call URL: &quot; + method.getURI());</span>
     }
 
-<span class="nc" id="L64">    try (CloseableHttpResponse response = httpClient.execute(method)) {</span>
-<span class="nc" id="L65">      String responseString = EntityUtils.toString(response.getEntity());</span>
+<span class="nc" id="L68">    try (CloseableHttpResponse response = httpClient.execute(method, context)) {</span>
+<span class="nc" id="L69">      String responseString = EntityUtils.toString(response.getEntity());</span>
 
-<span class="nc bnc" id="L67" title="All 2 branches missed.">      if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">      if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {</span>
 
         // debug output whole xml
-<span class="nc bnc" id="L70" title="All 2 branches missed.">        if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L71">          log.debug(&quot;CRX Package Manager Response:\n&quot; + responseString);</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L75">          log.debug(&quot;CRX Package Manager Response:\n&quot; + responseString);</span>
         }
 
         // remove all HTML tags and special conctent
-<span class="nc" id="L75">        final Pattern HTML_STYLE = Pattern.compile(&quot;&lt;style[^&lt;&gt;]*&gt;[^&lt;&gt;]*&lt;/style&gt;&quot;, Pattern.MULTILINE | Pattern.DOTALL);</span>
-<span class="nc" id="L76">        final Pattern HTML_JAVASCRIPT = Pattern.compile(&quot;&lt;script[^&lt;&gt;]*&gt;[^&lt;&gt;]*&lt;/script&gt;&quot;, Pattern.MULTILINE | Pattern.DOTALL);</span>
-<span class="nc" id="L77">        final Pattern HTML_ANYTAG = Pattern.compile(&quot;&lt;[^&lt;&gt;]*&gt;&quot;);</span>
+<span class="nc" id="L79">        final Pattern HTML_STYLE = Pattern.compile(&quot;&lt;style[^&lt;&gt;]*&gt;[^&lt;&gt;]*&lt;/style&gt;&quot;, Pattern.MULTILINE | Pattern.DOTALL);</span>
+<span class="nc" id="L80">        final Pattern HTML_JAVASCRIPT = Pattern.compile(&quot;&lt;script[^&lt;&gt;]*&gt;[^&lt;&gt;]*&lt;/script&gt;&quot;, Pattern.MULTILINE | Pattern.DOTALL);</span>
+<span class="nc" id="L81">        final Pattern HTML_ANYTAG = Pattern.compile(&quot;&lt;[^&lt;&gt;]*&gt;&quot;);</span>
 
-<span class="nc" id="L79">        responseString = HTML_STYLE.matcher(responseString).replaceAll(&quot;&quot;);</span>
-<span class="nc" id="L80">        responseString = HTML_JAVASCRIPT.matcher(responseString).replaceAll(&quot;&quot;);</span>
-<span class="nc" id="L81">        responseString = HTML_ANYTAG.matcher(responseString).replaceAll(&quot;&quot;);</span>
-<span class="nc" id="L82">        responseString = StringUtils.replace(responseString, &quot;&amp;nbsp;&quot;, &quot; &quot;);</span>
+<span class="nc" id="L83">        responseString = HTML_STYLE.matcher(responseString).replaceAll(&quot;&quot;);</span>
+<span class="nc" id="L84">        responseString = HTML_JAVASCRIPT.matcher(responseString).replaceAll(&quot;&quot;);</span>
+<span class="nc" id="L85">        responseString = HTML_ANYTAG.matcher(responseString).replaceAll(&quot;&quot;);</span>
+<span class="nc" id="L86">        responseString = StringUtils.replace(responseString, &quot;&amp;nbsp;&quot;, &quot; &quot;);</span>
 
-<span class="nc" id="L84">        log.info(responseString);</span>
+<span class="nc" id="L88">        log.info(responseString);</span>
 
-<span class="nc bnc" id="L86" title="All 2 branches missed.">        if (StringUtils.contains(responseString, PACKAGE_MANAGER_ERROR_INDICATION)) {</span>
-<span class="nc" id="L87">          throw new PackageManagerException(&quot;Package installation failed: &quot; + PACKAGE_MANAGER_ERROR_INDICATION + &quot;\n&quot;</span>
-<span class="nc" id="L88">              + method.getURI());</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        if (StringUtils.contains(responseString, PACKAGE_MANAGER_ERROR_INDICATION)) {</span>
+<span class="nc" id="L91">          throw new PackageManagerException(&quot;Package installation failed: &quot; + PACKAGE_MANAGER_ERROR_INDICATION + &quot;\n&quot;</span>
+<span class="nc" id="L92">              + method.getURI());</span>
         }
 
-<span class="nc" id="L91">        return responseString;</span>
+<span class="nc" id="L95">        return responseString;</span>
       }
       else {
-<span class="nc" id="L94">        throw PackageManagerHttpActionException.forHttpError(method.getURI().toString(), response.getStatusLine(), responseString);</span>
+<span class="nc" id="L98">        throw PackageManagerHttpActionException.forHttpError(method.getURI().toString(), response.getStatusLine(), responseString);</span>
       }
 
     }
-<span class="nc" id="L98">    catch (IOException ex) {</span>
-<span class="nc" id="L99">      throw PackageManagerHttpActionException.forIOException(method.getURI().toString(), ex);</span>
+<span class="nc" id="L102">    catch (IOException ex) {</span>
+<span class="nc" id="L103">      throw PackageManagerHttpActionException.forIOException(method.getURI().toString(), ex);</span>
     }
   }
 

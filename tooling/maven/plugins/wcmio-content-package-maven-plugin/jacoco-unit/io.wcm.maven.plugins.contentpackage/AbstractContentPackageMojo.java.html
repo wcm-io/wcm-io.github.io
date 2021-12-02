@@ -76,6 +76,13 @@ import io.wcm.tooling.commons.packmgr.install.VendorInstallerFactory;
   private String password;
 
   /**
+   * OAuth 2 access token to authenticate against the remote CRX system (package manager).
+   * If this is configured, username and password are ignored.
+   */
+  @Parameter(property = &quot;vault.oauth2AccessToken&quot;)
+  private String oauth2AccessToken;
+
+  /**
    * The user name to authenticate as against the remote CRX system (Felix console).
    * Defaults to the value from &lt;code&gt;userId&lt;/code&gt;.
    */
@@ -88,6 +95,15 @@ import io.wcm.tooling.commons.packmgr.install.VendorInstallerFactory;
    */
   @Parameter(property = &quot;console.password&quot;)
   private String consolePassword;
+
+  /**
+   * OAuth 2 access token to authenticate against the remote CRX system (Felix console).
+   * If this is configured, username and password are ignored.
+   * Defaults to value from &lt;code&gt;authenticationBearerToken&lt;/code&gt;.
+   */
+  @Parameter(property = &quot;console.consoleOauth2AccessToken&quot;)
+  private String consoleOauth2AccessToken;
+
 
   /**
    * Set this to &quot;true&quot; to skip installing packages to CRX although configured in the POM.
@@ -178,112 +194,114 @@ import io.wcm.tooling.commons.packmgr.install.VendorInstallerFactory;
   private SettingsDecrypter decrypter;
 
   protected final File getPackageFile() {
-<span class="nc" id="L181">    return this.packageFile;</span>
+<span class="nc" id="L197">    return this.packageFile;</span>
   }
 
   protected final boolean isSkip() {
-<span class="nc" id="L185">    return this.skip;</span>
+<span class="nc" id="L201">    return this.skip;</span>
   }
 
   protected PackageManagerProperties getPackageManagerProperties() throws MojoExecutionException {
-<span class="nc" id="L189">    PackageManagerProperties props = new PackageManagerProperties();</span>
+<span class="nc" id="L205">    PackageManagerProperties props = new PackageManagerProperties();</span>
 
-<span class="nc" id="L191">    props.setPackageManagerUrl(buildPackageManagerUrl());</span>
-<span class="nc" id="L192">    props.setUserId(this.userId);</span>
-<span class="nc" id="L193">    props.setPassword(this.password);</span>
-<span class="nc" id="L194">    props.setConsoleUserId(this.consoleUserId);</span>
-<span class="nc" id="L195">    props.setConsolePassword(this.consolePassword);</span>
-<span class="nc" id="L196">    props.setRetryCount(this.retryCount);</span>
-<span class="nc" id="L197">    props.setRetryDelaySec(this.retryDelay);</span>
-<span class="nc" id="L198">    props.setBundleStatusUrl(buildBundleStatusUrl());</span>
-<span class="nc" id="L199">    props.setBundleStatusWaitLimitSec(this.bundleStatusWaitLimit);</span>
-<span class="nc" id="L200">    props.setBundleStatusBlacklistBundleNames(ImmutableList.copyOf(this.bundleStatusBlacklistBundleNames));</span>
-<span class="nc" id="L201">    props.setBundleStatusWhitelistBundleNames(ImmutableList.copyOf(this.bundleStatusWhitelistBundleNames));</span>
-<span class="nc" id="L202">    props.setRelaxedSSLCheck(this.relaxedSSLCheck);</span>
-<span class="nc" id="L203">    props.setHttpConnectTimeoutSec(this.httpConnectTimeoutSec);</span>
-<span class="nc" id="L204">    props.setHttpSocketTimeoutSec(this.httpSocketTimeout);</span>
-<span class="nc" id="L205">    props.setProxies(ProxySupport.getMavenProxies(session, decrypter));</span>
+<span class="nc" id="L207">    props.setPackageManagerUrl(buildPackageManagerUrl());</span>
+<span class="nc" id="L208">    props.setUserId(this.userId);</span>
+<span class="nc" id="L209">    props.setPassword(this.password);</span>
+<span class="nc" id="L210">    props.setOAuth2AccessToken(this.oauth2AccessToken);</span>
+<span class="nc" id="L211">    props.setConsoleUserId(this.consoleUserId);</span>
+<span class="nc" id="L212">    props.setConsolePassword(this.consolePassword);</span>
+<span class="nc" id="L213">    props.setConsoleOAuth2AccessToken(this.consoleOauth2AccessToken);</span>
+<span class="nc" id="L214">    props.setRetryCount(this.retryCount);</span>
+<span class="nc" id="L215">    props.setRetryDelaySec(this.retryDelay);</span>
+<span class="nc" id="L216">    props.setBundleStatusUrl(buildBundleStatusUrl());</span>
+<span class="nc" id="L217">    props.setBundleStatusWaitLimitSec(this.bundleStatusWaitLimit);</span>
+<span class="nc" id="L218">    props.setBundleStatusBlacklistBundleNames(ImmutableList.copyOf(this.bundleStatusBlacklistBundleNames));</span>
+<span class="nc" id="L219">    props.setBundleStatusWhitelistBundleNames(ImmutableList.copyOf(this.bundleStatusWhitelistBundleNames));</span>
+<span class="nc" id="L220">    props.setRelaxedSSLCheck(this.relaxedSSLCheck);</span>
+<span class="nc" id="L221">    props.setHttpConnectTimeoutSec(this.httpConnectTimeoutSec);</span>
+<span class="nc" id="L222">    props.setHttpSocketTimeoutSec(this.httpSocketTimeout);</span>
+<span class="nc" id="L223">    props.setProxies(ProxySupport.getMavenProxies(session, decrypter));</span>
 
-<span class="nc" id="L207">    return props;</span>
+<span class="nc" id="L225">    return props;</span>
   }
 
   private String buildPackageManagerUrl() throws MojoExecutionException {
-<span class="nc" id="L211">    String serviceUrl = this.serviceURL;</span>
-<span class="nc bnc" id="L212" title="All 3 branches missed.">    switch (VendorInstallerFactory.identify(serviceUrl)) {</span>
+<span class="nc" id="L229">    String serviceUrl = this.serviceURL;</span>
+<span class="nc bnc" id="L230" title="All 3 branches missed.">    switch (VendorInstallerFactory.identify(serviceUrl)) {</span>
       case CRX:
-<span class="nc" id="L214">        serviceUrl = VendorInstallerFactory.getBaseUrl(serviceUrl, getLoggerWrapper()) + CRX_URL;</span>
-<span class="nc" id="L215">        break;</span>
+<span class="nc" id="L232">        serviceUrl = VendorInstallerFactory.getBaseUrl(serviceUrl, getLoggerWrapper()) + CRX_URL;</span>
+<span class="nc" id="L233">        break;</span>
       case COMPOSUM:
-<span class="nc" id="L217">        serviceUrl = VendorInstallerFactory.getBaseUrl(serviceUrl, getLoggerWrapper()) + COMPOSUM_URL;</span>
-<span class="nc" id="L218">        break;</span>
+<span class="nc" id="L235">        serviceUrl = VendorInstallerFactory.getBaseUrl(serviceUrl, getLoggerWrapper()) + COMPOSUM_URL;</span>
+<span class="nc" id="L236">        break;</span>
       default:
-<span class="nc" id="L220">        throw new MojoExecutionException(&quot;Unsupporte service URL: &quot; + serviceUrl);</span>
+<span class="nc" id="L238">        throw new MojoExecutionException(&quot;Unsupporte service URL: &quot; + serviceUrl);</span>
     }
-<span class="nc" id="L222">    return serviceUrl;</span>
+<span class="nc" id="L240">    return serviceUrl;</span>
   }
 
   private String buildBundleStatusUrl() throws MojoExecutionException {
-<span class="nc bnc" id="L226" title="All 2 branches missed.">    if (StringUtils.equals(this.bundleStatusURL, &quot;-&quot;)) {</span>
-<span class="nc" id="L227">      return null;</span>
+<span class="nc bnc" id="L244" title="All 2 branches missed.">    if (StringUtils.equals(this.bundleStatusURL, &quot;-&quot;)) {</span>
+<span class="nc" id="L245">      return null;</span>
     }
-<span class="nc bnc" id="L229" title="All 2 branches missed.">    if (this.bundleStatusURL != null) {</span>
-<span class="nc" id="L230">      return this.bundleStatusURL;</span>
+<span class="nc bnc" id="L247" title="All 2 branches missed.">    if (this.bundleStatusURL != null) {</span>
+<span class="nc" id="L248">      return this.bundleStatusURL;</span>
     }
     // if not set use hostname from serviceURL and add default path to bundle status
-<span class="nc" id="L233">    String baseUrl = VendorInstallerFactory.getBaseUrl(buildPackageManagerUrl(), getLoggerWrapper());</span>
-<span class="nc" id="L234">    return baseUrl + &quot;/system/console/bundles/.json&quot;;</span>
+<span class="nc" id="L251">    String baseUrl = VendorInstallerFactory.getBaseUrl(buildPackageManagerUrl(), getLoggerWrapper());</span>
+<span class="nc" id="L252">    return baseUrl + &quot;/system/console/bundles/.json&quot;;</span>
   }
 
   protected Logger getLoggerWrapper() {
-<span class="nc" id="L238">    return new Logger() {</span>
+<span class="nc" id="L256">    return new Logger() {</span>
       @Override
       public void warn(CharSequence message, Throwable t) {
-<span class="nc" id="L241">        getLog().warn(message, t);</span>
-<span class="nc" id="L242">      }</span>
+<span class="nc" id="L259">        getLog().warn(message, t);</span>
+<span class="nc" id="L260">      }</span>
       @Override
       public void warn(CharSequence message) {
-<span class="nc" id="L245">        getLog().warn(message);</span>
-<span class="nc" id="L246">      }</span>
+<span class="nc" id="L263">        getLog().warn(message);</span>
+<span class="nc" id="L264">      }</span>
       @Override
       public boolean isWarnEnabled() {
-<span class="nc" id="L249">        return getLog().isWarnEnabled();</span>
+<span class="nc" id="L267">        return getLog().isWarnEnabled();</span>
       }
       @Override
       public boolean isInfoEnabled() {
-<span class="nc" id="L253">        return getLog().isInfoEnabled();</span>
+<span class="nc" id="L271">        return getLog().isInfoEnabled();</span>
       }
       @Override
       public boolean isErrorEnabled() {
-<span class="nc" id="L257">        return getLog().isErrorEnabled();</span>
+<span class="nc" id="L275">        return getLog().isErrorEnabled();</span>
       }
       @Override
       public boolean isDebugEnabled() {
-<span class="nc" id="L261">        return getLog().isDebugEnabled();</span>
+<span class="nc" id="L279">        return getLog().isDebugEnabled();</span>
       }
       @Override
       public void info(CharSequence message, Throwable t) {
-<span class="nc" id="L265">        getLog().info(message, t);</span>
-<span class="nc" id="L266">      }</span>
+<span class="nc" id="L283">        getLog().info(message, t);</span>
+<span class="nc" id="L284">      }</span>
       @Override
       public void info(CharSequence message) {
-<span class="nc" id="L269">        getLog().info(message);</span>
-<span class="nc" id="L270">      }</span>
+<span class="nc" id="L287">        getLog().info(message);</span>
+<span class="nc" id="L288">      }</span>
       @Override
       public void error(CharSequence message, Throwable t) {
-<span class="nc" id="L273">        getLog().error(message, t);</span>
-<span class="nc" id="L274">      }</span>
+<span class="nc" id="L291">        getLog().error(message, t);</span>
+<span class="nc" id="L292">      }</span>
       @Override
       public void error(CharSequence message) {
-<span class="nc" id="L277">        getLog().error(message);</span>
-<span class="nc" id="L278">      }</span>
+<span class="nc" id="L295">        getLog().error(message);</span>
+<span class="nc" id="L296">      }</span>
       @Override
       public void debug(CharSequence message, Throwable t) {
-<span class="nc" id="L281">        getLog().debug(message, t);</span>
-<span class="nc" id="L282">      }</span>
+<span class="nc" id="L299">        getLog().debug(message, t);</span>
+<span class="nc" id="L300">      }</span>
       @Override
       public void debug(CharSequence message) {
-<span class="nc" id="L285">        getLog().debug(message);</span>
-<span class="nc" id="L286">      }</span>
+<span class="nc" id="L303">        getLog().debug(message);</span>
+<span class="nc" id="L304">      }</span>
     };
   }
 

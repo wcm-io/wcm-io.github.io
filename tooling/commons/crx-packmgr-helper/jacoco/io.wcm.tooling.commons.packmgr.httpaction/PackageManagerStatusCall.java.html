@@ -24,6 +24,7 @@ import java.io.IOException;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 import io.wcm.tooling.commons.packmgr.Logger;
@@ -35,44 +36,47 @@ import io.wcm.tooling.commons.packmgr.PackageManagerHttpActionException;
 public final class PackageManagerStatusCall implements HttpCall&lt;Void&gt; {
 
   private final CloseableHttpClient httpClient;
+  private final HttpClientContext context;
   private final HttpRequestBase method;
   private final Logger log;
 
   /**
    * @param httpClient HTTP client
+   * @param context HTTP client context
    * @param method HTTP method
    * @param log Logger
    */
-<span class="nc" id="L46">  public PackageManagerStatusCall(CloseableHttpClient httpClient, HttpRequestBase method, Logger log) {</span>
-<span class="nc" id="L47">    this.httpClient = httpClient;</span>
-<span class="nc" id="L48">    this.method = method;</span>
-<span class="nc" id="L49">    this.log = log;</span>
-<span class="nc" id="L50">  }</span>
+<span class="nc" id="L49">  public PackageManagerStatusCall(CloseableHttpClient httpClient, HttpClientContext context, HttpRequestBase method, Logger log) {</span>
+<span class="nc" id="L50">    this.httpClient = httpClient;</span>
+<span class="nc" id="L51">    this.context = context;</span>
+<span class="nc" id="L52">    this.method = method;</span>
+<span class="nc" id="L53">    this.log = log;</span>
+<span class="nc" id="L54">  }</span>
 
   @Override
   public Void execute() {
-<span class="nc bnc" id="L54" title="All 2 branches missed.">    if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L55">      log.debug(&quot;Call URL: &quot; + method.getURI());</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L59">      log.debug(&quot;Call URL: &quot; + method.getURI());</span>
     }
 
-<span class="nc" id="L58">    try (CloseableHttpResponse response = httpClient.execute(method)) {</span>
-<span class="nc bnc" id="L59" title="All 2 branches missed.">      if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {</span>
+<span class="nc" id="L62">    try (CloseableHttpResponse response = httpClient.execute(method, context)) {</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">      if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {</span>
 
         // debug output response status
-<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L63">          log.debug(&quot;CRX Package Manager Response Status : &quot; + response.getStatusLine().getStatusCode()</span>
-<span class="nc" id="L64">              + &quot; &quot; + response.getStatusLine().getReasonPhrase());</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L67">          log.debug(&quot;CRX Package Manager Response Status : &quot; + response.getStatusLine().getStatusCode()</span>
+<span class="nc" id="L68">              + &quot; &quot; + response.getStatusLine().getReasonPhrase());</span>
         }
 
-<span class="nc" id="L67">        return null;</span>
+<span class="nc" id="L71">        return null;</span>
       }
       else {
-<span class="nc" id="L70">        throw PackageManagerHttpActionException.forHttpError(method.getURI().toString(), response.getStatusLine(), null);</span>
+<span class="nc" id="L74">        throw PackageManagerHttpActionException.forHttpError(method.getURI().toString(), response.getStatusLine(), null);</span>
       }
 
     }
-<span class="nc" id="L74">    catch (IOException ex) {</span>
-<span class="nc" id="L75">      throw PackageManagerHttpActionException.forIOException(method.getURI().toString(), ex);</span>
+<span class="nc" id="L78">    catch (IOException ex) {</span>
+<span class="nc" id="L79">      throw PackageManagerHttpActionException.forIOException(method.getURI().toString(), ex);</span>
     }
   }
 

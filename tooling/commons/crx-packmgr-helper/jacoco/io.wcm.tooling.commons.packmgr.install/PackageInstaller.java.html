@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 import io.wcm.tooling.commons.packmgr.Logger;
@@ -43,21 +44,21 @@ public final class PackageInstaller {
    * @param props Package manager configuration properties.
    * @param log Logger
    */
-<span class="nc" id="L46">  public PackageInstaller(PackageManagerProperties props, Logger log) {</span>
-<span class="nc" id="L47">    this.props = props;</span>
-<span class="nc" id="L48">    this.pkgmgr = new PackageManagerHelper(props, log);</span>
-<span class="nc" id="L49">    this.log = log;</span>
-<span class="nc" id="L50">  }</span>
+<span class="nc" id="L47">  public PackageInstaller(PackageManagerProperties props, Logger log) {</span>
+<span class="nc" id="L48">    this.props = props;</span>
+<span class="nc" id="L49">    this.pkgmgr = new PackageManagerHelper(props, log);</span>
+<span class="nc" id="L50">    this.log = log;</span>
+<span class="nc" id="L51">  }</span>
 
   /**
    * Deploy files via package manager.
    * @param packageFiles AEM content packages
    */
   public void installFiles(Collection&lt;PackageFile&gt; packageFiles) {
-<span class="nc bnc" id="L57" title="All 2 branches missed.">    for (PackageFile packageFile : packageFiles) {</span>
-<span class="nc" id="L58">      installFile(packageFile);</span>
-<span class="nc" id="L59">    }</span>
-<span class="nc" id="L60">  }</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">    for (PackageFile packageFile : packageFiles) {</span>
+<span class="nc" id="L59">      installFile(packageFile);</span>
+<span class="nc" id="L60">    }</span>
+<span class="nc" id="L61">  }</span>
 
   /**
    * Deploy file via package manager.
@@ -65,33 +66,34 @@ public final class PackageInstaller {
    */
   @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
   public void installFile(PackageFile packageFile) {
-<span class="nc" id="L68">    File file = packageFile.getFile();</span>
-<span class="nc bnc" id="L69" title="All 2 branches missed.">    if (!file.exists()) {</span>
-<span class="nc" id="L70">      throw new PackageManagerException(&quot;File does not exist: &quot; + file.getAbsolutePath());</span>
+<span class="nc" id="L69">    File file = packageFile.getFile();</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">    if (!file.exists()) {</span>
+<span class="nc" id="L71">      throw new PackageManagerException(&quot;File does not exist: &quot; + file.getAbsolutePath());</span>
     }
 
-<span class="nc" id="L73">    try (CloseableHttpClient packageManagerHttpClient = pkgmgr.getPackageManagerHttpClient();</span>
-<span class="nc" id="L74">        CloseableHttpClient consoleHttpClient = pkgmgr.getConsoleHttpClient()) {</span>
+<span class="nc" id="L74">    try (CloseableHttpClient httpClient = pkgmgr.getHttpClient()) {</span>
+<span class="nc" id="L75">      HttpClientContext packageManagerHttpClientContext = pkgmgr.getPackageManagerHttpClientContext();</span>
+<span class="nc" id="L76">      HttpClientContext consoleHttpClientContext = pkgmgr.getConsoleHttpClientContext();</span>
 
       // before install: if bundles are still stopping/starting, wait for completion
-<span class="nc" id="L77">      pkgmgr.waitForBundlesActivation(consoleHttpClient);</span>
+<span class="nc" id="L79">      pkgmgr.waitForBundlesActivation(httpClient, consoleHttpClientContext);</span>
 
-<span class="nc bnc" id="L79" title="All 2 branches missed.">      if (packageFile.isInstall()) {</span>
-<span class="nc bnc" id="L80" title="All 2 branches missed.">        log.info(&quot;Upload and install &quot; + (packageFile.isForce() ? &quot;(force) &quot; : &quot;&quot;) + file.getName() + &quot; to &quot; + props.getPackageManagerUrl());</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">      if (packageFile.isInstall()) {</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        log.info(&quot;Upload and install &quot; + (packageFile.isForce() ? &quot;(force) &quot; : &quot;&quot;) + file.getName() + &quot; to &quot; + props.getPackageManagerUrl());</span>
       }
       else {
-<span class="nc" id="L83">        log.info(&quot;Upload &quot; + file.getName() + &quot; to &quot; + props.getPackageManagerUrl());</span>
+<span class="nc" id="L85">        log.info(&quot;Upload &quot; + file.getName() + &quot; to &quot; + props.getPackageManagerUrl());</span>
       }
 
-<span class="nc" id="L86">      VendorPackageInstaller installer = VendorInstallerFactory.getPackageInstaller(props.getPackageManagerUrl());</span>
-<span class="nc bnc" id="L87" title="All 2 branches missed.">      if (installer != null) {</span>
-<span class="nc" id="L88">        installer.installPackage(packageFile, pkgmgr, packageManagerHttpClient, consoleHttpClient, props, log);</span>
+<span class="nc" id="L88">      VendorPackageInstaller installer = VendorInstallerFactory.getPackageInstaller(props.getPackageManagerUrl());</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">      if (installer != null) {</span>
+<span class="nc" id="L90">        installer.installPackage(packageFile, pkgmgr, httpClient, packageManagerHttpClientContext, consoleHttpClientContext, props, log);</span>
       }
     }
-<span class="nc" id="L91">    catch (IOException ex) {</span>
-<span class="nc" id="L92">      throw new PackageManagerException(&quot;Install operation failed.&quot;, ex);</span>
-<span class="nc" id="L93">    }</span>
-<span class="nc" id="L94">  }</span>
+<span class="nc" id="L93">    catch (IOException ex) {</span>
+<span class="nc" id="L94">      throw new PackageManagerException(&quot;Install operation failed.&quot;, ex);</span>
+<span class="nc" id="L95">    }</span>
+<span class="nc" id="L96">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

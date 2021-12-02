@@ -24,25 +24,29 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+
 /**
  * Configuration properties for {@link PackageManagerHelper}.
  */
-<span class="nc" id="L30">public final class PackageManagerProperties {</span>
+<span class="nc" id="L32">public final class PackageManagerProperties {</span>
 
   private String packageManagerUrl;
   private String userId;
   private String password;
+  private String oauth2AccessToken;
   private String consoleUserId;
   private String consolePassword;
-<span class="nc" id="L37">  private int retryCount = 24;</span>
-<span class="nc" id="L38">  private int retryDelaySec = 5;</span>
+  private String consoleOauth2AccessToken;
+<span class="nc" id="L41">  private int retryCount = 24;</span>
+<span class="nc" id="L42">  private int retryDelaySec = 5;</span>
   private String bundleStatusUrl;
-<span class="nc" id="L40">  private int bundleStatusWaitLimitSec = 360;</span>
-<span class="nc" id="L41">  private List&lt;Pattern&gt; bundleStatusBlacklistBundleNames = Collections.emptyList();</span>
-<span class="nc" id="L42">  private List&lt;Pattern&gt; bundleStatusWhitelistBundleNames = Collections.emptyList();</span>
+<span class="nc" id="L44">  private int bundleStatusWaitLimitSec = 360;</span>
+<span class="nc" id="L45">  private List&lt;Pattern&gt; bundleStatusBlacklistBundleNames = Collections.emptyList();</span>
+<span class="nc" id="L46">  private List&lt;Pattern&gt; bundleStatusWhitelistBundleNames = Collections.emptyList();</span>
   private boolean relaxedSSLCheck;
-<span class="nc" id="L44">  private int httpConnectTimeoutSec = 10;</span>
-<span class="nc" id="L45">  private int httpSocketTimeoutSec = 60;</span>
+<span class="nc" id="L48">  private int httpConnectTimeoutSec = 10;</span>
+<span class="nc" id="L49">  private int httpSocketTimeoutSec = 60;</span>
   private List&lt;Proxy&gt; proxies;
 
   /**
@@ -53,36 +57,50 @@ import java.util.stream.Collectors;
    * @return URL
    */
   public String getPackageManagerUrl() {
-<span class="nc" id="L56">    return this.packageManagerUrl;</span>
+<span class="nc" id="L60">    return this.packageManagerUrl;</span>
   }
 
   public void setPackageManagerUrl(String packageManagerUrl) {
-<span class="nc" id="L60">    this.packageManagerUrl = packageManagerUrl;</span>
-<span class="nc" id="L61">  }</span>
+<span class="nc" id="L64">    this.packageManagerUrl = packageManagerUrl;</span>
+<span class="nc" id="L65">  }</span>
 
   /**
    * The user name to authenticate as against the remote CRX system (package manager).
    * @return User ID
    */
   public String getUserId() {
-<span class="nc" id="L68">    return this.userId;</span>
+<span class="nc" id="L72">    return this.userId;</span>
   }
 
   public void setUserId(String userId) {
-<span class="nc" id="L72">    this.userId = userId;</span>
-<span class="nc" id="L73">  }</span>
+<span class="nc" id="L76">    this.userId = userId;</span>
+<span class="nc" id="L77">  }</span>
 
   /**
    * The password to authenticate against the remote CRX system (package manager).
    * @return Password
    */
   public String getPassword() {
-<span class="nc" id="L80">    return this.password;</span>
+<span class="nc" id="L84">    return this.password;</span>
   }
 
   public void setPassword(String password) {
-<span class="nc" id="L84">    this.password = password;</span>
-<span class="nc" id="L85">  }</span>
+<span class="nc" id="L88">    this.password = password;</span>
+<span class="nc" id="L89">  }</span>
+
+  /**
+   * OAuth 2 access token to authenticate against the remote CRX system (package manager).
+   * If this is configured, username and password are ignored.
+   * @return OAuth 2 access token.
+   */
+  public String getOAuth2AccessToken() {
+<span class="nc" id="L97">    return this.oauth2AccessToken;</span>
+  }
+
+
+  public void setOAuth2AccessToken(String value) {
+<span class="nc" id="L102">    this.oauth2AccessToken = value;</span>
+<span class="nc" id="L103">  }</span>
 
   /**
    * The user name to authenticate as against the remote CRX system (Felix console).
@@ -90,15 +108,12 @@ import java.util.stream.Collectors;
    * @return User ID
    */
   public String getConsoleUserId() {
-<span class="nc bnc" id="L93" title="All 2 branches missed.">    if (this.consoleUserId == null) {</span>
-<span class="nc" id="L94">      return this.userId;</span>
-    }
-<span class="nc" id="L96">    return this.consoleUserId;</span>
+<span class="nc" id="L111">    return StringUtils.defaultString(this.consoleUserId, this.userId);</span>
   }
 
   public void setConsoleUserId(String consoleUserId) {
-<span class="nc" id="L100">    this.consoleUserId = consoleUserId;</span>
-<span class="nc" id="L101">  }</span>
+<span class="nc" id="L115">    this.consoleUserId = consoleUserId;</span>
+<span class="nc" id="L116">  }</span>
 
   /**
    * The password to authenticate against the remote CRX system (Felix console).
@@ -106,39 +121,51 @@ import java.util.stream.Collectors;
    * @return Password
    */
   public String getConsolePassword() {
-<span class="nc bnc" id="L109" title="All 2 branches missed.">    if (this.consolePassword == null) {</span>
-<span class="nc" id="L110">      return this.password;</span>
-    }
-<span class="nc" id="L112">    return this.consolePassword;</span>
+<span class="nc" id="L124">    return StringUtils.defaultString(this.consolePassword, this.password);</span>
   }
 
   public void setConsolePassword(String consolePassword) {
-<span class="nc" id="L116">    this.consolePassword = consolePassword;</span>
-<span class="nc" id="L117">  }</span>
+<span class="nc" id="L128">    this.consolePassword = consolePassword;</span>
+<span class="nc" id="L129">  }</span>
+
+  /**
+   * OAuth 2 access token to authenticate against the remote CRX system (Felix console).
+   * If this is configured, username and password are ignored.
+   * Fallback to {@link #getOAuth2AccessToken()} if not set.
+   * @return OAuth 2 access token.
+   */
+  public String getConsoleOAuth2AccessToken() {
+<span class="nc" id="L138">    return StringUtils.defaultString(this.consoleOauth2AccessToken, this.oauth2AccessToken);</span>
+  }
+
+
+  public void setConsoleOAuth2AccessToken(String value) {
+<span class="nc" id="L143">    this.consoleOauth2AccessToken = value;</span>
+<span class="nc" id="L144">  }</span>
 
   /**
    * Number of times to retry upload and install via CRX HTTP interface if it fails.
    * @return Retry count
    */
   public int getRetryCount() {
-<span class="nc" id="L124">    return this.retryCount;</span>
+<span class="nc" id="L151">    return this.retryCount;</span>
   }
 
   public void setRetryCount(int retryCount) {
-<span class="nc" id="L128">    this.retryCount = retryCount;</span>
-<span class="nc" id="L129">  }</span>
+<span class="nc" id="L155">    this.retryCount = retryCount;</span>
+<span class="nc" id="L156">  }</span>
 
   /**
    * Number of seconds between retry attempts.
    * @return Retry delay
    */
   public int getRetryDelaySec() {
-<span class="nc" id="L136">    return this.retryDelaySec;</span>
+<span class="nc" id="L163">    return this.retryDelaySec;</span>
   }
 
   public void setRetryDelaySec(int retryDelaySec) {
-<span class="nc" id="L140">    this.retryDelaySec = retryDelaySec;</span>
-<span class="nc" id="L141">  }</span>
+<span class="nc" id="L167">    this.retryDelaySec = retryDelaySec;</span>
+<span class="nc" id="L168">  }</span>
 
   /**
    * Bundle status JSON URL. If an URL is configured the activation status of all bundles in the system is checked
@@ -149,12 +176,12 @@ import java.util.stream.Collectors;
    * @return URL
    */
   public String getBundleStatusUrl() {
-<span class="nc" id="L152">    return this.bundleStatusUrl;</span>
+<span class="nc" id="L179">    return this.bundleStatusUrl;</span>
   }
 
   public void setBundleStatusUrl(String bundleStatusUrl) {
-<span class="nc" id="L156">    this.bundleStatusUrl = bundleStatusUrl;</span>
-<span class="nc" id="L157">  }</span>
+<span class="nc" id="L183">    this.bundleStatusUrl = bundleStatusUrl;</span>
+<span class="nc" id="L184">  }</span>
 
   /**
    * Number of seconds to wait as maximum for a positive bundle status check.
@@ -162,12 +189,12 @@ import java.util.stream.Collectors;
    * @return Limit
    */
   public int getBundleStatusWaitLimitSec() {
-<span class="nc" id="L165">    return this.bundleStatusWaitLimitSec;</span>
+<span class="nc" id="L192">    return this.bundleStatusWaitLimitSec;</span>
   }
 
   public void setBundleStatusWaitLimitSec(int bundleStatusWaitLimitSec) {
-<span class="nc" id="L169">    this.bundleStatusWaitLimitSec = bundleStatusWaitLimitSec;</span>
-<span class="nc" id="L170">  }</span>
+<span class="nc" id="L196">    this.bundleStatusWaitLimitSec = bundleStatusWaitLimitSec;</span>
+<span class="nc" id="L197">  }</span>
 
   /**
    * Patterns for symbolic names of bundles that are expected to be not present in bundle list.
@@ -176,14 +203,14 @@ import java.util.stream.Collectors;
    * @return List of regular expressions for symbolic bundle names.
    */
   public List&lt;Pattern&gt; getBundleStatusBlacklistBundleNames() {
-<span class="nc" id="L179">    return this.bundleStatusBlacklistBundleNames;</span>
+<span class="nc" id="L206">    return this.bundleStatusBlacklistBundleNames;</span>
   }
 
   public void setBundleStatusBlacklistBundleNames(List&lt;String&gt; bundleStatusBlacklistBundleNames) {
-<span class="nc" id="L183">    this.bundleStatusBlacklistBundleNames = bundleStatusBlacklistBundleNames.stream()</span>
-<span class="nc" id="L184">        .map(Pattern::compile)</span>
-<span class="nc" id="L185">        .collect(Collectors.toList());</span>
-<span class="nc" id="L186">  }</span>
+<span class="nc" id="L210">    this.bundleStatusBlacklistBundleNames = bundleStatusBlacklistBundleNames.stream()</span>
+<span class="nc" id="L211">        .map(Pattern::compile)</span>
+<span class="nc" id="L212">        .collect(Collectors.toList());</span>
+<span class="nc" id="L213">  }</span>
 
   /**
    * Patterns for symbolic names of bundles that are ignored in bundle list.
@@ -191,62 +218,62 @@ import java.util.stream.Collectors;
    * @return List of regular expressions for symbolic bundle names.
    */
   public List&lt;Pattern&gt; getBundleStatusWhitelistBundleNames() {
-<span class="nc" id="L194">    return this.bundleStatusWhitelistBundleNames;</span>
+<span class="nc" id="L221">    return this.bundleStatusWhitelistBundleNames;</span>
   }
 
   public void setBundleStatusWhitelistBundleNames(List&lt;String&gt; bundleStatusWhitelistBundleNames) {
-<span class="nc" id="L198">    this.bundleStatusWhitelistBundleNames = bundleStatusWhitelistBundleNames.stream()</span>
-<span class="nc" id="L199">        .map(Pattern::compile)</span>
-<span class="nc" id="L200">        .collect(Collectors.toList());</span>
-<span class="nc" id="L201">  }</span>
+<span class="nc" id="L225">    this.bundleStatusWhitelistBundleNames = bundleStatusWhitelistBundleNames.stream()</span>
+<span class="nc" id="L226">        .map(Pattern::compile)</span>
+<span class="nc" id="L227">        .collect(Collectors.toList());</span>
+<span class="nc" id="L228">  }</span>
 
   /**
    * If set to true also self-signed certificates are accepted.
    * @return Relaced SSL check
    */
   public boolean isRelaxedSSLCheck() {
-<span class="nc" id="L208">    return this.relaxedSSLCheck;</span>
+<span class="nc" id="L235">    return this.relaxedSSLCheck;</span>
   }
 
   public void setRelaxedSSLCheck(boolean relaxedSSLCheck) {
-<span class="nc" id="L212">    this.relaxedSSLCheck = relaxedSSLCheck;</span>
-<span class="nc" id="L213">  }</span>
+<span class="nc" id="L239">    this.relaxedSSLCheck = relaxedSSLCheck;</span>
+<span class="nc" id="L240">  }</span>
 
   /**
    * HTTP connection timeout (in seconds).
    * @return Timeout
    */
   public int getHttpConnectTimeoutSec() {
-<span class="nc" id="L220">    return this.httpConnectTimeoutSec;</span>
+<span class="nc" id="L247">    return this.httpConnectTimeoutSec;</span>
   }
 
   public void setHttpConnectTimeoutSec(int httpConnectTimeoutSec) {
-<span class="nc" id="L224">    this.httpConnectTimeoutSec = httpConnectTimeoutSec;</span>
-<span class="nc" id="L225">  }</span>
+<span class="nc" id="L251">    this.httpConnectTimeoutSec = httpConnectTimeoutSec;</span>
+<span class="nc" id="L252">  }</span>
 
   /**
    * HTTP socket timeout (in seconds).
    * @return Timeout
    */
   public int getHttpSocketTimeoutSec() {
-<span class="nc" id="L232">    return this.httpSocketTimeoutSec;</span>
+<span class="nc" id="L259">    return this.httpSocketTimeoutSec;</span>
   }
 
   public void setHttpSocketTimeoutSec(int httpSocketTimeoutSec) {
-<span class="nc" id="L236">    this.httpSocketTimeoutSec = httpSocketTimeoutSec;</span>
-<span class="nc" id="L237">  }</span>
+<span class="nc" id="L263">    this.httpSocketTimeoutSec = httpSocketTimeoutSec;</span>
+<span class="nc" id="L264">  }</span>
 
   /**
    * HTTP proxies from maven settings
    * @return List of proxies
    */
   public List&lt;Proxy&gt; getProxies() {
-<span class="nc" id="L244">    return this.proxies;</span>
+<span class="nc" id="L271">    return this.proxies;</span>
   }
 
   public void setProxies(List&lt;Proxy&gt; proxies) {
-<span class="nc" id="L248">    this.proxies = proxies;</span>
-<span class="nc" id="L249">  }</span>
+<span class="nc" id="L275">    this.proxies = proxies;</span>
+<span class="nc" id="L276">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

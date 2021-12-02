@@ -24,6 +24,7 @@ import java.io.IOException;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 
@@ -36,45 +37,48 @@ import io.wcm.tooling.commons.packmgr.PackageManagerHttpActionException;
 public final class PackageManagerHtmlCall implements HttpCall&lt;String&gt; {
 
   private final CloseableHttpClient httpClient;
+  private final HttpClientContext context;
   private final HttpRequestBase method;
   private final Logger log;
 
   /**
    * @param httpClient HTTP client
+   * @param context HTTP client context
    * @param method HTTP method
    * @param log Logger
    */
-<span class="nc" id="L47">  public PackageManagerHtmlCall(CloseableHttpClient httpClient, HttpRequestBase method, Logger log) {</span>
-<span class="nc" id="L48">    this.httpClient = httpClient;</span>
-<span class="nc" id="L49">    this.method = method;</span>
-<span class="nc" id="L50">    this.log = log;</span>
-<span class="nc" id="L51">  }</span>
+<span class="nc" id="L50">  public PackageManagerHtmlCall(CloseableHttpClient httpClient, HttpClientContext context, HttpRequestBase method, Logger log) {</span>
+<span class="nc" id="L51">    this.httpClient = httpClient;</span>
+<span class="nc" id="L52">    this.context = context;</span>
+<span class="nc" id="L53">    this.method = method;</span>
+<span class="nc" id="L54">    this.log = log;</span>
+<span class="nc" id="L55">  }</span>
 
   @Override
   public String execute() {
-<span class="nc bnc" id="L55" title="All 2 branches missed.">    if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L56">      log.debug(&quot;Call URL: &quot; + method.getURI());</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L60">      log.debug(&quot;Call URL: &quot; + method.getURI());</span>
     }
 
-<span class="nc" id="L59">    try (CloseableHttpResponse response = httpClient.execute(method)) {</span>
-<span class="nc" id="L60">      String responseString = EntityUtils.toString(response.getEntity());</span>
+<span class="nc" id="L63">    try (CloseableHttpResponse response = httpClient.execute(method, context)) {</span>
+<span class="nc" id="L64">      String responseString = EntityUtils.toString(response.getEntity());</span>
 
-<span class="nc bnc" id="L62" title="All 2 branches missed.">      if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">      if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {</span>
 
         // debug output whole xml
-<span class="nc bnc" id="L65" title="All 2 branches missed.">        if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L66">          log.debug(&quot;CRX Package Manager Response:\n&quot; + responseString);</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L70">          log.debug(&quot;CRX Package Manager Response:\n&quot; + responseString);</span>
         }
 
-<span class="nc" id="L69">        return responseString;</span>
+<span class="nc" id="L73">        return responseString;</span>
       }
       else {
-<span class="nc" id="L72">        throw PackageManagerHttpActionException.forHttpError(method.getURI().toString(), response.getStatusLine(), responseString);</span>
+<span class="nc" id="L76">        throw PackageManagerHttpActionException.forHttpError(method.getURI().toString(), response.getStatusLine(), responseString);</span>
       }
 
     }
-<span class="nc" id="L76">    catch (IOException ex) {</span>
-<span class="nc" id="L77">      throw PackageManagerHttpActionException.forIOException(method.getURI().toString(), ex);</span>
+<span class="nc" id="L80">    catch (IOException ex) {</span>
+<span class="nc" id="L81">      throw PackageManagerHttpActionException.forIOException(method.getURI().toString(), ex);</span>
     }
   }
 
