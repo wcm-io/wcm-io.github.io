@@ -38,9 +38,10 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.wcm.tooling.commons.packmgr.Logger;
 import io.wcm.tooling.commons.packmgr.PackageManagerException;
 import io.wcm.tooling.commons.packmgr.PackageManagerHelper;
 import io.wcm.tooling.commons.packmgr.PackageManagerProperties;
@@ -53,16 +54,15 @@ public final class PackageDownloader {
 
   private final PackageManagerProperties props;
   private final PackageManagerHelper pkgmgr;
-  private final Logger log;
+
+<span class="nc" id="L58">  private static final Logger log = LoggerFactory.getLogger(PackageDownloader.class);</span>
 
   /**
    * @param props Package manager configuration properties.
-   * @param log Logger
    */
-<span class="nc" id="L62">  public PackageDownloader(PackageManagerProperties props, Logger log) {</span>
-<span class="nc" id="L63">    this.props = props;</span>
-<span class="nc" id="L64">    this.pkgmgr = new PackageManagerHelper(props, log);</span>
-<span class="nc" id="L65">    this.log = log;</span>
+<span class="nc" id="L63">  public PackageDownloader(PackageManagerProperties props) {</span>
+<span class="nc" id="L64">    this.props = props;</span>
+<span class="nc" id="L65">    this.pkgmgr = new PackageManagerHelper(props);</span>
 <span class="nc" id="L66">  }</span>
 
   /**
@@ -76,7 +76,7 @@ public final class PackageDownloader {
   public File downloadFile(File file, String ouputFilePath) {
 <span class="nc" id="L77">    try (CloseableHttpClient httpClient = pkgmgr.getHttpClient()) {</span>
 <span class="nc" id="L78">      HttpClientContext httpClientContext = pkgmgr.getPackageManagerHttpClientContext();</span>
-<span class="nc" id="L79">      log.info(&quot;Download &quot; + file.getName() + &quot; from &quot; + props.getPackageManagerUrl());</span>
+<span class="nc" id="L79">      log.info(&quot;Download {} from {}&quot;, file.getName(), props.getPackageManagerUrl());</span>
 
       // 1st: try upload to get path of package - or otherwise make sure package def exists (no install!)
 <span class="nc" id="L82">      HttpPost post = new HttpPost(props.getPackageManagerUrl() + &quot;/.json?cmd=upload&quot;);</span>
@@ -98,14 +98,14 @@ public final class PackageDownloader {
 <span class="nc" id="L98">        throw new PackageManagerException(&quot;Package path detection failed: &quot; + msg);</span>
       }
 
-<span class="nc" id="L101">      log.info(&quot;Package path is: &quot; + path + &quot; - now rebuilding package...&quot;);</span>
+<span class="nc" id="L101">      log.info(&quot;Package path is: {} - now rebuilding package...&quot;, path);</span>
 
       // 2nd: build package
 <span class="nc" id="L104">      HttpPost buildMethod = new HttpPost(props.getPackageManagerUrl() + &quot;/console.html&quot; + path + &quot;?cmd=build&quot;);</span>
 <span class="nc" id="L105">      pkgmgr.executePackageManagerMethodHtmlOutputResponse(httpClient, httpClientContext, buildMethod);</span>
 
       // 3rd: download package
-<span class="nc" id="L108">      String baseUrl = VendorInstallerFactory.getBaseUrl(props.getPackageManagerUrl(), log);</span>
+<span class="nc" id="L108">      String baseUrl = VendorInstallerFactory.getBaseUrl(props.getPackageManagerUrl());</span>
 <span class="nc" id="L109">      HttpGet downloadMethod = new HttpGet(baseUrl + path);</span>
 
       // execute download
@@ -129,7 +129,7 @@ public final class PackageDownloader {
 <span class="nc" id="L129">          responseStream.close();</span>
 <span class="nc" id="L130">          fos.close();</span>
 
-<span class="nc" id="L132">          log.info(&quot;Package downloaded to &quot; + outputFileObject.getAbsolutePath());</span>
+<span class="nc" id="L132">          log.info(&quot;Package downloaded to {}&quot;, outputFileObject.getAbsolutePath());</span>
 
 <span class="nc" id="L134">          return outputFileObject;</span>
         }
