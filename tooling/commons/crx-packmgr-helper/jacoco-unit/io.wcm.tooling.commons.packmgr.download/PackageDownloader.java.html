@@ -66,95 +66,113 @@ public final class PackageDownloader {
 <span class="nc" id="L66">  }</span>
 
   /**
-   * Download content package from CRX instance.
-   * @param file Local version of package that should be downloaded.
-   * @param ouputFilePath Path to download package from AEM instance to.
-   * @return Downloaded file
+   * Upload the given local package definition (without actually installing it).
+   * @param file Package definition file
+   * @return Package path
    */
-  @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
-  @SuppressFBWarnings(&quot;RV_RETURN_VALUE_IGNORED_BAD_PRACTICE&quot;)
-  public File downloadFile(File file, String ouputFilePath) {
-<span class="nc" id="L77">    try (CloseableHttpClient httpClient = pkgmgr.getHttpClient()) {</span>
-<span class="nc" id="L78">      HttpClientContext httpClientContext = pkgmgr.getPackageManagerHttpClientContext();</span>
-<span class="nc" id="L79">      log.info(&quot;Download {} from {}&quot;, file.getName(), props.getPackageManagerUrl());</span>
+  public String uploadPackageDefinition(File file) {
+<span class="nc" id="L74">    try (CloseableHttpClient httpClient = pkgmgr.getHttpClient()) {</span>
+<span class="nc" id="L75">      HttpClientContext httpClientContext = pkgmgr.getPackageManagerHttpClientContext();</span>
 
-      // 1st: try upload to get path of package - or otherwise make sure package def exists (no install!)
-<span class="nc" id="L82">      HttpPost post = new HttpPost(props.getPackageManagerUrl() + &quot;/.json?cmd=upload&quot;);</span>
-<span class="nc" id="L83">      MultipartEntityBuilder entity = MultipartEntityBuilder.create()</span>
-<span class="nc" id="L84">          .addBinaryBody(&quot;package&quot;, file)</span>
-<span class="nc" id="L85">          .addTextBody(&quot;force&quot;, &quot;true&quot;);</span>
-<span class="nc" id="L86">      post.setEntity(entity.build());</span>
-<span class="nc" id="L87">      JSONObject jsonResponse = pkgmgr.executePackageManagerMethodJson(httpClient, httpClientContext, post);</span>
-<span class="nc" id="L88">      boolean success = jsonResponse.optBoolean(&quot;success&quot;, false);</span>
-<span class="nc" id="L89">      String msg = jsonResponse.optString(&quot;msg&quot;, null);</span>
-<span class="nc" id="L90">      String path = jsonResponse.optString(&quot;path&quot;, null);</span>
-
+      // try upload to get path of package - or otherwise make sure package def exists (no install!)
+<span class="nc" id="L78">      log.info(&quot;Upload package definition for {} to {} ...&quot;, file.getName(), props.getPackageManagerUrl());</span>
+<span class="nc" id="L79">      HttpPost post = new HttpPost(props.getPackageManagerUrl() + &quot;/.json?cmd=upload&quot;);</span>
+<span class="nc" id="L80">      MultipartEntityBuilder entity = MultipartEntityBuilder.create()</span>
+<span class="nc" id="L81">          .addBinaryBody(&quot;package&quot;, file)</span>
+<span class="nc" id="L82">          .addTextBody(&quot;force&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L83">      post.setEntity(entity.build());</span>
+<span class="nc" id="L84">      JSONObject jsonResponse = pkgmgr.executePackageManagerMethodJson(httpClient, httpClientContext, post);</span>
+<span class="nc" id="L85">      boolean success = jsonResponse.optBoolean(&quot;success&quot;, false);</span>
+<span class="nc" id="L86">      String msg = jsonResponse.optString(&quot;msg&quot;, null);</span>
+<span class="nc" id="L87">      String packagePath = jsonResponse.optString(&quot;path&quot;, null);</span>
       // package already exists - get path from error message and continue
-<span class="nc bnc" id="L93" title="All 6 branches missed.">      if (!success &amp;&amp; StringUtils.startsWith(msg, CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX) &amp;&amp; StringUtils.isEmpty(path)) {</span>
-<span class="nc" id="L94">        path = StringUtils.substringAfter(msg, CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX);</span>
-<span class="nc" id="L95">        success = true;</span>
+<span class="nc bnc" id="L89" title="All 6 branches missed.">      if (!success &amp;&amp; StringUtils.startsWith(msg, CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX) &amp;&amp; StringUtils.isEmpty(packagePath)) {</span>
+<span class="nc" id="L90">        packagePath = StringUtils.substringAfter(msg, CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX);</span>
+<span class="nc" id="L91">        success = true;</span>
       }
-<span class="nc bnc" id="L97" title="All 2 branches missed.">      if (!success) {</span>
-<span class="nc" id="L98">        throw new PackageManagerException(&quot;Package path detection failed: &quot; + msg);</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">      if (!success) {</span>
+<span class="nc" id="L94">        throw new PackageManagerException(&quot;Package path detection failed: &quot; + msg);</span>
       }
 
-<span class="nc" id="L101">      log.info(&quot;Package path is: {} - now rebuilding package...&quot;, path);</span>
+<span class="nc" id="L97">      return packagePath;</span>
+    }
+<span class="nc" id="L99">    catch (FileNotFoundException ex) {</span>
+<span class="nc" id="L100">      throw new PackageManagerException(&quot;File not found: &quot; + file.getAbsolutePath(), ex);</span>
+    }
+<span class="nc" id="L102">    catch (IOException ex) {</span>
+<span class="nc" id="L103">      throw new PackageManagerException(&quot;Upload package definition operation failed.&quot;, ex);</span>
+    }
+  }
 
-      // 2nd: build package
-<span class="nc" id="L104">      HttpPost buildMethod = new HttpPost(props.getPackageManagerUrl() + &quot;/console.html&quot; + path + &quot;?cmd=build&quot;);</span>
-<span class="nc" id="L105">      pkgmgr.executePackageManagerMethodHtmlOutputResponse(httpClient, httpClientContext, buildMethod);</span>
+  /**
+   * Download content package from CRX package manager.
+   * @param packagePath Content Package path in AEM instance.
+   * @param ouputFilePath Path to download package from AEM instance to.
+   * @param rebuildPackage Whether to rebuild the package within the CRX package manager before downloading it to
+   *          include the latest content from repository.
+   * @return Downloaded content package file
+   */
+  @SuppressFBWarnings(&quot;RV_RETURN_VALUE_IGNORED_BAD_PRACTICE&quot;)
+  public File downloadContentPackage(String packagePath, String ouputFilePath, boolean rebuildPackage) {
+<span class="nc" id="L117">    try (CloseableHttpClient httpClient = pkgmgr.getHttpClient()) {</span>
+<span class="nc" id="L118">      HttpClientContext httpClientContext = pkgmgr.getPackageManagerHttpClientContext();</span>
 
-      // 3rd: download package
-<span class="nc" id="L108">      String baseUrl = VendorInstallerFactory.getBaseUrl(props.getPackageManagerUrl());</span>
-<span class="nc" id="L109">      HttpGet downloadMethod = new HttpGet(baseUrl + path);</span>
+      // (Re-)build package
+<span class="nc bnc" id="L121" title="All 2 branches missed.">      if (rebuildPackage) {</span>
+<span class="nc" id="L122">        log.info(&quot;Rebuilding package {} ...&quot;, packagePath);</span>
+<span class="nc" id="L123">        HttpPost buildMethod = new HttpPost(props.getPackageManagerUrl() + &quot;/console.html&quot; + packagePath + &quot;?cmd=build&quot;);</span>
+<span class="nc" id="L124">        pkgmgr.executePackageManagerMethodHtmlOutputResponse(httpClient, httpClientContext, buildMethod);</span>
+      }
+
+      // Download package
+<span class="nc" id="L128">      log.info(&quot;Downloading package {} from {} ...&quot;, packagePath, props.getPackageManagerUrl());</span>
+<span class="nc" id="L129">      String baseUrl = VendorInstallerFactory.getBaseUrl(props.getPackageManagerUrl());</span>
+<span class="nc" id="L130">      HttpGet downloadMethod = new HttpGet(baseUrl + packagePath);</span>
 
       // execute download
-<span class="nc" id="L112">      CloseableHttpResponse response = httpClient.execute(downloadMethod, httpClientContext);</span>
+<span class="nc" id="L133">      CloseableHttpResponse response = httpClient.execute(downloadMethod, httpClientContext);</span>
       try {
-<span class="nc bnc" id="L114" title="All 2 branches missed.">        if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">        if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {</span>
 
           // get response stream
-<span class="nc" id="L117">          InputStream responseStream = response.getEntity().getContent();</span>
+<span class="nc" id="L138">          InputStream responseStream = response.getEntity().getContent();</span>
 
           // delete existing file
-<span class="nc" id="L120">          File outputFileObject = new File(ouputFilePath);</span>
-<span class="nc bnc" id="L121" title="All 2 branches missed.">          if (outputFileObject.exists()) {</span>
-<span class="nc" id="L122">            outputFileObject.delete();</span>
+<span class="nc" id="L141">          File outputFileObject = new File(ouputFilePath);</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">          if (outputFileObject.exists()) {</span>
+<span class="nc" id="L143">            outputFileObject.delete();</span>
           }
 
           // write response file
-<span class="nc" id="L126">          FileOutputStream fos = new FileOutputStream(outputFileObject);</span>
-<span class="nc" id="L127">          IOUtils.copy(responseStream, fos);</span>
-<span class="nc" id="L128">          fos.flush();</span>
-<span class="nc" id="L129">          responseStream.close();</span>
-<span class="nc" id="L130">          fos.close();</span>
+<span class="nc" id="L147">          FileOutputStream fos = new FileOutputStream(outputFileObject);</span>
+<span class="nc" id="L148">          IOUtils.copy(responseStream, fos);</span>
+<span class="nc" id="L149">          fos.flush();</span>
+<span class="nc" id="L150">          responseStream.close();</span>
+<span class="nc" id="L151">          fos.close();</span>
 
-<span class="nc" id="L132">          log.info(&quot;Package downloaded to {}&quot;, outputFileObject.getAbsolutePath());</span>
+<span class="nc" id="L153">          log.info(&quot;Package downloaded to {}&quot;, outputFileObject.getAbsolutePath());</span>
 
-<span class="nc" id="L134">          return outputFileObject;</span>
+<span class="nc" id="L155">          return outputFileObject;</span>
         }
         else {
-<span class="nc" id="L137">          throw new PackageManagerException(&quot;Package download failed:\n&quot;</span>
-<span class="nc" id="L138">              + EntityUtils.toString(response.getEntity()));</span>
+<span class="nc" id="L158">          throw new PackageManagerException(&quot;Package download failed:\n&quot;</span>
+<span class="nc" id="L159">              + EntityUtils.toString(response.getEntity()));</span>
         }
       }
       finally {
-<span class="nc bnc" id="L142" title="All 2 branches missed.">        if (response != null) {</span>
-<span class="nc" id="L143">          EntityUtils.consumeQuietly(response.getEntity());</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">        if (response != null) {</span>
+<span class="nc" id="L164">          EntityUtils.consumeQuietly(response.getEntity());</span>
           try {
-<span class="nc" id="L145">            response.close();</span>
+<span class="nc" id="L166">            response.close();</span>
           }
-<span class="nc" id="L147">          catch (IOException ex) {</span>
+<span class="nc" id="L168">          catch (IOException ex) {</span>
             // ignore
-<span class="nc" id="L149">          }</span>
+<span class="nc" id="L170">          }</span>
         }
       }
     }
-<span class="nc" id="L153">    catch (FileNotFoundException ex) {</span>
-<span class="nc" id="L154">      throw new PackageManagerException(&quot;File not found: &quot; + file.getAbsolutePath(), ex);</span>
-    }
-<span class="nc" id="L156">    catch (IOException ex) {</span>
-<span class="nc" id="L157">      throw new PackageManagerException(&quot;Download operation failed.&quot;, ex);</span>
+<span class="nc" id="L174">    catch (IOException ex) {</span>
+<span class="nc" id="L175">      throw new PackageManagerException(&quot;Download operation failed.&quot;, ex);</span>
     }
   }
 
