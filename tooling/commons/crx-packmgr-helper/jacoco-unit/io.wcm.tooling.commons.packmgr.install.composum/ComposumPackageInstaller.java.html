@@ -53,50 +53,55 @@ public class ComposumPackageInstaller implements VendorPackageInstaller {
 <span class="nc" id="L53">  }</span>
 
   @Override
-  public void installPackage(PackageFile packageFile, PackageManagerHelper pkgmgr,
+  public void installPackage(PackageFile packageFile, boolean replicate, PackageManagerHelper pkgmgr,
       CloseableHttpClient httpClient, HttpClientContext packageManagerHttpClientContext, HttpClientContext consoleHttpClientContext,
       PackageManagerProperties props) throws IOException, PackageManagerException {
-    // prepare post method
-<span class="nc" id="L60">    int index = url.indexOf(&quot;/bin/cpm/&quot;);</span>
-<span class="nc" id="L61">    String baseUrl = url.substring(0, index) + &quot;/bin/cpm/package.&quot;;</span>
-<span class="nc" id="L62">    String uploadUrl = baseUrl + &quot;upload.json&quot;;</span>
-<span class="nc" id="L63">    HttpPost post = new HttpPost(uploadUrl);</span>
-<span class="nc" id="L64">    HttpClientUtil.applyRequestConfig(post, packageFile, props);</span>
-<span class="nc" id="L65">    MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create()</span>
-<span class="nc" id="L66">        .addBinaryBody(&quot;file&quot;, packageFile.getFile());</span>
-<span class="nc bnc" id="L67" title="All 2 branches missed.">    if (packageFile.isForce()) {</span>
-<span class="nc" id="L68">      entityBuilder.addTextBody(&quot;force&quot;, &quot;true&quot;);</span>
+
+<span class="nc bnc" id="L60" title="All 2 branches missed.">    if (replicate) {</span>
+<span class="nc" id="L61">      throw new IllegalArgumentException(&quot;Replicating packages not supported for Composum package installer.&quot;);</span>
     }
-<span class="nc" id="L70">    post.setEntity(entityBuilder.build());</span>
+
+    // prepare post method
+<span class="nc" id="L65">    int index = url.indexOf(&quot;/bin/cpm/&quot;);</span>
+<span class="nc" id="L66">    String baseUrl = url.substring(0, index) + &quot;/bin/cpm/package.&quot;;</span>
+<span class="nc" id="L67">    String uploadUrl = baseUrl + &quot;upload.json&quot;;</span>
+<span class="nc" id="L68">    HttpPost post = new HttpPost(uploadUrl);</span>
+<span class="nc" id="L69">    HttpClientUtil.applyRequestConfig(post, packageFile, props);</span>
+<span class="nc" id="L70">    MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create()</span>
+<span class="nc" id="L71">        .addBinaryBody(&quot;file&quot;, packageFile.getFile());</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">    if (packageFile.isForce()) {</span>
+<span class="nc" id="L73">      entityBuilder.addTextBody(&quot;force&quot;, &quot;true&quot;);</span>
+    }
+<span class="nc" id="L75">    post.setEntity(entityBuilder.build());</span>
 
     // execute post
-<span class="nc" id="L73">    JSONObject jsonResponse = pkgmgr.executePackageManagerMethodJson(httpClient, packageManagerHttpClientContext, post);</span>
-<span class="nc" id="L74">    String status = jsonResponse.optString(&quot;status&quot;, &quot;not-found&quot;);</span>
-<span class="nc" id="L75">    boolean success = &quot;successful&quot;.equals(status);</span>
-<span class="nc" id="L76">    String path = jsonResponse.optString(&quot;path&quot;, null);</span>
-<span class="nc bnc" id="L77" title="All 2 branches missed.">    if (success) {</span>
-<span class="nc bnc" id="L78" title="All 2 branches missed.">      if (packageFile.isInstall()) {</span>
-<span class="nc" id="L79">        log.info(&quot;Package uploaded, now installing...&quot;);</span>
+<span class="nc" id="L78">    JSONObject jsonResponse = pkgmgr.executePackageManagerMethodJson(httpClient, packageManagerHttpClientContext, post);</span>
+<span class="nc" id="L79">    String status = jsonResponse.optString(&quot;status&quot;, &quot;not-found&quot;);</span>
+<span class="nc" id="L80">    boolean success = &quot;successful&quot;.equals(status);</span>
+<span class="nc" id="L81">    String path = jsonResponse.optString(&quot;path&quot;, null);</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">    if (success) {</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">      if (packageFile.isInstall()) {</span>
+<span class="nc" id="L84">        log.info(&quot;Package uploaded, now installing...&quot;);</span>
 
-<span class="nc" id="L81">        String installUrl = baseUrl + &quot;install.json&quot; + path;</span>
-<span class="nc" id="L82">        post = new HttpPost(installUrl);</span>
-<span class="nc" id="L83">        HttpClientUtil.applyRequestConfig(post, packageFile, props);</span>
+<span class="nc" id="L86">        String installUrl = baseUrl + &quot;install.json&quot; + path;</span>
+<span class="nc" id="L87">        post = new HttpPost(installUrl);</span>
+<span class="nc" id="L88">        HttpClientUtil.applyRequestConfig(post, packageFile, props);</span>
 
         // execute post
-<span class="nc" id="L86">        JSONObject jsonResponseInstallation = pkgmgr.executePackageManagerMethodJson(httpClient, packageManagerHttpClientContext, post);</span>
-<span class="nc" id="L87">        String installationStatus = jsonResponseInstallation.optString(&quot;status&quot;, &quot;not-found&quot;);</span>
-<span class="nc bnc" id="L88" title="All 2 branches missed.">        if (!&quot;done&quot;.equals(installationStatus)) {</span>
-<span class="nc" id="L89">          throw new PackageManagerException(&quot;Package installation failed: &quot; + status);</span>
+<span class="nc" id="L91">        JSONObject jsonResponseInstallation = pkgmgr.executePackageManagerMethodJson(httpClient, packageManagerHttpClientContext, post);</span>
+<span class="nc" id="L92">        String installationStatus = jsonResponseInstallation.optString(&quot;status&quot;, &quot;not-found&quot;);</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        if (!&quot;done&quot;.equals(installationStatus)) {</span>
+<span class="nc" id="L94">          throw new PackageManagerException(&quot;Package installation failed: &quot; + status);</span>
         }
 
         // delay further processing after install (if activated)
-<span class="nc" id="L93">        delay(packageFile.getDelayAfterInstallSec());</span>
+<span class="nc" id="L98">        delay(packageFile.getDelayAfterInstallSec());</span>
 
         // after install: if bundles are still stopping/starting, wait for completion
-<span class="nc" id="L96">        pkgmgr.waitForBundlesActivation(httpClient, consoleHttpClientContext);</span>
-<span class="nc" id="L97">      }</span>
+<span class="nc" id="L101">        pkgmgr.waitForBundlesActivation(httpClient, consoleHttpClientContext);</span>
+<span class="nc" id="L102">      }</span>
       else {
-<span class="nc" id="L99">        log.info(&quot;Package uploaded successfully (without installing).&quot;);</span>
+<span class="nc" id="L104">        log.info(&quot;Package uploaded successfully (without installing).&quot;);</span>
       }
     }
     // As of now the force flag is ignored by Composum and it fill upload not matter what (ticket pending: https://github.com/ist-dresden/composum/issues/73)
@@ -104,22 +109,22 @@ public class ComposumPackageInstaller implements VendorPackageInstaller {
     //  log.info(&quot;Package skipped because it was already uploaded.&quot;);
     //}
     else {
-<span class="nc" id="L107">      throw new PackageManagerException(&quot;Package upload failed: &quot; + status);</span>
+<span class="nc" id="L112">      throw new PackageManagerException(&quot;Package upload failed: &quot; + status);</span>
     }
-<span class="nc" id="L109">  }</span>
+<span class="nc" id="L114">  }</span>
 
   @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
   private void delay(int seconds) {
-<span class="nc bnc" id="L113" title="All 2 branches missed.">    if (seconds &gt; 0) {</span>
-<span class="nc" id="L114">      log.info(&quot;Wait {} seconds after package install...&quot;, seconds);</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">    if (seconds &gt; 0) {</span>
+<span class="nc" id="L119">      log.info(&quot;Wait {} seconds after package install...&quot;, seconds);</span>
       try {
-<span class="nc" id="L116">        Thread.sleep(seconds * 1000);</span>
+<span class="nc" id="L121">        Thread.sleep(seconds * 1000);</span>
       }
-<span class="nc" id="L118">      catch (InterruptedException ex) {</span>
+<span class="nc" id="L123">      catch (InterruptedException ex) {</span>
         // ignore
-<span class="nc" id="L120">      }</span>
+<span class="nc" id="L125">      }</span>
     }
-<span class="nc" id="L122">  }</span>
+<span class="nc" id="L127">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
