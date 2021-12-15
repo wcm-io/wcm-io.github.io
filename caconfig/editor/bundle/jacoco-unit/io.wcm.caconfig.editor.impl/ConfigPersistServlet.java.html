@@ -19,15 +19,18 @@
  */
 package io.wcm.caconfig.editor.impl;
 
+import static io.wcm.caconfig.editor.impl.JsonMapper.OBJECT_MAPPER;
 import static io.wcm.caconfig.editor.impl.NameConstants.RP_COLLECTION;
 import static io.wcm.caconfig.editor.impl.NameConstants.RP_CONFIGNAME;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
@@ -36,7 +39,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.CharEncoding;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -48,27 +50,27 @@ import org.apache.sling.caconfig.spi.ConfigurationPersistenceAccessDeniedExcepti
 import org.apache.sling.caconfig.spi.ConfigurationPersistenceException;
 import org.apache.sling.caconfig.spi.metadata.ConfigurationMetadata;
 import org.apache.sling.caconfig.spi.metadata.PropertyMetadata;
-import org.apache.sling.commons.json.JSONArray;
-import org.apache.sling.commons.json.JSONException;
-import org.apache.sling.commons.json.JSONObject;
+import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+
 /**
  * Persist configuration data.
  */
-@Component(service = Servlet.class, immediate = true, property = {
-    &quot;sling.servlet.resourceTypes=/apps/wcm-io/caconfig/editor/components/page/editor&quot;,
-    &quot;sling.servlet.extensions=json&quot;,
-    &quot;sling.servlet.selectors=&quot; + ConfigPersistServlet.SELECTOR,
-    &quot;sling.servlet.methods=POST&quot;,
-    &quot;sling.servlet.methods=DELETE&quot;
-})
-@SuppressWarnings(&quot;deprecation&quot;)
-<span class="fc" id="L71">public class ConfigPersistServlet extends SlingAllMethodsServlet {</span>
+@Component(service = Servlet.class)
+@SlingServletResourceTypes(
+    resourceTypes = &quot;/apps/wcm-io/caconfig/editor/components/page/editor&quot;,
+    selectors = ConfigPersistServlet.SELECTOR,
+    extensions = &quot;json&quot;,
+    methods = { &quot;POST&quot;, &quot;DELETE&quot; })
+<span class="fc" id="L73">public class ConfigPersistServlet extends SlingAllMethodsServlet {</span>
   private static final long serialVersionUID = 1L;
 
   /**
@@ -81,224 +83,294 @@ import org.slf4j.LoggerFactory;
   @Reference
   private EditorConfig editorConfig;
 
-<span class="fc" id="L84">  private static Logger log = LoggerFactory.getLogger(ConfigPersistServlet.class);</span>
+<span class="fc" id="L86">  private static Logger log = LoggerFactory.getLogger(ConfigPersistServlet.class);</span>
 
   @Override
   @SuppressWarnings({ &quot;null&quot;, &quot;PMD.GuardLogStatement&quot; })
   protected void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
-<span class="pc bpc" id="L89" title="1 of 2 branches missed.">    if (!editorConfig.isEnabled()) {</span>
-<span class="nc" id="L90">      sendForbiddenWithMessage(response, &quot;Configuration editor is disabled.&quot;);</span>
-<span class="nc" id="L91">      return;</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">    if (!editorConfig.isEnabled()) {</span>
+<span class="nc" id="L92">      sendForbiddenWithMessage(response, &quot;Configuration editor is disabled.&quot;);</span>
+<span class="nc" id="L93">      return;</span>
     }
 
     // get parameters
-<span class="fc" id="L95">    String configName = request.getParameter(RP_CONFIGNAME);</span>
-<span class="pc bpc" id="L96" title="1 of 2 branches missed.">    if (StringUtils.isBlank(configName)) {</span>
-<span class="nc" id="L97">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
-<span class="nc" id="L98">      return;</span>
+<span class="fc" id="L97">    String configName = request.getParameter(RP_CONFIGNAME);</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">    if (StringUtils.isBlank(configName)) {</span>
+<span class="nc" id="L99">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="nc" id="L100">      return;</span>
     }
-<span class="fc" id="L100">    boolean collection = BooleanUtils.toBoolean(request.getParameter(RP_COLLECTION));</span>
+<span class="fc" id="L102">    boolean collection = BooleanUtils.toBoolean(request.getParameter(RP_COLLECTION));</span>
 
-<span class="fc" id="L102">    ConfigurationMetadata configMetadata = configManager.getConfigurationMetadata(configName);</span>
-<span class="pc bpc" id="L103" title="2 of 4 branches missed.">    if (configMetadata != null &amp;&amp; configMetadata.isCollection() != collection) {</span>
-<span class="nc" id="L104">      response.sendError(HttpServletResponse.SC_BAD_REQUEST, &quot;Collection parameter mismatch.&quot;);</span>
-<span class="nc" id="L105">      return;</span>
+<span class="fc" id="L104">    ConfigurationMetadata configMetadata = configManager.getConfigurationMetadata(configName);</span>
+<span class="pc bpc" id="L105" title="2 of 4 branches missed.">    if (configMetadata != null &amp;&amp; configMetadata.isCollection() != collection) {</span>
+<span class="nc" id="L106">      response.sendError(HttpServletResponse.SC_BAD_REQUEST, &quot;Collection parameter mismatch.&quot;);</span>
+<span class="nc" id="L107">      return;</span>
     }
 
     // parse JSON parameter data
-<span class="fc" id="L109">    ConfigurationPersistData persistData = null;</span>
-<span class="fc" id="L110">    ConfigurationCollectionPersistData collectionPersistData = null;</span>
+<span class="fc" id="L111">    ConfigurationPersistData persistData = null;</span>
+<span class="fc" id="L112">    ConfigurationCollectionPersistData collectionPersistData = null;</span>
     try {
-<span class="fc" id="L112">      String jsonDataString = IOUtils.toString(request.getInputStream(), CharEncoding.UTF_8);</span>
-<span class="fc" id="L113">      JSONObject jsonData = new JSONObject(jsonDataString);</span>
-<span class="fc bfc" id="L114" title="All 2 branches covered.">      if (collection) {</span>
-<span class="fc" id="L115">        collectionPersistData = parseCollectionConfigData(jsonData, configMetadata);</span>
+<span class="fc" id="L114">      String jsonDataString = IOUtils.toString(request.getInputStream(), StandardCharsets.UTF_8);</span>
+<span class="fc" id="L115">      JsonNode jsonData = OBJECT_MAPPER.readTree(jsonDataString);</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">      if (collection) {</span>
+<span class="fc" id="L117">        collectionPersistData = parseCollectionConfigData(jsonData, configMetadata);</span>
       }
       else {
-<span class="fc" id="L118">        persistData = parseConfigData(jsonData, configMetadata);</span>
+<span class="fc" id="L120">        persistData = parseConfigData(jsonData, configMetadata);</span>
       }
     }
-<span class="nc" id="L121">    catch (JSONException ex) {</span>
-<span class="nc" id="L122">      response.sendError(HttpServletResponse.SC_BAD_REQUEST, &quot;Invalid JSON data: &quot; + ex.getMessage());</span>
-<span class="nc" id="L123">      return;</span>
-<span class="fc" id="L124">    }</span>
+<span class="nc" id="L123">    catch (IOException ex) {</span>
+<span class="nc" id="L124">      response.sendError(HttpServletResponse.SC_BAD_REQUEST, &quot;Invalid JSON data: &quot; + ex.getMessage());</span>
+<span class="nc" id="L125">      return;</span>
+<span class="fc" id="L126">    }</span>
 
     // persist data
     try {
-<span class="fc bfc" id="L128" title="All 2 branches covered.">      if (collection) {</span>
-<span class="fc" id="L129">        configManager.persistConfigurationCollection(request.getResource(), configName, collectionPersistData);</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">      if (collection) {</span>
+<span class="fc" id="L131">        configManager.persistConfigurationCollection(request.getResource(), configName, collectionPersistData);</span>
       }
       else {
-<span class="fc" id="L132">        configManager.persistConfiguration(request.getResource(), configName, persistData);</span>
+<span class="fc" id="L134">        configManager.persistConfiguration(request.getResource(), configName, persistData);</span>
       }
     }
-<span class="nc" id="L135">    catch (ConfigurationPersistenceAccessDeniedException ex) {</span>
-<span class="nc" id="L136">      sendForbiddenWithMessage(response, ex.getMessage());</span>
+<span class="nc" id="L137">    catch (ConfigurationPersistenceAccessDeniedException ex) {</span>
+<span class="nc" id="L138">      sendForbiddenWithMessage(response, ex.getMessage());</span>
     }
-<span class="nc" id="L138">    catch (ConfigurationPersistenceException ex) {</span>
-<span class="nc bnc" id="L139" title="All 2 branches missed.">      log.warn(&quot;Unable to persist data for &quot; + configName + (collection ? &quot;[col]&quot; : &quot;&quot;), ex);</span>
-<span class="nc" id="L140">      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, &quot;Unable to persist data: &quot; + ex.getMessage());</span>
+<span class="nc" id="L140">    catch (ConfigurationPersistenceException ex) {</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">      log.warn(&quot;Unable to persist data for &quot; + configName + (collection ? &quot;[col]&quot; : &quot;&quot;), ex);</span>
+<span class="nc" id="L142">      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, &quot;Unable to persist data: &quot; + ex.getMessage());</span>
     }
-<span class="nc" id="L142">    /*CHECKSTYLE:OFF*/ catch (Exception ex) { /*CHECKSTYLE:ON*/</span>
-<span class="nc bnc" id="L143" title="All 2 branches missed.">      log.error(&quot;Error getting configuration for &quot; + configName + (collection ? &quot;[col]&quot; : &quot;&quot;), ex);</span>
-<span class="nc" id="L144">      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ex.getMessage());</span>
-<span class="pc" id="L145">    }</span>
-<span class="fc" id="L146">  }</span>
+<span class="nc" id="L144">    /*CHECKSTYLE:OFF*/ catch (Exception ex) { /*CHECKSTYLE:ON*/</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">      log.error(&quot;Error getting configuration for &quot; + configName + (collection ? &quot;[col]&quot; : &quot;&quot;), ex);</span>
+<span class="nc" id="L146">      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ex.getMessage());</span>
+<span class="pc" id="L147">    }</span>
+<span class="fc" id="L148">  }</span>
 
-  private ConfigurationCollectionPersistData parseCollectionConfigData(JSONObject jsonData, ConfigurationMetadata configMetadata) throws JSONException {
-<span class="fc" id="L149">    List&lt;ConfigurationPersistData&gt; items = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L150">    JSONArray itemsObject = jsonData.getJSONArray(&quot;items&quot;);</span>
-<span class="fc bfc" id="L151" title="All 2 branches covered.">    for (int i = 0; i &lt; itemsObject.length(); i++) {</span>
-<span class="fc" id="L152">      JSONObject item = itemsObject.getJSONObject(i);</span>
-<span class="fc" id="L153">      items.add(parseConfigData(item, configMetadata));</span>
-    }
-
-<span class="fc" id="L156">    Map&lt;String, Object&gt; properties = null;</span>
-<span class="fc" id="L157">    JSONObject propertiesObject = jsonData.optJSONObject(&quot;properties&quot;);</span>
-<span class="fc bfc" id="L158" title="All 2 branches covered.">    if (propertiesObject != null) {</span>
-<span class="fc" id="L159">      properties = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L160">      Iterator&lt;String&gt; propertyNames = propertiesObject.keys();</span>
-<span class="fc bfc" id="L161" title="All 2 branches covered.">      while (propertyNames.hasNext()) {</span>
-<span class="fc" id="L162">        String propertyName = propertyNames.next();</span>
-<span class="fc" id="L163">        properties.put(propertyName, propertiesObject.get(propertyName));</span>
-<span class="fc" id="L164">      }</span>
+  private ConfigurationCollectionPersistData parseCollectionConfigData(JsonNode jsonData, ConfigurationMetadata configMetadata) {
+<span class="fc" id="L151">    List&lt;ConfigurationPersistData&gt; items = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L152">    ArrayNode itemsObject = (ArrayNode)jsonData.get(&quot;items&quot;);</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">    for (int i = 0; i &lt; itemsObject.size(); i++) {</span>
+<span class="fc" id="L154">      JsonNode item = itemsObject.get(i);</span>
+<span class="fc" id="L155">      items.add(parseConfigData(item, configMetadata));</span>
     }
 
-<span class="fc" id="L167">    return new ConfigurationCollectionPersistData(items)</span>
-<span class="fc" id="L168">        .properties(properties);</span>
+<span class="fc" id="L158">    Map&lt;String, Object&gt; properties = null;</span>
+<span class="fc" id="L159">    JsonNode propertiesObject = jsonData.get(&quot;properties&quot;);</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">    if (propertiesObject != null) {</span>
+<span class="fc" id="L161">      properties = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L162">      Iterator&lt;String&gt; propertyNames = propertiesObject.fieldNames();</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">      while (propertyNames.hasNext()) {</span>
+<span class="fc" id="L164">        String propertyName = propertyNames.next();</span>
+<span class="fc" id="L165">        properties.put(propertyName, toSingle(propertiesObject.get(propertyName)));</span>
+<span class="fc" id="L166">      }</span>
+    }
+
+<span class="fc" id="L169">    return new ConfigurationCollectionPersistData(items)</span>
+<span class="fc" id="L170">        .properties(properties);</span>
   }
 
-  private ConfigurationPersistData parseConfigData(JSONObject item, ConfigurationMetadata configMetadata) throws JSONException {
-<span class="fc" id="L172">    Map&lt;String, Object&gt; props = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L173">    JSONObject properties = item.getJSONObject(&quot;properties&quot;);</span>
-<span class="fc" id="L174">    Iterator&lt;String&gt; propertyNames = properties.keys();</span>
-<span class="fc bfc" id="L175" title="All 2 branches covered.">    while (propertyNames.hasNext()) {</span>
-<span class="fc" id="L176">      String propertyName = propertyNames.next();</span>
-<span class="fc" id="L177">      Class propertyType = null;</span>
-<span class="fc" id="L178">      boolean isArray = false;</span>
-<span class="pc bpc" id="L179" title="1 of 2 branches missed.">      if (configMetadata != null) {</span>
-<span class="fc" id="L180">        PropertyMetadata&lt;?&gt; propertyMetadata = configMetadata.getPropertyMetadata().get(propertyName);</span>
-<span class="fc bfc" id="L181" title="All 2 branches covered.">        if (propertyMetadata != null) {</span>
-<span class="fc" id="L182">          isArray = propertyMetadata.getType().isArray();</span>
-<span class="fc bfc" id="L183" title="All 2 branches covered.">          if (isArray) {</span>
-<span class="fc" id="L184">            propertyType = propertyMetadata.getType().getComponentType();</span>
+  private ConfigurationPersistData parseConfigData(JsonNode item, ConfigurationMetadata configMetadata) {
+<span class="fc" id="L174">    Map&lt;String, Object&gt; props = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L175">    JsonNode properties = item.get(&quot;properties&quot;);</span>
+<span class="fc" id="L176">    Iterator&lt;String&gt; propertyNames = properties.fieldNames();</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">    while (propertyNames.hasNext()) {</span>
+<span class="fc" id="L178">      String propertyName = propertyNames.next();</span>
+<span class="fc" id="L179">      Class propertyType = null;</span>
+<span class="fc" id="L180">      boolean isArray = false;</span>
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">      if (configMetadata != null) {</span>
+<span class="fc" id="L182">        PropertyMetadata&lt;?&gt; propertyMetadata = configMetadata.getPropertyMetadata().get(propertyName);</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">        if (propertyMetadata != null) {</span>
+<span class="fc" id="L184">          isArray = propertyMetadata.getType().isArray();</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">          if (isArray) {</span>
+<span class="fc" id="L186">            propertyType = propertyMetadata.getType().getComponentType();</span>
           }
           else {
-<span class="fc" id="L187">            propertyType = propertyMetadata.getType();</span>
+<span class="fc" id="L189">            propertyType = propertyMetadata.getType();</span>
           }
         }
       }
-<span class="pc bpc" id="L191" title="1 of 4 branches missed.">      if (propertyType == ConfigurationMetadata.class || properties.isNull(propertyName)) {</span>
+<span class="pc bpc" id="L193" title="1 of 4 branches missed.">      if (propertyType == ConfigurationMetadata.class || !properties.hasNonNull(propertyName)) {</span>
         // skip nested configuration and empty properties
-<span class="nc" id="L193">        continue;</span>
+<span class="nc" id="L195">        continue;</span>
       }
-<span class="fc bfc" id="L195" title="All 2 branches covered.">      else if (propertyType == null) {</span>
-<span class="fc" id="L196">        Object value = properties.get(propertyName);</span>
-<span class="fc bfc" id="L197" title="All 2 branches covered.">        if (value instanceof JSONArray) {</span>
-<span class="fc" id="L198">          JSONArray values = (JSONArray)value;</span>
-<span class="pc bpc" id="L199" title="1 of 2 branches missed.">          if (values.length() == 0) {</span>
-<span class="nc" id="L200">            props.put(propertyName, ArrayUtils.EMPTY_STRING_ARRAY);</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">      else if (propertyType == null) {</span>
+<span class="fc" id="L198">        JsonNode value = properties.get(propertyName);</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">        if (value.isArray()) {</span>
+<span class="fc" id="L200">          ArrayNode arrayValue = (ArrayNode)value;</span>
+<span class="pc bpc" id="L201" title="1 of 2 branches missed.">          if (arrayValue.size() == 0) {</span>
+<span class="nc" id="L202">            props.put(propertyName, ArrayUtils.EMPTY_STRING_ARRAY);</span>
           }
-          else {
-<span class="fc bfc" id="L203" title="All 2 branches covered.">            if (values.get(0) instanceof Integer) {</span>
-<span class="fc" id="L204">              props.put(propertyName, toArray(properties, propertyName, int.class));</span>
-            }
-<span class="pc bpc" id="L206" title="1 of 2 branches missed.">            else if (values.get(0) instanceof Long) {</span>
-<span class="nc" id="L207">              props.put(propertyName, toArray(properties, propertyName, long.class));</span>
-            }
-<span class="pc bpc" id="L209" title="1 of 2 branches missed.">            else if (values.get(0) instanceof Double) {</span>
-<span class="nc" id="L210">              props.put(propertyName, toArray(properties, propertyName, double.class));</span>
-            }
-<span class="pc bpc" id="L212" title="1 of 2 branches missed.">            else if (values.get(0) instanceof Boolean) {</span>
-<span class="nc" id="L213">              props.put(propertyName, toArray(properties, propertyName, boolean.class));</span>
-            }
-            else {
-<span class="fc" id="L216">              props.put(propertyName, toArray(properties, propertyName, String.class));</span>
-            }
+<span class="fc" id="L204">          JsonNode firstValue = arrayValue.get(0);</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">          if (firstValue.canConvertToInt()) {</span>
+<span class="fc" id="L206">            props.put(propertyName, toArray(arrayValue, int.class));</span>
           }
-<span class="fc" id="L219">        }</span>
+<span class="pc bpc" id="L208" title="1 of 2 branches missed.">          else if (firstValue.canConvertToLong()) {</span>
+<span class="nc" id="L209">            props.put(propertyName, toArray(arrayValue, long.class));</span>
+          }
+<span class="pc bpc" id="L211" title="1 of 2 branches missed.">          else if (firstValue.isDouble()) {</span>
+<span class="nc" id="L212">            props.put(propertyName, toArray(arrayValue, double.class));</span>
+          }
+<span class="pc bpc" id="L214" title="1 of 2 branches missed.">          else if (firstValue.isBoolean()) {</span>
+<span class="nc" id="L215">            props.put(propertyName, toArray(arrayValue, boolean.class));</span>
+          }
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">          else if (firstValue.isTextual()) {</span>
+<span class="fc" id="L218">            props.put(propertyName, toArray(arrayValue, String.class));</span>
+          }
+<span class="fc" id="L220">        }</span>
         else {
-<span class="fc" id="L221">          props.put(propertyName, value);</span>
+<span class="fc" id="L222">          props.put(propertyName, toSingle(value));</span>
         }
-<span class="fc" id="L223">      }</span>
-<span class="fc bfc" id="L224" title="All 2 branches covered.">      else if (isArray) {</span>
-<span class="fc" id="L225">        props.put(propertyName, toArray(properties, propertyName, propertyType));</span>
-      }
+<span class="fc" id="L224">      }</span>
+<span class="fc bfc" id="L225" title="All 2 branches covered.">      else if (isArray) {</span>
+<span class="fc" id="L226">        JsonNode value = properties.get(propertyName);</span>
+<span class="pc bpc" id="L227" title="1 of 2 branches missed.">        if (value.isArray()) {</span>
+<span class="fc" id="L228">          props.put(propertyName, toArray((ArrayNode)value, propertyType));</span>
+        }
+<span class="fc" id="L230">      }</span>
       else {
-<span class="fc" id="L228">        props.put(propertyName, toSingle(properties, propertyName, propertyType));</span>
+<span class="fc" id="L232">        JsonNode value = properties.get(propertyName);</span>
+<span class="fc" id="L233">        props.put(propertyName, toSingle(value, propertyType));</span>
       }
-<span class="fc" id="L230">    }</span>
+<span class="fc" id="L235">    }</span>
 
-<span class="fc" id="L232">    String collectionItemName = null;</span>
-<span class="pc bpc" id="L233" title="1 of 4 branches missed.">    if (configMetadata != null &amp;&amp; configMetadata.isCollection()) {</span>
-<span class="fc" id="L234">      collectionItemName = item.getString(&quot;collectionItemName&quot;);</span>
+<span class="fc" id="L237">    String collectionItemName = null;</span>
+<span class="pc bpc" id="L238" title="1 of 4 branches missed.">    if (configMetadata != null &amp;&amp; configMetadata.isCollection()) {</span>
+<span class="fc" id="L239">      collectionItemName = item.get(&quot;collectionItemName&quot;).textValue();</span>
     }
 
-<span class="fc" id="L237">    return new ConfigurationPersistData(props)</span>
-<span class="fc" id="L238">        .collectionItemName(collectionItemName);</span>
+<span class="fc" id="L242">    return new ConfigurationPersistData(props)</span>
+<span class="fc" id="L243">        .collectionItemName(collectionItemName);</span>
   }
 
-  private Object toSingle(JSONObject properties, String propertyName, Class propertyType) throws JSONException {
-<span class="fc bfc" id="L242" title="All 2 branches covered.">    if (propertyType.equals(String.class)) {</span>
-<span class="fc" id="L243">      return properties.getString(propertyName);</span>
+  private Object toSingle(@NotNull JsonNode value, @NotNull Class propertyType) {
+<span class="fc bfc" id="L247" title="All 2 branches covered.">    if (propertyType.equals(String.class)) {</span>
+<span class="fc" id="L248">      return toString(value);</span>
     }
-<span class="fc bfc" id="L245" title="All 2 branches covered.">    else if (propertyType.equals(int.class)) {</span>
-<span class="fc" id="L246">      return properties.getInt(propertyName);</span>
+<span class="fc bfc" id="L250" title="All 2 branches covered.">    else if (propertyType.equals(int.class)) {</span>
+<span class="fc" id="L251">      return toInt(value);</span>
     }
-<span class="fc bfc" id="L248" title="All 2 branches covered.">    else if (propertyType.equals(long.class)) {</span>
-<span class="fc" id="L249">      return properties.getLong(propertyName);</span>
+<span class="fc bfc" id="L253" title="All 2 branches covered.">    else if (propertyType.equals(long.class)) {</span>
+<span class="fc" id="L254">      return toLong(value);</span>
     }
-<span class="fc bfc" id="L251" title="All 2 branches covered.">    else if (propertyType.equals(double.class)) {</span>
-<span class="fc" id="L252">      return properties.getDouble(propertyName);</span>
+<span class="fc bfc" id="L256" title="All 2 branches covered.">    else if (propertyType.equals(double.class)) {</span>
+<span class="fc" id="L257">      return toDouble(value);</span>
     }
-<span class="pc bpc" id="L254" title="1 of 2 branches missed.">    else if (propertyType.equals(boolean.class)) {</span>
-<span class="fc" id="L255">      return properties.getBoolean(propertyName);</span>
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">    else if (propertyType.equals(boolean.class)) {</span>
+<span class="fc" id="L260">      return toBoolean(value);</span>
     }
     else {
-<span class="nc" id="L258">      throw new IllegalArgumentException(&quot;Unexpected type: &quot; + propertyType.getName());</span>
+<span class="nc" id="L263">      throw new IllegalArgumentException(&quot;Unexpected type: &quot; + propertyType.getName());</span>
     }
   }
 
-  private Object toArray(JSONObject properties, String propertyName, Class propertyType) throws JSONException {
-<span class="fc" id="L263">    JSONArray array = properties.getJSONArray(propertyName);</span>
-<span class="fc bfc" id="L264" title="All 2 branches covered.">    if (propertyType.equals(String.class)) {</span>
-<span class="fc" id="L265">      String[] values = new String[array.length()];</span>
-<span class="fc bfc" id="L266" title="All 2 branches covered.">      for (int i = 0; i &lt; values.length; i++) {</span>
-<span class="fc" id="L267">        values[i] = array.getString(i);</span>
-      }
-<span class="fc" id="L269">      return values;</span>
+  private @Nullable Object toSingle(@NotNull JsonNode value) {
+<span class="fc bfc" id="L268" title="All 2 branches covered.">    if (value.isTextual()) {</span>
+<span class="fc" id="L269">      return value.asText();</span>
     }
-<span class="fc bfc" id="L271" title="All 2 branches covered.">    else if (propertyType.equals(int.class)) {</span>
-<span class="fc" id="L272">      int[] values = new int[array.length()];</span>
-<span class="fc bfc" id="L273" title="All 2 branches covered.">      for (int i = 0; i &lt; values.length; i++) {</span>
-<span class="fc" id="L274">        values[i] = array.getInt(i);</span>
-      }
-<span class="fc" id="L276">      return values;</span>
+<span class="fc bfc" id="L271" title="All 2 branches covered.">    if (value.canConvertToInt()) {</span>
+<span class="fc" id="L272">      return value.asInt();</span>
     }
-<span class="fc bfc" id="L278" title="All 2 branches covered.">    else if (propertyType.equals(long.class)) {</span>
-<span class="fc" id="L279">      long[] values = new long[array.length()];</span>
-<span class="fc bfc" id="L280" title="All 2 branches covered.">      for (int i = 0; i &lt; values.length; i++) {</span>
-<span class="fc" id="L281">        values[i] = array.getLong(i);</span>
-      }
-<span class="fc" id="L283">      return values;</span>
+<span class="pc bpc" id="L274" title="1 of 2 branches missed.">    if (value.canConvertToLong()) {</span>
+<span class="nc" id="L275">      return value.asLong();</span>
     }
-<span class="fc bfc" id="L285" title="All 2 branches covered.">    else if (propertyType.equals(double.class)) {</span>
-<span class="fc" id="L286">      double[] values = new double[array.length()];</span>
-<span class="fc bfc" id="L287" title="All 2 branches covered.">      for (int i = 0; i &lt; values.length; i++) {</span>
-<span class="fc" id="L288">        values[i] = array.getDouble(i);</span>
-      }
-<span class="fc" id="L290">      return values;</span>
+<span class="pc bpc" id="L277" title="1 of 2 branches missed.">    if (value.isDouble()) {</span>
+<span class="nc" id="L278">      return value.doubleValue();</span>
     }
-<span class="pc bpc" id="L292" title="1 of 2 branches missed.">    else if (propertyType.equals(boolean.class)) {</span>
-<span class="fc" id="L293">      boolean[] values = new boolean[array.length()];</span>
-<span class="fc bfc" id="L294" title="All 2 branches covered.">      for (int i = 0; i &lt; values.length; i++) {</span>
-<span class="fc" id="L295">        values[i] = array.getBoolean(i);</span>
+<span class="pc bpc" id="L280" title="1 of 2 branches missed.">    if (value.isBoolean()) {</span>
+<span class="nc" id="L281">      return value.booleanValue();</span>
+    }
+<span class="pc bpc" id="L283" title="1 of 2 branches missed.">    if (log.isTraceEnabled()) {</span>
+<span class="nc" id="L284">      log.trace(&quot;Value '{}' has unexpected type: {}&quot;, value, value.getClass().getName());</span>
+    }
+<span class="fc" id="L286">    return null;</span>
+  }
+
+  private @NotNull Object toArray(@NotNull ArrayNode array, @NotNull Class propertyType) {
+<span class="fc bfc" id="L290" title="All 2 branches covered.">    if (propertyType.equals(String.class)) {</span>
+<span class="fc" id="L291">      String[] values = new String[array.size()];</span>
+<span class="fc bfc" id="L292" title="All 2 branches covered.">      for (int i = 0; i &lt; values.length; i++) {</span>
+<span class="fc" id="L293">        values[i] = toString(array.get(i));</span>
       }
-<span class="fc" id="L297">      return values;</span>
+<span class="fc" id="L295">      return values;</span>
+    }
+<span class="fc bfc" id="L297" title="All 2 branches covered.">    else if (propertyType.equals(int.class)) {</span>
+<span class="fc" id="L298">      int[] values = new int[array.size()];</span>
+<span class="fc bfc" id="L299" title="All 2 branches covered.">      for (int i = 0; i &lt; values.length; i++) {</span>
+<span class="fc" id="L300">        values[i] = toInt(array.get(i));</span>
+      }
+<span class="fc" id="L302">      return values;</span>
+    }
+<span class="fc bfc" id="L304" title="All 2 branches covered.">    else if (propertyType.equals(long.class)) {</span>
+<span class="fc" id="L305">      long[] values = new long[array.size()];</span>
+<span class="fc bfc" id="L306" title="All 2 branches covered.">      for (int i = 0; i &lt; values.length; i++) {</span>
+<span class="fc" id="L307">        values[i] = toLong(array.get(i));</span>
+      }
+<span class="fc" id="L309">      return values;</span>
+    }
+<span class="fc bfc" id="L311" title="All 2 branches covered.">    else if (propertyType.equals(double.class)) {</span>
+<span class="fc" id="L312">      double[] values = new double[array.size()];</span>
+<span class="fc bfc" id="L313" title="All 2 branches covered.">      for (int i = 0; i &lt; values.length; i++) {</span>
+<span class="fc" id="L314">        values[i] = toDouble(array.get(i));</span>
+      }
+<span class="fc" id="L316">      return values;</span>
+    }
+<span class="pc bpc" id="L318" title="1 of 2 branches missed.">    else if (propertyType.equals(boolean.class)) {</span>
+<span class="fc" id="L319">      boolean[] values = new boolean[array.size()];</span>
+<span class="fc bfc" id="L320" title="All 2 branches covered.">      for (int i = 0; i &lt; values.length; i++) {</span>
+<span class="fc" id="L321">        values[i] = toBoolean(array.get(i));</span>
+      }
+<span class="fc" id="L323">      return values;</span>
     }
     else {
-<span class="nc" id="L300">      throw new IllegalArgumentException(&quot;Unexpected type: &quot; + propertyType.getName());</span>
+<span class="nc" id="L326">      throw new IllegalArgumentException(&quot;Unexpected type: &quot; + propertyType.getName());</span>
     }
+  }
+
+  private @Nullable String toString(@NotNull JsonNode value) {
+<span class="fc" id="L331">    return value.textValue();</span>
+  }
+
+  private int toInt(@NotNull JsonNode value) {
+<span class="fc bfc" id="L335" title="All 2 branches covered.">    if (value.isTextual()) {</span>
+<span class="fc" id="L336">      return parseNumericTextValue(value, Integer::parseInt, 0);</span>
+    }
+<span class="fc" id="L338">    return value.intValue();</span>
+  }
+
+  private long toLong(@NotNull JsonNode value) {
+<span class="fc bfc" id="L342" title="All 2 branches covered.">    if (value.isTextual()) {</span>
+<span class="fc" id="L343">      return parseNumericTextValue(value, Long::parseLong, 0L);</span>
+    }
+<span class="fc" id="L345">    return value.longValue();</span>
+  }
+
+  private double toDouble(@NotNull JsonNode value) {
+<span class="fc bfc" id="L349" title="All 2 branches covered.">    if (value.isTextual()) {</span>
+<span class="fc" id="L350">      return parseNumericTextValue(value, Double::parseDouble, 0d);</span>
+    }
+<span class="fc" id="L352">    return value.doubleValue();</span>
+  }
+
+  private boolean toBoolean(@NotNull JsonNode value) {
+<span class="fc bfc" id="L356" title="All 2 branches covered.">    if (value.isTextual()) {</span>
+<span class="fc" id="L357">      return Boolean.parseBoolean(value.textValue());</span>
+    }
+<span class="fc" id="L359">    return value.booleanValue();</span>
+  }
+
+  @SuppressWarnings(&quot;null&quot;)
+  private &lt;T&gt; @NotNull T parseNumericTextValue(@NotNull JsonNode value, @NotNull Function&lt;String, T&gt; converter, @NotNull T defaultValue) {
+<span class="fc" id="L364">    String textValue = StringUtils.trimToNull(value.textValue());</span>
+<span class="pc bpc" id="L365" title="1 of 2 branches missed.">    if (textValue != null) {</span>
+      try {
+<span class="fc" id="L367">        return converter.apply(textValue);</span>
+      }
+<span class="fc" id="L369">      catch (NumberFormatException ex) {</span>
+<span class="fc" id="L370">        log.trace(&quot;Unable to parse numeric value: {}&quot;, textValue);</span>
+      }
+    }
+<span class="fc" id="L373">    return defaultValue;</span>
   }
 
   @Override
@@ -306,34 +378,34 @@ import org.slf4j.LoggerFactory;
   protected void doDelete(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
 
     // get parameters
-<span class="fc" id="L309">    String configName = request.getParameter(RP_CONFIGNAME);</span>
-<span class="pc bpc" id="L310" title="1 of 2 branches missed.">    if (StringUtils.isBlank(configName)) {</span>
-<span class="nc" id="L311">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
-<span class="nc" id="L312">      return;</span>
+<span class="fc" id="L381">    String configName = request.getParameter(RP_CONFIGNAME);</span>
+<span class="pc bpc" id="L382" title="1 of 2 branches missed.">    if (StringUtils.isBlank(configName)) {</span>
+<span class="nc" id="L383">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="nc" id="L384">      return;</span>
     }
 
     // delete data
     try {
-<span class="fc" id="L317">      configManager.deleteConfiguration(request.getResource(), configName);</span>
+<span class="fc" id="L389">      configManager.deleteConfiguration(request.getResource(), configName);</span>
     }
-<span class="nc" id="L319">    catch (ConfigurationPersistenceAccessDeniedException ex) {</span>
-<span class="nc" id="L320">      sendForbiddenWithMessage(response, ex.getMessage());</span>
+<span class="nc" id="L391">    catch (ConfigurationPersistenceAccessDeniedException ex) {</span>
+<span class="nc" id="L392">      sendForbiddenWithMessage(response, ex.getMessage());</span>
     }
-<span class="nc" id="L322">    catch (ConfigurationPersistenceException ex) {</span>
-<span class="nc" id="L323">      log.warn(&quot;Unable to delete data for &quot; + configName, ex);</span>
-<span class="nc" id="L324">      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, &quot;Unable to delete data: &quot; + ex.getMessage());</span>
+<span class="nc" id="L394">    catch (ConfigurationPersistenceException ex) {</span>
+<span class="nc" id="L395">      log.warn(&quot;Unable to delete data for &quot; + configName, ex);</span>
+<span class="nc" id="L396">      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, &quot;Unable to delete data: &quot; + ex.getMessage());</span>
     }
-<span class="nc" id="L326">    /*CHECKSTYLE:OFF*/ catch (Exception ex) { /*CHECKSTYLE:ON*/</span>
-<span class="nc" id="L327">      log.error(&quot;Error deleting configuration for &quot; + configName, ex);</span>
-<span class="nc" id="L328">      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ex.getMessage());</span>
-<span class="pc" id="L329">    }</span>
-<span class="fc" id="L330">  }</span>
+<span class="nc" id="L398">    /*CHECKSTYLE:OFF*/ catch (Exception ex) { /*CHECKSTYLE:ON*/</span>
+<span class="nc" id="L399">      log.error(&quot;Error deleting configuration for &quot; + configName, ex);</span>
+<span class="nc" id="L400">      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ex.getMessage());</span>
+<span class="pc" id="L401">    }</span>
+<span class="fc" id="L402">  }</span>
 
   private void sendForbiddenWithMessage(SlingHttpServletResponse response, String message) throws IOException {
-<span class="nc" id="L333">    response.setContentType(&quot;text/plain;charset=&quot; + CharEncoding.UTF_8);</span>
-<span class="nc" id="L334">    response.getWriter().write(message);</span>
-<span class="nc" id="L335">    response.setStatus(HttpServletResponse.SC_FORBIDDEN);</span>
-<span class="nc" id="L336">  }</span>
+<span class="nc" id="L405">    response.setContentType(&quot;text/plain;charset=&quot; + StandardCharsets.UTF_8.name());</span>
+<span class="nc" id="L406">    response.getWriter().write(message);</span>
+<span class="nc" id="L407">    response.setStatus(HttpServletResponse.SC_FORBIDDEN);</span>
+<span class="nc" id="L408">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
