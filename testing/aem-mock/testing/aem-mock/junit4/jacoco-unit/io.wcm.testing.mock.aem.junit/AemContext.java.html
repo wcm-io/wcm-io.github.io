@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AemContext.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">AEM Mocks JUnit 4</a> &gt; <a href="index.source.html" class="el_package">io.wcm.testing.mock.aem.junit</a> &gt; <span class="el_source">AemContext.java</span></div><h1>AemContext.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.testing.mock.aem.junit;
+
+import java.util.Arrays;
+import java.util.Map;
+
+import org.apache.sling.testing.mock.osgi.context.ContextCallback;
+import org.apache.sling.testing.mock.osgi.context.ContextPlugins;
+import org.apache.sling.testing.mock.osgi.context.OsgiContextImpl;
+import org.apache.sling.testing.mock.sling.MockSling;
+import org.apache.sling.testing.mock.sling.ResourceResolverType;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.junit.rules.ExternalResource;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
+import org.osgi.annotation.versioning.ProviderType;
+
+import io.wcm.testing.junit.rules.parameterized.Callback;
+import io.wcm.testing.junit.rules.parameterized.ListGenerator;
+import io.wcm.testing.mock.aem.context.AemContextImpl;
+
+/**
+ * JUnit rule for setting up and tearing down AEM context objects for unit tests.
+ * You can use {@link AemContextBuilder} alternatively to the constructors on this class - it offers
+ * more options and fine-grained control about setting up the test context.
+ */
+@ProviderType
+public final class AemContext extends AemContextImpl implements TestRule {
+
+  private final ContextPlugins plugins;
+  private final ResourceResolverType[] resourceResolverTypes;
+  private final TestRule delegate;
+
+  /**
+   * Initialize AEM context.
+   * &lt;p&gt;
+   * If context is initialized with:
+   * &lt;/p&gt;
+   * &lt;ul&gt;
+   * &lt;li&gt;No resource resolver type - default is used {@link MockSling#DEFAULT_RESOURCERESOLVER_TYPE}.&lt;/li&gt;
+   * &lt;li&gt;One resource resolver type - exactly this is used.&lt;/li&gt;
+   * &lt;li&gt;More than one: all unit test methods are executed for all resource resolver types using {@link ListGenerator}.&lt;/li&gt;
+   * &lt;/ul&gt;
+   * @param resourceResolverTypes Resource resolver type(s).
+   */
+  public AemContext(@NotNull final ResourceResolverType @NotNull... resourceResolverTypes) {
+<span class="nc" id="L67">    this(new ContextPlugins(), null, resourceResolverTypes);</span>
+<span class="nc" id="L68">  }</span>
+
+  /**
+   * Initialize AEM context.
+   * &lt;p&gt;
+   * If context is initialized with:
+   * &lt;/p&gt;
+   * &lt;ul&gt;
+   * &lt;li&gt;No resource resolver type - default is used {@link MockSling#DEFAULT_RESOURCERESOLVER_TYPE}.&lt;/li&gt;
+   * &lt;li&gt;One resource resolver type - exactly this is used.&lt;/li&gt;
+   * &lt;li&gt;More than one: all unit test methods are executed for all resource resolver types using {@link ListGenerator}.
+   * &lt;/li&gt;
+   * &lt;/ul&gt;
+   * @param &lt;T&gt; context type
+   * @param afterSetUpCallback Allows the application to register an own callback function that is called after the
+   *          built-in setup rules are executed.
+   * @param resourceResolverTypes Resource resolver type(s).
+   */
+  public &lt;T extends OsgiContextImpl&gt; AemContext(@NotNull final ContextCallback&lt;T&gt; afterSetUpCallback,
+      @NotNull final ResourceResolverType @NotNull... resourceResolverTypes) {
+<span class="nc" id="L88">    this(new ContextPlugins(afterSetUpCallback), null, resourceResolverTypes);</span>
+<span class="nc" id="L89">  }</span>
+
+  /**
+   * Initialize AEM context.
+   * &lt;p&gt;
+   * If context is initialized with:
+   * &lt;/p&gt;
+   * &lt;ul&gt;
+   * &lt;li&gt;No resource resolver type - default is used {@link MockSling#DEFAULT_RESOURCERESOLVER_TYPE}.&lt;/li&gt;
+   * &lt;li&gt;One resource resolver type - exactly this is used.&lt;/li&gt;
+   * &lt;li&gt;More than one: all unit test methods are executed for all resource resolver types using {@link ListGenerator}.
+   * &lt;/li&gt;
+   * &lt;/ul&gt;
+   * @param &lt;U&gt; context type
+   * @param &lt;V&gt; context type
+   * @param afterSetUpCallback Allows the application to register an own callback function that is called after the
+   *          built-in setup rules are executed.
+   * @param beforeTearDownCallback Allows the application to register an own callback function that is called before the
+   *          built-in teardown rules are executed.
+   * @param resourceResolverTypes Resource resolver type(s).
+   */
+  public &lt;U extends OsgiContextImpl, V extends OsgiContextImpl&gt; AemContext(@NotNull final ContextCallback&lt;U&gt; afterSetUpCallback,
+      @NotNull final ContextCallback&lt;V&gt; beforeTearDownCallback,
+      @NotNull final ResourceResolverType @NotNull... resourceResolverTypes) {
+<span class="nc" id="L113">    this(new ContextPlugins(afterSetUpCallback, beforeTearDownCallback), null, resourceResolverTypes);</span>
+<span class="nc" id="L114">  }</span>
+
+  /**
+   * Initialize AEM context.
+   * &lt;p&gt;
+   * If context is initialized with:
+   * &lt;/p&gt;
+   * &lt;ul&gt;
+   * &lt;li&gt;No resource resolver type - default is used {@link MockSling#DEFAULT_RESOURCERESOLVER_TYPE}.&lt;/li&gt;
+   * &lt;li&gt;One resource resolver type - exactly this is used.&lt;/li&gt;
+   * &lt;li&gt;More than one: all unit test methods are executed for all resource resolver types using {@link ListGenerator}.
+   * &lt;/li&gt;
+   * &lt;/ul&gt;
+   * @param contextPlugins Context plugins
+   * @param resourceResolverFactoryActivatorProps Resource resolver factory activator properties
+   * @param resourceResolverTypes Resource resolver type(s).
+   */
+  AemContext(@NotNull final ContextPlugins contextPlugins,
+      @Nullable final Map&lt;String, Object&gt; resourceResolverFactoryActivatorProps,
+      @NotNull final ResourceResolverType @Nullable... resourceResolverTypes) {
+<span class="nc" id="L134">    this(contextPlugins, resourceResolverFactoryActivatorProps, true, resourceResolverTypes);</span>
+<span class="nc" id="L135">  }</span>
+
+  /**
+   * Initialize AEM context.
+   * &lt;p&gt;
+   * If context is initialized with:
+   * &lt;/p&gt;
+   * &lt;ul&gt;
+   * &lt;li&gt;No resource resolver type - default is used {@link MockSling#DEFAULT_RESOURCERESOLVER_TYPE}.&lt;/li&gt;
+   * &lt;li&gt;One resource resolver type - exactly this is used.&lt;/li&gt;
+   * &lt;li&gt;More than one: all unit test methods are executed for all resource resolver types using {@link ListGenerator}.
+   * &lt;/li&gt;
+   * &lt;/ul&gt;
+   * @param contextPlugins Context plugins
+   * @param resourceResolverFactoryActivatorProps Resource resolver factory activator properties
+   * @param registerSlingModelsFromClassPath Automatic registering of all Sling Models found in the classpath on
+   *          startup.
+   * @param resourceResolverTypes Resource resolver type(s).
+   */
+  AemContext(@NotNull final ContextPlugins contextPlugins,
+      @Nullable final Map&lt;String, Object&gt; resourceResolverFactoryActivatorProps,
+      final boolean registerSlingModelsFromClassPath,
+<span class="fc" id="L157">      @NotNull final ResourceResolverType @Nullable... resourceResolverTypes) {</span>
+
+<span class="fc" id="L159">    this.plugins = contextPlugins;</span>
+
+    // set custom ResourceResolverFactoryActivator config, but set AEM default values for all parameter not given here
+<span class="fc" id="L162">    Map&lt;String, Object&gt; mergedProps = resourceResolverFactoryActivatorPropsMergeWithAemDefault(resourceResolverFactoryActivatorProps);</span>
+<span class="fc" id="L163">    setResourceResolverFactoryActivatorProps(mergedProps);</span>
+<span class="fc" id="L164">    setRegisterSlingModelsFromClassPath(registerSlingModelsFromClassPath);</span>
+
+<span class="pc bpc" id="L166" title="1 of 4 branches missed.">    if (resourceResolverTypes == null || resourceResolverTypes.length == 0) {</span>
+<span class="fc" id="L167">      this.resourceResolverTypes = new ResourceResolverType[] {</span>
+          MockSling.DEFAULT_RESOURCERESOLVER_TYPE
+      };
+    }
+    else {
+<span class="fc" id="L172">      this.resourceResolverTypes = resourceResolverTypes;</span>
+    }
+
+<span class="fc bfc" id="L175" title="All 2 branches covered.">    if (this.resourceResolverTypes.length == 1) {</span>
+      // use default rule that directly executes each test method once
+<span class="fc" id="L177">      setResourceResolverType(this.resourceResolverTypes[0]);</span>
+<span class="fc" id="L178">      this.delegate = new ExternalResource() {</span>
+        @Override
+        protected void before() {
+<span class="fc" id="L181">          plugins.executeBeforeSetUpCallback(AemContext.this);</span>
+<span class="fc" id="L182">          AemContext.this.setUp();</span>
+<span class="fc" id="L183">          plugins.executeAfterSetUpCallback(AemContext.this);</span>
+<span class="fc" id="L184">        }</span>
+        @Override
+        protected void after() {
+<span class="fc" id="L187">          plugins.executeBeforeTearDownCallback(AemContext.this);</span>
+<span class="fc" id="L188">          AemContext.this.tearDown();</span>
+<span class="fc" id="L189">          plugins.executeAfterTearDownCallback(AemContext.this);</span>
+<span class="fc" id="L190">        }</span>
+      };
+    }
+    else {
+      // use ListGenerator rule that iterates over list of resource resolver types
+<span class="fc" id="L195">      Callback&lt;ResourceResolverType&gt; parameterizedSetUpCallback = new Callback&lt;ResourceResolverType&gt;() {</span>
+        @Override
+        public void execute(final ResourceResolverType currrentValue) {
+<span class="fc" id="L198">          AemContext.this.setResourceResolverType(currrentValue);</span>
+<span class="fc" id="L199">          plugins.executeBeforeSetUpCallback(AemContext.this);</span>
+<span class="fc" id="L200">          AemContext.this.setUp();</span>
+<span class="fc" id="L201">          plugins.executeAfterSetUpCallback(AemContext.this);</span>
+<span class="fc" id="L202">        }</span>
+      };
+<span class="fc" id="L204">      Callback&lt;ResourceResolverType&gt; parameterizedTearDownCallback = new Callback&lt;ResourceResolverType&gt;() {</span>
+        @Override
+        public void execute(final ResourceResolverType currrentValue) {
+<span class="fc" id="L207">          plugins.executeBeforeTearDownCallback(AemContext.this);</span>
+<span class="fc" id="L208">          AemContext.this.tearDown();</span>
+<span class="fc" id="L209">          plugins.executeAfterTearDownCallback(AemContext.this);</span>
+<span class="fc" id="L210">        }</span>
+      };
+<span class="fc" id="L212">      this.delegate = new ListGenerator&lt;ResourceResolverType&gt;(Arrays.asList(this.resourceResolverTypes),</span>
+          parameterizedSetUpCallback, parameterizedTearDownCallback);
+    }
+<span class="fc" id="L215">  }</span>
+
+  @Override
+  public Statement apply(final Statement base, final Description description) {
+<span class="fc" id="L219">    return this.delegate.apply(base, description);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AemContextExtension.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">AEM Mocks JUnit 5</a> &gt; <a href="index.source.html" class="el_package">io.wcm.testing.mock.aem.junit5</a> &gt; <span class="el_source">AemContextExtension.java</span></div><h1>AemContextExtension.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2018 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.testing.mock.aem.junit5;
+
+import static io.wcm.testing.mock.aem.junit5.ReflectionUtil.getAnnotatedMethod;
+import static io.wcm.testing.mock.aem.junit5.ReflectionUtil.getField;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.function.Consumer;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ParameterContext;
+import org.junit.jupiter.api.extension.ParameterResolutionException;
+import org.junit.jupiter.api.extension.ParameterResolver;
+import org.junit.jupiter.api.extension.TestInstancePostProcessor;
+
+/**
+ * JUnit 5 extension that allows to inject {@link AemContext} (or subclasses of it) parameters in test methods,
+ * and ensures that the context is set up and teared down properly for each test method.
+ */
+<span class="fc" id="L50">public final class AemContextExtension implements ParameterResolver, TestInstancePostProcessor,</span>
+    BeforeAllCallback, BeforeEachCallback, AfterEachCallback, AfterAllCallback, AfterTestExecutionCallback {
+
+  /**
+   * Checks if test class has a {@link AemContext} or derived field.
+   * If it has and is not instantiated, create an new {@link AemContext} and store it in the field.
+   * If it is already instantiated reuse this instance and use it for all test methods.
+   */
+  @Override
+  public void postProcessTestInstance(Object testInstance, ExtensionContext extensionContext) throws Exception {
+<span class="fc bfc" id="L60" title="All 2 branches covered.">    if (!isBeforeAllContext(extensionContext)) {</span>
+<span class="fc" id="L61">      Field aemContextField = getField(testInstance, AemContext.class);</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">      if (aemContextField != null) {</span>
+<span class="fc" id="L63">        setAemContextInStore(extensionContext, aemContextField, testInstance);</span>
+      }
+    }
+<span class="fc" id="L66">  }</span>
+
+  private void setAemContextInStore(@NotNull ExtensionContext extensionContext,
+      @NotNull Field aemContextField, @Nullable Object testInstance) throws IllegalAccessException {
+<span class="fc" id="L70">    AemContext aemContext = (AemContext)aemContextField.get(testInstance);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">    if (aemContext != null) {</span>
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">      if (!aemContext.isSetUp()) {</span>
+<span class="fc" id="L73">        aemContext.setUpContext();</span>
+      }
+<span class="fc" id="L75">      AemContextStore.storeAemContext(extensionContext, aemContext);</span>
+    }
+    else {
+<span class="fc" id="L78">      aemContext = AemContextStore.getOrCreateAemContext(extensionContext, Optional.of(aemContextField.getType()));</span>
+<span class="fc" id="L79">      aemContextField.set(testInstance, aemContext);</span>
+    }
+<span class="fc" id="L81">  }</span>
+
+  /**
+   * Support parameter injection for test methods of parameter type is derived from {@link AemContext}.
+   */
+  @Override
+  public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
+<span class="fc" id="L88">    return AemContext.class.isAssignableFrom(parameterContext.getParameter().getType());</span>
+  }
+
+  /**
+   * Resolve (or create) {@link AemContext} instance for test method parameter.
+   */
+  @Override
+  public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
+<span class="fc" id="L96">    AemContext aemContext = AemContextStore.getOrCreateAemContext(extensionContext,</span>
+<span class="fc" id="L97">        getAemContextType(parameterContext, extensionContext));</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">    if (paramIsNotInstanceOfExistingContext(parameterContext, aemContext)) {</span>
+<span class="nc" id="L99">      throw new ParameterResolutionException(</span>
+<span class="nc" id="L100">          &quot;Found AemContext instance of type: &quot; + aemContext.getClass().getName() + &quot;\n&quot;</span>
+<span class="nc" id="L101">              + &quot;Required is: &quot; + parameterContext.getParameter().getType().getName() + &quot;\n&quot;</span>
+              + &quot;Verify that all test lifecycle methods (@BeforeEach, @Test, @AfterEach) &quot;
+              + &quot;use the same AemContext type.&quot;);
+    }
+<span class="fc" id="L105">    return aemContext;</span>
+  }
+
+  @Override
+  public void beforeAll(ExtensionContext extensionContext) throws Exception {
+<span class="fc bfc" id="L110" title="All 2 branches covered.">    if (isBeforeAllContext(extensionContext)) {</span>
+<span class="fc" id="L111">      Field aemContextField = getField(extensionContext.getRequiredTestClass(), AemContext.class);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">      if (aemContextField != null) {</span>
+<span class="fc" id="L113">        setAemContextInStore(extensionContext, aemContextField, null);</span>
+      }
+<span class="fc" id="L115">      applyAemContext(extensionContext, aemContext -&gt; {</span>
+        // call context plugins setup after @BeforeAll methods were called
+        /* please note: in JUnit5 there is no callback to be called after all @BeforeAll methods are called
+         * so we call it before @BeforeAll execution to make sure the plugin code is called at all */
+<span class="fc" id="L119">        aemContext.getContextPlugins().executeAfterSetUpCallback(aemContext);</span>
+<span class="fc" id="L120">      });</span>
+    }
+<span class="fc" id="L122">  }</span>
+
+  @Override
+  public void beforeEach(ExtensionContext extensionContext) {
+<span class="fc bfc" id="L126" title="All 2 branches covered.">    if (!isBeforeAllContext(extensionContext)) {</span>
+<span class="fc" id="L127">      applyAemContext(extensionContext, aemContext -&gt; {</span>
+        // call context plugins setup after @BeforeEach methods were called
+<span class="fc" id="L129">        aemContext.getContextPlugins().executeAfterSetUpCallback(aemContext);</span>
+<span class="fc" id="L130">      });</span>
+    }
+<span class="fc" id="L132">  }</span>
+
+  @Override
+  public void afterTestExecution(ExtensionContext extensionContext) {
+<span class="fc bfc" id="L136" title="All 2 branches covered.">    if (!isBeforeAllContext(extensionContext)) {</span>
+<span class="fc" id="L137">      applyAemContext(extensionContext, aemContext -&gt; {</span>
+        // call context plugins setup before @AfterEach methods are called
+<span class="fc" id="L139">        aemContext.getContextPlugins().executeBeforeTearDownCallback(aemContext);</span>
+<span class="fc" id="L140">      });</span>
+    }
+<span class="fc" id="L142">  }</span>
+
+  @Override
+  public void afterEach(ExtensionContext extensionContext) {
+<span class="fc bfc" id="L146" title="All 2 branches covered.">    if (!isBeforeAllContext(extensionContext)) {</span>
+<span class="fc" id="L147">      applyAemContext(extensionContext, aemContext -&gt; {</span>
+        // call context plugins setup after @AfterEach methods were called
+<span class="fc" id="L149">        aemContext.getContextPlugins().executeAfterTearDownCallback(aemContext);</span>
+
+        // tear down and remove context
+<span class="fc" id="L152">        aemContext.tearDownContext();</span>
+<span class="fc" id="L153">        AemContextStore.removeAemContext(extensionContext);</span>
+<span class="fc" id="L154">      });</span>
+    }
+<span class="fc" id="L156">  }</span>
+
+  @Override
+  public void afterAll(ExtensionContext extensionContext) throws Exception {
+<span class="fc bfc" id="L160" title="All 2 branches covered.">    if (isBeforeAllContext(extensionContext)) {</span>
+<span class="fc" id="L161">      applyAemContext(extensionContext, aemContext -&gt; {</span>
+        // call context plugins setup before @AfterAll methods are called
+        /* please note: in JUnit5 there is no callback to be called before all @AfterAll methods are called
+         * so we call it after @AfterAll execution to make sure the plugin code is called at all */
+<span class="fc" id="L165">        aemContext.getContextPlugins().executeBeforeTearDownCallback(aemContext);</span>
+
+        // call context plugins setup after @AfterAll methods were called
+<span class="fc" id="L168">        aemContext.getContextPlugins().executeAfterTearDownCallback(aemContext);</span>
+
+        // tear down and remove context
+<span class="fc" id="L171">        aemContext.tearDownContext();</span>
+<span class="fc" id="L172">        AemContextStore.removeAemContext(extensionContext);</span>
+<span class="fc" id="L173">      });</span>
+    }
+<span class="fc" id="L175">  }</span>
+
+  private void applyAemContext(ExtensionContext extensionContext, Consumer&lt;AemContext&gt; consumer) {
+<span class="fc" id="L178">    AemContext aemContext = AemContextStore.getAemContext(extensionContext);</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (aemContext != null) {</span>
+<span class="fc" id="L180">      consumer.accept(aemContext);</span>
+    }
+<span class="fc" id="L182">  }</span>
+
+  private Optional&lt;Class&lt;?&gt;&gt; getAemContextType(ParameterContext parameterContext, ExtensionContext extensionContext) {
+    // If a @BeforeEach or @AfterEach method has only a generic AemContext parameter check if
+    // test method has a more specific parameter and use this
+<span class="fc bfc" id="L187" title="All 4 branches covered.">    if (isTestInstance(extensionContext) &amp;&amp; isAbstractAemContext(parameterContext)) {</span>
+<span class="fc" id="L188">      return getParameterFromTestMethod(extensionContext, AemContext.class);</span>
+    }
+    else {
+<span class="fc" id="L191">      return Optional.of(parameterContext.getParameter().getType());</span>
+    }
+  }
+
+  /**
+   * On @BeforeAll is no test instance available
+   * @return {@code true} if test instance is available
+   */
+  private boolean isTestInstance(ExtensionContext extensionContext) {
+<span class="fc" id="L200">    return extensionContext.getTestInstance().isPresent();</span>
+  }
+
+  private boolean isAbstractAemContext(ParameterContext parameterContext) {
+<span class="fc" id="L204">    return parameterContext.getParameter().getType().equals(AemContext.class);</span>
+  }
+
+  private boolean paramIsNotInstanceOfExistingContext(ParameterContext parameterContext, AemContext aemContext) {
+<span class="pc bpc" id="L208" title="1 of 2 branches missed.">    return !parameterContext.getParameter().getType().isInstance(aemContext);</span>
+  }
+
+  private Optional&lt;Class&lt;?&gt;&gt; getParameterFromTestMethod(ExtensionContext extensionContext, Class&lt;?&gt; type) {
+<span class="fc" id="L212">    return Arrays.stream(extensionContext.getRequiredTestMethod().getParameterTypes())</span>
+<span class="fc" id="L213">        .filter(type::isAssignableFrom)</span>
+<span class="fc" id="L214">        .findFirst();</span>
+  }
+
+  /**
+   * &lt;p&gt;
+   * Checks if a &quot;before-all&quot; context is used in this class.
+   * &lt;/p&gt;
+   * &lt;p&gt;
+   * In this case the context is initialized/set up once before all tests, and teared down once after all tests.
+   * Otherwise setup and teardown of the context happens for each test run.
+   * &lt;/p&gt;
+   * &lt;p&gt;
+   * The &quot;before-all&quot; state is assumed if a) a static AemContext field exists or b) a method annotated with
+   * '@BeforeAll' exists with AemContext parameter.
+   * &lt;/p&gt;
+   * @param extensionContext Extension context
+   * @return true for &quot;before-all&quot; context.
+   */
+  private boolean isBeforeAllContext(@NotNull ExtensionContext extensionContext) {
+<span class="fc" id="L233">    Boolean state = AemContextStore.getBeforeAllState(extensionContext);</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">    if (state == null) {</span>
+<span class="fc" id="L235">      state = false;</span>
+<span class="fc" id="L236">      Class&lt;?&gt; testClass = extensionContext.getRequiredTestClass();</span>
+
+      // check for static aem context field
+<span class="fc" id="L239">      Field aemContextField = getField(testClass, AemContext.class);</span>
+<span class="fc bfc" id="L240" title="All 4 branches covered.">      if (aemContextField != null &amp;&amp; Modifier.isStatic(aemContextField.getModifiers())) {</span>
+<span class="fc" id="L241">        state = true;</span>
+      }
+      else {
+        // check for static method with BeforeAll annotation
+<span class="fc" id="L245">        Method method = getAnnotatedMethod(testClass, BeforeAll.class, AemContext.class);</span>
+<span class="pc bpc" id="L246" title="1 of 4 branches missed.">        if (method != null &amp;&amp; Modifier.isStatic(method.getModifiers())) {</span>
+<span class="fc" id="L247">          state = true;</span>
+        }
+      }
+      // cache state in extension store
+<span class="fc" id="L251">      AemContextStore.storeBeforeAllState(extensionContext, state);</span>
+    }
+<span class="fc" id="L253">    return state;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
