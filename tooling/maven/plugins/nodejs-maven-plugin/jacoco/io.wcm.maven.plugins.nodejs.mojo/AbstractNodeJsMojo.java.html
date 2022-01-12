@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractNodeJsMojo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Node.js Maven Plugin</a> &gt; <a href="index.source.html" class="el_package">io.wcm.maven.plugins.nodejs.mojo</a> &gt; <span class="el_source">AbstractNodeJsMojo.java</span></div><h1>AbstractNodeJsMojo.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.maven.plugins.nodejs.mojo;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.DefaultArtifact;
+import org.apache.maven.artifact.handler.manager.ArtifactHandlerManager;
+import org.apache.maven.artifact.resolver.ArtifactNotFoundException;
+import org.apache.maven.artifact.resolver.ArtifactResolutionException;
+import org.apache.maven.artifact.resolver.ArtifactResolver;
+import org.apache.maven.artifact.versioning.ComparableVersion;
+import org.apache.maven.artifact.versioning.VersionRange;
+import org.apache.maven.execution.MavenSession;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.FileUtils;
+
+import io.wcm.maven.plugins.nodejs.installation.NodeInstallationInformation;
+import io.wcm.maven.plugins.nodejs.installation.NodeUnarchiveTask;
+
+/**
+ * Common Node.js Mojo functionality.
+ */
+<span class="fc" id="L50">public abstract class AbstractNodeJsMojo extends AbstractMojo {</span>
+
+  /**
+   * Node.js version (minimum version: 6.3.0).
+   */
+  @Parameter(property = &quot;nodejs.version&quot;, defaultValue = &quot;10.15.3&quot;, required = true)
+  protected String nodeJsVersion;
+
+  /**
+   * NPM version. If not set the NPM version that is bundled with Node.js is used.
+   */
+  @Parameter(property = &quot;nodejs.npm.version&quot;)
+  protected String npmVersion;
+
+  /**
+   * Default location where Node.js will be extracted to and run from
+   */
+  @Parameter(property = &quot;nodejs.directory&quot;, defaultValue = &quot;${java.io.tmpdir}/nodejs&quot;)
+  protected File nodeJsDirectory;
+
+  /**
+   * Tasks that should be run on Node.js execution.
+   * &lt;p&gt;
+   * You can define different types of tasks: &lt;code&gt;npmInstallTask&lt;/code&gt; or &lt;code&gt;nodeJsTask&lt;/code&gt; items.
+   * &lt;/p&gt;
+   * &lt;p&gt;
+   * Example 1:
+   * &lt;/p&gt;
+   *
+   * &lt;pre&gt;
+   * &amp;lt;tasks&amp;gt;
+   *   &amp;lt;npmInstallTask&amp;gt;
+   *     &amp;lt;workingDirectory&amp;gt;${frontend.dir}&amp;lt;/workingDirectory&amp;gt;
+   *   &amp;lt;/npmInstallTask&amp;gt;
+   *   &amp;lt;nodeJsTask&amp;gt;
+   *     &amp;lt;workingDirectory&amp;gt;${frontend.dir}&amp;lt;/workingDirectory&amp;gt;
+   *     &amp;lt;moduleName&amp;gt;grunt-cli&amp;lt;/moduleName&amp;gt;
+   *     &amp;lt;executableName&amp;gt;grunt&amp;lt;/executableName&amp;gt;
+   *     &amp;lt;arguments&amp;gt;
+   *       &amp;lt;argument&amp;gt;build&amp;lt;/argument&amp;gt;
+   *     &amp;lt;/arguments&amp;gt;
+   *   &amp;lt;/nodeJsTask&amp;gt;
+   * &amp;lt;/tasks&amp;gt;
+   * &lt;/pre&gt;
+   * &lt;p&gt;
+   * Example 2:
+   * &lt;/p&gt;
+   *
+   * &lt;pre&gt;
+   * &amp;lt;tasks&amp;gt;
+   *   &amp;lt;npmInstallTask&amp;gt;
+   *     &amp;lt;workingDirectory&amp;gt;${frontend.dir}&amp;lt;/workingDirectory&amp;gt;
+   *   &amp;lt;/npmInstallTask&amp;gt;
+   *   &amp;lt;nodeJsTask&amp;gt;
+   *     &amp;lt;workingDirectory&amp;gt;${frontend.dir}&amp;lt;/workingDirectory&amp;gt;
+   *     &amp;lt;moduleName&amp;gt;npm&amp;lt;/moduleName&amp;gt;
+   *     &amp;lt;executableName&amp;gt;npm-cli&amp;lt;/executableName&amp;gt;
+   *     &amp;lt;arguments&amp;gt;
+   *       &amp;lt;argument&amp;gt;run&amp;lt;/argument&amp;gt;
+   *       &amp;lt;argument&amp;gt;test&amp;lt;/argument&amp;gt;
+   *     &amp;lt;/arguments&amp;gt;
+   *   &amp;lt;/nodeJsTask&amp;gt;
+   * &amp;lt;/tasks&amp;gt;
+   * &lt;/pre&gt;
+   */
+  @Parameter
+  protected List&lt;? extends Task&gt; tasks;
+
+  /**
+   * Stop maven build if error occurs.
+   */
+  @Parameter(defaultValue = &quot;true&quot;)
+  protected boolean stopOnError;
+
+  /**
+   * If set to true all Node.js plugin operations are skipped.
+   */
+  @Parameter(property = &quot;nodejs.skip&quot;)
+  protected boolean skip;
+
+  @Parameter(defaultValue = &quot;${project}&quot;, readonly = true)
+  private MavenProject project;
+  @Parameter(defaultValue = &quot;${session}&quot;, readonly = true)
+  private MavenSession session;
+  @Component
+  private ArtifactHandlerManager artifactHandlerManager;
+  @Component
+  private ArtifactResolver resolver;
+
+<span class="fc" id="L139">  private static final ComparableVersion NODEJS_MIN_VERSION = new ComparableVersion(&quot;6.3.0&quot;);</span>
+
+  /**
+   * Installs node js if necessary and performs defined tasks
+   * @throws MojoExecutionException Mojo execution exception
+   */
+  public void run() throws MojoExecutionException {
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">    if (skip) {</span>
+<span class="nc" id="L147">      return;</span>
+    }
+
+<span class="pc bpc" id="L150" title="2 of 4 branches missed.">    if (tasks == null || tasks.isEmpty()) {</span>
+<span class="nc" id="L151">      getLog().warn(&quot;No Node.js tasks have been defined. Nothing to do.&quot;);</span>
+    }
+
+    // validate nodejs version
+<span class="fc" id="L155">    ComparableVersion nodeJsVersionComparable = new ComparableVersion(nodeJsVersion);</span>
+<span class="pc bpc" id="L156" title="1 of 2 branches missed.">    if (nodeJsVersionComparable.compareTo(NODEJS_MIN_VERSION) &lt; 0) {</span>
+<span class="nc" id="L157">      throw new MojoExecutionException(&quot;This plugin supports Node.js &quot; + NODEJS_MIN_VERSION + &quot; and up.&quot;);</span>
+    }
+
+<span class="fc" id="L160">    NodeInstallationInformation information = getOrInstallNodeJS();</span>
+
+<span class="pc bpc" id="L162" title="1 of 2 branches missed.">    if (tasks != null) {</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">      for (Task task : tasks) {</span>
+<span class="fc" id="L164">        task.setLog(getLog());</span>
+<span class="fc" id="L165">        task.execute(information);</span>
+<span class="fc" id="L166">      }</span>
+    }
+<span class="fc" id="L168">  }</span>
+
+  private NodeInstallationInformation getOrInstallNodeJS() throws MojoExecutionException {
+<span class="fc" id="L171">    NodeInstallationInformation information = NodeInstallationInformation.forVersion(nodeJsVersion, npmVersion, nodeJsDirectory);</span>
+    try {
+<span class="pc bpc" id="L173" title="1 of 4 branches missed.">      if (!information.getNodeExecutable().exists() || !information.getNpmExecutableBundledWithNodeJs().exists()) {</span>
+<span class="fc" id="L174">        getLog().info(&quot;Install Node.js to &quot; + information.getNodeJsInstallPath());</span>
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">        if (!cleanNodeJsInstallPath(information)) {</span>
+<span class="nc" id="L176">          throw new MojoExecutionException(&quot;Could not delete node js directory: &quot; + information.getNodeJsInstallPath());</span>
+        }
+<span class="fc" id="L178">        File nodeJsBinary = resolveArtifact(information.getNodeJsDependency());</span>
+<span class="fc" id="L179">        FileUtils.copyFile(nodeJsBinary, information.getArchive());</span>
+<span class="fc" id="L180">        Task installationTask = new NodeUnarchiveTask(nodeJsDirectory.getAbsolutePath());</span>
+<span class="fc" id="L181">        installationTask.setLog(getLog());</span>
+<span class="fc" id="L182">        installationTask.execute(information);</span>
+      }
+
+<span class="pc bpc" id="L185" title="1 of 4 branches missed.">      if (StringUtils.isNotEmpty(npmVersion) &amp;&amp; !information.getNpmExecutable().exists()) {</span>
+<span class="fc" id="L186">        updateNPMExecutable(information);</span>
+      }
+    }
+<span class="nc" id="L189">    catch (java.net.MalformedURLException ex) {</span>
+<span class="nc" id="L190">      throw new MojoExecutionException(&quot;Malformed provided node URL&quot;, ex);</span>
+    }
+<span class="nc" id="L192">    catch (IOException ex) {</span>
+<span class="nc" id="L193">      getLog().error(&quot;Failed to get nodeJs from &quot; + information.getNodeJsDependency(), ex);</span>
+<span class="nc" id="L194">      throw new MojoExecutionException(&quot;Failed to downloading nodeJs from &quot; + information.getNodeJsDependency(), ex);</span>
+    }
+<span class="nc" id="L196">    catch (MojoExecutionException ex) {</span>
+<span class="nc" id="L197">      getLog().error(&quot;Execution Exception&quot;, ex);</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">      if (stopOnError) {</span>
+<span class="nc" id="L199">        throw new MojoExecutionException(&quot;Execution Exception&quot;, ex);</span>
+      }
+<span class="fc" id="L201">    }</span>
+<span class="fc" id="L202">    return information;</span>
+  }
+
+  private boolean cleanNodeJsInstallPath(NodeInstallationInformation information) {
+<span class="fc" id="L206">    File directory = new File(information.getNodeJsInstallPath());</span>
+<span class="pc bpc" id="L207" title="1 of 2 branches missed.">    if (directory.exists()) {</span>
+      try {
+<span class="nc" id="L209">        FileUtils.deleteDirectory(directory);</span>
+      }
+<span class="nc" id="L211">      catch (IOException ex) {</span>
+<span class="nc" id="L212">        getLog().error(ex);</span>
+<span class="nc" id="L213">        return false;</span>
+<span class="nc" id="L214">      }</span>
+    }
+
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">    if (information.getArchive().exists()) {</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">      if (!information.getArchive().delete()) {</span>
+<span class="nc" id="L219">        return false;</span>
+      }
+    }
+
+<span class="fc" id="L223">    return true;</span>
+  }
+
+  /**
+   * Makes sure the specified npm version is installed in the base directory, regardless in which environment.
+   * @param information Information
+   */
+  private void updateNPMExecutable(NodeInstallationInformation information) throws MojoExecutionException {
+<span class="fc" id="L231">    getLog().info(&quot;Installing specified npm version &quot; + npmVersion);</span>
+<span class="fc" id="L232">    NpmInstallTask npmInstallTask = new NpmInstallTask();</span>
+<span class="fc" id="L233">    npmInstallTask.setLog(getLog());</span>
+<span class="fc" id="L234">    npmInstallTask.setNpmBundledWithNodeJs(true);</span>
+<span class="fc" id="L235">    npmInstallTask.setArguments(new String[] {</span>
+<span class="fc" id="L236">        &quot;--prefix&quot;, information.getNpmPrefixPath(), &quot;--global&quot;, &quot;npm@&quot; + npmVersion</span>
+    });
+<span class="fc" id="L238">    npmInstallTask.execute(information);</span>
+<span class="fc" id="L239">  }</span>
+
+  @SuppressWarnings(&quot;deprecation&quot;)
+  private File resolveArtifact(Dependency dependency) throws MojoExecutionException {
+<span class="fc" id="L243">    Artifact artifact = new DefaultArtifact(dependency.getGroupId(),</span>
+<span class="fc" id="L244">        dependency.getArtifactId(),</span>
+<span class="fc" id="L245">        VersionRange.createFromVersion(dependency.getVersion()),</span>
+        Artifact.SCOPE_PROVIDED,
+<span class="fc" id="L247">        dependency.getType(),</span>
+<span class="fc" id="L248">        dependency.getClassifier(),</span>
+<span class="fc" id="L249">        artifactHandlerManager.getArtifactHandler(dependency.getType()));</span>
+    try {
+<span class="fc" id="L251">      resolver.resolve(artifact, project.getRemoteArtifactRepositories(), session.getLocalRepository());</span>
+    }
+<span class="nc" id="L253">    catch (ArtifactResolutionException ex) {</span>
+<span class="nc" id="L254">      throw new MojoExecutionException(&quot;Unable to get artifact for &quot; + dependency, ex);</span>
+    }
+<span class="nc" id="L256">    catch (ArtifactNotFoundException ex) {</span>
+<span class="nc" id="L257">      throw new MojoExecutionException(&quot;Unable to get artifact for &quot; + dependency, ex);</span>
+<span class="fc" id="L258">    }</span>
+<span class="fc" id="L259">    return artifact.getFile();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

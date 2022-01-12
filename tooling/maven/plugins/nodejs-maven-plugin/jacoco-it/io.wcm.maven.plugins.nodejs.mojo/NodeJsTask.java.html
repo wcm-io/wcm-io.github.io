@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NodeJsTask.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Node.js Maven Plugin</a> &gt; <a href="index.source.html" class="el_package">io.wcm.maven.plugins.nodejs.mojo</a> &gt; <span class="el_source">NodeJsTask.java</span></div><h1>NodeJsTask.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2014 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.maven.plugins.nodejs.mojo;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Parameter;
+
+import io.wcm.maven.plugins.nodejs.installation.NodeInstallationInformation;
+
+/**
+ * Wrapper around the execution of a nodejs module.
+ */
+<span class="fc" id="L35">public class NodeJsTask extends Task {</span>
+
+  /**
+   * Name of the nodejs module
+   */
+  @Parameter
+  private String moduleName;
+
+  /**
+   * Name of the module executable
+   */
+  @Parameter
+  private String executableName;
+
+  /**
+   * Task arguments
+   */
+  @Parameter
+  private String[] arguments;
+
+  @Override
+  protected List&lt;String&gt; getCommand(NodeInstallationInformation information) throws MojoExecutionException {
+<span class="fc" id="L57">    List&lt;String&gt; commands = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L58">    commands.add(information.getNodeExecutable().getAbsolutePath());</span>
+<span class="fc" id="L59">    setNodeModule(commands, information);</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">    if (arguments != null) {</span>
+<span class="fc" id="L61">      commands.addAll(Arrays.asList(arguments));</span>
+    }
+
+<span class="fc" id="L64">    return commands;</span>
+  }
+
+  private void setNodeModule(List&lt;String&gt; commands, NodeInstallationInformation information) throws MojoExecutionException {
+<span class="fc" id="L68">    String modulePath = installModule(information);</span>
+<span class="fc" id="L69">    String moduleExecutable = getModuleExecutable(modulePath);</span>
+<span class="fc" id="L70">    commands.add(moduleExecutable);</span>
+<span class="fc" id="L71">  }</span>
+
+  private String installModule(NodeInstallationInformation information) throws MojoExecutionException {
+<span class="fc" id="L74">    String modulePath = &quot;&quot;;</span>
+<span class="fc" id="L75">    String localInstallationPath = workingDirectory.getAbsolutePath() + File.separator + &quot;node_modules&quot; + File.separator + moduleName;</span>
+<span class="fc" id="L76">    File localInstallation = new File(localInstallationPath);</span>
+
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">    if (!localInstallation.exists()) {</span>
+<span class="fc" id="L79">      String globalInstallationPath = information.getNodeModulesRootPath() + File.separator + &quot;node_modules&quot; + File.separator + moduleName;</span>
+<span class="fc" id="L80">      File moduleInstallation = new File(globalInstallationPath);</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">      if (!moduleInstallation.exists()) {</span>
+<span class="nc" id="L82">        NpmInstallTask installTask = new NpmInstallTask();</span>
+<span class="nc" id="L83">        installTask.setLog(getLog());</span>
+<span class="nc" id="L84">        installTask.setArguments(new String[] {</span>
+<span class="nc" id="L85">            &quot;--prefix&quot;, information.getNpmPrefixPath(), moduleName</span>
+        });
+<span class="nc" id="L87">        installTask.execute(information);</span>
+      }
+
+<span class="fc" id="L90">      modulePath = globalInstallationPath;</span>
+<span class="fc" id="L91">    }</span>
+    else {
+<span class="nc" id="L93">      modulePath = localInstallationPath;</span>
+    }
+
+<span class="fc" id="L96">    return modulePath;</span>
+  }
+
+  private String getModuleExecutable(String modulePath) {
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">    String executable = executableName == null ? moduleName : executableName;</span>
+<span class="fc" id="L101">    return modulePath + File.separator + &quot;bin&quot; + File.separator + executable;</span>
+  }
+
+  @Override
+  protected boolean isWorkingDirectoryMandatory() {
+<span class="nc" id="L106">    return true;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
