@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WriteContentProcessor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sling-Initial-Content Transformation Maven Plugin</a> &gt; <a href="index.source.html" class="el_package">io.wcm.maven.plugins.slinginitialcontenttransform</a> &gt; <span class="el_source">WriteContentProcessor.java</span></div><h1>WriteContentProcessor.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2021 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.maven.plugins.slinginitialcontenttransform;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.jackrabbit.JcrConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.wcm.maven.plugins.slinginitialcontenttransform.contentparser.JsonContentLoader;
+import io.wcm.maven.plugins.slinginitialcontenttransform.contentparser.XmlContentLoader;
+import io.wcm.tooling.commons.contentpackagebuilder.ContentPackage;
+import io.wcm.tooling.commons.contentpackagebuilder.element.ContentElement;
+
+/**
+ * Actually writes the content to the content package.
+ */
+class WriteContentProcessor implements BundleEntryProcessor {
+
+  private final Set&lt;String&gt; ignoreFolderPaths;
+<span class="fc" id="L43">  private final JsonContentLoader jsonContentLoader = new JsonContentLoader();</span>
+<span class="fc" id="L44">  private final XmlContentLoader xmlContentLoader = new XmlContentLoader();</span>
+
+<span class="fc" id="L46">  private static final Logger log = LoggerFactory.getLogger(WriteContentProcessor.class);</span>
+
+<span class="fc" id="L48">  WriteContentProcessor(Set&lt;String&gt; ignoreFolderPaths) {</span>
+<span class="fc" id="L49">    this.ignoreFolderPaths = ignoreFolderPaths;</span>
+<span class="fc" id="L50">  }</span>
+
+  @Override
+  public void directory(String path, ContentPackage contentPackage) throws IOException {
+<span class="pc bpc" id="L54" title="1 of 2 branches missed.">    if (ignoreFolderPaths.contains(path)) {</span>
+<span class="nc" id="L55">      return;</span>
+    }
+<span class="fc" id="L57">    log.debug(&quot;Add folder: {}&quot;, path);</span>
+<span class="fc" id="L58">    Map&lt;String, Object&gt; props = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L59">    props.put(JcrConstants.JCR_PRIMARYTYPE, &quot;sling:Folder&quot;);</span>
+<span class="fc" id="L60">    contentPackage.addContent(path, props);</span>
+<span class="fc" id="L61">  }</span>
+
+  @Override
+  public void jsonContent(String path, BundleEntry entry, ContentPackage contentPackage) throws IOException {
+<span class="fc" id="L65">    log.debug(&quot;Add JSON content: {}&quot;, path);</span>
+<span class="fc" id="L66">    try (InputStream is = entry.getInputStream()) {</span>
+<span class="fc" id="L67">      ContentElement contentElement = jsonContentLoader.load(is);</span>
+<span class="fc" id="L68">      contentPackage.addContent(path, contentElement);</span>
+    }
+<span class="fc" id="L70">  }</span>
+
+  @Override
+  public void xmlContent(String path, BundleEntry entry, ContentPackage contentPackage) throws IOException {
+<span class="nc" id="L74">    log.debug(&quot;Add XML content: {}&quot;, path);</span>
+<span class="nc" id="L75">    try (InputStream is = entry.getInputStream()) {</span>
+<span class="nc" id="L76">      ContentElement contentElement = xmlContentLoader.load(is);</span>
+      // we assume xml content is only used in cases where additional properties should be set for a binary file
+<span class="nc" id="L78">      contentPackage.addContentForFile(path, contentElement);</span>
+    }
+<span class="nc" id="L80">  }</span>
+
+  @Override
+  public void binaryContent(String path, BundleEntry entry, ContentPackage contentPackage) throws IOException {
+<span class="nc" id="L84">    log.debug(&quot;Add binary content: {}&quot;, path);</span>
+<span class="nc" id="L85">    try (InputStream is = entry.getInputStream()) {</span>
+<span class="nc" id="L86">      contentPackage.addFile(path, is);</span>
+    }
+<span class="nc" id="L88">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

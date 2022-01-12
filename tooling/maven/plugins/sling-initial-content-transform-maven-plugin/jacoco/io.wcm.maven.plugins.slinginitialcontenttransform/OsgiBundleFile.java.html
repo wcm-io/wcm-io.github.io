@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OsgiBundleFile.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sling-Initial-Content Transformation Maven Plugin</a> &gt; <a href="index.source.html" class="el_package">io.wcm.maven.plugins.slinginitialcontenttransform</a> &gt; <span class="el_source">OsgiBundleFile.java</span></div><h1>OsgiBundleFile.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2021 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.maven.plugins.slinginitialcontenttransform;
+
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.commons.osgi.ManifestHeader;
+
+class OsgiBundleFile implements Closeable {
+
+  static final String HEADER_INITIAL_CONTENT = &quot;Sling-Initial-Content&quot;;
+  static final String HEADER_NAMESPACES = &quot;Sling-Namespaces&quot;;
+
+  private final JarFile jarFile;
+  private final List&lt;ContentMapping&gt; contentMappings;
+  private final Map&lt;String, String&gt; namespaces;
+
+<span class="fc" id="L47">  OsgiBundleFile(File file) throws IOException {</span>
+<span class="fc" id="L48">    this.jarFile = new JarFile(file);</span>
+<span class="fc" id="L49">    this.contentMappings = buildContentMappings(jarFile);</span>
+<span class="fc" id="L50">    this.namespaces = buildNamespaces(jarFile);</span>
+<span class="fc" id="L51">  }</span>
+
+  /**
+   * Reads mappings from bundle paths to content paths defined in Sling-Initial-Content manifest entry.
+   * @param jarFile JAR file
+   * @return Content mappings
+   * @throws IOException I/O exception
+   */
+  private static List&lt;ContentMapping&gt; buildContentMappings(JarFile jarFile) throws IOException {
+<span class="fc" id="L60">    List&lt;ContentMapping&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L61">    String manifestAttribute = getManifestAttribute(jarFile, HEADER_INITIAL_CONTENT);</span>
+<span class="fc" id="L62">    ManifestHeader header = null;</span>
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">    if (manifestAttribute != null) {</span>
+<span class="fc" id="L64">      header = ManifestHeader.parse(manifestAttribute);</span>
+    }
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">    if (header != null) {</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">      for (ManifestHeader.Entry entry : header.getEntries()) {</span>
+<span class="fc" id="L68">        String bundlePath = entry.getValue();</span>
+<span class="fc" id="L69">        String contentPath = entry.getDirectiveValue(&quot;path&quot;);</span>
+<span class="fc" id="L70">        String ignoreImportProviders = entry.getDirectiveValue(&quot;ignoreImportProviders&quot;);</span>
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">        if (StringUtils.isNoneBlank(bundlePath, contentPath)) {</span>
+<span class="fc" id="L72">          result.add(new ContentMapping(bundlePath, contentPath, ignoreImportProviders));</span>
+        }
+      }
+    }
+<span class="fc" id="L76">    return result;</span>
+  }
+
+  /**
+   * Builds map with Sling namespace definitions.
+   * @param jarFile JAR file
+   * @return Namespaces
+   * @throws IOException I/O exception
+   */
+  private static Map&lt;String, String&gt; buildNamespaces(JarFile jarFile) throws IOException {
+<span class="fc" id="L86">    Map&lt;String, String&gt; result = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L87">    String manifestAttribute = getManifestAttribute(jarFile, HEADER_NAMESPACES);</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">    if (manifestAttribute != null) {</span>
+<span class="nc" id="L89">      String[] entries = StringUtils.split(manifestAttribute, &quot;,&quot;);</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">      for (String mapping : entries) {</span>
+<span class="nc" id="L91">        String key = StringUtils.substringBefore(mapping, &quot;=&quot;);</span>
+<span class="nc" id="L92">        String value = StringUtils.substringAfter(mapping, &quot;=&quot;);</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        if (StringUtils.isNoneBlank(key, value)) {</span>
+<span class="nc" id="L94">          result.put(key, value);</span>
+        }
+      }
+    }
+<span class="fc" id="L98">    return result;</span>
+  }
+
+  private static String getManifestAttribute(JarFile jarFile, String headerName) throws IOException {
+<span class="fc" id="L102">    Manifest manifest = jarFile.getManifest();</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">    if (manifest != null) {</span>
+<span class="fc" id="L104">      return manifest.getMainAttributes().getValue(headerName);</span>
+    }
+<span class="nc" id="L106">    return null;</span>
+  }
+
+  /**
+   * @return true if bundle has any Sling-Initial-Content
+   */
+  public boolean hasContent() {
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">    return !contentMappings.isEmpty();</span>
+  }
+
+  /**
+   * @return Returns all configured Sling-Initial-Content mappings.
+   */
+  public List&lt;ContentMapping&gt; getContentMappings() {
+<span class="fc" id="L120">    return contentMappings;</span>
+  }
+
+  /**
+   * @return Returns sling namespaces.
+   */
+  public Map&lt;String, String&gt; getNamespaces() {
+<span class="fc" id="L127">    return this.namespaces;</span>
+  }
+
+  /**
+   * Get all Sling-Initial-Content entries matching for the given mapping.
+   * @param mapping Content mapping
+   * @return Content entries.
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  public Stream&lt;BundleEntry&gt; getContentEntries(ContentMapping mapping) {
+<span class="fc" id="L137">    Pattern bundlePathPattern = Pattern.compile(&quot;^&quot; + Pattern.quote(mapping.getBundlePath()) + &quot;/.*$&quot;);</span>
+<span class="fc" id="L138">    return jarFile.stream()</span>
+<span class="fc" id="L139">        .filter(entry -&gt; bundlePathPattern.matcher(entry.getName()).matches())</span>
+<span class="fc" id="L140">        .map(entry -&gt; {</span>
+<span class="fc" id="L141">          String path = mapping.getContentPath() + StringUtils.substringAfter(entry.getName(), mapping.getBundlePath());</span>
+<span class="fc" id="L142">          return new BundleEntry(path, jarFile, entry);</span>
+        });
+  }
+
+  /**
+   * Get all JAR entries not matching any Sling-Initial-Content mapped path.
+   * @return JAR entries
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  public Stream&lt;BundleEntry&gt; getNonContentEntries() {
+<span class="fc" id="L152">    Pattern allBundlePathsPattern = Pattern.compile(&quot;^(&quot; + contentMappings.stream()</span>
+<span class="fc" id="L153">        .map(ContentMapping::getBundlePath)</span>
+<span class="fc" id="L154">        .map(Pattern::quote)</span>
+<span class="fc" id="L155">        .collect(Collectors.joining(&quot;|&quot;)) + &quot;)(/.*)?$&quot;);</span>
+<span class="fc" id="L156">    return jarFile.stream()</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">        .filter(entry -&gt; !allBundlePathsPattern.matcher(entry.getName()).matches())</span>
+<span class="fc" id="L158">        .map(entry -&gt; new BundleEntry(entry.getName(), jarFile, entry));</span>
+  }
+
+  @Override
+  public void close() throws IOException {
+<span class="fc" id="L163">    jarFile.close();</span>
+<span class="fc" id="L164">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

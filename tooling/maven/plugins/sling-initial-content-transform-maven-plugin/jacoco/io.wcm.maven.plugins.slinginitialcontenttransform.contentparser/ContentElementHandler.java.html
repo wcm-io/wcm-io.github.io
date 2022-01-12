@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContentElementHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sling-Initial-Content Transformation Maven Plugin</a> &gt; <a href="index.source.html" class="el_package">io.wcm.maven.plugins.slinginitialcontenttransform.contentparser</a> &gt; <span class="el_source">ContentElementHandler.java</span></div><h1>ContentElementHandler.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2021 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.maven.plugins.slinginitialcontenttransform.contentparser;
+
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.contentparser.api.ContentHandler;
+
+import io.wcm.tooling.commons.contentpackagebuilder.element.ContentElement;
+import io.wcm.tooling.commons.contentpackagebuilder.element.ContentElementImpl;
+
+/**
+ * {@link ContentHandler} implementation that produces a tree of {@link ContentElement} items.
+ */
+<span class="fc" id="L35">final class ContentElementHandler implements ContentHandler {</span>
+
+  private ContentElement root;
+<span class="fc" id="L38">  private static final Pattern PATH_PATTERN = Pattern.compile(&quot;^((/[^/]+)*)(/([^/]+))$&quot;);</span>
+
+  @Override
+  public void resource(String path, Map&lt;String, Object&gt; properties) {
+<span class="pc bpc" id="L42" title="1 of 2 branches missed.">    if (StringUtils.equals(path, &quot;/&quot;)) {</span>
+<span class="fc" id="L43">      root = new ContentElementImpl(null, properties);</span>
+    }
+    else {
+<span class="nc bnc" id="L46" title="All 2 branches missed.">      if (root == null) {</span>
+<span class="nc" id="L47">        throw new RuntimeException(&quot;Root resource not set.&quot;);</span>
+      }
+<span class="nc" id="L49">      Matcher matcher = PATH_PATTERN.matcher(path);</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">      if (!matcher.matches()) {</span>
+<span class="nc" id="L51">        throw new RuntimeException(&quot;Unexpected path:&quot; + path);</span>
+      }
+<span class="nc" id="L53">      String relativeParentPath = StringUtils.stripStart(matcher.group(1), &quot;/&quot;);</span>
+<span class="nc" id="L54">      String name = matcher.group(4);</span>
+      ContentElement parent;
+<span class="nc bnc" id="L56" title="All 2 branches missed.">      if (StringUtils.isEmpty(relativeParentPath)) {</span>
+<span class="nc" id="L57">        parent = root;</span>
+      }
+      else {
+<span class="nc" id="L60">        parent = root.getChild(relativeParentPath);</span>
+      }
+<span class="nc bnc" id="L62" title="All 2 branches missed.">      if (parent == null) {</span>
+<span class="nc" id="L63">        throw new RuntimeException(&quot;Parent '&quot; + relativeParentPath + &quot;' does not exist.&quot;);</span>
+      }
+<span class="nc" id="L65">      parent.getChildren().put(name, new ContentElementImpl(name, properties));</span>
+    }
+<span class="fc" id="L67">  }</span>
+
+  public ContentElement getRoot() {
+<span class="fc" id="L70">    return root;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
