@@ -22,7 +22,6 @@ package io.wcm.wcm.ui.granite.pathfield.impl.util;
 import java.util.Iterator;
 
 import org.apache.commons.collections.Predicate;
-import org.apache.commons.collections.Transformer;
 import org.apache.commons.collections.iterators.FilterIterator;
 import org.apache.commons.collections.iterators.TransformIterator;
 import org.apache.sling.api.resource.Resource;
@@ -40,36 +39,32 @@ public class PredicatedResourceWrapper extends ResourceWrapper {
    * @param predicate Predicate
    */
   public PredicatedResourceWrapper(Resource resource, Predicate predicate) {
-<span class="fc" id="L43">    super(resource);</span>
-<span class="fc" id="L44">    this.predicate = predicate;</span>
-<span class="fc" id="L45">  }</span>
+<span class="fc" id="L42">    super(resource);</span>
+<span class="fc" id="L43">    this.predicate = predicate;</span>
+<span class="fc" id="L44">  }</span>
 
   @Override
   public Resource getChild(String relPath) {
-<span class="fc" id="L49">    Resource child = super.getChild(relPath);</span>
-<span class="pc bpc" id="L50" title="1 of 4 branches missed.">    if (child == null || !predicate.evaluate(child)) {</span>
-<span class="fc" id="L51">      return null;</span>
+<span class="fc" id="L48">    Resource child = super.getChild(relPath);</span>
+<span class="pc bpc" id="L49" title="1 of 4 branches missed.">    if (child == null || !predicate.evaluate(child)) {</span>
+<span class="fc" id="L50">      return null;</span>
     }
-<span class="fc" id="L53">    return new PredicatedResourceWrapper(child, predicate);</span>
+<span class="fc" id="L52">    return new PredicatedResourceWrapper(child, predicate);</span>
   }
 
   @Override
   @SuppressWarnings(&quot;unchecked&quot;)
   public Iterator&lt;Resource&gt; listChildren() {
-<span class="fc" id="L59">    return new TransformIterator(new FilterIterator(super.listChildren(), predicate), new Transformer() {</span>
-      @Override
-      public Resource transform(Object o) {
-<span class="fc" id="L62">        return new PredicatedResourceWrapper((Resource)o, predicate);</span>
-      }
-    });
+<span class="fc" id="L58">    return new TransformIterator(new FilterIterator(super.listChildren(), predicate),</span>
+<span class="fc" id="L59">        obj -&gt; new PredicatedResourceWrapper((Resource)obj, predicate));</span>
   }
 
   @Override
   public boolean hasChildren() {
-<span class="fc bfc" id="L69" title="All 2 branches covered.">    if (!super.hasChildren()) {</span>
-<span class="fc" id="L70">      return false;</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">    if (!super.hasChildren()) {</span>
+<span class="fc" id="L65">      return false;</span>
     }
-<span class="fc" id="L72">    return listChildren().hasNext();</span>
+<span class="fc" id="L67">    return listChildren().hasNext();</span>
   }
 
 }

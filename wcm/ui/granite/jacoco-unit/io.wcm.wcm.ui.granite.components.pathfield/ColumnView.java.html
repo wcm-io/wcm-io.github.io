@@ -129,6 +129,7 @@ import io.wcm.wcm.ui.granite.resource.GraniteUiSyntheticResource;
    * @param resource Given resource
    * @return Data source
    */
+  @SuppressWarnings(&quot;java:S112&quot;) // allow generic exception
   private DataSource getDataSource(ComponentHelper cmp, Resource resource) {
     try {
       /*
@@ -136,12 +137,12 @@ import io.wcm.wcm.ui.granite.resource.GraniteUiSyntheticResource;
        * here we overwrite it via a synthetic resource because the path may be overwritten by validation logic
        * to ensure the path is not beyond the configured root path
        */
-<span class="fc" id="L139">      ValueMap overwriteProperties = new ValueMapDecorator(ImmutableMap.&lt;String, Object&gt;of(&quot;path&quot;, resource.getPath()));</span>
-<span class="fc" id="L140">      Resource dataSourceResourceWrapper = GraniteUiSyntheticResource.wrapMerge(request.getResource(), overwriteProperties);</span>
-<span class="fc" id="L141">      return cmp.getItemDataSource(dataSourceResourceWrapper);</span>
+<span class="fc" id="L140">      ValueMap overwriteProperties = new ValueMapDecorator(ImmutableMap.&lt;String, Object&gt;of(&quot;path&quot;, resource.getPath()));</span>
+<span class="fc" id="L141">      Resource dataSourceResourceWrapper = GraniteUiSyntheticResource.wrapMerge(request.getResource(), overwriteProperties);</span>
+<span class="fc" id="L142">      return cmp.getItemDataSource(dataSourceResourceWrapper);</span>
     }
-<span class="nc" id="L143">    catch (ServletException | IOException ex) {</span>
-<span class="nc" id="L144">      throw new RuntimeException(&quot;Unable to get data source.&quot;, ex);</span>
+<span class="nc" id="L144">    catch (ServletException | IOException ex) {</span>
+<span class="nc" id="L145">      throw new RuntimeException(&quot;Unable to get data source.&quot;, ex);</span>
     }
   }
 
@@ -156,29 +157,29 @@ import io.wcm.wcm.ui.granite.resource.GraniteUiSyntheticResource;
   private static Column getCurrentResourceColumn(DataSource dataSource, Integer size,
       Resource currentResource, String itemResourceType) {
 
-<span class="fc" id="L159">    Iterator&lt;Resource&gt; items = dataSource.iterator();</span>
+<span class="fc" id="L160">    Iterator&lt;Resource&gt; items = dataSource.iterator();</span>
 
-<span class="fc" id="L161">    boolean hasMore = false;</span>
-<span class="fc bfc" id="L162" title="All 2 branches covered.">    if (size != null) {</span>
-<span class="fc" id="L163">      List&lt;Resource&gt; list = new ArrayList&lt;Resource&gt;();</span>
-<span class="pc bpc" id="L164" title="1 of 4 branches missed.">      while (items.hasNext() &amp;&amp; list.size() &lt; size) {</span>
-<span class="fc" id="L165">        list.add(items.next());</span>
+<span class="fc" id="L162">    boolean hasMore = false;</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">    if (size != null) {</span>
+<span class="fc" id="L164">      List&lt;Resource&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L165" title="1 of 4 branches missed.">      while (items.hasNext() &amp;&amp; list.size() &lt; size) {</span>
+<span class="fc" id="L166">        list.add(items.next());</span>
       }
-<span class="fc" id="L167">      hasMore = items.hasNext();</span>
-<span class="fc" id="L168">      items = list.iterator();</span>
+<span class="fc" id="L168">      hasMore = items.hasNext();</span>
+<span class="fc" id="L169">      items = list.iterator();</span>
     }
 
-<span class="fc" id="L171">    Column column = new Column()</span>
-<span class="fc" id="L172">        .columnId(currentResource.getPath())</span>
-<span class="fc" id="L173">        .hasMore(hasMore)</span>
-<span class="fc" id="L174">        .metaElement(true);</span>
-<span class="fc bfc" id="L175" title="All 2 branches covered.">    while (items.hasNext()) {</span>
-<span class="fc" id="L176">      Resource item = items.next();</span>
-<span class="fc" id="L177">      column.addItem(new ColumnItem(item)</span>
-<span class="fc" id="L178">          .resourceType(itemResourceType));</span>
-<span class="fc" id="L179">    }</span>
+<span class="fc" id="L172">    Column column = new Column()</span>
+<span class="fc" id="L173">        .columnId(currentResource.getPath())</span>
+<span class="fc" id="L174">        .hasMore(hasMore)</span>
+<span class="fc" id="L175">        .metaElement(true);</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">    while (items.hasNext()) {</span>
+<span class="fc" id="L177">      Resource item = items.next();</span>
+<span class="fc" id="L178">      column.addItem(new ColumnItem(item)</span>
+<span class="fc" id="L179">          .resourceType(itemResourceType));</span>
+<span class="fc" id="L180">    }</span>
 
-<span class="fc" id="L181">    return column;</span>
+<span class="fc" id="L182">    return column;</span>
   }
 
   /**
@@ -196,15 +197,15 @@ import io.wcm.wcm.ui.granite.resource.GraniteUiSyntheticResource;
      * Since the cannot have a parent of &quot;/&quot;, then we decide to just use a special convention (&quot;parentof:&lt;path&gt;&quot;) to indicate this.
      * Other component (e.g. `.granite-collection-navigator`) reading the columnId can then understand this convention and handle it accordingly.
      */
-<span class="fc" id="L199">    String columnId = &quot;parentof:&quot; + rootResource.getPath();</span>
+<span class="fc" id="L200">    String columnId = &quot;parentof:&quot; + rootResource.getPath();</span>
 
-<span class="fc" id="L201">    Column column = new Column()</span>
-<span class="fc" id="L202">        .columnId(columnId)</span>
-<span class="fc" id="L203">        .hasMore(false);</span>
-<span class="fc" id="L204">    column.addItem(new ColumnItem(rootResource)</span>
-<span class="fc" id="L205">        .resourceType(itemResourceType)</span>
-<span class="fc" id="L206">        .active(true));</span>
-<span class="fc" id="L207">    return column;</span>
+<span class="fc" id="L202">    Column column = new Column()</span>
+<span class="fc" id="L203">        .columnId(columnId)</span>
+<span class="fc" id="L204">        .hasMore(false);</span>
+<span class="fc" id="L205">    column.addItem(new ColumnItem(rootResource)</span>
+<span class="fc" id="L206">        .resourceType(itemResourceType)</span>
+<span class="fc" id="L207">        .active(true));</span>
+<span class="fc" id="L208">    return column;</span>
   }
 
   /**
@@ -214,26 +215,26 @@ import io.wcm.wcm.ui.granite.resource.GraniteUiSyntheticResource;
    * @return Columns
    */
   private static List&lt;Column&gt; getAncestorColumns(Resource currentResource, Resource rootResource) {
-<span class="fc" id="L217">    List&lt;Column&gt; columns = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L218">    List&lt;Resource&gt; ancestors = getAncestors(currentResource, rootResource);</span>
-<span class="fc bfc" id="L219" title="All 2 branches covered.">    for (int i = 0; i &lt; ancestors.size(); i++) {</span>
-<span class="fc" id="L220">      Resource r = ancestors.get(i);</span>
+<span class="fc" id="L218">    List&lt;Column&gt; columns = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L219">    List&lt;Resource&gt; ancestors = getAncestors(currentResource, rootResource);</span>
+<span class="fc bfc" id="L220" title="All 2 branches covered.">    for (int i = 0; i &lt; ancestors.size(); i++) {</span>
+<span class="fc" id="L221">      Resource r = ancestors.get(i);</span>
 
       String activeId;
-<span class="fc bfc" id="L223" title="All 2 branches covered.">      if (i &lt; ancestors.size() - 1) {</span>
-<span class="fc" id="L224">        activeId = ancestors.get(i + 1).getPath();</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">      if (i &lt; ancestors.size() - 1) {</span>
+<span class="fc" id="L225">        activeId = ancestors.get(i + 1).getPath();</span>
       }
       else {
-<span class="fc" id="L227">        activeId = currentResource.getPath();</span>
+<span class="fc" id="L228">        activeId = currentResource.getPath();</span>
       }
 
-<span class="fc" id="L230">      Column column = new Column()</span>
-<span class="fc" id="L231">          .columnId(r.getPath())</span>
-<span class="fc" id="L232">          .lazy(true)</span>
-<span class="fc" id="L233">          .activeId(activeId);</span>
-<span class="fc" id="L234">      columns.add(column);</span>
+<span class="fc" id="L231">      Column column = new Column()</span>
+<span class="fc" id="L232">          .columnId(r.getPath())</span>
+<span class="fc" id="L233">          .lazy(true)</span>
+<span class="fc" id="L234">          .activeId(activeId);</span>
+<span class="fc" id="L235">      columns.add(column);</span>
     }
-<span class="fc" id="L236">    return columns;</span>
+<span class="fc" id="L237">    return columns;</span>
   }
 
   /**
@@ -241,21 +242,21 @@ import io.wcm.wcm.ui.granite.resource.GraniteUiSyntheticResource;
    * The result is ordered with the root as the first item.
    */
   private static List&lt;Resource&gt; getAncestors(Resource currentResource, Resource rootResource) {
-<span class="fc" id="L244">    List&lt;Resource&gt; results = new ArrayList&lt;Resource&gt;();</span>
+<span class="fc" id="L245">    List&lt;Resource&gt; results = new ArrayList&lt;&gt;();</span>
 
-<span class="pc bpc" id="L246" title="2 of 6 branches missed.">    if (currentResource == null || rootResource == null || StringUtils.equals(currentResource.getPath(), rootResource.getPath())) {</span>
-<span class="fc" id="L247">      return results;</span>
+<span class="pc bpc" id="L247" title="2 of 6 branches missed.">    if (currentResource == null || rootResource == null || StringUtils.equals(currentResource.getPath(), rootResource.getPath())) {</span>
+<span class="fc" id="L248">      return results;</span>
     }
 
-<span class="fc" id="L250">    Resource parent = currentResource.getParent();</span>
-<span class="pc bpc" id="L251" title="1 of 2 branches missed.">    while (parent != null) {</span>
-<span class="fc" id="L252">      results.add(0, parent);</span>
-<span class="fc bfc" id="L253" title="All 2 branches covered.">      if (parent.getPath().equals(rootResource.getPath())) {</span>
-<span class="fc" id="L254">        break;</span>
+<span class="fc" id="L251">    Resource parent = currentResource.getParent();</span>
+<span class="pc bpc" id="L252" title="1 of 2 branches missed.">    while (parent != null) {</span>
+<span class="fc" id="L253">      results.add(0, parent);</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">      if (parent.getPath().equals(rootResource.getPath())) {</span>
+<span class="fc" id="L255">        break;</span>
       }
-<span class="fc" id="L256">      parent = parent.getParent();</span>
+<span class="fc" id="L257">      parent = parent.getParent();</span>
     }
-<span class="fc" id="L258">    return results;</span>
+<span class="fc" id="L259">    return results;</span>
   }
 
 }
