@@ -30,7 +30,6 @@ import java.util.TreeMap;
 
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -53,41 +52,31 @@ public final class ContentPackageProperties {
    * @throws IOException I/O exception
    */
   public static Map&lt;String, Object&gt; get(File packageFile) throws IOException {
-<span class="fc" id="L56">    ZipFile zipFile = null;</span>
-    try {
-<span class="fc" id="L58">      zipFile = new ZipFile(packageFile);</span>
-<span class="fc" id="L59">      ZipArchiveEntry entry = zipFile.getEntry(ZIP_ENTRY_PROPERTIES);</span>
-<span class="pc bpc" id="L60" title="1 of 4 branches missed.">      if (entry != null &amp;&amp; !entry.isDirectory()) {</span>
-<span class="fc" id="L61">        Map&lt;String, Object&gt; props = getPackageProperties(zipFile, entry);</span>
-<span class="fc" id="L62">        return new TreeMap&lt;&gt;(transformPropertyTypes(props));</span>
+<span class="fc" id="L55">    try (ZipFile zipFile = new ZipFile(packageFile)) {</span>
+<span class="fc" id="L56">      ZipArchiveEntry entry = zipFile.getEntry(ZIP_ENTRY_PROPERTIES);</span>
+<span class="pc bpc" id="L57" title="1 of 4 branches missed.">      if (entry != null &amp;&amp; !entry.isDirectory()) {</span>
+<span class="fc" id="L58">        Map&lt;String, Object&gt; props = getPackageProperties(zipFile, entry);</span>
+<span class="fc" id="L59">        return new TreeMap&lt;&gt;(transformPropertyTypes(props));</span>
       }
-<span class="fc" id="L64">      return Collections.emptyMap();</span>
-    }
-    finally {
-<span class="fc" id="L67">      IOUtils.closeQuietly(zipFile);</span>
+<span class="fc" id="L61">      return Collections.emptyMap();</span>
     }
   }
 
   @SuppressWarnings(&quot;unchecked&quot;)
   private static Map&lt;String, Object&gt; getPackageProperties(ZipFile zipFile, ZipArchiveEntry entry) throws IOException {
-<span class="fc" id="L73">    InputStream entryStream = null;</span>
-    try {
-<span class="fc" id="L75">      entryStream = zipFile.getInputStream(entry);</span>
-<span class="fc" id="L76">      Properties props = new Properties();</span>
-<span class="fc" id="L77">      props.loadFromXML(entryStream);</span>
-<span class="fc" id="L78">      return (Map)props;</span>
-    }
-    finally {
-<span class="fc" id="L81">      IOUtils.closeQuietly(entryStream);</span>
+<span class="fc" id="L67">    try (InputStream entryStream = zipFile.getInputStream(entry)) {</span>
+<span class="fc" id="L68">      Properties props = new Properties();</span>
+<span class="fc" id="L69">      props.loadFromXML(entryStream);</span>
+<span class="fc" id="L70">      return (Map)props;</span>
     }
   }
 
   private static Map&lt;String, Object&gt; transformPropertyTypes(Map&lt;String, Object&gt; props) {
-<span class="fc" id="L86">    Map&lt;String, Object&gt; transformedProps = new HashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L87" title="All 2 branches covered.">    for (Map.Entry&lt;String, Object&gt; entry : props.entrySet()) {</span>
-<span class="fc" id="L88">      transformedProps.put(entry.getKey(), transformType(entry.getValue()));</span>
-<span class="fc" id="L89">    }</span>
-<span class="fc" id="L90">    return transformedProps;</span>
+<span class="fc" id="L75">    Map&lt;String, Object&gt; transformedProps = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">    for (Map.Entry&lt;String, Object&gt; entry : props.entrySet()) {</span>
+<span class="fc" id="L77">      transformedProps.put(entry.getKey(), transformType(entry.getValue()));</span>
+<span class="fc" id="L78">    }</span>
+<span class="fc" id="L79">    return transformedProps;</span>
   }
 
   /**
@@ -96,24 +85,24 @@ public final class ContentPackageProperties {
    * @return Transformed value
    */
   private static Object transformType(Object value) {
-<span class="pc bpc" id="L99" title="1 of 2 branches missed.">    if (value == null) {</span>
-<span class="nc" id="L100">      return null;</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">    if (value == null) {</span>
+<span class="nc" id="L89">      return null;</span>
     }
-<span class="fc" id="L102">    String valueString = value.toString();</span>
+<span class="fc" id="L91">    String valueString = value.toString();</span>
 
     // check for boolean
-<span class="fc" id="L105">    boolean boolValue = BooleanUtils.toBoolean(valueString);</span>
-<span class="fc bfc" id="L106" title="All 2 branches covered.">    if (StringUtils.equals(valueString, Boolean.toString(boolValue))) {</span>
-<span class="fc" id="L107">      return boolValue;</span>
+<span class="fc" id="L94">    boolean boolValue = BooleanUtils.toBoolean(valueString);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (StringUtils.equals(valueString, Boolean.toString(boolValue))) {</span>
+<span class="fc" id="L96">      return boolValue;</span>
     }
 
     // check for integer
-<span class="fc" id="L111">    int intValue = NumberUtils.toInt(valueString);</span>
-<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (StringUtils.equals(valueString, Integer.toString(intValue))) {</span>
-<span class="fc" id="L113">      return intValue;</span>
+<span class="fc" id="L100">    int intValue = NumberUtils.toInt(valueString);</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">    if (StringUtils.equals(valueString, Integer.toString(intValue))) {</span>
+<span class="fc" id="L102">      return intValue;</span>
     }
 
-<span class="fc" id="L116">    return value;</span>
+<span class="fc" id="L105">    return value;</span>
   }
 
 }

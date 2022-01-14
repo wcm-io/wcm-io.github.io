@@ -300,8 +300,7 @@ public final class PackageManagerHelper {
    */
   public String executePackageManagerMethodHtml(CloseableHttpClient httpClient, HttpClientContext context, HttpRequestBase method) {
 <span class="nc" id="L302">    PackageManagerHtmlCall call = new PackageManagerHtmlCall(httpClient, context, method);</span>
-<span class="nc" id="L303">    String message = executeHttpCallWithRetry(call, 0);</span>
-<span class="nc" id="L304">    return message;</span>
+<span class="nc" id="L303">    return executeHttpCallWithRetry(call, 0);</span>
   }
 
   /**
@@ -311,9 +310,9 @@ public final class PackageManagerHelper {
    * @param method Get or Post method
    */
   public void executePackageManagerMethodHtmlOutputResponse(CloseableHttpClient httpClient, HttpClientContext context, HttpRequestBase method) {
-<span class="nc" id="L314">    PackageManagerHtmlMessageCall call = new PackageManagerHtmlMessageCall(httpClient, context, method, props);</span>
-<span class="nc" id="L315">    executeHttpCallWithRetry(call, 0);</span>
-<span class="nc" id="L316">  }</span>
+<span class="nc" id="L313">    PackageManagerHtmlMessageCall call = new PackageManagerHtmlMessageCall(httpClient, context, method, props);</span>
+<span class="nc" id="L314">    executeHttpCallWithRetry(call, 0);</span>
+<span class="nc" id="L315">  }</span>
 
   /**
    * Execute CRX HTTP Package manager method and checks response status. If the response status is not 200 the call
@@ -323,9 +322,9 @@ public final class PackageManagerHelper {
    * @param method Get or Post method
    */
   public void executePackageManagerMethodStatus(CloseableHttpClient httpClient, HttpClientContext context, HttpRequestBase method) {
-<span class="nc" id="L326">    PackageManagerStatusCall call = new PackageManagerStatusCall(httpClient, context, method);</span>
-<span class="nc" id="L327">    executeHttpCallWithRetry(call, 0);</span>
-<span class="nc" id="L328">  }</span>
+<span class="nc" id="L325">    PackageManagerStatusCall call = new PackageManagerStatusCall(httpClient, context, method);</span>
+<span class="nc" id="L326">    executeHttpCallWithRetry(call, 0);</span>
+<span class="nc" id="L327">  }</span>
 
   /**
    * Wait for bundles to become active.
@@ -334,59 +333,59 @@ public final class PackageManagerHelper {
    */
   @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
   public void waitForBundlesActivation(CloseableHttpClient httpClient, HttpClientContext context) {
-<span class="nc bnc" id="L337" title="All 2 branches missed.">    if (StringUtils.isBlank(props.getBundleStatusUrl())) {</span>
-<span class="nc" id="L338">      log.debug(&quot;Skipping check for bundle activation state because no bundleStatusURL is defined.&quot;);</span>
-<span class="nc" id="L339">      return;</span>
+<span class="nc bnc" id="L336" title="All 2 branches missed.">    if (StringUtils.isBlank(props.getBundleStatusUrl())) {</span>
+<span class="nc" id="L337">      log.debug(&quot;Skipping check for bundle activation state because no bundleStatusURL is defined.&quot;);</span>
+<span class="nc" id="L338">      return;</span>
     }
 
-<span class="nc" id="L342">    final int WAIT_INTERVAL_SEC = 3;</span>
-<span class="nc" id="L343">    final long CHECK_RETRY_COUNT = props.getBundleStatusWaitLimitSec() / WAIT_INTERVAL_SEC;</span>
+<span class="nc" id="L341">    final int WAIT_INTERVAL_SEC = 3;</span>
+<span class="nc" id="L342">    final long CHECK_RETRY_COUNT = props.getBundleStatusWaitLimitSec() / WAIT_INTERVAL_SEC;</span>
 
-<span class="nc" id="L345">    log.info(&quot;Check bundle activation status...&quot;);</span>
-<span class="nc bnc" id="L346" title="All 2 branches missed.">    for (int i = 1; i &lt;= CHECK_RETRY_COUNT; i++) {</span>
-<span class="nc" id="L347">      BundleStatusCall call = new BundleStatusCall(httpClient, context, props.getBundleStatusUrl(),</span>
-<span class="nc" id="L348">          props.getBundleStatusWhitelistBundleNames());</span>
-<span class="nc" id="L349">      BundleStatus bundleStatus = executeHttpCallWithRetry(call, 0);</span>
+<span class="nc" id="L344">    log.info(&quot;Check bundle activation status...&quot;);</span>
+<span class="nc bnc" id="L345" title="All 2 branches missed.">    for (int i = 1; i &lt;= CHECK_RETRY_COUNT; i++) {</span>
+<span class="nc" id="L346">      BundleStatusCall call = new BundleStatusCall(httpClient, context, props.getBundleStatusUrl(),</span>
+<span class="nc" id="L347">          props.getBundleStatusWhitelistBundleNames());</span>
+<span class="nc" id="L348">      BundleStatus bundleStatus = executeHttpCallWithRetry(call, 0);</span>
 
-<span class="nc" id="L351">      boolean instanceReady = true;</span>
+<span class="nc" id="L350">      boolean instanceReady = true;</span>
 
       // check if bundles are still stopping/staring
-<span class="nc bnc" id="L354" title="All 2 branches missed.">      if (!bundleStatus.isAllBundlesRunning()) {</span>
-<span class="nc" id="L355">        log.info(&quot;Bundles starting/stopping: {} - wait {} sec (max. {} sec) ...&quot;,</span>
-<span class="nc" id="L356">            bundleStatus.getStatusLineCompact(), WAIT_INTERVAL_SEC, props.getBundleStatusWaitLimitSec());</span>
-<span class="nc" id="L357">        sleep(WAIT_INTERVAL_SEC);</span>
-<span class="nc" id="L358">        instanceReady = false;</span>
+<span class="nc bnc" id="L353" title="All 2 branches missed.">      if (!bundleStatus.isAllBundlesRunning()) {</span>
+<span class="nc" id="L354">        log.info(&quot;Bundles starting/stopping: {} - wait {} sec (max. {} sec) ...&quot;,</span>
+<span class="nc" id="L355">            bundleStatus.getStatusLineCompact(), WAIT_INTERVAL_SEC, props.getBundleStatusWaitLimitSec());</span>
+<span class="nc" id="L356">        sleep(WAIT_INTERVAL_SEC);</span>
+<span class="nc" id="L357">        instanceReady = false;</span>
       }
 
       // check if any of the blacklisted bundles is still present
-<span class="nc bnc" id="L362" title="All 2 branches missed.">      if (instanceReady) {</span>
-<span class="nc bnc" id="L363" title="All 2 branches missed.">        for (Pattern blacklistBundleNamePattern : props.getBundleStatusBlacklistBundleNames()) {</span>
-<span class="nc" id="L364">          String bundleSymbolicName = bundleStatus.getMatchingBundle(blacklistBundleNamePattern);</span>
-<span class="nc bnc" id="L365" title="All 2 branches missed.">          if (bundleSymbolicName != null) {</span>
-<span class="nc" id="L366">            log.info(&quot;Bundle '{}' is still deployed - wait {} sec (max. {} sec) ...&quot;,</span>
-<span class="nc" id="L367">                bundleSymbolicName, WAIT_INTERVAL_SEC, props.getBundleStatusWaitLimitSec());</span>
-<span class="nc" id="L368">            sleep(WAIT_INTERVAL_SEC);</span>
-<span class="nc" id="L369">            instanceReady = false;</span>
-<span class="nc" id="L370">            break;</span>
+<span class="nc bnc" id="L361" title="All 2 branches missed.">      if (instanceReady) {</span>
+<span class="nc bnc" id="L362" title="All 2 branches missed.">        for (Pattern blacklistBundleNamePattern : props.getBundleStatusBlacklistBundleNames()) {</span>
+<span class="nc" id="L363">          String bundleSymbolicName = bundleStatus.getMatchingBundle(blacklistBundleNamePattern);</span>
+<span class="nc bnc" id="L364" title="All 2 branches missed.">          if (bundleSymbolicName != null) {</span>
+<span class="nc" id="L365">            log.info(&quot;Bundle '{}' is still deployed - wait {} sec (max. {} sec) ...&quot;,</span>
+<span class="nc" id="L366">                bundleSymbolicName, WAIT_INTERVAL_SEC, props.getBundleStatusWaitLimitSec());</span>
+<span class="nc" id="L367">            sleep(WAIT_INTERVAL_SEC);</span>
+<span class="nc" id="L368">            instanceReady = false;</span>
+<span class="nc" id="L369">            break;</span>
           }
-<span class="nc" id="L372">        }</span>
+<span class="nc" id="L371">        }</span>
       }
 
       // instance is ready
-<span class="nc bnc" id="L376" title="All 2 branches missed.">      if (instanceReady) {</span>
-<span class="nc" id="L377">        break;</span>
+<span class="nc bnc" id="L375" title="All 2 branches missed.">      if (instanceReady) {</span>
+<span class="nc" id="L376">        break;</span>
       }
     }
-<span class="nc" id="L380">  }</span>
+<span class="nc" id="L379">  }</span>
 
   private void sleep(int sec) {
     try {
-<span class="nc" id="L384">      Thread.sleep(sec * DateUtils.MILLIS_PER_SECOND);</span>
+<span class="nc" id="L383">      Thread.sleep(sec * DateUtils.MILLIS_PER_SECOND);</span>
     }
-<span class="nc" id="L386">    catch (InterruptedException e) {</span>
+<span class="nc" id="L385">    catch (InterruptedException e) {</span>
       // ignore
-<span class="nc" id="L388">    }</span>
-<span class="nc" id="L389">  }</span>
+<span class="nc" id="L387">    }</span>
+<span class="nc" id="L388">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
