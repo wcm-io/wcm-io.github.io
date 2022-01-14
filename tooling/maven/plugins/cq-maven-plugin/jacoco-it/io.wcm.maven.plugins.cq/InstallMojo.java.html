@@ -128,18 +128,17 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
 
     // check for active bnd-maven-plugin in current project
 <span class="fc" id="L130">    return project.getBuildPlugins().stream()</span>
-<span class="fc" id="L131">        .filter(this::isBndMavenPlugin)</span>
-<span class="fc" id="L132">        .findFirst().isPresent();</span>
+<span class="fc" id="L131">        .anyMatch(this::isBndMavenPlugin);</span>
   }
 
   private boolean isBndMavenPlugin(Plugin plugin) {
-<span class="fc bfc" id="L136" title="All 2 branches covered.">    return StringUtils.equals(plugin.getGroupId(), &quot;biz.aQute.bnd&quot;)</span>
-<span class="pc bpc" id="L137" title="1 of 2 branches missed.">        &amp;&amp; StringUtils.equals(plugin.getArtifactId(), &quot;bnd-maven-plugin&quot;);</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">    return StringUtils.equals(plugin.getGroupId(), &quot;biz.aQute.bnd&quot;)</span>
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">        &amp;&amp; StringUtils.equals(plugin.getArtifactId(), &quot;bnd-maven-plugin&quot;);</span>
   }
 
   private boolean isContentPackageProject() {
-<span class="nc" id="L141">    String packaging = project.getPackaging();</span>
-<span class="nc" id="L142">    return StringUtils.equals(packaging, &quot;content-package&quot;);</span>
+<span class="nc" id="L140">    String packaging = project.getPackaging();</span>
+<span class="nc" id="L141">    return StringUtils.equals(packaging, &quot;content-package&quot;);</span>
   }
 
   /**
@@ -147,42 +146,42 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
    */
   private void executeSlingPluginDirectly() throws MojoExecutionException {
 
-<span class="fc" id="L150">    Plugin plugin = new Plugin();</span>
-<span class="fc" id="L151">    plugin.setGroupId(&quot;org.apache.sling&quot;);</span>
-<span class="fc" id="L152">    plugin.setArtifactId(&quot;sling-maven-plugin&quot;);</span>
-<span class="fc" id="L153">    plugin.setVersion(this.slingPluginVersion);</span>
+<span class="fc" id="L149">    Plugin plugin = new Plugin();</span>
+<span class="fc" id="L150">    plugin.setGroupId(&quot;org.apache.sling&quot;);</span>
+<span class="fc" id="L151">    plugin.setArtifactId(&quot;sling-maven-plugin&quot;);</span>
+<span class="fc" id="L152">    plugin.setVersion(this.slingPluginVersion);</span>
 
     try {
-<span class="fc" id="L156">      PluginDescriptor pluginDescriptor = pluginManager.getPluginDescriptor(plugin,</span>
-<span class="fc" id="L157">          project.getRemotePluginRepositories(), session.getRepositorySession());</span>
-<span class="fc" id="L158">      MojoDescriptor mojoDescriptor = pluginDescriptor.getMojo(&quot;install&quot;);</span>
-<span class="fc" id="L159">      MojoExecution mojoExecution = new MojoExecution(pluginDescriptor.getMojo(&quot;install&quot;));</span>
+<span class="fc" id="L155">      PluginDescriptor pluginDescriptor = pluginManager.getPluginDescriptor(plugin,</span>
+<span class="fc" id="L156">          project.getRemotePluginRepositories(), session.getRepositorySession());</span>
+<span class="fc" id="L157">      MojoDescriptor mojoDescriptor = pluginDescriptor.getMojo(&quot;install&quot;);</span>
+<span class="fc" id="L158">      MojoExecution mojoExecution = new MojoExecution(pluginDescriptor.getMojo(&quot;install&quot;));</span>
 
-<span class="fc" id="L161">      Xpp3Dom config = convertConfiguration(mojoDescriptor.getMojoConfiguration());</span>
-<span class="fc" id="L162">      config.getChild(&quot;slingUrl&quot;).setValue(this.slingConsoleUrl);</span>
-<span class="fc" id="L163">      config.getChild(&quot;user&quot;).setValue(this.slingConsoleUser);</span>
-<span class="fc" id="L164">      config.getChild(&quot;password&quot;).setValue(this.slingConsolePassword);</span>
-<span class="fc" id="L165">      config.getChild(&quot;mountByFS&quot;).setValue(&quot;false&quot;);</span>
-<span class="fc" id="L166">      mojoExecution.setConfiguration(config);</span>
+<span class="fc" id="L160">      Xpp3Dom config = convertConfiguration(mojoDescriptor.getMojoConfiguration());</span>
+<span class="fc" id="L161">      config.getChild(&quot;slingUrl&quot;).setValue(this.slingConsoleUrl);</span>
+<span class="fc" id="L162">      config.getChild(&quot;user&quot;).setValue(this.slingConsoleUser);</span>
+<span class="fc" id="L163">      config.getChild(&quot;password&quot;).setValue(this.slingConsolePassword);</span>
+<span class="fc" id="L164">      config.getChild(&quot;mountByFS&quot;).setValue(&quot;false&quot;);</span>
+<span class="fc" id="L165">      mojoExecution.setConfiguration(config);</span>
 
-<span class="fc" id="L168">      buildPluginManager.executeMojo(session, mojoExecution);</span>
+<span class="fc" id="L167">      buildPluginManager.executeMojo(session, mojoExecution);</span>
     } /*CHECKSTYLE:OFF*/
-<span class="nc" id="L170">    catch (Throwable ex) { /*CHECKSTYLE_ON*/</span>
-<span class="nc" id="L171">      throw new MojoExecutionException(&quot;Faild to execute plugin: &quot; + plugin, ex);</span>
-<span class="fc" id="L172">    }</span>
+<span class="nc" id="L169">    catch (Throwable ex) { /*CHECKSTYLE_ON*/</span>
+<span class="nc" id="L170">      throw new MojoExecutionException(&quot;Faild to execute plugin: &quot; + plugin, ex);</span>
+<span class="fc" id="L171">    }</span>
 
-<span class="fc" id="L174">  }</span>
+<span class="fc" id="L173">  }</span>
 
   private Xpp3Dom convertConfiguration(PlexusConfiguration plexusConfig) throws PlexusConfigurationException {
-<span class="fc" id="L177">    Xpp3Dom config = new Xpp3Dom(plexusConfig.getName());</span>
-<span class="fc" id="L178">    config.setValue(plexusConfig.getValue());</span>
-<span class="fc bfc" id="L179" title="All 2 branches covered.">    for (String attribute : plexusConfig.getAttributeNames()) {</span>
-<span class="fc" id="L180">      config.setAttribute(attribute, plexusConfig.getAttribute(attribute));</span>
+<span class="fc" id="L176">    Xpp3Dom config = new Xpp3Dom(plexusConfig.getName());</span>
+<span class="fc" id="L177">    config.setValue(plexusConfig.getValue());</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">    for (String attribute : plexusConfig.getAttributeNames()) {</span>
+<span class="fc" id="L179">      config.setAttribute(attribute, plexusConfig.getAttribute(attribute));</span>
     }
-<span class="fc bfc" id="L182" title="All 2 branches covered.">    for (PlexusConfiguration child : plexusConfig.getChildren()) {</span>
-<span class="fc" id="L183">      config.addChild(convertConfiguration(child));</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">    for (PlexusConfiguration child : plexusConfig.getChildren()) {</span>
+<span class="fc" id="L182">      config.addChild(convertConfiguration(child));</span>
     }
-<span class="fc" id="L185">    return config;</span>
+<span class="fc" id="L184">    return config;</span>
   }
 
   /**
@@ -191,62 +190,62 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
    * @throws MojoExecutionException
    */
   private void executeWithMavenInvoker(String goal) throws MojoExecutionException {
-<span class="nc" id="L194">    InvocationRequest invocationRequest = new DefaultInvocationRequest();</span>
-<span class="nc" id="L195">    invocationRequest.setPomFile(project.getFile());</span>
-<span class="nc" id="L196">    invocationRequest.setGoals(Arrays.asList(goal));</span>
-<span class="nc" id="L197">    invocationRequest.setBatchMode(true);</span>
+<span class="nc" id="L193">    InvocationRequest invocationRequest = new DefaultInvocationRequest();</span>
+<span class="nc" id="L194">    invocationRequest.setPomFile(project.getFile());</span>
+<span class="nc" id="L195">    invocationRequest.setGoals(Arrays.asList(goal));</span>
+<span class="nc" id="L196">    invocationRequest.setBatchMode(true);</span>
 
     // take over all systems properties and profile settings from current maven execution
-<span class="nc" id="L200">    invocationRequest.setShellEnvironmentInherited(true);</span>
-<span class="nc" id="L201">    invocationRequest.setLocalRepositoryDirectory(new File(settings.getLocalRepository()));</span>
-<span class="nc" id="L202">    invocationRequest.setProperties(session.getUserProperties());</span>
-<span class="nc" id="L203">    invocationRequest.setProfiles(settings.getActiveProfiles());</span>
+<span class="nc" id="L199">    invocationRequest.setShellEnvironmentInherited(true);</span>
+<span class="nc" id="L200">    invocationRequest.setLocalRepositoryDirectory(new File(settings.getLocalRepository()));</span>
+<span class="nc" id="L201">    invocationRequest.setProperties(session.getUserProperties());</span>
+<span class="nc" id="L202">    invocationRequest.setProfiles(settings.getActiveProfiles());</span>
 
-<span class="nc" id="L205">    Invoker invoker = new DefaultInvoker();</span>
-<span class="nc" id="L206">    setupInvokerLogger(invoker);</span>
+<span class="nc" id="L204">    Invoker invoker = new DefaultInvoker();</span>
+<span class="nc" id="L205">    setupInvokerLogger(invoker);</span>
 
     try {
-<span class="nc" id="L209">      InvocationResult invocationResult = invoker.execute(invocationRequest);</span>
-<span class="nc bnc" id="L210" title="All 2 branches missed.">      if (invocationResult.getExitCode() != 0) {</span>
-<span class="nc" id="L211">        String msg = &quot;Execution of cq:install failed, see above.&quot;;</span>
-<span class="nc bnc" id="L212" title="All 2 branches missed.">        if (invocationResult.getExecutionException() != null) {</span>
-<span class="nc" id="L213">          msg = invocationResult.getExecutionException().getMessage();</span>
+<span class="nc" id="L208">      InvocationResult invocationResult = invoker.execute(invocationRequest);</span>
+<span class="nc bnc" id="L209" title="All 2 branches missed.">      if (invocationResult.getExitCode() != 0) {</span>
+<span class="nc" id="L210">        String msg = &quot;Execution of cq:install failed, see above.&quot;;</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">        if (invocationResult.getExecutionException() != null) {</span>
+<span class="nc" id="L212">          msg = invocationResult.getExecutionException().getMessage();</span>
         }
-<span class="nc" id="L215">        throw new CommandLineException(msg);</span>
+<span class="nc" id="L214">        throw new CommandLineException(msg);</span>
       }
     }
-<span class="nc" id="L218">    catch (MavenInvocationException | CommandLineException ex) {</span>
-<span class="nc" id="L219">      throw new MojoExecutionException(&quot;Failed to execute goals&quot;, ex);</span>
-<span class="nc" id="L220">    }</span>
-<span class="nc" id="L221">  }</span>
+<span class="nc" id="L217">    catch (MavenInvocationException | CommandLineException ex) {</span>
+<span class="nc" id="L218">      throw new MojoExecutionException(&quot;Failed to execute goals&quot;, ex);</span>
+<span class="nc" id="L219">    }</span>
+<span class="nc" id="L220">  }</span>
 
   /**
    * Mirror maven execution log output to current maven logger.
    * @param invoker Invoker
    */
   private void setupInvokerLogger(Invoker invoker) {
-<span class="nc" id="L228">    Log log = getLog();</span>
-<span class="nc" id="L229">    invoker.setOutputHandler(new InvocationOutputHandler() {</span>
+<span class="nc" id="L227">    Log log = getLog();</span>
+<span class="nc" id="L228">    invoker.setOutputHandler(new InvocationOutputHandler() {</span>
       @Override
       public void consumeLine(String line) {
-<span class="nc bnc" id="L232" title="All 2 branches missed.">        if (StringUtils.startsWith(line, &quot;[ERROR] &quot;)) {</span>
-<span class="nc" id="L233">          log.error(StringUtils.substringAfter(line, &quot;[ERROR] &quot;));</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">        if (StringUtils.startsWith(line, &quot;[ERROR] &quot;)) {</span>
+<span class="nc" id="L232">          log.error(StringUtils.substringAfter(line, &quot;[ERROR] &quot;));</span>
         }
-<span class="nc bnc" id="L235" title="All 2 branches missed.">        else if (StringUtils.startsWith(line, &quot;[WARNING] &quot;)) {</span>
-<span class="nc" id="L236">          log.warn(StringUtils.substringAfter(line, &quot;[WARNING] &quot;));</span>
+<span class="nc bnc" id="L234" title="All 2 branches missed.">        else if (StringUtils.startsWith(line, &quot;[WARNING] &quot;)) {</span>
+<span class="nc" id="L235">          log.warn(StringUtils.substringAfter(line, &quot;[WARNING] &quot;));</span>
         }
-<span class="nc bnc" id="L238" title="All 2 branches missed.">        else if (StringUtils.startsWith(line, &quot;[INFO] &quot;)) {</span>
-<span class="nc" id="L239">          log.info(StringUtils.substringAfter(line, &quot;[INFO] &quot;));</span>
+<span class="nc bnc" id="L237" title="All 2 branches missed.">        else if (StringUtils.startsWith(line, &quot;[INFO] &quot;)) {</span>
+<span class="nc" id="L238">          log.info(StringUtils.substringAfter(line, &quot;[INFO] &quot;));</span>
         }
-<span class="nc bnc" id="L241" title="All 2 branches missed.">        else if (StringUtils.startsWith(line, &quot;[DEBUG] &quot;)) {</span>
-<span class="nc" id="L242">          log.debug(StringUtils.substringAfter(line, &quot;[DEBUG] &quot;));</span>
+<span class="nc bnc" id="L240" title="All 2 branches missed.">        else if (StringUtils.startsWith(line, &quot;[DEBUG] &quot;)) {</span>
+<span class="nc" id="L241">          log.debug(StringUtils.substringAfter(line, &quot;[DEBUG] &quot;));</span>
         }
         else {
-<span class="nc" id="L245">          log.info(line);</span>
+<span class="nc" id="L244">          log.info(line);</span>
         }
-<span class="nc" id="L247">      }</span>
+<span class="nc" id="L246">      }</span>
     });
-<span class="nc" id="L249">  }</span>
+<span class="nc" id="L248">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
