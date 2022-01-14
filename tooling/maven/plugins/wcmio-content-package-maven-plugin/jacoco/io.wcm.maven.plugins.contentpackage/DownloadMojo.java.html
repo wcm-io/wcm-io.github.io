@@ -215,39 +215,38 @@ import io.wcm.tooling.commons.packmgr.unpack.ContentUnpackerProperties;
 <span class="nc bnc" id="L215" title="All 2 branches missed.">    if (this.unpackDeleteDirectories != null) {</span>
 <span class="nc bnc" id="L216" title="All 2 branches missed.">      for (String directory : unpackDeleteDirectories) {</span>
 <span class="nc" id="L217">        File directoryFile = FileUtils.getFile(this.unpackDirectory, directory);</span>
-<span class="nc bnc" id="L218" title="All 2 branches missed.">        if (directoryFile.exists()) {</span>
-<span class="nc bnc" id="L219" title="All 2 branches missed.">          if (!deleteDirectoryWithRetries(directoryFile, 0)) {</span>
-<span class="nc" id="L220">            throw new MojoExecutionException(&quot;Unable to delete existing content from &quot;</span>
-<span class="nc" id="L221">                + directoryFile.getAbsolutePath());</span>
-          }
+<span class="nc bnc" id="L218" title="All 4 branches missed.">        if (directoryFile.exists() &amp;&amp; !deleteDirectoryWithRetries(directoryFile, 0)) {</span>
+<span class="nc" id="L219">            throw new MojoExecutionException(&quot;Unable to delete existing content from &quot;</span>
+<span class="nc" id="L220">                + directoryFile.getAbsolutePath());</span>
         }
       }
     }
 
     // unpack file
-<span class="nc" id="L228">    unpacker.unpack(file, this.unpackDirectory);</span>
+<span class="nc" id="L226">    unpacker.unpack(file, this.unpackDirectory);</span>
 
-<span class="nc" id="L230">    getLog().info(&quot;Package unpacked to &quot; + this.unpackDirectory.getAbsolutePath());</span>
-<span class="nc" id="L231">  }</span>
+<span class="nc" id="L228">    getLog().info(&quot;Package unpacked to &quot; + this.unpackDirectory.getAbsolutePath());</span>
+<span class="nc" id="L229">  }</span>
 
   /**
    * Delete fails sometimes or may be blocked by an editor - give it some time to try again (max. 1 sec).
+   * @throws MojoExecutionException Mojo execution exception
    */
-  private boolean deleteDirectoryWithRetries(File directory, int retryCount) {
-<span class="nc bnc" id="L237" title="All 2 branches missed.">    if (retryCount &gt; 100) {</span>
-<span class="nc" id="L238">      return false;</span>
+  private boolean deleteDirectoryWithRetries(File directory, int retryCount) throws MojoExecutionException {
+<span class="nc bnc" id="L236" title="All 2 branches missed.">    if (retryCount &gt; 100) {</span>
+<span class="nc" id="L237">      return false;</span>
     }
-<span class="nc bnc" id="L240" title="All 2 branches missed.">    if (FileUtils.deleteQuietly(directory)) {</span>
-<span class="nc" id="L241">      return true;</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">    if (FileUtils.deleteQuietly(directory)) {</span>
+<span class="nc" id="L240">      return true;</span>
     }
     else {
       try {
-<span class="nc" id="L245">        Thread.sleep(10);</span>
+<span class="nc" id="L244">        Thread.sleep(10);</span>
       }
-<span class="nc" id="L247">      catch (InterruptedException ex) {</span>
-        // ignore
-<span class="nc" id="L249">      }</span>
-<span class="nc" id="L250">      return deleteDirectoryWithRetries(directory, retryCount + 1);</span>
+<span class="nc" id="L246">      catch (InterruptedException ex) {</span>
+<span class="nc" id="L247">        throw new MojoExecutionException(ex.getMessage(), ex);</span>
+<span class="nc" id="L248">      }</span>
+<span class="nc" id="L249">      return deleteDirectoryWithRetries(directory, retryCount + 1);</span>
     }
   }
 
