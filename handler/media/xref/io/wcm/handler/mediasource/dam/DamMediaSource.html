@@ -222,85 +222,86 @@
 <a class="jxr_linenumber" name="L214" href="#L214">214</a>   }
 <a class="jxr_linenumber" name="L215" href="#L215">215</a> 
 <a class="jxr_linenumber" name="L216" href="#L216">216</a>   @Override
-<a class="jxr_linenumber" name="L217" href="#L217">217</a>   <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> setCustomIPECropRatios(@NotNull HtmlElement&lt;?&gt; element, @NotNull <a name="MediaRequest" href="../../../../../io/wcm/handler/media/MediaRequest.html#MediaRequest">MediaRequest</a> mediaRequest) {
-<a class="jxr_linenumber" name="L218" href="#L218">218</a>     <strong class="jxr_keyword">if</strong> (wcmMode == WCMMode.DISABLED || wcmMode == <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L219" href="#L219">219</a>       <strong class="jxr_keyword">return</strong>;
-<a class="jxr_linenumber" name="L220" href="#L220">220</a>     }
-<a class="jxr_linenumber" name="L221" href="#L221">221</a> 
-<a class="jxr_linenumber" name="L222" href="#L222">222</a>     <strong class="jxr_keyword">if</strong> (componentContext != <strong class="jxr_keyword">null</strong>
-<a class="jxr_linenumber" name="L223" href="#L223">223</a>         &amp;&amp; MediaMarkupBuilderUtil.canSetCustomIPECropRatios(mediaRequest, componentContext)) {
-<a class="jxr_linenumber" name="L224" href="#L224">224</a>       <em class="jxr_comment">// overlay IPE config with cropping ratios for each media format with a valid ratio</em>
-<a class="jxr_linenumber" name="L225" href="#L225">225</a>       <a name="CroppingRatios" href="../../../../../io/wcm/handler/media/impl/ipeconfig/CroppingRatios.html#CroppingRatios">CroppingRatios</a> croppingRatios = <strong class="jxr_keyword">new</strong> <a name="CroppingRatios" href="../../../../../io/wcm/handler/media/impl/ipeconfig/CroppingRatios.html#CroppingRatios">CroppingRatios</a>(mediaFormatHandler);
-<a class="jxr_linenumber" name="L226" href="#L226">226</a>       Set&lt;String&gt; mediaFormatNames = croppingRatios.getMediaFormatsForCropping(mediaRequest);
-<a class="jxr_linenumber" name="L227" href="#L227">227</a>       <strong class="jxr_keyword">if</strong> (!mediaFormatNames.isEmpty()) {
-<a class="jxr_linenumber" name="L228" href="#L228">228</a>         <em class="jxr_comment">// build custom IPE config path containing both the resource context path and the</em>
-<a class="jxr_linenumber" name="L229" href="#L229">229</a>         <em class="jxr_comment">// configured media formats. The path is served by a custom resource provider, because</em>
-<a class="jxr_linenumber" name="L230" href="#L230">230</a>         <em class="jxr_comment">// there is no other interface to pass in a dynamic IPE configuration</em>
-<a class="jxr_linenumber" name="L231" href="#L231">231</a>         String ipeConfigPath = IPEConfigResourceProvider.buildPath(componentContext.getResource().getPath(), mediaFormatNames);
-<a class="jxr_linenumber" name="L232" href="#L232">232</a>         <em class="jxr_comment">// clone IPE config and overwrite config path via reflection (no API available for this)</em>
-<a class="jxr_linenumber" name="L233" href="#L233">233</a>         InplaceEditingConfig customIpeConfig = <strong class="jxr_keyword">new</strong> InplaceEditingConfig(componentContext
-<a class="jxr_linenumber" name="L234" href="#L234">234</a>             .getEditContext().getEditConfig().getInplaceEditingConfig());
-<a class="jxr_linenumber" name="L235" href="#L235">235</a>         <strong class="jxr_keyword">try</strong> {
-<a class="jxr_linenumber" name="L236" href="#L236">236</a>           Field configPathField = InplaceEditingConfig.<strong class="jxr_keyword">class</strong>.getDeclaredField(<span class="jxr_string">"configPath"</span>);
-<a class="jxr_linenumber" name="L237" href="#L237">237</a>           configPathField.setAccessible(<strong class="jxr_keyword">true</strong>);
-<a class="jxr_linenumber" name="L238" href="#L238">238</a>           configPathField.set(customIpeConfig, ipeConfigPath);
-<a class="jxr_linenumber" name="L239" href="#L239">239</a>         }
-<a class="jxr_linenumber" name="L240" href="#L240">240</a>         <strong class="jxr_keyword">catch</strong> (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException ex) {
-<a class="jxr_linenumber" name="L241" href="#L241">241</a>           log.warn(<span class="jxr_string">"Unable to set custom IPE config via reflection for {}"</span>, componentContext.getResource().getPath(), ex);
-<a class="jxr_linenumber" name="L242" href="#L242">242</a>         }
-<a class="jxr_linenumber" name="L243" href="#L243">243</a>         componentContext.getEditContext().getEditConfig().setInplaceEditingConfig(customIpeConfig);
-<a class="jxr_linenumber" name="L244" href="#L244">244</a>       }
-<a class="jxr_linenumber" name="L245" href="#L245">245</a> 
-<a class="jxr_linenumber" name="L246" href="#L246">246</a>     }
-<a class="jxr_linenumber" name="L247" href="#L247">247</a>   }
-<a class="jxr_linenumber" name="L248" href="#L248">248</a> 
-<a class="jxr_linenumber" name="L249" href="#L249">249</a>   <strong class="jxr_keyword">private</strong> String prependDotSlash(String property) {
-<a class="jxr_linenumber" name="L250" href="#L250">250</a>     <strong class="jxr_keyword">if</strong> (!StringUtils.startsWith(property, <span class="jxr_string">"./"</span>)) {
-<a class="jxr_linenumber" name="L251" href="#L251">251</a>       <strong class="jxr_keyword">return</strong> <span class="jxr_string">"./"</span> + property;
-<a class="jxr_linenumber" name="L252" href="#L252">252</a>     }
-<a class="jxr_linenumber" name="L253" href="#L253">253</a>     <strong class="jxr_keyword">else</strong> {
-<a class="jxr_linenumber" name="L254" href="#L254">254</a>       <strong class="jxr_keyword">return</strong> property;
-<a class="jxr_linenumber" name="L255" href="#L255">255</a>     }
-<a class="jxr_linenumber" name="L256" href="#L256">256</a>   }
-<a class="jxr_linenumber" name="L257" href="#L257">257</a> 
-<a class="jxr_linenumber" name="L258" href="#L258">258</a>   <strong class="jxr_keyword">private</strong> Optional&lt;String&gt; getMediaDropTargetID() {
-<a class="jxr_linenumber" name="L259" href="#L259">259</a>     <strong class="jxr_keyword">return</strong> componentContext.getEditContext().getEditConfig().getDropTargets().values().stream()
-<a class="jxr_linenumber" name="L260" href="#L260">260</a>         .filter(item -&gt; ArrayUtils.contains(item.getGroups(), <span class="jxr_string">"media"</span>))
-<a class="jxr_linenumber" name="L261" href="#L261">261</a>         .map(item -&gt; item.getId())
-<a class="jxr_linenumber" name="L262" href="#L262">262</a>         .findFirst();
-<a class="jxr_linenumber" name="L263" href="#L263">263</a>   }
-<a class="jxr_linenumber" name="L264" href="#L264">264</a> 
-<a class="jxr_linenumber" name="L265" href="#L265">265</a>   <strong class="jxr_keyword">private</strong> Optional&lt;String&gt; addMediaDroptarget(String refProperty, MediaPropertyNames mediaPropertyNames, String name) {
-<a class="jxr_linenumber" name="L266" href="#L266">266</a>     Component componentDefinition = WCMUtils.getComponent(resource);
-<a class="jxr_linenumber" name="L267" href="#L267">267</a> 
-<a class="jxr_linenumber" name="L268" href="#L268">268</a>     <em class="jxr_comment">// set drop target - with path of current component as default resource type</em>
-<a class="jxr_linenumber" name="L269" href="#L269">269</a>     Map&lt;String, String&gt; params = <strong class="jxr_keyword">new</strong> HashMap&lt;String, String&gt;();
-<a class="jxr_linenumber" name="L270" href="#L270">270</a>     <strong class="jxr_keyword">if</strong> (componentDefinition != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L271" href="#L271">271</a>       params.put(<span class="jxr_string">"./"</span> + ResourceResolver.PROPERTY_RESOURCE_TYPE, componentDefinition.getPath());
-<a class="jxr_linenumber" name="L272" href="#L272">272</a> 
-<a class="jxr_linenumber" name="L273" href="#L273">273</a>       <em class="jxr_comment">// clear cropping parameters if a new image is inserted via drag&amp;drop</em>
-<a class="jxr_linenumber" name="L274" href="#L274">274</a>       params.put(mediaPropertyNames.getCropProperty(), <span class="jxr_string">""</span>);
-<a class="jxr_linenumber" name="L275" href="#L275">275</a>       params.put(mediaPropertyNames.getRotationProperty(), <span class="jxr_string">""</span>);
-<a class="jxr_linenumber" name="L276" href="#L276">276</a>       params.put(mediaPropertyNames.getMapProperty(), <span class="jxr_string">""</span>);
-<a class="jxr_linenumber" name="L277" href="#L277">277</a>     }
-<a class="jxr_linenumber" name="L278" href="#L278">278</a> 
-<a class="jxr_linenumber" name="L279" href="#L279">279</a>     DropTarget dropTarget = <strong class="jxr_keyword">new</strong> DropTargetImpl(name, refProperty).setAccept(
-<a class="jxr_linenumber" name="L280" href="#L280">280</a>         MediaFileType.getImageContentTypes().stream().toArray(size -&gt; <strong class="jxr_keyword">new</strong> String[size]) <em class="jxr_comment">// allow all image mime types</em>
-<a class="jxr_linenumber" name="L281" href="#L281">281</a>     ).setGroups(<strong class="jxr_keyword">new</strong> String[] {
-<a class="jxr_linenumber" name="L282" href="#L282">282</a>         <span class="jxr_string">"media"</span> <em class="jxr_comment">// allow drop from DAM contentfinder tab</em>
-<a class="jxr_linenumber" name="L283" href="#L283">283</a>     }).setParameters(params);
-<a class="jxr_linenumber" name="L284" href="#L284">284</a> 
-<a class="jxr_linenumber" name="L285" href="#L285">285</a>     componentContext.getEditContext().getEditConfig().getDropTargets().put(dropTarget.getId(), dropTarget);
-<a class="jxr_linenumber" name="L286" href="#L286">286</a> 
-<a class="jxr_linenumber" name="L287" href="#L287">287</a>     <strong class="jxr_keyword">return</strong> Optional.of(dropTarget.getId());
-<a class="jxr_linenumber" name="L288" href="#L288">288</a>   }
-<a class="jxr_linenumber" name="L289" href="#L289">289</a> 
-<a class="jxr_linenumber" name="L290" href="#L290">290</a>   @Override
-<a class="jxr_linenumber" name="L291" href="#L291">291</a>   <strong class="jxr_keyword">public</strong> String toString() {
-<a class="jxr_linenumber" name="L292" href="#L292">292</a>     <strong class="jxr_keyword">return</strong> ID;
-<a class="jxr_linenumber" name="L293" href="#L293">293</a>   }
-<a class="jxr_linenumber" name="L294" href="#L294">294</a> 
-<a class="jxr_linenumber" name="L295" href="#L295">295</a> }
+<a class="jxr_linenumber" name="L217" href="#L217">217</a>   @SuppressWarnings({ <span class="jxr_string">"PMD.AvoidAccessibilityAlteration"</span>, <span class="jxr_string">"java:S3011"</span> })
+<a class="jxr_linenumber" name="L218" href="#L218">218</a>   <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> setCustomIPECropRatios(@NotNull HtmlElement&lt;?&gt; element, @NotNull <a name="MediaRequest" href="../../../../../io/wcm/handler/media/MediaRequest.html#MediaRequest">MediaRequest</a> mediaRequest) {
+<a class="jxr_linenumber" name="L219" href="#L219">219</a>     <strong class="jxr_keyword">if</strong> (wcmMode == WCMMode.DISABLED || wcmMode == <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L220" href="#L220">220</a>       <strong class="jxr_keyword">return</strong>;
+<a class="jxr_linenumber" name="L221" href="#L221">221</a>     }
+<a class="jxr_linenumber" name="L222" href="#L222">222</a> 
+<a class="jxr_linenumber" name="L223" href="#L223">223</a>     <strong class="jxr_keyword">if</strong> (componentContext != <strong class="jxr_keyword">null</strong>
+<a class="jxr_linenumber" name="L224" href="#L224">224</a>         &amp;&amp; MediaMarkupBuilderUtil.canSetCustomIPECropRatios(mediaRequest, componentContext)) {
+<a class="jxr_linenumber" name="L225" href="#L225">225</a>       <em class="jxr_comment">// overlay IPE config with cropping ratios for each media format with a valid ratio</em>
+<a class="jxr_linenumber" name="L226" href="#L226">226</a>       <a name="CroppingRatios" href="../../../../../io/wcm/handler/media/impl/ipeconfig/CroppingRatios.html#CroppingRatios">CroppingRatios</a> croppingRatios = <strong class="jxr_keyword">new</strong> <a name="CroppingRatios" href="../../../../../io/wcm/handler/media/impl/ipeconfig/CroppingRatios.html#CroppingRatios">CroppingRatios</a>(mediaFormatHandler);
+<a class="jxr_linenumber" name="L227" href="#L227">227</a>       Set&lt;String&gt; mediaFormatNames = croppingRatios.getMediaFormatsForCropping(mediaRequest);
+<a class="jxr_linenumber" name="L228" href="#L228">228</a>       <strong class="jxr_keyword">if</strong> (!mediaFormatNames.isEmpty()) {
+<a class="jxr_linenumber" name="L229" href="#L229">229</a>         <em class="jxr_comment">// build custom IPE config path containing both the resource context path and the</em>
+<a class="jxr_linenumber" name="L230" href="#L230">230</a>         <em class="jxr_comment">// configured media formats. The path is served by a custom resource provider, because</em>
+<a class="jxr_linenumber" name="L231" href="#L231">231</a>         <em class="jxr_comment">// there is no other interface to pass in a dynamic IPE configuration</em>
+<a class="jxr_linenumber" name="L232" href="#L232">232</a>         String ipeConfigPath = IPEConfigResourceProvider.buildPath(componentContext.getResource().getPath(), mediaFormatNames);
+<a class="jxr_linenumber" name="L233" href="#L233">233</a>         <em class="jxr_comment">// clone IPE config and overwrite config path via reflection (no API available for this)</em>
+<a class="jxr_linenumber" name="L234" href="#L234">234</a>         InplaceEditingConfig customIpeConfig = <strong class="jxr_keyword">new</strong> InplaceEditingConfig(componentContext
+<a class="jxr_linenumber" name="L235" href="#L235">235</a>             .getEditContext().getEditConfig().getInplaceEditingConfig());
+<a class="jxr_linenumber" name="L236" href="#L236">236</a>         <strong class="jxr_keyword">try</strong> {
+<a class="jxr_linenumber" name="L237" href="#L237">237</a>           Field configPathField = InplaceEditingConfig.<strong class="jxr_keyword">class</strong>.getDeclaredField(<span class="jxr_string">"configPath"</span>);
+<a class="jxr_linenumber" name="L238" href="#L238">238</a>           configPathField.setAccessible(<strong class="jxr_keyword">true</strong>);
+<a class="jxr_linenumber" name="L239" href="#L239">239</a>           configPathField.set(customIpeConfig, ipeConfigPath);
+<a class="jxr_linenumber" name="L240" href="#L240">240</a>         }
+<a class="jxr_linenumber" name="L241" href="#L241">241</a>         <strong class="jxr_keyword">catch</strong> (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException ex) {
+<a class="jxr_linenumber" name="L242" href="#L242">242</a>           log.warn(<span class="jxr_string">"Unable to set custom IPE config via reflection for {}"</span>, componentContext.getResource().getPath(), ex);
+<a class="jxr_linenumber" name="L243" href="#L243">243</a>         }
+<a class="jxr_linenumber" name="L244" href="#L244">244</a>         componentContext.getEditContext().getEditConfig().setInplaceEditingConfig(customIpeConfig);
+<a class="jxr_linenumber" name="L245" href="#L245">245</a>       }
+<a class="jxr_linenumber" name="L246" href="#L246">246</a> 
+<a class="jxr_linenumber" name="L247" href="#L247">247</a>     }
+<a class="jxr_linenumber" name="L248" href="#L248">248</a>   }
+<a class="jxr_linenumber" name="L249" href="#L249">249</a> 
+<a class="jxr_linenumber" name="L250" href="#L250">250</a>   <strong class="jxr_keyword">private</strong> String prependDotSlash(String property) {
+<a class="jxr_linenumber" name="L251" href="#L251">251</a>     <strong class="jxr_keyword">if</strong> (!StringUtils.startsWith(property, <span class="jxr_string">"./"</span>)) {
+<a class="jxr_linenumber" name="L252" href="#L252">252</a>       <strong class="jxr_keyword">return</strong> <span class="jxr_string">"./"</span> + property;
+<a class="jxr_linenumber" name="L253" href="#L253">253</a>     }
+<a class="jxr_linenumber" name="L254" href="#L254">254</a>     <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="L255" href="#L255">255</a>       <strong class="jxr_keyword">return</strong> property;
+<a class="jxr_linenumber" name="L256" href="#L256">256</a>     }
+<a class="jxr_linenumber" name="L257" href="#L257">257</a>   }
+<a class="jxr_linenumber" name="L258" href="#L258">258</a> 
+<a class="jxr_linenumber" name="L259" href="#L259">259</a>   <strong class="jxr_keyword">private</strong> Optional&lt;String&gt; getMediaDropTargetID() {
+<a class="jxr_linenumber" name="L260" href="#L260">260</a>     <strong class="jxr_keyword">return</strong> componentContext.getEditContext().getEditConfig().getDropTargets().values().stream()
+<a class="jxr_linenumber" name="L261" href="#L261">261</a>         .filter(item -&gt; ArrayUtils.contains(item.getGroups(), <span class="jxr_string">"media"</span>))
+<a class="jxr_linenumber" name="L262" href="#L262">262</a>         .map(DropTarget::getId)
+<a class="jxr_linenumber" name="L263" href="#L263">263</a>         .findFirst();
+<a class="jxr_linenumber" name="L264" href="#L264">264</a>   }
+<a class="jxr_linenumber" name="L265" href="#L265">265</a> 
+<a class="jxr_linenumber" name="L266" href="#L266">266</a>   <strong class="jxr_keyword">private</strong> Optional&lt;String&gt; addMediaDroptarget(String refProperty, MediaPropertyNames mediaPropertyNames, String name) {
+<a class="jxr_linenumber" name="L267" href="#L267">267</a>     Component componentDefinition = WCMUtils.getComponent(resource);
+<a class="jxr_linenumber" name="L268" href="#L268">268</a> 
+<a class="jxr_linenumber" name="L269" href="#L269">269</a>     <em class="jxr_comment">// set drop target - with path of current component as default resource type</em>
+<a class="jxr_linenumber" name="L270" href="#L270">270</a>     Map&lt;String, String&gt; params = <strong class="jxr_keyword">new</strong> HashMap&lt;&gt;();
+<a class="jxr_linenumber" name="L271" href="#L271">271</a>     <strong class="jxr_keyword">if</strong> (componentDefinition != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L272" href="#L272">272</a>       params.put(<span class="jxr_string">"./"</span> + ResourceResolver.PROPERTY_RESOURCE_TYPE, componentDefinition.getPath());
+<a class="jxr_linenumber" name="L273" href="#L273">273</a> 
+<a class="jxr_linenumber" name="L274" href="#L274">274</a>       <em class="jxr_comment">// clear cropping parameters if a new image is inserted via drag&amp;drop</em>
+<a class="jxr_linenumber" name="L275" href="#L275">275</a>       params.put(mediaPropertyNames.getCropProperty(), <span class="jxr_string">""</span>);
+<a class="jxr_linenumber" name="L276" href="#L276">276</a>       params.put(mediaPropertyNames.getRotationProperty(), <span class="jxr_string">""</span>);
+<a class="jxr_linenumber" name="L277" href="#L277">277</a>       params.put(mediaPropertyNames.getMapProperty(), <span class="jxr_string">""</span>);
+<a class="jxr_linenumber" name="L278" href="#L278">278</a>     }
+<a class="jxr_linenumber" name="L279" href="#L279">279</a> 
+<a class="jxr_linenumber" name="L280" href="#L280">280</a>     DropTarget dropTarget = <strong class="jxr_keyword">new</strong> DropTargetImpl(name, refProperty).setAccept(
+<a class="jxr_linenumber" name="L281" href="#L281">281</a>         MediaFileType.getImageContentTypes().stream().toArray(size -&gt; <strong class="jxr_keyword">new</strong> String[size]) <em class="jxr_comment">// allow all image mime types</em>
+<a class="jxr_linenumber" name="L282" href="#L282">282</a>     ).setGroups(<strong class="jxr_keyword">new</strong> String[] {
+<a class="jxr_linenumber" name="L283" href="#L283">283</a>         <span class="jxr_string">"media"</span> <em class="jxr_comment">// allow drop from DAM contentfinder tab</em>
+<a class="jxr_linenumber" name="L284" href="#L284">284</a>     }).setParameters(params);
+<a class="jxr_linenumber" name="L285" href="#L285">285</a> 
+<a class="jxr_linenumber" name="L286" href="#L286">286</a>     componentContext.getEditContext().getEditConfig().getDropTargets().put(dropTarget.getId(), dropTarget);
+<a class="jxr_linenumber" name="L287" href="#L287">287</a> 
+<a class="jxr_linenumber" name="L288" href="#L288">288</a>     <strong class="jxr_keyword">return</strong> Optional.of(dropTarget.getId());
+<a class="jxr_linenumber" name="L289" href="#L289">289</a>   }
+<a class="jxr_linenumber" name="L290" href="#L290">290</a> 
+<a class="jxr_linenumber" name="L291" href="#L291">291</a>   @Override
+<a class="jxr_linenumber" name="L292" href="#L292">292</a>   <strong class="jxr_keyword">public</strong> String toString() {
+<a class="jxr_linenumber" name="L293" href="#L293">293</a>     <strong class="jxr_keyword">return</strong> ID;
+<a class="jxr_linenumber" name="L294" href="#L294">294</a>   }
+<a class="jxr_linenumber" name="L295" href="#L295">295</a> 
+<a class="jxr_linenumber" name="L296" href="#L296">296</a> }
 </pre>
 <hr/>
 <div id="footer">Copyright &#169; 2014&#x2013;2022 <a href="https://wcm.io">wcm.io</a>. All rights reserved.</div>
