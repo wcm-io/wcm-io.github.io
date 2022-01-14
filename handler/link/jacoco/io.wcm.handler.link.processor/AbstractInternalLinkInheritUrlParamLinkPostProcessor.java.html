@@ -23,6 +23,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.models.annotations.injectorspecific.Self;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ConsumerType;
@@ -46,44 +47,44 @@ public abstract class AbstractInternalLinkInheritUrlParamLinkPostProcessor imple
 
   private final Set&lt;String&gt; inheritUrlParameterNames;
 
-<span class="fc" id="L49">  private final Logger log = LoggerFactory.getLogger(getClass());</span>
+<span class="fc" id="L50">  private final Logger log = LoggerFactory.getLogger(getClass());</span>
 
   /**
    * @param inheritUrlParameterNames Custom list of inheritable URL parameter names.
    */
-<span class="fc" id="L54">  protected AbstractInternalLinkInheritUrlParamLinkPostProcessor(Set&lt;String&gt; inheritUrlParameterNames) {</span>
-<span class="fc" id="L55">    this.inheritUrlParameterNames = inheritUrlParameterNames;</span>
-<span class="fc" id="L56">  }</span>
+<span class="fc" id="L55">  protected AbstractInternalLinkInheritUrlParamLinkPostProcessor(Set&lt;String&gt; inheritUrlParameterNames) {</span>
+<span class="fc" id="L56">    this.inheritUrlParameterNames = inheritUrlParameterNames;</span>
+<span class="fc" id="L57">  }</span>
 
   @Override
   @SuppressWarnings(&quot;PMD.UseStringBufferForStringAppends&quot;)
   public final @NotNull Link process(@NotNull Link link) {
 
-<span class="fc bfc" id="L62" title="All 2 branches covered.">    if (link.isValid()</span>
-<span class="fc bfc" id="L63" title="All 2 branches covered.">        &amp;&amp; (link.getLinkType().getId() == InternalLinkType.ID</span>
-<span class="fc bfc" id="L64" title="All 2 branches covered.">            || link.getLinkType().getId() == InternalCrossContextLinkType.ID)) {</span>
-<span class="fc" id="L65">      String url = link.getUrl();</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">    if (link.isValid()</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        &amp;&amp; (StringUtils.equals(link.getLinkType().getId(), InternalLinkType.ID)</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">            || StringUtils.equals(link.getLinkType().getId(), InternalCrossContextLinkType.ID))) {</span>
+<span class="fc" id="L66">      String url = link.getUrl();</span>
       try {
-<span class="fc" id="L67">        URI uri = new URI(url);</span>
-<span class="fc" id="L68">        String path = uri.getPath();</span>
-<span class="pc bpc" id="L69" title="1 of 4 branches missed.">        if (uri.getScheme() != null &amp;&amp; uri.getHost() != null) {</span>
-<span class="fc bfc" id="L70" title="All 2 branches covered.">          path = uri.getScheme() + &quot;://&quot; + uri.getHost() + (uri.getPort() == -1 ? &quot;&quot; : (&quot;:&quot; + uri.getPort())) + path;</span>
+<span class="fc" id="L68">        URI uri = new URI(url);</span>
+<span class="fc" id="L69">        String path = uri.getPath();</span>
+<span class="pc bpc" id="L70" title="1 of 4 branches missed.">        if (uri.getScheme() != null &amp;&amp; uri.getHost() != null) {</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">          path = uri.getScheme() + &quot;://&quot; + uri.getHost() + (uri.getPort() == -1 ? &quot;&quot; : (&quot;:&quot; + uri.getPort())) + path;</span>
         }
-<span class="fc" id="L72">        url = urlHandler.get(path)</span>
-<span class="fc" id="L73">            .queryString(uri.getRawQuery(), this.inheritUrlParameterNames)</span>
-<span class="fc" id="L74">            .fragment(uri.getFragment())</span>
-<span class="fc" id="L75">            .build();</span>
-<span class="fc" id="L76">        link.setUrl(url);</span>
-<span class="pc bpc" id="L77" title="1 of 2 branches missed.">        if (link.getAnchor() != null) {</span>
-<span class="fc" id="L78">          link.getAnchor().setAttribute(&quot;href&quot;, url);</span>
+<span class="fc" id="L73">        url = urlHandler.get(path)</span>
+<span class="fc" id="L74">            .queryString(uri.getRawQuery(), this.inheritUrlParameterNames)</span>
+<span class="fc" id="L75">            .fragment(uri.getFragment())</span>
+<span class="fc" id="L76">            .build();</span>
+<span class="fc" id="L77">        link.setUrl(url);</span>
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        if (link.getAnchor() != null) {</span>
+<span class="fc" id="L79">          link.getAnchor().setAttribute(&quot;href&quot;, url);</span>
         }
       }
-<span class="nc" id="L81">      catch (URISyntaxException ex) {</span>
-<span class="nc" id="L82">        log.warn(&quot;Skipping post-processing or URL: {}&quot;, url, ex);</span>
-<span class="fc" id="L83">      }</span>
+<span class="nc" id="L82">      catch (URISyntaxException ex) {</span>
+<span class="nc" id="L83">        log.warn(&quot;Skipping post-processing or URL: {}&quot;, url, ex);</span>
+<span class="fc" id="L84">      }</span>
     }
 
-<span class="fc" id="L86">    return link;</span>
+<span class="fc" id="L87">    return link;</span>
   }
 
 }

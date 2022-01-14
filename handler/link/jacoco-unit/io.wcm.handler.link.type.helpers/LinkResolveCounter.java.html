@@ -27,12 +27,7 @@ import org.jetbrains.annotations.NotNull;
  */
 <span class="fc" id="L28">public final class LinkResolveCounter {</span>
 
-<span class="fc" id="L30">  private static final ThreadLocal&lt;LinkResolveCounter&gt; THREAD_LOCAL = new ThreadLocal&lt;LinkResolveCounter&gt;() {</span>
-    @Override
-    protected LinkResolveCounter initialValue() {
-<span class="fc" id="L33">      return new LinkResolveCounter();</span>
-    }
-  };
+<span class="fc" id="L30">  private static final ThreadLocal&lt;LinkResolveCounter&gt; THREAD_LOCAL = ThreadLocal.withInitial(LinkResolveCounter::new);</span>
 
   /**
    * Maximum number of &quot;recursion hops&quot; allowed for link resolving.
@@ -45,35 +40,35 @@ import org.jetbrains.annotations.NotNull;
    * @return Counter value
    */
   public int getCount() {
-<span class="nc" id="L48">    return this.count;</span>
+<span class="nc" id="L43">    return this.count;</span>
   }
 
   /**
    * Increase counter by 1.
    */
   public void increaseCount() {
-<span class="fc" id="L55">    this.count++;</span>
-<span class="fc" id="L56">  }</span>
+<span class="fc" id="L50">    this.count++;</span>
+<span class="fc" id="L51">  }</span>
 
   /**
    * Decrease counter by 1.
    * If 0 is reached the counter instance is removed from the current thread.
    */
   public void decreaseCount() {
-<span class="pc bpc" id="L63" title="1 of 2 branches missed.">    if (this.count == 0) {</span>
-<span class="nc" id="L64">      throw new RuntimeException(&quot;Cannot decrease, counter is already 0.&quot;);</span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">    if (this.count == 0) {</span>
+<span class="nc" id="L59">      throw new RuntimeException(&quot;Cannot decrease, counter is already 0.&quot;);</span>
     }
-<span class="fc" id="L66">    this.count--;</span>
-<span class="fc bfc" id="L67" title="All 2 branches covered.">    if (this.count == 0) {</span>
-<span class="fc" id="L68">      THREAD_LOCAL.remove();</span>
+<span class="fc" id="L61">    this.count--;</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">    if (this.count == 0) {</span>
+<span class="fc" id="L63">      THREAD_LOCAL.remove();</span>
     }
-<span class="fc" id="L70">  }</span>
+<span class="fc" id="L65">  }</span>
 
   /**
    * @return true if maximum of allowed recursion steps is reached.
    */
   public boolean isMaximumReached() {
-<span class="fc bfc" id="L76" title="All 2 branches covered.">    return (this.count &gt; MAX_COUNT);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">    return (this.count &gt; MAX_COUNT);</span>
   }
 
   /**
@@ -81,7 +76,7 @@ import org.jetbrains.annotations.NotNull;
    *         If instance was not set in thread before it is newly created and attached to the current thread.
    */
   public static @NotNull LinkResolveCounter get() {
-<span class="fc" id="L84">    return THREAD_LOCAL.get();</span>
+<span class="fc" id="L79">    return THREAD_LOCAL.get();</span>
   }
 
 }
