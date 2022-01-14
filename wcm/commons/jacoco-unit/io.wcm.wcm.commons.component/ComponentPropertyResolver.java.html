@@ -189,7 +189,7 @@ public final class ComponentPropertyResolver implements AutoCloseable {
 <span class="fc" id="L189">    return StringUtils.isNotEmpty(resource.getResourceType());</span>
   }
 
-  @SuppressWarnings(&quot;null&quot;)
+  @SuppressWarnings({ &quot;null&quot;, &quot;java:S2589&quot; }) // extra null checks for backward compatibility
   private static @Nullable Resource getResourceWithResourceType(@Nullable Resource resource) {
 <span class="pc bpc" id="L194" title="1 of 2 branches missed.">    if (resource == null) {</span>
 <span class="nc" id="L195">      return null;</span>
@@ -370,29 +370,30 @@ public final class ComponentPropertyResolver implements AutoCloseable {
 <span class="fc" id="L370">    return result;</span>
   }
 
+  @SuppressWarnings(&quot;PMD.ReturnEmptyCollectionRatherThanNull&quot;)
   private @Nullable Collection&lt;Resource&gt; getContentPolicyResources(@NotNull String name) {
-<span class="pc bpc" id="L374" title="1 of 4 branches missed.">    if (contentPolicyResolution == ComponentPropertyResolution.IGNORE || resource == null) {</span>
-<span class="fc" id="L375">      return null;</span>
+<span class="pc bpc" id="L375" title="1 of 4 branches missed.">    if (contentPolicyResolution == ComponentPropertyResolution.IGNORE || resource == null) {</span>
+<span class="fc" id="L376">      return null;</span>
     }
-<span class="fc" id="L377">    ContentPolicy policy = getPolicy(resource);</span>
-<span class="fc bfc" id="L378" title="All 2 branches covered.">    if (policy != null) {</span>
-<span class="fc" id="L379">      Resource policyResource = policy.adaptTo(Resource.class);</span>
-<span class="pc bpc" id="L380" title="1 of 2 branches missed.">      if (policyResource != null) {</span>
-<span class="fc" id="L381">        return getResources(policyResource.getChild(name));</span>
+<span class="fc" id="L378">    ContentPolicy policy = getPolicy(resource);</span>
+<span class="fc bfc" id="L379" title="All 2 branches covered.">    if (policy != null) {</span>
+<span class="fc" id="L380">      Resource policyResource = policy.adaptTo(Resource.class);</span>
+<span class="pc bpc" id="L381" title="1 of 2 branches missed.">      if (policyResource != null) {</span>
+<span class="fc" id="L382">        return getResources(policyResource.getChild(name));</span>
       }
     }
-<span class="fc" id="L384">    return null;</span>
+<span class="fc" id="L385">    return null;</span>
   }
 
   private @Nullable Collection&lt;Resource&gt; getResources(@Nullable Resource parent) {
-<span class="fc bfc" id="L388" title="All 2 branches covered.">    if (parent == null) {</span>
-<span class="fc" id="L389">      return null;</span>
+<span class="fc bfc" id="L389" title="All 2 branches covered.">    if (parent == null) {</span>
+<span class="fc" id="L390">      return null;</span>
     }
-<span class="fc" id="L391">    Collection&lt;Resource&gt; children = ImmutableList.copyOf(parent.getChildren());</span>
-<span class="pc bpc" id="L392" title="1 of 2 branches missed.">    if (children.isEmpty()) {</span>
-<span class="nc" id="L393">      return null;</span>
+<span class="fc" id="L392">    Collection&lt;Resource&gt; children = ImmutableList.copyOf(parent.getChildren());</span>
+<span class="pc bpc" id="L393" title="1 of 2 branches missed.">    if (children.isEmpty()) {</span>
+<span class="nc" id="L394">      return null;</span>
     }
-<span class="fc" id="L395">    return children;</span>
+<span class="fc" id="L396">    return children;</span>
   }
 
   /**
@@ -401,8 +402,8 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    * @return Policy or null
    */
   private static @Nullable ContentPolicy getPolicy(@NotNull Resource resource) {
-<span class="fc" id="L404">    ContentPolicyManager policyManager = AdaptTo.notNull(resource.getResourceResolver(), ContentPolicyManager.class);</span>
-<span class="fc" id="L405">    return policyManager.getPolicy(resource);</span>
+<span class="fc" id="L405">    ContentPolicyManager policyManager = AdaptTo.notNull(resource.getResourceResolver(), ContentPolicyManager.class);</span>
+<span class="fc" id="L406">    return policyManager.getPolicy(resource);</span>
   }
 
   /**
@@ -414,36 +415,36 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    */
   private @Nullable Resource getLocalComponentResource(@NotNull Component component,
       @NotNull String childResourcePath) {
-<span class="pc bpc" id="L417" title="1 of 6 branches missed.">    if (componentsResourceResolver == null</span>
+<span class="pc bpc" id="L418" title="1 of 6 branches missed.">    if (componentsResourceResolver == null</span>
         &amp;&amp; resourceResolverFactory != null
         &amp;&amp; !initComponentsResourceResolverFailed) {
       try {
-<span class="fc" id="L421">        componentsResourceResolver = resourceResolverFactory.getServiceResourceResolver(</span>
-<span class="fc" id="L422">            ImmutableMap.of(ResourceResolverFactory.SUBSERVICE, SERVICEUSER_SUBSERVICE));</span>
+<span class="fc" id="L422">        componentsResourceResolver = resourceResolverFactory.getServiceResourceResolver(</span>
+<span class="fc" id="L423">            ImmutableMap.of(ResourceResolverFactory.SUBSERVICE, SERVICEUSER_SUBSERVICE));</span>
       }
-<span class="nc" id="L424">      catch (LoginException ex) {</span>
-<span class="nc" id="L425">        initComponentsResourceResolverFailed = true;</span>
-<span class="nc bnc" id="L426" title="All 2 branches missed.">        if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L427">          log.debug(&quot;Unable to get resource resolver for accessing local component resource, &quot;</span>
+<span class="nc" id="L425">      catch (LoginException ex) {</span>
+<span class="nc" id="L426">        initComponentsResourceResolverFailed = true;</span>
+<span class="nc bnc" id="L427" title="All 2 branches missed.">        if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L428">          log.debug(&quot;Unable to get resource resolver for accessing local component resource, &quot;</span>
               + &quot;please make sure to grant access to system user 'sling-scripting' for &quot;
               + &quot;bundle 'io.wcm.wcm.commons', subservice '{}'.&quot;, SERVICEUSER_SUBSERVICE, ex);
         }
-<span class="fc" id="L431">      }</span>
+<span class="fc" id="L432">      }</span>
     }
-<span class="fc bfc" id="L433" title="All 2 branches covered.">    if (componentsResourceResolver != null) {</span>
-<span class="fc" id="L434">      String resourcePath = component.getPath() + &quot;/&quot; + childResourcePath;</span>
-<span class="fc" id="L435">      return componentsResourceResolver.getResource(resourcePath);</span>
+<span class="fc bfc" id="L434" title="All 2 branches covered.">    if (componentsResourceResolver != null) {</span>
+<span class="fc" id="L435">      String resourcePath = component.getPath() + &quot;/&quot; + childResourcePath;</span>
+<span class="fc" id="L436">      return componentsResourceResolver.getResource(resourcePath);</span>
     }
     // fallback implementation for previous behavior - this will usually not work in publish instances
-<span class="fc" id="L438">    return component.getLocalResource(childResourcePath);</span>
+<span class="fc" id="L439">    return component.getLocalResource(childResourcePath);</span>
   }
 
   @Override
   public void close() {
-<span class="fc bfc" id="L443" title="All 2 branches covered.">    if (componentsResourceResolver != null) {</span>
-<span class="fc" id="L444">      componentsResourceResolver.close();</span>
+<span class="fc bfc" id="L444" title="All 2 branches covered.">    if (componentsResourceResolver != null) {</span>
+<span class="fc" id="L445">      componentsResourceResolver.close();</span>
     }
-<span class="fc" id="L446">  }</span>
+<span class="fc" id="L447">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

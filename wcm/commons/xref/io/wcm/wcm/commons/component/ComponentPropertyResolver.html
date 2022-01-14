@@ -197,7 +197,7 @@
 <a class="jxr_linenumber" name="L189" href="#L189">189</a>     <strong class="jxr_keyword">return</strong> StringUtils.isNotEmpty(resource.getResourceType());
 <a class="jxr_linenumber" name="L190" href="#L190">190</a>   }
 <a class="jxr_linenumber" name="L191" href="#L191">191</a> 
-<a class="jxr_linenumber" name="L192" href="#L192">192</a>   @SuppressWarnings(<span class="jxr_string">"null"</span>)
+<a class="jxr_linenumber" name="L192" href="#L192">192</a>   @SuppressWarnings({ <span class="jxr_string">"null"</span>, <span class="jxr_string">"java:S2589"</span> }) <em class="jxr_comment">// extra null checks for backward compatibility</em>
 <a class="jxr_linenumber" name="L193" href="#L193">193</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> @Nullable Resource getResourceWithResourceType(@Nullable Resource resource) {
 <a class="jxr_linenumber" name="L194" href="#L194">194</a>     <strong class="jxr_keyword">if</strong> (resource == <strong class="jxr_keyword">null</strong>) {
 <a class="jxr_linenumber" name="L195" href="#L195">195</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
@@ -378,82 +378,83 @@
 <a class="jxr_linenumber" name="L370" href="#L370">370</a>     <strong class="jxr_keyword">return</strong> result;
 <a class="jxr_linenumber" name="L371" href="#L371">371</a>   }
 <a class="jxr_linenumber" name="L372" href="#L372">372</a> 
-<a class="jxr_linenumber" name="L373" href="#L373">373</a>   <strong class="jxr_keyword">private</strong> @Nullable Collection&lt;Resource&gt; getContentPolicyResources(@NotNull String name) {
-<a class="jxr_linenumber" name="L374" href="#L374">374</a>     <strong class="jxr_keyword">if</strong> (contentPolicyResolution == ComponentPropertyResolution.IGNORE || resource == <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L375" href="#L375">375</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
-<a class="jxr_linenumber" name="L376" href="#L376">376</a>     }
-<a class="jxr_linenumber" name="L377" href="#L377">377</a>     ContentPolicy policy = getPolicy(resource);
-<a class="jxr_linenumber" name="L378" href="#L378">378</a>     <strong class="jxr_keyword">if</strong> (policy != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L379" href="#L379">379</a>       Resource policyResource = policy.adaptTo(Resource.<strong class="jxr_keyword">class</strong>);
-<a class="jxr_linenumber" name="L380" href="#L380">380</a>       <strong class="jxr_keyword">if</strong> (policyResource != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L381" href="#L381">381</a>         <strong class="jxr_keyword">return</strong> getResources(policyResource.getChild(name));
-<a class="jxr_linenumber" name="L382" href="#L382">382</a>       }
-<a class="jxr_linenumber" name="L383" href="#L383">383</a>     }
-<a class="jxr_linenumber" name="L384" href="#L384">384</a>     <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
-<a class="jxr_linenumber" name="L385" href="#L385">385</a>   }
-<a class="jxr_linenumber" name="L386" href="#L386">386</a> 
-<a class="jxr_linenumber" name="L387" href="#L387">387</a>   <strong class="jxr_keyword">private</strong> @Nullable Collection&lt;Resource&gt; getResources(@Nullable Resource parent) {
-<a class="jxr_linenumber" name="L388" href="#L388">388</a>     <strong class="jxr_keyword">if</strong> (parent == <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L389" href="#L389">389</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
-<a class="jxr_linenumber" name="L390" href="#L390">390</a>     }
-<a class="jxr_linenumber" name="L391" href="#L391">391</a>     Collection&lt;Resource&gt; children = ImmutableList.copyOf(parent.getChildren());
-<a class="jxr_linenumber" name="L392" href="#L392">392</a>     <strong class="jxr_keyword">if</strong> (children.isEmpty()) {
-<a class="jxr_linenumber" name="L393" href="#L393">393</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
-<a class="jxr_linenumber" name="L394" href="#L394">394</a>     }
-<a class="jxr_linenumber" name="L395" href="#L395">395</a>     <strong class="jxr_keyword">return</strong> children;
-<a class="jxr_linenumber" name="L396" href="#L396">396</a>   }
-<a class="jxr_linenumber" name="L397" href="#L397">397</a> 
-<a class="jxr_linenumber" name="L398" href="#L398">398</a>   <em class="jxr_javadoccomment">/**</em>
-<a class="jxr_linenumber" name="L399" href="#L399">399</a> <em class="jxr_javadoccomment">   * Get content policy via policy manager.</em>
-<a class="jxr_linenumber" name="L400" href="#L400">400</a> <em class="jxr_javadoccomment">   * @param resource Content resource</em>
-<a class="jxr_linenumber" name="L401" href="#L401">401</a> <em class="jxr_javadoccomment">   * @return Policy or null</em>
-<a class="jxr_linenumber" name="L402" href="#L402">402</a> <em class="jxr_javadoccomment">   */</em>
-<a class="jxr_linenumber" name="L403" href="#L403">403</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> @Nullable ContentPolicy getPolicy(@NotNull Resource resource) {
-<a class="jxr_linenumber" name="L404" href="#L404">404</a>     ContentPolicyManager policyManager = AdaptTo.notNull(resource.getResourceResolver(), ContentPolicyManager.<strong class="jxr_keyword">class</strong>);
-<a class="jxr_linenumber" name="L405" href="#L405">405</a>     <strong class="jxr_keyword">return</strong> policyManager.getPolicy(resource);
-<a class="jxr_linenumber" name="L406" href="#L406">406</a>   }
-<a class="jxr_linenumber" name="L407" href="#L407">407</a> 
-<a class="jxr_linenumber" name="L408" href="#L408">408</a>   <em class="jxr_javadoccomment">/**</em>
-<a class="jxr_linenumber" name="L409" href="#L409">409</a> <em class="jxr_javadoccomment">   * Get local child resource for component, with a special handling for publish environments where</em>
-<a class="jxr_linenumber" name="L410" href="#L410">410</a> <em class="jxr_javadoccomment">   * the local child resources for components below /apps are not accessible for everyone.</em>
-<a class="jxr_linenumber" name="L411" href="#L411">411</a> <em class="jxr_javadoccomment">   * @param component Component</em>
-<a class="jxr_linenumber" name="L412" href="#L412">412</a> <em class="jxr_javadoccomment">   * @param childResourcePath Child resource path</em>
-<a class="jxr_linenumber" name="L413" href="#L413">413</a> <em class="jxr_javadoccomment">   * @return Resource or null</em>
-<a class="jxr_linenumber" name="L414" href="#L414">414</a> <em class="jxr_javadoccomment">   */</em>
-<a class="jxr_linenumber" name="L415" href="#L415">415</a>   <strong class="jxr_keyword">private</strong> @Nullable Resource getLocalComponentResource(@NotNull Component component,
-<a class="jxr_linenumber" name="L416" href="#L416">416</a>       @NotNull String childResourcePath) {
-<a class="jxr_linenumber" name="L417" href="#L417">417</a>     <strong class="jxr_keyword">if</strong> (componentsResourceResolver == <strong class="jxr_keyword">null</strong>
-<a class="jxr_linenumber" name="L418" href="#L418">418</a>         &amp;&amp; resourceResolverFactory != <strong class="jxr_keyword">null</strong>
-<a class="jxr_linenumber" name="L419" href="#L419">419</a>         &amp;&amp; !initComponentsResourceResolverFailed) {
-<a class="jxr_linenumber" name="L420" href="#L420">420</a>       <strong class="jxr_keyword">try</strong> {
-<a class="jxr_linenumber" name="L421" href="#L421">421</a>         componentsResourceResolver = resourceResolverFactory.getServiceResourceResolver(
-<a class="jxr_linenumber" name="L422" href="#L422">422</a>             ImmutableMap.of(ResourceResolverFactory.SUBSERVICE, SERVICEUSER_SUBSERVICE));
-<a class="jxr_linenumber" name="L423" href="#L423">423</a>       }
-<a class="jxr_linenumber" name="L424" href="#L424">424</a>       <strong class="jxr_keyword">catch</strong> (LoginException ex) {
-<a class="jxr_linenumber" name="L425" href="#L425">425</a>         initComponentsResourceResolverFailed = <strong class="jxr_keyword">true</strong>;
-<a class="jxr_linenumber" name="L426" href="#L426">426</a>         <strong class="jxr_keyword">if</strong> (log.isDebugEnabled()) {
-<a class="jxr_linenumber" name="L427" href="#L427">427</a>           log.debug(<span class="jxr_string">"Unable to get resource resolver for accessing local component resource, "</span>
-<a class="jxr_linenumber" name="L428" href="#L428">428</a>               + <span class="jxr_string">"please make sure to grant access to system user 'sling-scripting' for "</span>
-<a class="jxr_linenumber" name="L429" href="#L429">429</a>               + <span class="jxr_string">"bundle 'io.wcm.wcm.commons', subservice '{}'."</span>, SERVICEUSER_SUBSERVICE, ex);
-<a class="jxr_linenumber" name="L430" href="#L430">430</a>         }
-<a class="jxr_linenumber" name="L431" href="#L431">431</a>       }
-<a class="jxr_linenumber" name="L432" href="#L432">432</a>     }
-<a class="jxr_linenumber" name="L433" href="#L433">433</a>     <strong class="jxr_keyword">if</strong> (componentsResourceResolver != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L434" href="#L434">434</a>       String resourcePath = component.getPath() + <span class="jxr_string">"/"</span> + childResourcePath;
-<a class="jxr_linenumber" name="L435" href="#L435">435</a>       <strong class="jxr_keyword">return</strong> componentsResourceResolver.getResource(resourcePath);
-<a class="jxr_linenumber" name="L436" href="#L436">436</a>     }
-<a class="jxr_linenumber" name="L437" href="#L437">437</a>     <em class="jxr_comment">// fallback implementation for previous behavior - this will usually not work in publish instances</em>
-<a class="jxr_linenumber" name="L438" href="#L438">438</a>     <strong class="jxr_keyword">return</strong> component.getLocalResource(childResourcePath);
-<a class="jxr_linenumber" name="L439" href="#L439">439</a>   }
-<a class="jxr_linenumber" name="L440" href="#L440">440</a> 
-<a class="jxr_linenumber" name="L441" href="#L441">441</a>   @Override
-<a class="jxr_linenumber" name="L442" href="#L442">442</a>   <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> close() {
-<a class="jxr_linenumber" name="L443" href="#L443">443</a>     <strong class="jxr_keyword">if</strong> (componentsResourceResolver != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L444" href="#L444">444</a>       componentsResourceResolver.close();
-<a class="jxr_linenumber" name="L445" href="#L445">445</a>     }
-<a class="jxr_linenumber" name="L446" href="#L446">446</a>   }
-<a class="jxr_linenumber" name="L447" href="#L447">447</a> 
-<a class="jxr_linenumber" name="L448" href="#L448">448</a> }
+<a class="jxr_linenumber" name="L373" href="#L373">373</a>   @SuppressWarnings(<span class="jxr_string">"PMD.ReturnEmptyCollectionRatherThanNull"</span>)
+<a class="jxr_linenumber" name="L374" href="#L374">374</a>   <strong class="jxr_keyword">private</strong> @Nullable Collection&lt;Resource&gt; getContentPolicyResources(@NotNull String name) {
+<a class="jxr_linenumber" name="L375" href="#L375">375</a>     <strong class="jxr_keyword">if</strong> (contentPolicyResolution == ComponentPropertyResolution.IGNORE || resource == <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L376" href="#L376">376</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="L377" href="#L377">377</a>     }
+<a class="jxr_linenumber" name="L378" href="#L378">378</a>     ContentPolicy policy = getPolicy(resource);
+<a class="jxr_linenumber" name="L379" href="#L379">379</a>     <strong class="jxr_keyword">if</strong> (policy != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L380" href="#L380">380</a>       Resource policyResource = policy.adaptTo(Resource.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="L381" href="#L381">381</a>       <strong class="jxr_keyword">if</strong> (policyResource != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L382" href="#L382">382</a>         <strong class="jxr_keyword">return</strong> getResources(policyResource.getChild(name));
+<a class="jxr_linenumber" name="L383" href="#L383">383</a>       }
+<a class="jxr_linenumber" name="L384" href="#L384">384</a>     }
+<a class="jxr_linenumber" name="L385" href="#L385">385</a>     <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="L386" href="#L386">386</a>   }
+<a class="jxr_linenumber" name="L387" href="#L387">387</a> 
+<a class="jxr_linenumber" name="L388" href="#L388">388</a>   <strong class="jxr_keyword">private</strong> @Nullable Collection&lt;Resource&gt; getResources(@Nullable Resource parent) {
+<a class="jxr_linenumber" name="L389" href="#L389">389</a>     <strong class="jxr_keyword">if</strong> (parent == <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L390" href="#L390">390</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="L391" href="#L391">391</a>     }
+<a class="jxr_linenumber" name="L392" href="#L392">392</a>     Collection&lt;Resource&gt; children = ImmutableList.copyOf(parent.getChildren());
+<a class="jxr_linenumber" name="L393" href="#L393">393</a>     <strong class="jxr_keyword">if</strong> (children.isEmpty()) {
+<a class="jxr_linenumber" name="L394" href="#L394">394</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="L395" href="#L395">395</a>     }
+<a class="jxr_linenumber" name="L396" href="#L396">396</a>     <strong class="jxr_keyword">return</strong> children;
+<a class="jxr_linenumber" name="L397" href="#L397">397</a>   }
+<a class="jxr_linenumber" name="L398" href="#L398">398</a> 
+<a class="jxr_linenumber" name="L399" href="#L399">399</a>   <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L400" href="#L400">400</a> <em class="jxr_javadoccomment">   * Get content policy via policy manager.</em>
+<a class="jxr_linenumber" name="L401" href="#L401">401</a> <em class="jxr_javadoccomment">   * @param resource Content resource</em>
+<a class="jxr_linenumber" name="L402" href="#L402">402</a> <em class="jxr_javadoccomment">   * @return Policy or null</em>
+<a class="jxr_linenumber" name="L403" href="#L403">403</a> <em class="jxr_javadoccomment">   */</em>
+<a class="jxr_linenumber" name="L404" href="#L404">404</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> @Nullable ContentPolicy getPolicy(@NotNull Resource resource) {
+<a class="jxr_linenumber" name="L405" href="#L405">405</a>     ContentPolicyManager policyManager = AdaptTo.notNull(resource.getResourceResolver(), ContentPolicyManager.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="L406" href="#L406">406</a>     <strong class="jxr_keyword">return</strong> policyManager.getPolicy(resource);
+<a class="jxr_linenumber" name="L407" href="#L407">407</a>   }
+<a class="jxr_linenumber" name="L408" href="#L408">408</a> 
+<a class="jxr_linenumber" name="L409" href="#L409">409</a>   <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L410" href="#L410">410</a> <em class="jxr_javadoccomment">   * Get local child resource for component, with a special handling for publish environments where</em>
+<a class="jxr_linenumber" name="L411" href="#L411">411</a> <em class="jxr_javadoccomment">   * the local child resources for components below /apps are not accessible for everyone.</em>
+<a class="jxr_linenumber" name="L412" href="#L412">412</a> <em class="jxr_javadoccomment">   * @param component Component</em>
+<a class="jxr_linenumber" name="L413" href="#L413">413</a> <em class="jxr_javadoccomment">   * @param childResourcePath Child resource path</em>
+<a class="jxr_linenumber" name="L414" href="#L414">414</a> <em class="jxr_javadoccomment">   * @return Resource or null</em>
+<a class="jxr_linenumber" name="L415" href="#L415">415</a> <em class="jxr_javadoccomment">   */</em>
+<a class="jxr_linenumber" name="L416" href="#L416">416</a>   <strong class="jxr_keyword">private</strong> @Nullable Resource getLocalComponentResource(@NotNull Component component,
+<a class="jxr_linenumber" name="L417" href="#L417">417</a>       @NotNull String childResourcePath) {
+<a class="jxr_linenumber" name="L418" href="#L418">418</a>     <strong class="jxr_keyword">if</strong> (componentsResourceResolver == <strong class="jxr_keyword">null</strong>
+<a class="jxr_linenumber" name="L419" href="#L419">419</a>         &amp;&amp; resourceResolverFactory != <strong class="jxr_keyword">null</strong>
+<a class="jxr_linenumber" name="L420" href="#L420">420</a>         &amp;&amp; !initComponentsResourceResolverFailed) {
+<a class="jxr_linenumber" name="L421" href="#L421">421</a>       <strong class="jxr_keyword">try</strong> {
+<a class="jxr_linenumber" name="L422" href="#L422">422</a>         componentsResourceResolver = resourceResolverFactory.getServiceResourceResolver(
+<a class="jxr_linenumber" name="L423" href="#L423">423</a>             ImmutableMap.of(ResourceResolverFactory.SUBSERVICE, SERVICEUSER_SUBSERVICE));
+<a class="jxr_linenumber" name="L424" href="#L424">424</a>       }
+<a class="jxr_linenumber" name="L425" href="#L425">425</a>       <strong class="jxr_keyword">catch</strong> (LoginException ex) {
+<a class="jxr_linenumber" name="L426" href="#L426">426</a>         initComponentsResourceResolverFailed = <strong class="jxr_keyword">true</strong>;
+<a class="jxr_linenumber" name="L427" href="#L427">427</a>         <strong class="jxr_keyword">if</strong> (log.isDebugEnabled()) {
+<a class="jxr_linenumber" name="L428" href="#L428">428</a>           log.debug(<span class="jxr_string">"Unable to get resource resolver for accessing local component resource, "</span>
+<a class="jxr_linenumber" name="L429" href="#L429">429</a>               + <span class="jxr_string">"please make sure to grant access to system user 'sling-scripting' for "</span>
+<a class="jxr_linenumber" name="L430" href="#L430">430</a>               + <span class="jxr_string">"bundle 'io.wcm.wcm.commons', subservice '{}'."</span>, SERVICEUSER_SUBSERVICE, ex);
+<a class="jxr_linenumber" name="L431" href="#L431">431</a>         }
+<a class="jxr_linenumber" name="L432" href="#L432">432</a>       }
+<a class="jxr_linenumber" name="L433" href="#L433">433</a>     }
+<a class="jxr_linenumber" name="L434" href="#L434">434</a>     <strong class="jxr_keyword">if</strong> (componentsResourceResolver != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L435" href="#L435">435</a>       String resourcePath = component.getPath() + <span class="jxr_string">"/"</span> + childResourcePath;
+<a class="jxr_linenumber" name="L436" href="#L436">436</a>       <strong class="jxr_keyword">return</strong> componentsResourceResolver.getResource(resourcePath);
+<a class="jxr_linenumber" name="L437" href="#L437">437</a>     }
+<a class="jxr_linenumber" name="L438" href="#L438">438</a>     <em class="jxr_comment">// fallback implementation for previous behavior - this will usually not work in publish instances</em>
+<a class="jxr_linenumber" name="L439" href="#L439">439</a>     <strong class="jxr_keyword">return</strong> component.getLocalResource(childResourcePath);
+<a class="jxr_linenumber" name="L440" href="#L440">440</a>   }
+<a class="jxr_linenumber" name="L441" href="#L441">441</a> 
+<a class="jxr_linenumber" name="L442" href="#L442">442</a>   @Override
+<a class="jxr_linenumber" name="L443" href="#L443">443</a>   <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">void</strong> close() {
+<a class="jxr_linenumber" name="L444" href="#L444">444</a>     <strong class="jxr_keyword">if</strong> (componentsResourceResolver != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L445" href="#L445">445</a>       componentsResourceResolver.close();
+<a class="jxr_linenumber" name="L446" href="#L446">446</a>     }
+<a class="jxr_linenumber" name="L447" href="#L447">447</a>   }
+<a class="jxr_linenumber" name="L448" href="#L448">448</a> 
+<a class="jxr_linenumber" name="L449" href="#L449">449</a> }
 </pre>
 <hr/>
 <div id="footer">Copyright &#169; 2014&#x2013;2022 <a href="https://wcm.io">wcm.io</a>. All rights reserved.</div>
