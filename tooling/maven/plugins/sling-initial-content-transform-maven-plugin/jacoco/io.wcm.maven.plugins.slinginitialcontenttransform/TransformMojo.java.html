@@ -93,6 +93,12 @@ import io.wcm.tooling.commons.contentpackagebuilder.PackageFilter;
   private boolean generateBundle;
 
   /**
+   * Additional XML namespace mappings.
+   */
+  @Parameter
+  private Map&lt;String, String&gt; xmlNamespaces;
+
+  /**
    * Allows to skip the plugin execution.
    */
   @Parameter(property = &quot;slinginitialcontenttransform.skip&quot;, defaultValue = &quot;false&quot;)
@@ -105,45 +111,45 @@ import io.wcm.tooling.commons.contentpackagebuilder.PackageFilter;
 
   @Override
   public void execute() throws MojoExecutionException, MojoFailureException {
-<span class="pc bpc" id="L108" title="1 of 2 branches missed.">    if (skip) {</span>
-<span class="nc" id="L109">      log.debug(&quot;Skipping execution.&quot;);</span>
-<span class="nc" id="L110">      return;</span>
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">    if (skip) {</span>
+<span class="nc" id="L115">      log.debug(&quot;Skipping execution.&quot;);</span>
+<span class="nc" id="L116">      return;</span>
     }
-<span class="pc bpc" id="L112" title="1 of 2 branches missed.">    if (!StringUtils.equals(project.getPackaging(), &quot;jar&quot;)) {</span>
-<span class="nc" id="L113">      log.debug(&quot;Skipping execution - not a jar project: {}&quot;, project.getPackaging());</span>
-<span class="nc" id="L114">      return;</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">    if (!StringUtils.equals(project.getPackaging(), &quot;jar&quot;)) {</span>
+<span class="nc" id="L119">      log.debug(&quot;Skipping execution - not a jar project: {}&quot;, project.getPackaging());</span>
+<span class="nc" id="L120">      return;</span>
     }
-<span class="pc bpc" id="L116" title="1 of 2 branches missed.">    if (!file.exists()) {</span>
-<span class="nc" id="L117">      log.warn(&quot;File does not exist: {}&quot;, file.getPath());</span>
-<span class="nc" id="L118">      return;</span>
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">    if (!file.exists()) {</span>
+<span class="nc" id="L123">      log.warn(&quot;File does not exist: {}&quot;, file.getPath());</span>
+<span class="nc" id="L124">      return;</span>
     }
 
-<span class="fc" id="L121">    try (OsgiBundleFile osgiBundle = new OsgiBundleFile(file)) {</span>
-<span class="pc bpc" id="L122" title="1 of 2 branches missed.">      if (!osgiBundle.hasContent()) {</span>
-<span class="nc" id="L123">        log.debug(&quot;Skipping execution - bundle does not contain Sling-Initial-Content.&quot;);</span>
-<span class="nc" id="L124">        return;</span>
+<span class="fc" id="L127">    try (OsgiBundleFile osgiBundle = new OsgiBundleFile(file)) {</span>
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">      if (!osgiBundle.hasContent()) {</span>
+<span class="nc" id="L129">        log.debug(&quot;Skipping execution - bundle does not contain Sling-Initial-Content.&quot;);</span>
+<span class="nc" id="L130">        return;</span>
       }
-<span class="fc" id="L126">      transformBundle(osgiBundle);</span>
+<span class="fc" id="L132">      transformBundle(osgiBundle);</span>
     }
-<span class="nc" id="L128">    catch (IOException ex) {</span>
-<span class="nc" id="L129">      throw new MojoExecutionException(&quot;Unable to transform bundle.&quot;, ex);</span>
-<span class="fc" id="L130">    }</span>
-<span class="fc" id="L131">  }</span>
+<span class="nc" id="L134">    catch (IOException ex) {</span>
+<span class="nc" id="L135">      throw new MojoExecutionException(&quot;Unable to transform bundle.&quot;, ex);</span>
+<span class="fc" id="L136">    }</span>
+<span class="fc" id="L137">  }</span>
 
   /**
    * Transform OSGi bundle with Sling-Initial-Content to two separate artifacts with classifier &quot;content&quot; and &quot;bundle&quot;.
    * @throws IOException I/O exception
    */
   private void transformBundle(OsgiBundleFile osgiBundle) throws IOException {
-<span class="pc bpc" id="L138" title="1 of 2 branches missed.">    if (generateContent) {</span>
-<span class="fc" id="L139">      File contentPackageFile = createContentPackage(osgiBundle);</span>
-<span class="fc" id="L140">      projectHelper.attachArtifact(project, &quot;zip&quot;, CLASSIFIER_CONTENT, contentPackageFile);</span>
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">    if (generateContent) {</span>
+<span class="fc" id="L145">      File contentPackageFile = createContentPackage(osgiBundle);</span>
+<span class="fc" id="L146">      projectHelper.attachArtifact(project, &quot;zip&quot;, CLASSIFIER_CONTENT, contentPackageFile);</span>
     }
-<span class="pc bpc" id="L142" title="1 of 2 branches missed.">    if (generateBundle) {</span>
-<span class="fc" id="L143">      File bundleFile = createBundleWithoutContent(osgiBundle);</span>
-<span class="fc" id="L144">      projectHelper.attachArtifact(project, &quot;jar&quot;, CLASSIFIER_BUNDLE, bundleFile);</span>
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">    if (generateBundle) {</span>
+<span class="fc" id="L149">      File bundleFile = createBundleWithoutContent(osgiBundle);</span>
+<span class="fc" id="L150">      projectHelper.attachArtifact(project, &quot;jar&quot;, CLASSIFIER_BUNDLE, bundleFile);</span>
     }
-<span class="fc" id="L146">  }</span>
+<span class="fc" id="L152">  }</span>
 
   /**
    * Extract Sling-Initial-Content to a content package.
@@ -152,43 +158,48 @@ import io.wcm.tooling.commons.contentpackagebuilder.PackageFilter;
    * @throws IOException I/O exception
    */
   private File createContentPackage(OsgiBundleFile osgiBundle) throws IOException {
-<span class="fc" id="L155">    String contentPackageName = project.getBuild().getFinalName() + &quot;-&quot; + CLASSIFIER_CONTENT + &quot;.zip&quot;;</span>
-<span class="fc" id="L156">    File contentPackageFile = new File(project.getBuild().getDirectory(), contentPackageName);</span>
-<span class="pc bpc" id="L157" title="1 of 2 branches missed.">    if (contentPackageFile.exists()) {</span>
-<span class="nc" id="L158">      Files.delete(contentPackageFile.toPath());</span>
+<span class="fc" id="L161">    String contentPackageName = project.getBuild().getFinalName() + &quot;-&quot; + CLASSIFIER_CONTENT + &quot;.zip&quot;;</span>
+<span class="fc" id="L162">    File contentPackageFile = new File(project.getBuild().getDirectory(), contentPackageName);</span>
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">    if (contentPackageFile.exists()) {</span>
+<span class="nc" id="L164">      Files.delete(contentPackageFile.toPath());</span>
     }
 
-<span class="fc" id="L161">    ContentPackageBuilder contentPackageBuilder = new ContentPackageBuilder()</span>
-<span class="fc" id="L162">        .group(this.group)</span>
-<span class="fc" id="L163">        .name(project.getArtifactId() + &quot;-&quot; + CLASSIFIER_CONTENT)</span>
-<span class="fc" id="L164">        .version(project.getVersion())</span>
-<span class="fc" id="L165">        .packageType(PackageType.APPLICATION.name().toLowerCase());</span>
-<span class="fc bfc" id="L166" title="All 2 branches covered.">    for (ContentMapping mapping : osgiBundle.getContentMappings()) {</span>
-<span class="fc" id="L167">      contentPackageBuilder.filter(new PackageFilter(mapping.getContentPath()));</span>
-<span class="fc" id="L168">    }</span>
-<span class="pc bpc" id="L169" title="1 of 2 branches missed.">    for (Map.Entry&lt;String, String&gt; namespace : osgiBundle.getNamespaces().entrySet()) {</span>
-<span class="nc" id="L170">      contentPackageBuilder.xmlNamespace(namespace.getKey(), namespace.getValue());</span>
-<span class="nc" id="L171">    }</span>
-<span class="fc" id="L172">    try (ContentPackage contentPackage = contentPackageBuilder.build(contentPackageFile)) {</span>
-<span class="fc bfc" id="L173" title="All 2 branches covered.">      for (ContentMapping mapping : osgiBundle.getContentMappings()) {</span>
-<span class="fc" id="L174">        List&lt;BundleEntry&gt; entries = osgiBundle.getContentEntries(mapping).collect(Collectors.toList());</span>
+<span class="fc" id="L167">    ContentPackageBuilder contentPackageBuilder = new ContentPackageBuilder()</span>
+<span class="fc" id="L168">        .group(this.group)</span>
+<span class="fc" id="L169">        .name(project.getArtifactId() + &quot;-&quot; + CLASSIFIER_CONTENT)</span>
+<span class="fc" id="L170">        .version(project.getVersion())</span>
+<span class="fc" id="L171">        .packageType(PackageType.APPLICATION.name().toLowerCase());</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">    for (ContentMapping mapping : osgiBundle.getContentMappings()) {</span>
+<span class="fc" id="L173">      contentPackageBuilder.filter(new PackageFilter(mapping.getContentPath()));</span>
+<span class="fc" id="L174">    }</span>
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">    for (Map.Entry&lt;String, String&gt; namespace : osgiBundle.getNamespaces().entrySet()) {</span>
+<span class="nc" id="L176">      contentPackageBuilder.xmlNamespace(namespace.getKey(), namespace.getValue());</span>
+<span class="nc" id="L177">    }</span>
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">    if (xmlNamespaces != null) {</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">      for (Map.Entry&lt;String, String&gt; namespace : xmlNamespaces.entrySet()) {</span>
+<span class="nc" id="L180">        contentPackageBuilder.xmlNamespace(namespace.getKey(), namespace.getValue());</span>
+<span class="nc" id="L181">      }</span>
+    }
+<span class="fc" id="L183">    try (ContentPackage contentPackage = contentPackageBuilder.build(contentPackageFile)) {</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">      for (ContentMapping mapping : osgiBundle.getContentMappings()) {</span>
+<span class="fc" id="L185">        List&lt;BundleEntry&gt; entries = osgiBundle.getContentEntries(mapping).collect(Collectors.toList());</span>
 
         // first collect all paths we do not need to create explicit directories for
-<span class="fc" id="L177">        CollectNonDirectoryPathsProcessor nonDirectoryPaths = new CollectNonDirectoryPathsProcessor();</span>
-<span class="fc bfc" id="L178" title="All 2 branches covered.">        for (BundleEntry entry : entries) {</span>
-<span class="fc" id="L179">          processContent(contentPackage, entry, mapping, nonDirectoryPaths);</span>
-<span class="fc" id="L180">        }</span>
+<span class="fc" id="L188">        CollectNonDirectoryPathsProcessor nonDirectoryPaths = new CollectNonDirectoryPathsProcessor();</span>
+<span class="fc bfc" id="L189" title="All 2 branches covered.">        for (BundleEntry entry : entries) {</span>
+<span class="fc" id="L190">          processContent(contentPackage, entry, mapping, nonDirectoryPaths);</span>
+<span class="fc" id="L191">        }</span>
 
         // then generate the actual content in content package
-<span class="fc" id="L183">        WriteContentProcessor writeContent = new WriteContentProcessor(nonDirectoryPaths.getPaths());</span>
-<span class="fc bfc" id="L184" title="All 2 branches covered.">        for (BundleEntry entry : entries) {</span>
-<span class="fc" id="L185">          processContent(contentPackage, entry, mapping, writeContent);</span>
-<span class="fc" id="L186">        }</span>
-<span class="fc" id="L187">      }</span>
+<span class="fc" id="L194">        WriteContentProcessor writeContent = new WriteContentProcessor(nonDirectoryPaths.getPaths());</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        for (BundleEntry entry : entries) {</span>
+<span class="fc" id="L196">          processContent(contentPackage, entry, mapping, writeContent);</span>
+<span class="fc" id="L197">        }</span>
+<span class="fc" id="L198">      }</span>
     }
 
-<span class="fc" id="L190">    log.info(&quot;Created package with Sling-Initial-Content: {}&quot;, contentPackageFile.getName());</span>
-<span class="fc" id="L191">    return contentPackageFile;</span>
+<span class="fc" id="L201">    log.info(&quot;Created package with Sling-Initial-Content: {}&quot;, contentPackageFile.getName());</span>
+<span class="fc" id="L202">    return contentPackageFile;</span>
   }
 
   /**
@@ -201,24 +212,24 @@ import io.wcm.tooling.commons.contentpackagebuilder.PackageFilter;
    */
   private void processContent(ContentPackage contentPackage, BundleEntry entry, ContentMapping mapping,
       BundleEntryProcessor processor) throws IOException {
-<span class="fc" id="L204">    String extension = FilenameUtils.getExtension(entry.getPath());</span>
-<span class="fc bfc" id="L205" title="All 2 branches covered.">    if (entry.isDirectory()) {</span>
-<span class="fc" id="L206">      String path = StringUtils.removeEnd(entry.getPath(), &quot;/&quot;);</span>
-<span class="fc" id="L207">      processor.directory(path, contentPackage);</span>
-<span class="fc" id="L208">    }</span>
-<span class="pc bpc" id="L209" title="2 of 4 branches missed.">    else if (mapping.isJson() &amp;&amp; StringUtils.equals(extension, &quot;json&quot;)) {</span>
-<span class="fc" id="L210">      String path = StringUtils.substringBeforeLast(entry.getPath(), &quot;.json&quot;);</span>
-<span class="fc" id="L211">      processor.jsonContent(path, entry, contentPackage);</span>
-<span class="fc" id="L212">    }</span>
-<span class="nc bnc" id="L213" title="All 4 branches missed.">    else if (mapping.isXml() &amp;&amp; StringUtils.equals(extension, &quot;xml&quot;)) {</span>
-<span class="nc" id="L214">      String path = StringUtils.substringBeforeLast(entry.getPath(), &quot;.xml&quot;);</span>
-<span class="nc" id="L215">      processor.xmlContent(path, entry, contentPackage);</span>
-<span class="nc" id="L216">    }</span>
+<span class="fc" id="L215">    String extension = FilenameUtils.getExtension(entry.getPath());</span>
+<span class="fc bfc" id="L216" title="All 2 branches covered.">    if (entry.isDirectory()) {</span>
+<span class="fc" id="L217">      String path = StringUtils.removeEnd(entry.getPath(), &quot;/&quot;);</span>
+<span class="fc" id="L218">      processor.directory(path, contentPackage);</span>
+<span class="fc" id="L219">    }</span>
+<span class="pc bpc" id="L220" title="2 of 4 branches missed.">    else if (mapping.isJson() &amp;&amp; StringUtils.equals(extension, &quot;json&quot;)) {</span>
+<span class="fc" id="L221">      String path = StringUtils.substringBeforeLast(entry.getPath(), &quot;.json&quot;);</span>
+<span class="fc" id="L222">      processor.jsonContent(path, entry, contentPackage);</span>
+<span class="fc" id="L223">    }</span>
+<span class="nc bnc" id="L224" title="All 4 branches missed.">    else if (mapping.isXml() &amp;&amp; StringUtils.equals(extension, &quot;xml&quot;)) {</span>
+<span class="nc" id="L225">      String path = StringUtils.substringBeforeLast(entry.getPath(), &quot;.xml&quot;);</span>
+<span class="nc" id="L226">      processor.xmlContent(path, entry, contentPackage);</span>
+<span class="nc" id="L227">    }</span>
     else {
-<span class="nc" id="L218">      String path = entry.getPath();</span>
-<span class="nc" id="L219">      processor.binaryContent(path, entry, contentPackage);</span>
+<span class="nc" id="L229">      String path = entry.getPath();</span>
+<span class="nc" id="L230">      processor.binaryContent(path, entry, contentPackage);</span>
     }
-<span class="fc" id="L221">  }</span>
+<span class="fc" id="L232">  }</span>
 
   /**
    * Create OSGi bundle JAR file without Sling-Initial-Content.
@@ -227,33 +238,33 @@ import io.wcm.tooling.commons.contentpackagebuilder.PackageFilter;
    * @throws IOException I/O exception
    */
   private File createBundleWithoutContent(OsgiBundleFile osgiBundle) throws IOException {
-<span class="fc" id="L230">    String bundleFileName = project.getBuild().getFinalName() + &quot;-&quot; + CLASSIFIER_BUNDLE + &quot;.jar&quot;;</span>
-<span class="fc" id="L231">    File bundleFile = new File(project.getBuild().getDirectory(), bundleFileName);</span>
-<span class="pc bpc" id="L232" title="1 of 2 branches missed.">    if (bundleFile.exists()) {</span>
-<span class="nc" id="L233">      Files.delete(bundleFile.toPath());</span>
+<span class="fc" id="L241">    String bundleFileName = project.getBuild().getFinalName() + &quot;-&quot; + CLASSIFIER_BUNDLE + &quot;.jar&quot;;</span>
+<span class="fc" id="L242">    File bundleFile = new File(project.getBuild().getDirectory(), bundleFileName);</span>
+<span class="pc bpc" id="L243" title="1 of 2 branches missed.">    if (bundleFile.exists()) {</span>
+<span class="nc" id="L244">      Files.delete(bundleFile.toPath());</span>
     }
 
-<span class="fc" id="L236">    try (FileOutputStream fos = new FileOutputStream(bundleFile);</span>
-<span class="fc" id="L237">        ZipOutputStream zos = new ZipOutputStream(fos)) {</span>
-<span class="fc" id="L238">      List&lt;BundleEntry&gt; entries = osgiBundle.getNonContentEntries().collect(Collectors.toList());</span>
-<span class="fc bfc" id="L239" title="All 2 branches covered.">      for (BundleEntry entry : entries) {</span>
-<span class="fc" id="L240">        zos.putNextEntry(new ZipEntry(entry.getPath()));</span>
-<span class="fc bfc" id="L241" title="All 2 branches covered.">        if (!entry.isDirectory()) {</span>
-<span class="fc" id="L242">          try (InputStream is = entry.getInputStream()) {</span>
-<span class="fc bfc" id="L243" title="All 2 branches covered.">            if (StringUtils.equals(entry.getPath(), MANIFEST_FILE)) {</span>
-<span class="fc" id="L244">              Manifest transformedManifest = getManifestWithoutSlingInitialContentHeader(is);</span>
-<span class="fc" id="L245">              transformedManifest.write(zos);</span>
-<span class="fc" id="L246">            }</span>
+<span class="fc" id="L247">    try (FileOutputStream fos = new FileOutputStream(bundleFile);</span>
+<span class="fc" id="L248">        ZipOutputStream zos = new ZipOutputStream(fos)) {</span>
+<span class="fc" id="L249">      List&lt;BundleEntry&gt; entries = osgiBundle.getNonContentEntries().collect(Collectors.toList());</span>
+<span class="fc bfc" id="L250" title="All 2 branches covered.">      for (BundleEntry entry : entries) {</span>
+<span class="fc" id="L251">        zos.putNextEntry(new ZipEntry(entry.getPath()));</span>
+<span class="fc bfc" id="L252" title="All 2 branches covered.">        if (!entry.isDirectory()) {</span>
+<span class="fc" id="L253">          try (InputStream is = entry.getInputStream()) {</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">            if (StringUtils.equals(entry.getPath(), MANIFEST_FILE)) {</span>
+<span class="fc" id="L255">              Manifest transformedManifest = getManifestWithoutSlingInitialContentHeader(is);</span>
+<span class="fc" id="L256">              transformedManifest.write(zos);</span>
+<span class="fc" id="L257">            }</span>
             else {
-<span class="fc" id="L248">              IOUtils.copy(is, zos);</span>
+<span class="fc" id="L259">              IOUtils.copy(is, zos);</span>
             }
           }
         }
-<span class="fc" id="L252">      }</span>
+<span class="fc" id="L263">      }</span>
     }
 
-<span class="fc" id="L255">    log.info(&quot;Created bundle without content: {}&quot;, bundleFile.getName());</span>
-<span class="fc" id="L256">    return bundleFile;</span>
+<span class="fc" id="L266">    log.info(&quot;Created bundle without content: {}&quot;, bundleFile.getName());</span>
+<span class="fc" id="L267">    return bundleFile;</span>
   }
 
   /**
@@ -263,9 +274,9 @@ import io.wcm.tooling.commons.contentpackagebuilder.PackageFilter;
    * @throws IOException I/O exception
    */
   private Manifest getManifestWithoutSlingInitialContentHeader(InputStream is) throws IOException {
-<span class="fc" id="L266">    Manifest manifest = new Manifest(is);</span>
-<span class="fc" id="L267">    manifest.getMainAttributes().remove(new Attributes.Name(OsgiBundleFile.HEADER_INITIAL_CONTENT));</span>
-<span class="fc" id="L268">    return manifest;</span>
+<span class="fc" id="L277">    Manifest manifest = new Manifest(is);</span>
+<span class="fc" id="L278">    manifest.getMainAttributes().remove(new Attributes.Name(OsgiBundleFile.HEADER_INITIAL_CONTENT));</span>
+<span class="fc" id="L279">    return manifest;</span>
   }
 
 }
