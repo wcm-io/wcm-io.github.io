@@ -57,25 +57,30 @@ import io.wcm.sling.commons.adapter.AdaptTo;
         org.apache.sling.sitemap.spi.common.SitemapLinkExternalizer.class
     },
     property = {
-        Constants.SERVICE_RANKING + &quot;:Integer=500&quot; // higher precedence than default AEM implementation (100)
+        Constants.SERVICE_RANKING + &quot;:Integer=500&quot;, // higher precedence than default AEM implementation (100)
+        SeoSitemapLinkExternalizerImpl.TARGET_FILTER_PROPERTY + &quot;=&quot; + SeoSitemapLinkExternalizerImpl.TARGET_FILTER_VALUE
     })
-<span class="fc" id="L62">public class SeoSitemapLinkExternalizerImpl implements SitemapLinkExternalizer {</span>
+<span class="fc" id="L63">public class SeoSitemapLinkExternalizerImpl implements SitemapLinkExternalizer {</span>
 
   private static final String HTML_EXTENSION = &quot;.html&quot;;
 
-<span class="fc" id="L66">  private final Logger log = LoggerFactory.getLogger(SeoSitemapLinkExternalizerImpl.class);</span>
+  // custom service property to get AEM SitemapLinkExternalizer as fallback implementation of this service
+  static final String TARGET_FILTER_PROPERTY = &quot;seoSitemapLinkExternalizer&quot;;
+  static final String TARGET_FILTER_VALUE = &quot;wcmio&quot;;
+
+<span class="fc" id="L71">  private final Logger log = LoggerFactory.getLogger(SeoSitemapLinkExternalizerImpl.class);</span>
 
   @Reference
   private PageManagerFactory pageManagerFactory;
 
-  @Reference(target = &quot;(!(&quot; + Constants.OBJECTCLASS + &quot;=io.wcm.handler.link.impl.SeoSitemapLinkExternalizerImpl))&quot;)
+  @Reference(target = &quot;(!(&quot; + TARGET_FILTER_PROPERTY + &quot;=&quot; + TARGET_FILTER_VALUE + &quot;))&quot;)
   private SitemapLinkExternalizer aemSitemapLinkExternalizer;
 
   @Override
   public @NotNull String externalize(SlingHttpServletRequest request, String path) {
     // not used by AEM, use default implementation
-<span class="fc" id="L77">    log.debug(&quot;Use AEM SitemapLinkExternalizer.externalize(SlingHttpServletRequest,String) for path {}&quot;, path);</span>
-<span class="fc" id="L78">    return aemSitemapLinkExternalizer.externalize(request, path);</span>
+<span class="fc" id="L82">    log.debug(&quot;Use AEM SitemapLinkExternalizer.externalize(SlingHttpServletRequest,String) for path {}&quot;, path);</span>
+<span class="fc" id="L83">    return aemSitemapLinkExternalizer.externalize(request, path);</span>
   }
 
   /*
@@ -83,17 +88,17 @@ import io.wcm.sling.commons.adapter.AdaptTo;
    */
   @Override
   public @NotNull String externalize(Resource resource) {
-<span class="fc" id="L86">    Page page = getPageForResource(resource);</span>
-<span class="fc" id="L87">    String externalizedUrl = externalizePageLink(page);</span>
-<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (externalizedUrl != null) {</span>
-<span class="fc" id="L89">      log.debug(&quot;Externalize {} to {}&quot;, resource, externalizedUrl);</span>
+<span class="fc" id="L91">    Page page = getPageForResource(resource);</span>
+<span class="fc" id="L92">    String externalizedUrl = externalizePageLink(page);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">    if (externalizedUrl != null) {</span>
+<span class="fc" id="L94">      log.debug(&quot;Externalize {} to {}&quot;, resource, externalizedUrl);</span>
       // remove &quot;.html&quot; extension, it's added automatically by AEM
-<span class="fc" id="L91">      return StringUtils.removeEnd(externalizedUrl, HTML_EXTENSION);</span>
+<span class="fc" id="L96">      return StringUtils.removeEnd(externalizedUrl, HTML_EXTENSION);</span>
     }
 
     // fallback to AEM implementation
-<span class="fc" id="L95">    log.debug(&quot;Fallback to AEM SitemapLinkExternalizer.externalize(Resource) for {}&quot;, resource);</span>
-<span class="fc" id="L96">    return aemSitemapLinkExternalizer.externalize(resource);</span>
+<span class="fc" id="L100">    log.debug(&quot;Fallback to AEM SitemapLinkExternalizer.externalize(Resource) for {}&quot;, resource);</span>
+<span class="fc" id="L101">    return aemSitemapLinkExternalizer.externalize(resource);</span>
   }
 
   /*
@@ -102,47 +107,47 @@ import io.wcm.sling.commons.adapter.AdaptTo;
   @Override
   public @NotNull String externalize(ResourceResolver resourceResolver, String path) {
     // html extension is added implicitly by AEM, remove it to get the targeted page instance
-<span class="fc" id="L105">    String pagePath = StringUtils.removeEnd(path, HTML_EXTENSION);</span>
-<span class="fc" id="L106">    Page page = getPageForPath(resourceResolver, pagePath);</span>
-<span class="fc" id="L107">    String externalizedUrl = externalizePageLink(page);</span>
-<span class="fc bfc" id="L108" title="All 2 branches covered.">    if (externalizedUrl != null) {</span>
-<span class="fc" id="L109">      log.debug(&quot;Externalize {} to {}&quot;, path, externalizedUrl);</span>
-<span class="fc" id="L110">      return externalizedUrl;</span>
+<span class="fc" id="L110">    String pagePath = StringUtils.removeEnd(path, HTML_EXTENSION);</span>
+<span class="fc" id="L111">    Page page = getPageForPath(resourceResolver, pagePath);</span>
+<span class="fc" id="L112">    String externalizedUrl = externalizePageLink(page);</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">    if (externalizedUrl != null) {</span>
+<span class="fc" id="L114">      log.debug(&quot;Externalize {} to {}&quot;, path, externalizedUrl);</span>
+<span class="fc" id="L115">      return externalizedUrl;</span>
     }
 
     // fallback to AEM implementation
-<span class="fc" id="L114">    log.debug(&quot;Fallback to AEM SitemapLinkExternalizer.externalize(ResourceResolver,String) for {}&quot;, path);</span>
-<span class="fc" id="L115">    return aemSitemapLinkExternalizer.externalize(resourceResolver, path);</span>
+<span class="fc" id="L119">    log.debug(&quot;Fallback to AEM SitemapLinkExternalizer.externalize(ResourceResolver,String) for {}&quot;, path);</span>
+<span class="fc" id="L120">    return aemSitemapLinkExternalizer.externalize(resourceResolver, path);</span>
   }
 
   private @Nullable Page getPageForPath(ResourceResolver resourceResolver, String path) {
-<span class="fc" id="L119">    PageManager pageManager = pageManagerFactory.getPageManager(resourceResolver);</span>
-<span class="fc" id="L120">    return pageManager.getPage(path);</span>
+<span class="fc" id="L124">    PageManager pageManager = pageManagerFactory.getPageManager(resourceResolver);</span>
+<span class="fc" id="L125">    return pageManager.getPage(path);</span>
   }
 
   private @Nullable Page getPageForResource(Resource resource) {
-<span class="fc" id="L124">    Page page = resource.adaptTo(Page.class);</span>
-<span class="fc bfc" id="L125" title="All 2 branches covered.">    if (page == null) {</span>
-<span class="fc" id="L126">      PageManager pageManager = pageManagerFactory.getPageManager(resource.getResourceResolver());</span>
-<span class="fc" id="L127">      page = pageManager.getContainingPage(resource);</span>
+<span class="fc" id="L129">    Page page = resource.adaptTo(Page.class);</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">    if (page == null) {</span>
+<span class="fc" id="L131">      PageManager pageManager = pageManagerFactory.getPageManager(resource.getResourceResolver());</span>
+<span class="fc" id="L132">      page = pageManager.getContainingPage(resource);</span>
     }
-<span class="fc" id="L129">    return page;</span>
+<span class="fc" id="L134">    return page;</span>
   }
 
   private @Nullable String externalizePageLink(@Nullable Page page) {
-<span class="fc bfc" id="L133" title="All 2 branches covered.">    if (page != null) {</span>
-<span class="fc" id="L134">      LinkHandler linkHandler = AdaptTo.notNull(page.getContentResource(), LinkHandler.class);</span>
-<span class="fc" id="L135">      String url = linkHandler.get(page).urlMode(UrlModes.FULL_URL).buildUrl();</span>
-<span class="pc bpc" id="L136" title="1 of 2 branches missed.">      if (url != null) {</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">    if (page != null) {</span>
+<span class="fc" id="L139">      LinkHandler linkHandler = AdaptTo.notNull(page.getContentResource(), LinkHandler.class);</span>
+<span class="fc" id="L140">      String url = linkHandler.get(page).urlMode(UrlModes.FULL_URL).buildUrl();</span>
+<span class="pc bpc" id="L141" title="1 of 2 branches missed.">      if (url != null) {</span>
         // double-check that the URL was really externalized
         // this may not the case if e.g. the site config is missing - ignore the URL then
-<span class="fc" id="L139">        UrlHandler urlHandler = AdaptTo.notNull(page.getContentResource(), UrlHandler.class);</span>
-<span class="fc bfc" id="L140" title="All 2 branches covered.">        if (urlHandler.isExternalized(url)) {</span>
-<span class="fc" id="L141">          return url;</span>
+<span class="fc" id="L144">        UrlHandler urlHandler = AdaptTo.notNull(page.getContentResource(), UrlHandler.class);</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        if (urlHandler.isExternalized(url)) {</span>
+<span class="fc" id="L146">          return url;</span>
         }
       }
     }
-<span class="fc" id="L145">    return null;</span>
+<span class="fc" id="L150">    return null;</span>
   }
 
 }
