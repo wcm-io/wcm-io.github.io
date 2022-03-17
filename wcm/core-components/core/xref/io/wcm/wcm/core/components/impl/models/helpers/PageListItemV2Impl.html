@@ -155,67 +155,68 @@
 <a class="jxr_linenumber" name="L147" href="#L147">147</a>   }
 <a class="jxr_linenumber" name="L148" href="#L148">148</a> 
 <a class="jxr_linenumber" name="L149" href="#L149">149</a>   @Override
-<a class="jxr_linenumber" name="L150" href="#L150">150</a>   <strong class="jxr_keyword">public</strong> @Nullable Resource getTeaserResource() {
-<a class="jxr_linenumber" name="L151" href="#L151">151</a>     <strong class="jxr_keyword">if</strong> (teaserResource == <strong class="jxr_keyword">null</strong> &amp;&amp; parentComponent != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L152" href="#L152">152</a>       String delegateResourceType = parentComponent.getProperties().get(PN_TEASER_DELEGATE, String.<strong class="jxr_keyword">class</strong>);
-<a class="jxr_linenumber" name="L153" href="#L153">153</a>       <strong class="jxr_keyword">if</strong> (delegateResourceType == <strong class="jxr_keyword">null</strong> || StringUtils.isEmpty(delegateResourceType)) {
-<a class="jxr_linenumber" name="L154" href="#L154">154</a>         log.error(<span class="jxr_string">"In order for list rendering delegation to work correctly you need to set up the teaserDelegate property on"</span> +
-<a class="jxr_linenumber" name="L155" href="#L155">155</a>             <span class="jxr_string">" the {} component; its value has to point to the resource type of a teaser component."</span>, parentComponent.getPath());
-<a class="jxr_linenumber" name="L156" href="#L156">156</a>       }
-<a class="jxr_linenumber" name="L157" href="#L157">157</a>       <strong class="jxr_keyword">else</strong> {
-<a class="jxr_linenumber" name="L158" href="#L158">158</a>         teaserResource = buildTeaserResource(delegateResourceType);
-<a class="jxr_linenumber" name="L159" href="#L159">159</a>       }
-<a class="jxr_linenumber" name="L160" href="#L160">160</a>     }
-<a class="jxr_linenumber" name="L161" href="#L161">161</a>     <strong class="jxr_keyword">return</strong> teaserResource;
-<a class="jxr_linenumber" name="L162" href="#L162">162</a>   }
-<a class="jxr_linenumber" name="L163" href="#L163">163</a> 
-<a class="jxr_linenumber" name="L164" href="#L164">164</a>   <em class="jxr_javadoccomment">/**</em>
-<a class="jxr_linenumber" name="L165" href="#L165">165</a> <em class="jxr_javadoccomment">   * Builds a wrapped teaser resource based on the target page with title and description from this link item,</em>
-<a class="jxr_linenumber" name="L166" href="#L166">166</a> <em class="jxr_javadoccomment">   * linking to the target page.</em>
-<a class="jxr_linenumber" name="L167" href="#L167">167</a> <em class="jxr_javadoccomment">   * @param delegateResourceType Delegate resource type</em>
-<a class="jxr_linenumber" name="L168" href="#L168">168</a> <em class="jxr_javadoccomment">   * @return Wrapped teaser resource</em>
-<a class="jxr_linenumber" name="L169" href="#L169">169</a> <em class="jxr_javadoccomment">   */</em>
-<a class="jxr_linenumber" name="L170" href="#L170">170</a>   <strong class="jxr_keyword">private</strong> Resource buildTeaserResource(@NotNull String delegateResourceType) {
-<a class="jxr_linenumber" name="L171" href="#L171">171</a>     Map&lt;String, Object&gt; overriddenProperties = <strong class="jxr_keyword">new</strong> HashMap&lt;&gt;();
-<a class="jxr_linenumber" name="L172" href="#L172">172</a>     Set&lt;String&gt; hiddenProperties = <strong class="jxr_keyword">new</strong> HashSet&lt;&gt;();
-<a class="jxr_linenumber" name="L173" href="#L173">173</a> 
-<a class="jxr_linenumber" name="L174" href="#L174">174</a>     Resource resourceToBeWrapped = ComponentUtils.getFeaturedImage(page);
-<a class="jxr_linenumber" name="L175" href="#L175">175</a>     <strong class="jxr_keyword">if</strong> (resourceToBeWrapped != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L176" href="#L176">176</a>       <em class="jxr_comment">// use the page featured image and inherit properties from the page item</em>
-<a class="jxr_linenumber" name="L177" href="#L177">177</a>       overriddenProperties.put(JCR_TITLE, <strong class="jxr_keyword">this</strong>.getTitle());
-<a class="jxr_linenumber" name="L178" href="#L178">178</a>       <strong class="jxr_keyword">if</strong> (showDescription) {
-<a class="jxr_linenumber" name="L179" href="#L179">179</a>         overriddenProperties.put(JCR_DESCRIPTION, <strong class="jxr_keyword">this</strong>.getDescription());
-<a class="jxr_linenumber" name="L180" href="#L180">180</a>       }
-<a class="jxr_linenumber" name="L181" href="#L181">181</a>     }
-<a class="jxr_linenumber" name="L182" href="#L182">182</a>     <strong class="jxr_keyword">else</strong> {
-<a class="jxr_linenumber" name="L183" href="#L183">183</a>       <em class="jxr_comment">// use the page content node and inherit properties from the page item</em>
-<a class="jxr_linenumber" name="L184" href="#L184">184</a>       resourceToBeWrapped = page.getContentResource();
-<a class="jxr_linenumber" name="L185" href="#L185">185</a>       <strong class="jxr_keyword">if</strong> (resourceToBeWrapped == <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L186" href="#L186">186</a>         <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
-<a class="jxr_linenumber" name="L187" href="#L187">187</a>       }
-<a class="jxr_linenumber" name="L188" href="#L188">188</a>       <strong class="jxr_keyword">if</strong> (!showDescription) {
-<a class="jxr_linenumber" name="L189" href="#L189">189</a>         hiddenProperties.add(JCR_DESCRIPTION);
-<a class="jxr_linenumber" name="L190" href="#L190">190</a>       }
-<a class="jxr_linenumber" name="L191" href="#L191">191</a>     }
-<a class="jxr_linenumber" name="L192" href="#L192">192</a>     <strong class="jxr_keyword">if</strong> (linkItems) {
-<a class="jxr_linenumber" name="L193" href="#L193">193</a>       overriddenProperties.put(PN_LINK_TYPE, InternalLinkType.ID);
-<a class="jxr_linenumber" name="L194" href="#L194">194</a>       overriddenProperties.put(PN_LINK_CONTENT_REF, <strong class="jxr_keyword">this</strong>.getPath());
-<a class="jxr_linenumber" name="L195" href="#L195">195</a>     }
-<a class="jxr_linenumber" name="L196" href="#L196">196</a> 
-<a class="jxr_linenumber" name="L197" href="#L197">197</a>     <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">new</strong> <a name="CoreResourceWrapper" href="../../../../../../../../io/wcm/wcm/core/components/impl/util/CoreResourceWrapper.html#CoreResourceWrapper">CoreResourceWrapper</a>(resourceToBeWrapped, delegateResourceType, overriddenProperties, hiddenProperties);
-<a class="jxr_linenumber" name="L198" href="#L198">198</a>   }
-<a class="jxr_linenumber" name="L199" href="#L199">199</a> 
-<a class="jxr_linenumber" name="L200" href="#L200">200</a>   <em class="jxr_comment">// --- data layer ---</em>
-<a class="jxr_linenumber" name="L201" href="#L201">201</a> 
-<a class="jxr_linenumber" name="L202" href="#L202">202</a>   @Override
-<a class="jxr_linenumber" name="L203" href="#L203">203</a>   <strong class="jxr_keyword">protected</strong> @NotNull PageData getComponentData() {
-<a class="jxr_linenumber" name="L204" href="#L204">204</a>     <strong class="jxr_keyword">return</strong> DataLayerBuilder.extending(<strong class="jxr_keyword">super</strong>.getComponentData()).asPage()
-<a class="jxr_linenumber" name="L205" href="#L205">205</a>         .withTitle(<strong class="jxr_keyword">this</strong>::getTitle)
-<a class="jxr_linenumber" name="L206" href="#L206">206</a>         .withLinkUrl(link::getURL)
-<a class="jxr_linenumber" name="L207" href="#L207">207</a>         .build();
-<a class="jxr_linenumber" name="L208" href="#L208">208</a>   }
-<a class="jxr_linenumber" name="L209" href="#L209">209</a> 
-<a class="jxr_linenumber" name="L210" href="#L210">210</a> }
+<a class="jxr_linenumber" name="L150" href="#L150">150</a>   @JsonIgnore
+<a class="jxr_linenumber" name="L151" href="#L151">151</a>   <strong class="jxr_keyword">public</strong> @Nullable Resource getTeaserResource() {
+<a class="jxr_linenumber" name="L152" href="#L152">152</a>     <strong class="jxr_keyword">if</strong> (teaserResource == <strong class="jxr_keyword">null</strong> &amp;&amp; parentComponent != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L153" href="#L153">153</a>       String delegateResourceType = parentComponent.getProperties().get(PN_TEASER_DELEGATE, String.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="L154" href="#L154">154</a>       <strong class="jxr_keyword">if</strong> (delegateResourceType == <strong class="jxr_keyword">null</strong> || StringUtils.isEmpty(delegateResourceType)) {
+<a class="jxr_linenumber" name="L155" href="#L155">155</a>         log.error(<span class="jxr_string">"In order for list rendering delegation to work correctly you need to set up the teaserDelegate property on"</span> +
+<a class="jxr_linenumber" name="L156" href="#L156">156</a>             <span class="jxr_string">" the {} component; its value has to point to the resource type of a teaser component."</span>, parentComponent.getPath());
+<a class="jxr_linenumber" name="L157" href="#L157">157</a>       }
+<a class="jxr_linenumber" name="L158" href="#L158">158</a>       <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="L159" href="#L159">159</a>         teaserResource = buildTeaserResource(delegateResourceType);
+<a class="jxr_linenumber" name="L160" href="#L160">160</a>       }
+<a class="jxr_linenumber" name="L161" href="#L161">161</a>     }
+<a class="jxr_linenumber" name="L162" href="#L162">162</a>     <strong class="jxr_keyword">return</strong> teaserResource;
+<a class="jxr_linenumber" name="L163" href="#L163">163</a>   }
+<a class="jxr_linenumber" name="L164" href="#L164">164</a> 
+<a class="jxr_linenumber" name="L165" href="#L165">165</a>   <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L166" href="#L166">166</a> <em class="jxr_javadoccomment">   * Builds a wrapped teaser resource based on the target page with title and description from this link item,</em>
+<a class="jxr_linenumber" name="L167" href="#L167">167</a> <em class="jxr_javadoccomment">   * linking to the target page.</em>
+<a class="jxr_linenumber" name="L168" href="#L168">168</a> <em class="jxr_javadoccomment">   * @param delegateResourceType Delegate resource type</em>
+<a class="jxr_linenumber" name="L169" href="#L169">169</a> <em class="jxr_javadoccomment">   * @return Wrapped teaser resource</em>
+<a class="jxr_linenumber" name="L170" href="#L170">170</a> <em class="jxr_javadoccomment">   */</em>
+<a class="jxr_linenumber" name="L171" href="#L171">171</a>   <strong class="jxr_keyword">private</strong> Resource buildTeaserResource(@NotNull String delegateResourceType) {
+<a class="jxr_linenumber" name="L172" href="#L172">172</a>     Map&lt;String, Object&gt; overriddenProperties = <strong class="jxr_keyword">new</strong> HashMap&lt;&gt;();
+<a class="jxr_linenumber" name="L173" href="#L173">173</a>     Set&lt;String&gt; hiddenProperties = <strong class="jxr_keyword">new</strong> HashSet&lt;&gt;();
+<a class="jxr_linenumber" name="L174" href="#L174">174</a> 
+<a class="jxr_linenumber" name="L175" href="#L175">175</a>     Resource resourceToBeWrapped = ComponentUtils.getFeaturedImage(page);
+<a class="jxr_linenumber" name="L176" href="#L176">176</a>     <strong class="jxr_keyword">if</strong> (resourceToBeWrapped != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L177" href="#L177">177</a>       <em class="jxr_comment">// use the page featured image and inherit properties from the page item</em>
+<a class="jxr_linenumber" name="L178" href="#L178">178</a>       overriddenProperties.put(JCR_TITLE, <strong class="jxr_keyword">this</strong>.getTitle());
+<a class="jxr_linenumber" name="L179" href="#L179">179</a>       <strong class="jxr_keyword">if</strong> (showDescription) {
+<a class="jxr_linenumber" name="L180" href="#L180">180</a>         overriddenProperties.put(JCR_DESCRIPTION, <strong class="jxr_keyword">this</strong>.getDescription());
+<a class="jxr_linenumber" name="L181" href="#L181">181</a>       }
+<a class="jxr_linenumber" name="L182" href="#L182">182</a>     }
+<a class="jxr_linenumber" name="L183" href="#L183">183</a>     <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="L184" href="#L184">184</a>       <em class="jxr_comment">// use the page content node and inherit properties from the page item</em>
+<a class="jxr_linenumber" name="L185" href="#L185">185</a>       resourceToBeWrapped = page.getContentResource();
+<a class="jxr_linenumber" name="L186" href="#L186">186</a>       <strong class="jxr_keyword">if</strong> (resourceToBeWrapped == <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L187" href="#L187">187</a>         <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="L188" href="#L188">188</a>       }
+<a class="jxr_linenumber" name="L189" href="#L189">189</a>       <strong class="jxr_keyword">if</strong> (!showDescription) {
+<a class="jxr_linenumber" name="L190" href="#L190">190</a>         hiddenProperties.add(JCR_DESCRIPTION);
+<a class="jxr_linenumber" name="L191" href="#L191">191</a>       }
+<a class="jxr_linenumber" name="L192" href="#L192">192</a>     }
+<a class="jxr_linenumber" name="L193" href="#L193">193</a>     <strong class="jxr_keyword">if</strong> (linkItems) {
+<a class="jxr_linenumber" name="L194" href="#L194">194</a>       overriddenProperties.put(PN_LINK_TYPE, InternalLinkType.ID);
+<a class="jxr_linenumber" name="L195" href="#L195">195</a>       overriddenProperties.put(PN_LINK_CONTENT_REF, <strong class="jxr_keyword">this</strong>.getPath());
+<a class="jxr_linenumber" name="L196" href="#L196">196</a>     }
+<a class="jxr_linenumber" name="L197" href="#L197">197</a> 
+<a class="jxr_linenumber" name="L198" href="#L198">198</a>     <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">new</strong> <a name="CoreResourceWrapper" href="../../../../../../../../io/wcm/wcm/core/components/impl/util/CoreResourceWrapper.html#CoreResourceWrapper">CoreResourceWrapper</a>(resourceToBeWrapped, delegateResourceType, overriddenProperties, hiddenProperties);
+<a class="jxr_linenumber" name="L199" href="#L199">199</a>   }
+<a class="jxr_linenumber" name="L200" href="#L200">200</a> 
+<a class="jxr_linenumber" name="L201" href="#L201">201</a>   <em class="jxr_comment">// --- data layer ---</em>
+<a class="jxr_linenumber" name="L202" href="#L202">202</a> 
+<a class="jxr_linenumber" name="L203" href="#L203">203</a>   @Override
+<a class="jxr_linenumber" name="L204" href="#L204">204</a>   <strong class="jxr_keyword">protected</strong> @NotNull PageData getComponentData() {
+<a class="jxr_linenumber" name="L205" href="#L205">205</a>     <strong class="jxr_keyword">return</strong> DataLayerBuilder.extending(<strong class="jxr_keyword">super</strong>.getComponentData()).asPage()
+<a class="jxr_linenumber" name="L206" href="#L206">206</a>         .withTitle(<strong class="jxr_keyword">this</strong>::getTitle)
+<a class="jxr_linenumber" name="L207" href="#L207">207</a>         .withLinkUrl(link::getURL)
+<a class="jxr_linenumber" name="L208" href="#L208">208</a>         .build();
+<a class="jxr_linenumber" name="L209" href="#L209">209</a>   }
+<a class="jxr_linenumber" name="L210" href="#L210">210</a> 
+<a class="jxr_linenumber" name="L211" href="#L211">211</a> }
 </pre>
 <hr/>
 <div id="footer">Copyright &#169; 2014&#x2013;2022 <a href="https://wcm.io">wcm.io</a>. All rights reserved.</div>
