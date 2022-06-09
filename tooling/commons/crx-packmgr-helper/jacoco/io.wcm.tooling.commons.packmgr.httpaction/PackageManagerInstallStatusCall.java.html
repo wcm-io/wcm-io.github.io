@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PackageManagerInstallStatusCall.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CRX Package Manager Helper</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.packmgr.httpaction</a> &gt; <span class="el_source">PackageManagerInstallStatusCall.java</span></div><h1>PackageManagerInstallStatusCall.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2022 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.packmgr.httpaction;
+
+import java.io.IOException;
+
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.wcm.tooling.commons.packmgr.PackageManagerHttpActionException;
+
+/**
+ * Get install status from package manager.
+ */
+public final class PackageManagerInstallStatusCall implements HttpCall&lt;PackageManagerInstallStatus&gt; {
+
+  private final CloseableHttpClient httpClient;
+  private final HttpClientContext context;
+  private final String packageManagerInstallStatusURL;
+
+<span class="nc" id="L45">  private static final Logger log = LoggerFactory.getLogger(PackageManagerInstallStatusCall.class);</span>
+
+  /**
+   * @param httpClient HTTP client
+   * @param context HTTP client context
+   * @param packageManagerInstallStatusURL Bundle status URL
+   */
+  public PackageManagerInstallStatusCall(CloseableHttpClient httpClient, HttpClientContext context,
+<span class="nc" id="L53">      String packageManagerInstallStatusURL) {</span>
+<span class="nc" id="L54">    this.httpClient = httpClient;</span>
+<span class="nc" id="L55">    this.context = context;</span>
+<span class="nc" id="L56">    this.packageManagerInstallStatusURL = packageManagerInstallStatusURL;</span>
+<span class="nc" id="L57">  }</span>
+
+  @Override
+  public PackageManagerInstallStatus execute() {
+<span class="nc" id="L61">    log.debug(&quot;Call URL: {}&quot;, packageManagerInstallStatusURL);</span>
+
+<span class="nc" id="L63">    HttpGet method = new HttpGet(packageManagerInstallStatusURL);</span>
+<span class="nc" id="L64">    try (CloseableHttpResponse response = httpClient.execute(method, context)) {</span>
+
+<span class="nc" id="L66">      String responseString = EntityUtils.toString(response.getEntity());</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">      if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {</span>
+<span class="nc" id="L68">        throw PackageManagerHttpActionException.forHttpError(packageManagerInstallStatusURL, response.getStatusLine(), responseString);</span>
+      }
+
+<span class="nc" id="L71">      return toPackageManagerInstallStatus(responseString);</span>
+    }
+<span class="nc" id="L73">    catch (IOException ex) {</span>
+<span class="nc" id="L74">      throw PackageManagerHttpActionException.forIOException(packageManagerInstallStatusURL, ex);</span>
+    }
+  }
+
+  private PackageManagerInstallStatus toPackageManagerInstallStatus(String jsonString) {
+<span class="nc" id="L79">    boolean finished = false;</span>
+<span class="nc" id="L80">    int itemCount = 0;</span>
+
+<span class="nc" id="L82">    JSONObject json = new JSONObject(jsonString);</span>
+<span class="nc" id="L83">    JSONObject status = json.optJSONObject(&quot;status&quot;);</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">    if (status != null) {</span>
+<span class="nc" id="L85">      finished = status.optBoolean(&quot;finished&quot;);</span>
+<span class="nc" id="L86">      itemCount = status.optInt(&quot;itemCount&quot;);</span>
+    }
+
+<span class="nc" id="L89">    return new PackageManagerInstallStatus(finished, itemCount);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
