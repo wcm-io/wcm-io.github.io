@@ -27,6 +27,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +43,7 @@ public final class PackageManagerInstallStatusCall implements HttpCall&lt;Packag
   private final HttpClientContext context;
   private final String packageManagerInstallStatusURL;
 
-<span class="nc" id="L45">  private static final Logger log = LoggerFactory.getLogger(PackageManagerInstallStatusCall.class);</span>
+<span class="nc" id="L46">  private static final Logger log = LoggerFactory.getLogger(PackageManagerInstallStatusCall.class);</span>
 
   /**
    * @param httpClient HTTP client
@@ -50,43 +51,48 @@ public final class PackageManagerInstallStatusCall implements HttpCall&lt;Packag
    * @param packageManagerInstallStatusURL Bundle status URL
    */
   public PackageManagerInstallStatusCall(CloseableHttpClient httpClient, HttpClientContext context,
-<span class="nc" id="L53">      String packageManagerInstallStatusURL) {</span>
-<span class="nc" id="L54">    this.httpClient = httpClient;</span>
-<span class="nc" id="L55">    this.context = context;</span>
-<span class="nc" id="L56">    this.packageManagerInstallStatusURL = packageManagerInstallStatusURL;</span>
-<span class="nc" id="L57">  }</span>
+<span class="nc" id="L54">      String packageManagerInstallStatusURL) {</span>
+<span class="nc" id="L55">    this.httpClient = httpClient;</span>
+<span class="nc" id="L56">    this.context = context;</span>
+<span class="nc" id="L57">    this.packageManagerInstallStatusURL = packageManagerInstallStatusURL;</span>
+<span class="nc" id="L58">  }</span>
 
   @Override
   public PackageManagerInstallStatus execute() {
-<span class="nc" id="L61">    log.debug(&quot;Call URL: {}&quot;, packageManagerInstallStatusURL);</span>
+<span class="nc" id="L62">    log.debug(&quot;Call URL: {}&quot;, packageManagerInstallStatusURL);</span>
 
-<span class="nc" id="L63">    HttpGet method = new HttpGet(packageManagerInstallStatusURL);</span>
-<span class="nc" id="L64">    try (CloseableHttpResponse response = httpClient.execute(method, context)) {</span>
+<span class="nc" id="L64">    HttpGet method = new HttpGet(packageManagerInstallStatusURL);</span>
+<span class="nc" id="L65">    try (CloseableHttpResponse response = httpClient.execute(method, context)) {</span>
 
-<span class="nc" id="L66">      String responseString = EntityUtils.toString(response.getEntity());</span>
-<span class="nc bnc" id="L67" title="All 2 branches missed.">      if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {</span>
-<span class="nc" id="L68">        throw PackageManagerHttpActionException.forHttpError(packageManagerInstallStatusURL, response.getStatusLine(), responseString);</span>
+<span class="nc" id="L67">      String responseString = EntityUtils.toString(response.getEntity());</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">      if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {</span>
+<span class="nc" id="L69">        throw PackageManagerHttpActionException.forHttpError(packageManagerInstallStatusURL, response.getStatusLine(), responseString);</span>
       }
 
-<span class="nc" id="L71">      return toPackageManagerInstallStatus(responseString);</span>
+<span class="nc" id="L72">      return toPackageManagerInstallStatus(responseString);</span>
     }
-<span class="nc" id="L73">    catch (IOException ex) {</span>
-<span class="nc" id="L74">      throw PackageManagerHttpActionException.forIOException(packageManagerInstallStatusURL, ex);</span>
+<span class="nc" id="L74">    catch (IOException ex) {</span>
+<span class="nc" id="L75">      throw PackageManagerHttpActionException.forIOException(packageManagerInstallStatusURL, ex);</span>
     }
   }
 
   private PackageManagerInstallStatus toPackageManagerInstallStatus(String jsonString) {
-<span class="nc" id="L79">    boolean finished = false;</span>
-<span class="nc" id="L80">    int itemCount = 0;</span>
+<span class="nc" id="L80">    boolean finished = false;</span>
+<span class="nc" id="L81">    int itemCount = 0;</span>
 
-<span class="nc" id="L82">    JSONObject json = new JSONObject(jsonString);</span>
-<span class="nc" id="L83">    JSONObject status = json.optJSONObject(&quot;status&quot;);</span>
-<span class="nc bnc" id="L84" title="All 2 branches missed.">    if (status != null) {</span>
-<span class="nc" id="L85">      finished = status.optBoolean(&quot;finished&quot;);</span>
-<span class="nc" id="L86">      itemCount = status.optInt(&quot;itemCount&quot;);</span>
+    try {
+<span class="nc" id="L84">      JSONObject json = new JSONObject(jsonString);</span>
+<span class="nc" id="L85">      JSONObject status = json.optJSONObject(&quot;status&quot;);</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">      if (status != null) {</span>
+<span class="nc" id="L87">        finished = status.optBoolean(&quot;finished&quot;);</span>
+<span class="nc" id="L88">        itemCount = status.optInt(&quot;itemCount&quot;);</span>
+      }
     }
+<span class="nc" id="L91">    catch (JSONException ex) {</span>
+<span class="nc" id="L92">      throw PackageManagerHttpActionException.forJSONException(packageManagerInstallStatusURL, jsonString, ex);</span>
+<span class="nc" id="L93">    }</span>
 
-<span class="nc" id="L89">    return new PackageManagerInstallStatus(finished, itemCount);</span>
+<span class="nc" id="L95">    return new PackageManagerInstallStatus(finished, itemCount);</span>
   }
 
 }
