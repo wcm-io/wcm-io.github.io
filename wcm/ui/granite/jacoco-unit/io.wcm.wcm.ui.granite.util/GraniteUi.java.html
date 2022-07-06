@@ -36,6 +36,14 @@ import com.day.cq.wcm.api.PageManager;
 
 /**
  * Helper methods for GraniteUI components.
+ * &lt;p&gt;
+ * It uses some heuristics to get the current content path in context of a GraniteUI component:
+ * &lt;/p&gt;
+ * &lt;ol&gt;
+ * &lt;li&gt;Inside create page wizard, try to get content path from referrer header&lt;/li&gt;
+ * &lt;li&gt;Try to get content path from request suffix&lt;/li&gt;
+ * &lt;li&gt;Try to get content path from &quot;item&quot; request parameter (inside multifield component)&lt;/li&gt;
+ * &lt;/ol&gt;
  */
 @ProviderType
 public final class GraniteUi {
@@ -54,12 +62,12 @@ public final class GraniteUi {
    * @return Current content resource or null
    */
   public static @Nullable Resource getContentResource(@NotNull HttpServletRequest request) {
-<span class="fc" id="L57">    String contentPath = getContentPath(request);</span>
-<span class="fc bfc" id="L58" title="All 2 branches covered.">    if (contentPath != null) {</span>
-<span class="fc" id="L59">      SlingHttpServletRequest slingRequest = (SlingHttpServletRequest)request;</span>
-<span class="fc" id="L60">      return slingRequest.getResourceResolver().getResource(contentPath);</span>
+<span class="fc" id="L65">    String contentPath = getContentPath(request);</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">    if (contentPath != null) {</span>
+<span class="fc" id="L67">      SlingHttpServletRequest slingRequest = (SlingHttpServletRequest)request;</span>
+<span class="fc" id="L68">      return slingRequest.getResourceResolver().getResource(contentPath);</span>
     }
-<span class="fc" id="L62">    return null;</span>
+<span class="fc" id="L70">    return null;</span>
   }
 
   /**
@@ -69,8 +77,8 @@ public final class GraniteUi {
    * @return Current content resource or the first existing parent/ancestor.
    */
   public static @Nullable Resource getContentResourceOrParent(@NotNull HttpServletRequest request) {
-<span class="fc" id="L72">    String contentPath = getContentPath(request);</span>
-<span class="fc" id="L73">    return getContentResourceOrParentFromPath((SlingHttpServletRequest)request, contentPath);</span>
+<span class="fc" id="L80">    String contentPath = getContentPath(request);</span>
+<span class="fc" id="L81">    return getContentResourceOrParentFromPath((SlingHttpServletRequest)request, contentPath);</span>
   }
 
   /**
@@ -80,15 +88,15 @@ public final class GraniteUi {
    * @return Current content page or null
    */
   public static @Nullable Page getContentPage(@NotNull HttpServletRequest request) {
-<span class="fc" id="L83">    SlingHttpServletRequest slingRequest = (SlingHttpServletRequest)request;</span>
-<span class="fc" id="L84">    Resource contentResource = getContentResourceOrParent(request);</span>
-<span class="fc bfc" id="L85" title="All 2 branches covered.">    if (contentResource != null) {</span>
-<span class="fc" id="L86">      PageManager pageManager = slingRequest.getResourceResolver().adaptTo(PageManager.class);</span>
-<span class="pc bpc" id="L87" title="1 of 2 branches missed.">      if (pageManager != null) {</span>
-<span class="fc" id="L88">        return pageManager.getContainingPage(contentResource);</span>
+<span class="fc" id="L91">    SlingHttpServletRequest slingRequest = (SlingHttpServletRequest)request;</span>
+<span class="fc" id="L92">    Resource contentResource = getContentResourceOrParent(request);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">    if (contentResource != null) {</span>
+<span class="fc" id="L94">      PageManager pageManager = slingRequest.getResourceResolver().adaptTo(PageManager.class);</span>
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">      if (pageManager != null) {</span>
+<span class="fc" id="L96">        return pageManager.getContainingPage(contentResource);</span>
       }
     }
-<span class="fc" id="L91">    return null;</span>
+<span class="fc" id="L99">    return null;</span>
   }
 
   /**
@@ -98,12 +106,12 @@ public final class GraniteUi {
    * @return Existing resource type
    */
   public static @Nullable String getExistingResourceType(@NotNull ResourceResolver resourceResolver, @NotNull String @NotNull... resourceTypes) {
-<span class="fc bfc" id="L101" title="All 2 branches covered.">    for (String path : resourceTypes) {</span>
-<span class="fc bfc" id="L102" title="All 2 branches covered.">      if (resourceResolver.getResource(path) != null) {</span>
-<span class="fc" id="L103">        return path;</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">    for (String path : resourceTypes) {</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">      if (resourceResolver.getResource(path) != null) {</span>
+<span class="fc" id="L111">        return path;</span>
       }
     }
-<span class="fc" id="L106">    return null;</span>
+<span class="fc" id="L114">    return null;</span>
   }
 
   /**
@@ -114,54 +122,54 @@ public final class GraniteUi {
   @SuppressWarnings(&quot;deprecation&quot;)
   private static @Nullable String getContentPath(@NotNull HttpServletRequest request) {
 
-<span class="fc" id="L117">    String contentPath = (String)request.getAttribute(Value.CONTENTPATH_ATTRIBUTE);</span>
+<span class="fc" id="L125">    String contentPath = (String)request.getAttribute(Value.CONTENTPATH_ATTRIBUTE);</span>
 
     // if we are currently in create page wizard try to extract content path from referer,
     // as it is not available via other ways
-<span class="fc bfc" id="L121" title="All 4 branches covered.">    if (!isValidContentPath(contentPath) &amp;&amp; StringUtils.contains(request.getRequestURI(), CREATEPAGEWITZARD_PROPERTIES_URI)) {</span>
-<span class="fc" id="L122">      String referer = request.getHeader(HEADER_REFERER);</span>
-<span class="pc bpc" id="L123" title="2 of 4 branches missed.">      if (referer != null &amp;&amp; StringUtils.contains(referer, CREATEPAGEWITZARD_URI)) {</span>
-<span class="fc" id="L124">        contentPath = StringUtils.substringAfter(referer, CREATEPAGEWITZARD_URI);</span>
+<span class="fc bfc" id="L129" title="All 4 branches covered.">    if (!isValidContentPath(contentPath) &amp;&amp; StringUtils.contains(request.getRequestURI(), CREATEPAGEWITZARD_PROPERTIES_URI)) {</span>
+<span class="fc" id="L130">      String referer = request.getHeader(HEADER_REFERER);</span>
+<span class="pc bpc" id="L131" title="2 of 4 branches missed.">      if (referer != null &amp;&amp; StringUtils.contains(referer, CREATEPAGEWITZARD_URI)) {</span>
+<span class="fc" id="L132">        contentPath = StringUtils.substringAfter(referer, CREATEPAGEWITZARD_URI);</span>
       }
     }
 
-<span class="fc bfc" id="L128" title="All 2 branches covered.">    if (!isValidContentPath(contentPath)) {</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">    if (!isValidContentPath(contentPath)) {</span>
       // fallback to suffix if CONTENTPATH_ATTRIBUTE is not set
       // (e.g. in inside a /libs/granite/ui/components/foundation/form/multifield component)
-<span class="fc" id="L131">      contentPath = ((SlingHttpServletRequest)request).getRequestPathInfo().getSuffix();</span>
+<span class="fc" id="L139">      contentPath = ((SlingHttpServletRequest)request).getRequestPathInfo().getSuffix();</span>
     }
 
-<span class="fc bfc" id="L134" title="All 2 branches covered.">    if (!isValidContentPath(contentPath)) {</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">    if (!isValidContentPath(contentPath)) {</span>
       // fallback to suffix item parameter in query string
       // (e.g. in inside a /libs/granite/ui/components/foundation/form/multifield component)
-<span class="fc" id="L137">      contentPath = request.getParameter(&quot;item&quot;);</span>
+<span class="fc" id="L145">      contentPath = request.getParameter(&quot;item&quot;);</span>
     }
 
-<span class="fc bfc" id="L140" title="All 2 branches covered.">    if (!isValidContentPath(contentPath)) {</span>
-<span class="fc" id="L141">      contentPath = null;</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">    if (!isValidContentPath(contentPath)) {</span>
+<span class="fc" id="L149">      contentPath = null;</span>
     }
 
-<span class="fc" id="L144">    return contentPath;</span>
+<span class="fc" id="L152">    return contentPath;</span>
   }
 
   private static boolean isValidContentPath(@Nullable String path) {
-<span class="fc bfc" id="L148" title="All 2 branches covered.">    if (path == null) {</span>
-<span class="fc" id="L149">      return false;</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">    if (path == null) {</span>
+<span class="fc" id="L157">      return false;</span>
     }
-<span class="fc" id="L151">    return StringUtils.startsWith(path, &quot;/&quot;);</span>
+<span class="fc" id="L159">    return StringUtils.startsWith(path, &quot;/&quot;);</span>
   }
 
   private static Resource getContentResourceOrParentFromPath(SlingHttpServletRequest slingRequest, String contentPath) {
-<span class="fc bfc" id="L155" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(contentPath)) {</span>
-<span class="fc" id="L156">      Resource contentResource = slingRequest.getResourceResolver().getResource(contentPath);</span>
-<span class="fc bfc" id="L157" title="All 2 branches covered.">      if (contentResource != null) {</span>
-<span class="fc" id="L158">        return contentResource;</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(contentPath)) {</span>
+<span class="fc" id="L164">      Resource contentResource = slingRequest.getResourceResolver().getResource(contentPath);</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">      if (contentResource != null) {</span>
+<span class="fc" id="L166">        return contentResource;</span>
       }
       else {
-<span class="fc" id="L161">        return getContentResourceOrParentFromPath(slingRequest, ResourceUtil.getParent(contentPath));</span>
+<span class="fc" id="L169">        return getContentResourceOrParentFromPath(slingRequest, ResourceUtil.getParent(contentPath));</span>
       }
     }
-<span class="fc" id="L164">    return null;</span>
+<span class="fc" id="L172">    return null;</span>
   }
 
 }
