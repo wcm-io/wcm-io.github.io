@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UrlPrefix.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">URL Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.url.impl</a> &gt; <span class="el_source">UrlPrefix.java</span></div><h1>UrlPrefix.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2022 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.url.impl;
+
+import java.util.Enumeration;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.adapter.Adaptable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Implements auto-detection for Site URL prefix (author or publish).
+ * This works only if the adaptable is of SlingHttpServletRequest.
+ */
+final class UrlPrefix {
+
+  /**
+   * String that is provided in site URL config to enable auto-detection.
+   */
+  public static final String AUTO_DETECTION = &quot;&lt;auto&gt;&quot;;
+
+  static final String HTTP_HEADER_X_FORWARDED_HOST = &quot;X-Forwarded-Host&quot;;
+  static final String HTTP_HEADER_X_FORWARDED_PROTO = &quot;X-Forwarded-Proto&quot;;
+  static final String HTTP_HEADER_HOST = &quot;Host&quot;;
+  static final String HTTP_HEADER_X_FORWARDED_SSL = &quot;X-Forwarded-SSL&quot;;
+  static final String VALUE_ON = &quot;on&quot;;
+
+<span class="fc" id="L49">  private static final Logger log = LoggerFactory.getLogger(UrlPrefix.class);</span>
+
+  private UrlPrefix() {
+    // static methods only
+  }
+
+  /**
+   * Apply auto-detection to URL prefix.
+   * @param configuredUrlPrefix Configured URL prefix
+   * @param adaptable Adaptable
+   * @return Configured or auto-detected URL prefix
+   */
+  static @Nullable String applyAutoDetection(@Nullable String configuredUrlPrefix, @NotNull Adaptable adaptable) {
+<span class="fc" id="L62">    String urlPrefix = configuredUrlPrefix;</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">    if (StringUtils.contains(configuredUrlPrefix, AUTO_DETECTION)) {</span>
+      // remove auto marker (detection might not be possible if adaptable is not a request)
+<span class="fc" id="L65">      urlPrefix = StringUtils.trimToNull(StringUtils.remove(configuredUrlPrefix, AUTO_DETECTION));</span>
+      // auto-detect based on request
+<span class="fc bfc" id="L67" title="All 2 branches covered.">      if (adaptable instanceof SlingHttpServletRequest) {</span>
+<span class="fc" id="L68">        SlingHttpServletRequest request = (SlingHttpServletRequest)adaptable;</span>
+<span class="fc" id="L69">        urlPrefix = detectFromForwardedHeader(request);</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (urlPrefix == null) {</span>
+<span class="fc" id="L71">          urlPrefix = detectFromServletRequest(request);</span>
+        }
+      }
+    }
+<span class="fc" id="L75">    return urlPrefix;</span>
+  }
+
+  /**
+   * Try to get URL prefix from X-Forwarded header (e.g. in AEMaaCS environment).
+   * @param request Request
+   * @return Url prefix or null
+   */
+  private static @Nullable String detectFromForwardedHeader(@NotNull SlingHttpServletRequest request) {
+
+    // output request headers to log in TRACE level
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">    if (log.isTraceEnabled()) {</span>
+<span class="nc" id="L87">      StringBuilder output = new StringBuilder();</span>
+<span class="nc" id="L88">      Enumeration&lt;String&gt; headers = request.getHeaderNames();</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">      while (headers.hasMoreElements()) {</span>
+<span class="nc" id="L90">        String header = headers.nextElement();</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        if (output.length() &gt; 0) {</span>
+<span class="nc" id="L92">          output.append(&quot;; &quot;);</span>
+        }
+<span class="nc" id="L94">        output.append(header).append('=').append(request.getHeader(header));</span>
+<span class="nc" id="L95">      }</span>
+<span class="nc" id="L96">      log.trace(&quot;HTTP headers: {}&quot;, output);</span>
+    }
+
+    // this should work for AEMaaCS author
+<span class="fc" id="L100">    String forwardedHost = request.getHeader(HTTP_HEADER_X_FORWARDED_HOST);</span>
+<span class="fc" id="L101">    String forwardedProto = request.getHeader(HTTP_HEADER_X_FORWARDED_PROTO);</span>
+<span class="fc bfc" id="L102" title="All 4 branches covered.">    if (StringUtils.isNotEmpty(forwardedHost) &amp;&amp; StringUtils.isNotEmpty(forwardedProto)) {</span>
+<span class="fc" id="L103">      return forwardedProto + &quot;://&quot; + forwardedHost;</span>
+    }
+
+    // this should work for AEMaaCS publish
+<span class="fc" id="L107">    String host = request.getHeader(HTTP_HEADER_HOST);</span>
+<span class="fc" id="L108">    String forwardedSsl = request.getHeader(HTTP_HEADER_X_FORWARDED_SSL);</span>
+<span class="fc bfc" id="L109" title="All 4 branches covered.">    if (StringUtils.isNotEmpty(host) &amp;&amp; StringUtils.equalsIgnoreCase(forwardedSsl, VALUE_ON)) {</span>
+<span class="fc" id="L110">      return &quot;https://&quot; + host;</span>
+    }
+
+<span class="fc" id="L113">    return null;</span>
+  }
+
+  private static @NotNull String detectFromServletRequest(@NotNull SlingHttpServletRequest request) {
+<span class="fc" id="L117">    StringBuilder urlPrefix = new StringBuilder();</span>
+<span class="fc" id="L118">    urlPrefix.append(request.getScheme()).append(&quot;://&quot;).append(request.getServerName());</span>
+<span class="fc" id="L119">    int port = request.getServerPort();</span>
+<span class="fc bfc" id="L120" title="All 8 branches covered.">    if ((request.isSecure() &amp;&amp; port != 443) || (!request.isSecure() &amp;&amp; port != 80)) {</span>
+<span class="fc" id="L121">      urlPrefix.append(':').append(Integer.toString(port));</span>
+    }
+<span class="fc" id="L123">    return urlPrefix.toString();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
