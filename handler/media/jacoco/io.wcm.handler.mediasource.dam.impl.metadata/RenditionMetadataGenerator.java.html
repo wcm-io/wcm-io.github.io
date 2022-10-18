@@ -278,7 +278,7 @@ public final class RenditionMetadataGenerator {
   }
 
   /**
-   * Get dimension (with/height) of rendition.
+   * Get dimension (width/height) of rendition.
    * @param renditionResource Rendition
    * @return Dimension or null if it could not be detected
    */
