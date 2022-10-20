@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SmartCrop.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.impl.dynamicmedia</a> &gt; <span class="el_source">SmartCrop.java</span></div><h1>SmartCrop.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2022 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.impl.dynamicmedia;
+
+import static com.day.cq.commons.jcr.JcrConstants.JCR_CONTENT;
+import static com.day.cq.dam.api.DamConstants.RENDITIONS_FOLDER;
+
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ValueMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.dam.api.Asset;
+
+import io.wcm.handler.media.CropDimension;
+import io.wcm.handler.media.Dimension;
+import io.wcm.handler.media.format.Ratio;
+import io.wcm.handler.mediasource.dam.AssetRendition;
+
+/**
+ * Apply Dynamic Media Smart Cropping.
+ */
+public final class SmartCrop {
+
+  /**
+   * Normalized width (double value 0..1 as percentage of original image).
+   */
+  public static final String PN_NORMALIZED_WIDTH = &quot;normalizedWidth&quot;;
+
+  /**
+   * Normalized height (double value 0..1 as percentage of original image).
+   */
+  public static final String PN_NORMALIZED_HEIGHT = &quot;normalizedHeight&quot;;
+
+  private static final double MIN_NORMALIZED_WIDTH_HEIGHT = 0.0001;
+<span class="fc" id="L56">  private static final Logger log = LoggerFactory.getLogger(SmartCrop.class);</span>
+
+  private SmartCrop() {
+    // static methods only
+  }
+
+  /**
+   * Smart cropping can be applied when no manual cropping was applied, or auto cropping is enabled.
+   * Additionally, combination with rotation is not allowed.
+   * @param cropDimension Manual crop definition
+   * @param rotation Rotation
+   * @return true if Smart Cropping can be applied
+   */
+  static boolean canApply(@Nullable CropDimension cropDimension, @Nullable Integer rotation) {
+<span class="fc bfc" id="L70" title="All 6 branches covered.">    return (cropDimension == null || cropDimension.isAutoCrop()) &amp;&amp; rotation == null;</span>
+  }
+
+  /**
+   * Checks DM image profile for a smart cropping definition matching the ratio of the requested width/height.
+   * @param imageProfile Image profile from DAM context (null if no is defined)
+   * @param width Width
+   * @param height Height
+   * @return Smart cropping definition with requested width/height - or null if no match
+   */
+  static @Nullable NamedDimension getDimension(@Nullable ImageProfile imageProfile, long width, long height) {
+<span class="fc bfc" id="L81" title="All 2 branches covered.">    if (imageProfile == null) {</span>
+<span class="fc" id="L82">      return null;</span>
+    }
+<span class="fc" id="L84">    Double requestedRatio = Ratio.get(width, height);</span>
+<span class="fc" id="L85">    NamedDimension matchingDimension = imageProfile.getSmartCropDefinitions().stream()</span>
+<span class="fc" id="L86">        .filter(def -&gt; Ratio.matches(Ratio.get(def), requestedRatio))</span>
+<span class="fc" id="L87">        .findFirst().orElse(null);</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (matchingDimension != null) {</span>
+      // create new named dimension with actual requested width/height
+<span class="fc" id="L90">      return new NamedDimension(matchingDimension.getName(), width, height);</span>
+    }
+    else {
+<span class="fc" id="L93">      return null;</span>
+    }
+  }
+
+  /**
+   * Verifies that the actual image area picked in smart cropping (either automatic or manual) results in
+   * a rendition size that fulfills at least the requested width/height.
+   * @param asset DAM asset
+   * @param resourceResolver Resource resolve
+   * @param smartCropDef Smart cropping dimension
+   * @param width Requested width
+   * @param height Requested height
+   * @return true if size is matching, or no width/height information for the cropped area is available
+   */
+  @SuppressWarnings(&quot;java:S1075&quot;) // no filesystem paths
+  static boolean isMatchingSize(@NotNull Asset asset, @NotNull ResourceResolver resourceResolver,
+      @NotNull NamedDimension smartCropDef, long width, long height) {
+    // at this path smart cropping parameters may be stored for each ratio (esp. if manual cropping was applied)
+<span class="fc" id="L111">    String smartCropRenditionPath = asset.getPath()</span>
+        + &quot;/&quot; + JCR_CONTENT
+        + &quot;/&quot; + RENDITIONS_FOLDER
+<span class="fc" id="L114">        + &quot;/&quot; + smartCropDef.getName()</span>
+        + &quot;/&quot; + JCR_CONTENT;
+<span class="fc" id="L116">    Resource smartCropRendition = resourceResolver.getResource(smartCropRenditionPath);</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">    if (smartCropRendition == null) {</span>
+      // if this rendition is not found in repository, we assume the size should be fine
+      // on AEMaaCS this path should always exist, in AEMaaCS SDK it seems to be created only when manual cropping
+      // is applied in the Assets UI
+<span class="fc" id="L121">      return true;</span>
+    }
+<span class="fc" id="L123">    ValueMap props = smartCropRendition.getValueMap();</span>
+<span class="fc" id="L124">    double normalizedWidth = props.get(PN_NORMALIZED_WIDTH, 0d);</span>
+<span class="fc" id="L125">    double normalizedHeight = props.get(PN_NORMALIZED_HEIGHT, 0d);</span>
+<span class="fc" id="L126">    Dimension originalDimension = AssetRendition.getDimension(asset.getOriginal());</span>
+<span class="pc bpc" id="L127" title="2 of 6 branches missed.">    if (normalizedWidth &lt; MIN_NORMALIZED_WIDTH_HEIGHT || normalizedHeight &lt; MIN_NORMALIZED_WIDTH_HEIGHT</span>
+        || originalDimension == null) {
+      // skip further validation if dimensions are not found
+<span class="fc" id="L130">      return true;</span>
+    }
+
+    // check if smart cropping area is large enough
+<span class="fc" id="L134">    long croppedWidth = Math.round(originalDimension.getWidth() * normalizedWidth);</span>
+<span class="fc" id="L135">    long croppedHeight = Math.round(originalDimension.getHeight() * normalizedHeight);</span>
+<span class="pc bpc" id="L136" title="1 of 4 branches missed.">    boolean isMatchingSize = (croppedWidth &gt;= width || croppedHeight &gt;= height);</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (!isMatchingSize) {</span>
+<span class="fc" id="L138">      log.debug(&quot;Smart cropping area '{}' for asset {} is too small ({} x {}) for requested size {} x {}.&quot;,</span>
+<span class="fc" id="L139">          smartCropDef.getName(), asset.getPath(), croppedWidth, croppedHeight, width, height);</span>
+    }
+<span class="fc" id="L141">    return isMatchingSize;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

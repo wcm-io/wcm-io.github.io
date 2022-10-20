@@ -23,7 +23,10 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.adapter.Adaptable;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,10 +56,10 @@ public final class DamContext implements Adaptable {
   private Dimension dynamicMediaImageSizeLimit;
   private ImageProfile imageProfile;
 
-<span class="fc" id="L56">  private static final ImageProfile NO_IMAGE_PROFILE = new ImageProfile() {</span>
+<span class="fc" id="L59">  private static final ImageProfile NO_IMAGE_PROFILE = new ImageProfile() {</span>
     @Override
     public @NotNull List&lt;NamedDimension&gt; getSmartCropDefinitions() {
-<span class="nc" id="L59">      return Collections.emptyList();</span>
+<span class="nc" id="L62">      return Collections.emptyList();</span>
     }
   };
 
@@ -68,26 +71,26 @@ public final class DamContext implements Adaptable {
    * @param adaptable Adaptable from current context
    */
   public DamContext(@NotNull Asset asset, @NotNull MediaArgs mediaArgs, @NotNull MediaHandlerConfig mediaHandlerConfig,
-<span class="fc" id="L71">      @NotNull DynamicMediaSupportService dynamicMediaSupportService, @NotNull Adaptable adaptable) {</span>
-<span class="fc" id="L72">    this.asset = asset;</span>
-<span class="fc" id="L73">    this.mediaArgs = mediaArgs;</span>
-<span class="fc" id="L74">    this.mediaHandlerConfig = mediaHandlerConfig;</span>
-<span class="fc" id="L75">    this.dynamicMediaSupportService = dynamicMediaSupportService;</span>
-<span class="fc" id="L76">    this.adaptable = adaptable;</span>
-<span class="fc" id="L77">  }</span>
+<span class="fc" id="L74">      @NotNull DynamicMediaSupportService dynamicMediaSupportService, @NotNull Adaptable adaptable) {</span>
+<span class="fc" id="L75">    this.asset = asset;</span>
+<span class="fc" id="L76">    this.mediaArgs = mediaArgs;</span>
+<span class="fc" id="L77">    this.mediaHandlerConfig = mediaHandlerConfig;</span>
+<span class="fc" id="L78">    this.dynamicMediaSupportService = dynamicMediaSupportService;</span>
+<span class="fc" id="L79">    this.adaptable = adaptable;</span>
+<span class="fc" id="L80">  }</span>
 
   /**
    * @return DAM asset
    */
   public Asset getAsset() {
-<span class="fc" id="L83">    return asset;</span>
+<span class="fc" id="L86">    return asset;</span>
   }
 
   /**
    * @return Media handler config
    */
   public MediaHandlerConfig getMediaHandlerConfig() {
-<span class="fc" id="L90">    return this.mediaHandlerConfig;</span>
+<span class="fc" id="L93">    return this.mediaHandlerConfig;</span>
   }
 
   /**
@@ -95,11 +98,11 @@ public final class DamContext implements Adaptable {
    */
   public boolean isDynamicMediaEnabled() {
     // check that DM is not disabled globally
-<span class="pc bpc" id="L98" title="1 of 2 branches missed.">    return dynamicMediaSupportService.isDynamicMediaEnabled()</span>
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">    return dynamicMediaSupportService.isDynamicMediaEnabled()</span>
         // check that DM capability is enabled for the given asset
-<span class="fc bfc" id="L100" title="All 2 branches covered.">        &amp;&amp; dynamicMediaSupportService.isDynamicMediaCapabilityEnabled(isDynamicMediaAsset())</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        &amp;&amp; dynamicMediaSupportService.isDynamicMediaCapabilityEnabled(isDynamicMediaAsset())</span>
         // ensure DM is not disabled within MediaArgs for this media request
-<span class="fc bfc" id="L102" title="All 2 branches covered.">        &amp;&amp; !mediaArgs.isDynamicMediaDisabled();</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        &amp;&amp; !mediaArgs.isDynamicMediaDisabled();</span>
   }
 
   /**
@@ -107,44 +110,44 @@ public final class DamContext implements Adaptable {
    *         if the appropriate Dynamic Media metadata is not preset for an asset.
    */
   public boolean isDynamicMediaAemFallbackDisabled() {
-<span class="fc" id="L110">    return dynamicMediaSupportService.isAemFallbackDisabled();</span>
+<span class="fc" id="L113">    return dynamicMediaSupportService.isAemFallbackDisabled();</span>
   }
 
   /**
    * @return Dynamic media object identifier (value of dam:scene7File property).
    */
   public @Nullable String getDynamicMediaObject() {
-<span class="fc bfc" id="L117" title="All 2 branches covered.">    if (dynamicMediaObject == null) {</span>
-<span class="fc" id="L118">      dynamicMediaObject = asset.getMetadataValueFromJcr(Scene7Constants.PN_S7_FILE);</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (dynamicMediaObject == null) {</span>
+<span class="fc" id="L121">      dynamicMediaObject = asset.getMetadataValueFromJcr(Scene7Constants.PN_S7_FILE);</span>
     }
-<span class="fc" id="L120">    return dynamicMediaObject;</span>
+<span class="fc" id="L123">    return dynamicMediaObject;</span>
   }
 
   /**
    * @return true if the DAM asset from this context has dynamic media metadata applied.
    */
   public boolean isDynamicMediaAsset() {
-<span class="fc" id="L127">    return StringUtils.isNotBlank(getDynamicMediaObject());</span>
+<span class="fc" id="L130">    return StringUtils.isNotBlank(getDynamicMediaObject());</span>
   }
 
   /**
    * @return Get scene7 host for publish environment. Empty string if author preview mode is active.
    */
   public @Nullable String getDynamicMediaServerUrl() {
-<span class="fc bfc" id="L134" title="All 2 branches covered.">    if (dynamicMediaServerUrl == null) {</span>
-<span class="fc" id="L135">      dynamicMediaServerUrl = dynamicMediaSupportService.getDynamicMediaServerUrl(asset, mediaArgs.getUrlMode(), adaptable);</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (dynamicMediaServerUrl == null) {</span>
+<span class="fc" id="L138">      dynamicMediaServerUrl = dynamicMediaSupportService.getDynamicMediaServerUrl(asset, mediaArgs.getUrlMode(), adaptable);</span>
     }
-<span class="fc" id="L137">    return dynamicMediaServerUrl;</span>
+<span class="fc" id="L140">    return dynamicMediaServerUrl;</span>
   }
 
   /**
    * @return Dynamic media reply image size limit
    */
   public @NotNull Dimension getDynamicMediaImageSizeLimit() {
-<span class="fc bfc" id="L144" title="All 2 branches covered.">    if (dynamicMediaImageSizeLimit == null) {</span>
-<span class="fc" id="L145">      dynamicMediaImageSizeLimit = dynamicMediaSupportService.getImageSizeLimit();</span>
+<span class="fc bfc" id="L147" title="All 2 branches covered.">    if (dynamicMediaImageSizeLimit == null) {</span>
+<span class="fc" id="L148">      dynamicMediaImageSizeLimit = dynamicMediaSupportService.getImageSizeLimit();</span>
     }
-<span class="fc" id="L147">    return dynamicMediaImageSizeLimit;</span>
+<span class="fc" id="L150">    return dynamicMediaImageSizeLimit;</span>
   }
 
   /**
@@ -152,23 +155,38 @@ public final class DamContext implements Adaptable {
    * @return Image profile or null if none associated/found
    */
   public @Nullable ImageProfile getImageProfile() {
-<span class="fc bfc" id="L155" title="All 2 branches covered.">    if (imageProfile == null) {</span>
-<span class="fc" id="L156">      imageProfile = dynamicMediaSupportService.getImageProfileForAsset(asset);</span>
-<span class="fc bfc" id="L157" title="All 2 branches covered.">      if (imageProfile == null) {</span>
-<span class="fc" id="L158">        imageProfile = NO_IMAGE_PROFILE;</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">    if (imageProfile == null) {</span>
+<span class="fc" id="L159">      imageProfile = dynamicMediaSupportService.getImageProfileForAsset(asset);</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">      if (imageProfile == null) {</span>
+<span class="fc" id="L161">        imageProfile = NO_IMAGE_PROFILE;</span>
       }
     }
-<span class="fc bfc" id="L161" title="All 2 branches covered.">    if (imageProfile == NO_IMAGE_PROFILE) {</span>
-<span class="fc" id="L162">      return null;</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">    if (imageProfile == NO_IMAGE_PROFILE) {</span>
+<span class="fc" id="L165">      return null;</span>
     }
     else {
-<span class="fc" id="L165">      return imageProfile;</span>
+<span class="fc" id="L168">      return imageProfile;</span>
+    }
+  }
+
+  /**
+   * @return Resource resolver from current context
+   */
+  public @NotNull ResourceResolver getResourceResolver() {
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">    if (adaptable instanceof Resource) {</span>
+<span class="nc" id="L177">      return ((Resource)adaptable).getResourceResolver();</span>
+    }
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">    else if (adaptable instanceof SlingHttpServletRequest) {</span>
+<span class="fc" id="L180">      return ((SlingHttpServletRequest)adaptable).getResourceResolver();</span>
+    }
+    else {
+<span class="nc" id="L183">      throw new IllegalStateException(&quot;Adaptable is neither Resoucre nor SlingHttpServletRequest&quot;);</span>
     }
   }
 
   @Override
   public &lt;AdapterType&gt; @Nullable AdapterType adaptTo(@NotNull Class&lt;AdapterType&gt; type) {
-<span class="fc" id="L171">    return adaptable.adaptTo(type);</span>
+<span class="fc" id="L189">    return adaptable.adaptTo(type);</span>
   }
 
 }
