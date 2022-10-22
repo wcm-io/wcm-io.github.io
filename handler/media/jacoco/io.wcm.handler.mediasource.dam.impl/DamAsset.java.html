@@ -67,18 +67,33 @@ public final class DamAsset extends SlingAdaptable implements Asset {
   public DamAsset(Media media, com.day.cq.dam.api.Asset damAsset, MediaHandlerConfig mediaHandlerConfig,
 <span class="fc" id="L68">      DynamicMediaSupportService dynamicMediaSupportService, Adaptable adaptable) {</span>
 <span class="fc" id="L69">    this.damAsset = damAsset;</span>
-<span class="fc" id="L70">    this.cropDimension = media.getCropDimension();</span>
+<span class="fc" id="L70">    this.cropDimension = rescaleCropDimension(damAsset, media.getCropDimension());</span>
 <span class="fc" id="L71">    this.rotation = media.getRotation();</span>
 <span class="fc" id="L72">    this.defaultMediaArgs = media.getMediaRequest().getMediaArgs();</span>
 <span class="fc" id="L73">    this.damContext = new DamContext(damAsset, defaultMediaArgs, mediaHandlerConfig,</span>
         dynamicMediaSupportService, adaptable);
 <span class="fc" id="L75">  }</span>
 
+  /**
+   * Crop dimension stored in repository is always calucated against the web-enabled rendition of an asset.
+   * Rescale the crop-dimension here once to calculate it against the original image, which will be used for the actual
+   * cropping.
+   * @param asset Asset
+   * @param cropDimension Crop dimension from repository/input parameters
+   * @return Rescaled crop dimension
+   */
+  private static @Nullable CropDimension rescaleCropDimension(@NotNull com.day.cq.dam.api.Asset asset, @Nullable CropDimension cropDimension) {
+<span class="fc bfc" id="L86" title="All 2 branches covered.">    if (cropDimension == null) {</span>
+<span class="fc" id="L87">      return null;</span>
+    }
+<span class="fc" id="L89">    return WebEnabledRenditionCropping.getCropDimensionForOriginal(asset, cropDimension);</span>
+  }
+
   @Override
   public String getTitle() {
-<span class="fc" id="L79">    String title = getPropertyAwareOfArray(DamConstants.DC_TITLE);</span>
+<span class="fc" id="L94">    String title = getPropertyAwareOfArray(DamConstants.DC_TITLE);</span>
     // fallback to asset name if title is empty
-<span class="fc" id="L81">    return StringUtils.defaultString(title, damContext.getAsset().getName());</span>
+<span class="fc" id="L96">    return StringUtils.defaultString(title, damContext.getAsset().getName());</span>
   }
 
   /**
@@ -88,96 +103,96 @@ public final class DamAsset extends SlingAdaptable implements Asset {
    * @return Single value
    */
   private @Nullable String getPropertyAwareOfArray(@NotNull String propertyName) {
-<span class="fc" id="L91">    Object valueObject = damAsset.getMetadataValueFromJcr(propertyName);</span>
-<span class="fc" id="L92">    String value = null;</span>
-<span class="pc bpc" id="L93" title="1 of 2 branches missed.">    if (valueObject != null) {</span>
-<span class="pc bpc" id="L94" title="1 of 2 branches missed.">      if (valueObject instanceof Object[]) {</span>
-<span class="nc" id="L95">        Object[] valueArray = (Object[])valueObject;</span>
-<span class="nc bnc" id="L96" title="All 2 branches missed.">        if (valueArray.length &gt; 0) {</span>
-<span class="nc" id="L97">          value = valueArray[0].toString();</span>
+<span class="fc" id="L106">    Object valueObject = damAsset.getMetadataValueFromJcr(propertyName);</span>
+<span class="fc" id="L107">    String value = null;</span>
+<span class="pc bpc" id="L108" title="1 of 2 branches missed.">    if (valueObject != null) {</span>
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">      if (valueObject instanceof Object[]) {</span>
+<span class="nc" id="L110">        Object[] valueArray = (Object[])valueObject;</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        if (valueArray.length &gt; 0) {</span>
+<span class="nc" id="L112">          value = valueArray[0].toString();</span>
         }
-<span class="nc" id="L99">      }</span>
+<span class="nc" id="L114">      }</span>
       else {
-<span class="fc" id="L101">        value = valueObject.toString();</span>
+<span class="fc" id="L116">        value = valueObject.toString();</span>
       }
     }
-<span class="fc" id="L104">    return StringUtils.defaultIfBlank(value, null);</span>
+<span class="fc" id="L119">    return StringUtils.defaultIfBlank(value, null);</span>
   }
 
   @Override
   public String getAltText() {
-<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (defaultMediaArgs.isDecorative()) {</span>
-<span class="fc" id="L110">      return &quot;&quot;;</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (defaultMediaArgs.isDecorative()) {</span>
+<span class="fc" id="L125">      return &quot;&quot;;</span>
     }
-<span class="fc bfc" id="L112" title="All 4 branches covered.">    if (!defaultMediaArgs.isForceAltValueFromAsset() &amp;&amp; StringUtils.isNotEmpty(defaultMediaArgs.getAltText())) {</span>
-<span class="fc" id="L113">      return defaultMediaArgs.getAltText();</span>
+<span class="fc bfc" id="L127" title="All 4 branches covered.">    if (!defaultMediaArgs.isForceAltValueFromAsset() &amp;&amp; StringUtils.isNotEmpty(defaultMediaArgs.getAltText())) {</span>
+<span class="fc" id="L128">      return defaultMediaArgs.getAltText();</span>
     }
-<span class="fc" id="L115">    return StringUtils.defaultString(getDescription(), getTitle());</span>
+<span class="fc" id="L130">    return StringUtils.defaultString(getDescription(), getTitle());</span>
   }
 
   @Override
   public String getDescription() {
-<span class="fc" id="L120">    return getPropertyAwareOfArray(DamConstants.DC_DESCRIPTION);</span>
+<span class="fc" id="L135">    return getPropertyAwareOfArray(DamConstants.DC_DESCRIPTION);</span>
   }
 
   @Override
   public @NotNull String getPath() {
-<span class="fc" id="L125">    return this.damContext.getAsset().getPath();</span>
+<span class="fc" id="L140">    return this.damContext.getAsset().getPath();</span>
   }
 
   @Override
   public @NotNull ValueMap getProperties() {
-<span class="fc" id="L130">    return new ValueMapDecorator(damAsset.getMetadata());</span>
+<span class="fc" id="L145">    return new ValueMapDecorator(damAsset.getMetadata());</span>
   }
 
   @Override
   public Rendition getDefaultRendition() {
-<span class="nc" id="L135">    return getRendition(this.defaultMediaArgs);</span>
+<span class="nc" id="L150">    return getRendition(this.defaultMediaArgs);</span>
   }
 
   @Override
   public Rendition getRendition(@NotNull MediaArgs mediaArgs) {
-<span class="fc" id="L140">    Rendition rendition = getDamRendition(mediaArgs);</span>
+<span class="fc" id="L155">    Rendition rendition = getDamRendition(mediaArgs);</span>
 
     // check if rendition is valid - otherwise return null
-<span class="fc bfc" id="L143" title="All 2 branches covered.">    if (StringUtils.isEmpty(rendition.getUrl())) {</span>
-<span class="fc" id="L144">      rendition = null;</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">    if (StringUtils.isEmpty(rendition.getUrl())) {</span>
+<span class="fc" id="L159">      rendition = null;</span>
     }
 
-<span class="fc" id="L147">    return rendition;</span>
+<span class="fc" id="L162">    return rendition;</span>
   }
 
   @Override
   public Rendition getImageRendition(@NotNull MediaArgs mediaArgs) {
-<span class="nc" id="L152">    Rendition rendition = getRendition(mediaArgs);</span>
-<span class="nc bnc" id="L153" title="All 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isImage()) {</span>
-<span class="nc" id="L154">      return rendition;</span>
+<span class="nc" id="L167">    Rendition rendition = getRendition(mediaArgs);</span>
+<span class="nc bnc" id="L168" title="All 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isImage()) {</span>
+<span class="nc" id="L169">      return rendition;</span>
     }
     else {
-<span class="nc" id="L157">      return null;</span>
+<span class="nc" id="L172">      return null;</span>
     }
   }
 
   @SuppressWarnings(&quot;deprecation&quot;)
   @Override
   public Rendition getFlashRendition(@NotNull MediaArgs mediaArgs) {
-<span class="nc" id="L164">    Rendition rendition = getRendition(mediaArgs);</span>
-<span class="nc bnc" id="L165" title="All 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isFlash()) {</span>
-<span class="nc" id="L166">      return rendition;</span>
+<span class="nc" id="L179">    Rendition rendition = getRendition(mediaArgs);</span>
+<span class="nc bnc" id="L180" title="All 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isFlash()) {</span>
+<span class="nc" id="L181">      return rendition;</span>
     }
     else {
-<span class="nc" id="L169">      return null;</span>
+<span class="nc" id="L184">      return null;</span>
     }
   }
 
   @Override
   public Rendition getDownloadRendition(@NotNull MediaArgs mediaArgs) {
-<span class="nc" id="L175">    Rendition rendition = getRendition(mediaArgs);</span>
-<span class="nc bnc" id="L176" title="All 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isDownload()) {</span>
-<span class="nc" id="L177">      return rendition;</span>
+<span class="nc" id="L190">    Rendition rendition = getRendition(mediaArgs);</span>
+<span class="nc bnc" id="L191" title="All 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isDownload()) {</span>
+<span class="nc" id="L192">      return rendition;</span>
     }
     else {
-<span class="nc" id="L180">      return null;</span>
+<span class="nc" id="L195">      return null;</span>
     }
   }
 
@@ -187,38 +202,38 @@ public final class DamAsset extends SlingAdaptable implements Asset {
    * @return DAM rendition instance (may be invalid rendition)
    */
   protected Rendition getDamRendition(MediaArgs mediaArgs) {
-<span class="fc" id="L190">    return new DamRendition(this.cropDimension, this.rotation, mediaArgs, damContext);</span>
+<span class="fc" id="L205">    return new DamRendition(this.cropDimension, this.rotation, mediaArgs, damContext);</span>
   }
 
   @Override
   @SuppressWarnings({ &quot;unchecked&quot;, &quot;null&quot; })
   public &lt;AdapterType&gt; AdapterType adaptTo(Class&lt;AdapterType&gt; type) {
-<span class="pc bpc" id="L196" title="1 of 2 branches missed.">    if (type == com.day.cq.dam.api.Asset.class) {</span>
-<span class="fc" id="L197">      return (AdapterType)this.damContext.getAsset();</span>
+<span class="pc bpc" id="L211" title="1 of 2 branches missed.">    if (type == com.day.cq.dam.api.Asset.class) {</span>
+<span class="fc" id="L212">      return (AdapterType)this.damContext.getAsset();</span>
     }
-<span class="nc bnc" id="L199" title="All 2 branches missed.">    if (type == Resource.class) {</span>
-<span class="nc" id="L200">      return (AdapterType)this.damContext.getAsset().adaptTo(Resource.class);</span>
+<span class="nc bnc" id="L214" title="All 2 branches missed.">    if (type == Resource.class) {</span>
+<span class="nc" id="L215">      return (AdapterType)this.damContext.getAsset().adaptTo(Resource.class);</span>
     }
-<span class="nc" id="L202">    return super.adaptTo(type);</span>
+<span class="nc" id="L217">    return super.adaptTo(type);</span>
   }
 
   @Override
   public @NotNull UriTemplate getUriTemplate(@NotNull UriTemplateType type) {
-<span class="fc" id="L207">    String extension = FilenameUtils.getExtension(damContext.getAsset().getName());</span>
-<span class="pc bpc" id="L208" title="2 of 4 branches missed.">    if (!MediaFileType.isImage(extension) || MediaFileType.isVectorImage(extension)) {</span>
-<span class="nc" id="L209">      throw new UnsupportedOperationException(&quot;Unable to build URI template for this asset type: &quot; + getPath());</span>
+<span class="fc" id="L222">    String extension = FilenameUtils.getExtension(damContext.getAsset().getName());</span>
+<span class="pc bpc" id="L223" title="2 of 4 branches missed.">    if (!MediaFileType.isImage(extension) || MediaFileType.isVectorImage(extension)) {</span>
+<span class="nc" id="L224">      throw new UnsupportedOperationException(&quot;Unable to build URI template for this asset type: &quot; + getPath());</span>
     }
-<span class="fc" id="L211">    com.day.cq.dam.api.Rendition original = damContext.getAsset().getOriginal();</span>
-<span class="fc" id="L212">    Dimension dimension = AssetRendition.getDimension(original);</span>
-<span class="pc bpc" id="L213" title="1 of 2 branches missed.">    if (dimension == null) {</span>
-<span class="nc" id="L214">      throw new IllegalArgumentException(&quot;Unable to get dimension for original rendition of asset: &quot; + getPath());</span>
+<span class="fc" id="L226">    com.day.cq.dam.api.Rendition original = damContext.getAsset().getOriginal();</span>
+<span class="fc" id="L227">    Dimension dimension = AssetRendition.getDimension(original);</span>
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">    if (dimension == null) {</span>
+<span class="nc" id="L229">      throw new IllegalArgumentException(&quot;Unable to get dimension for original rendition of asset: &quot; + getPath());</span>
     }
-<span class="fc" id="L216">    return new DamUriTemplate(type, dimension, damContext, defaultMediaArgs);</span>
+<span class="fc" id="L231">    return new DamUriTemplate(type, dimension, damContext, defaultMediaArgs);</span>
   }
 
   @Override
   public String toString() {
-<span class="nc" id="L221">    return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE);</span>
+<span class="nc" id="L236">    return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE);</span>
   }
 
 }
