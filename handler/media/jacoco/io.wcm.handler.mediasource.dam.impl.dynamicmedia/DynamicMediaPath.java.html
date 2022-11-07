@@ -118,41 +118,42 @@ public final class DynamicMediaPath {
       // check for matching image profile and use predefined cropping preset if match found
 <span class="fc" id="L119">      NamedDimension smartCropDef = SmartCrop.getDimensionForWidthHeight(damContext.getImageProfile(), width, height);</span>
 <span class="fc bfc" id="L120" title="All 2 branches covered.">      if (smartCropDef != null) {</span>
-<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (!SmartCrop.isMatchingSize(damContext.getAsset(), damContext.getResourceResolver(), smartCropDef, width, height)) {</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (damContext.isDynamicMediaValidateSmartCropRenditionSizes()</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">            &amp;&amp; !SmartCrop.isMatchingSize(damContext.getAsset(), damContext.getResourceResolver(), smartCropDef, width, height)) {</span>
           // smart crop should be applied, but selected area is too small, treat as invalid
-<span class="fc" id="L123">          logResult(damContext, &quot;&lt;too small for &quot; + width + &quot;x&quot; + height + &quot;&gt;&quot;);</span>
-<span class="fc" id="L124">          return null;</span>
+<span class="fc" id="L124">          logResult(damContext, &quot;&lt;too small for &quot; + width + &quot;x&quot; + height + &quot;&gt;&quot;);</span>
+<span class="fc" id="L125">          return null;</span>
         }
-<span class="fc" id="L126">        result.append(&quot;%3A&quot;).append(smartCropDef.getName()).append(&quot;?&quot;)</span>
-<span class="fc" id="L127">            .append(&quot;wid=&quot;).append(dimension.getWidth()).append(&quot;&amp;&quot;)</span>
-<span class="fc" id="L128">            .append(&quot;hei=&quot;).append(dimension.getHeight()).append(&quot;&amp;&quot;)</span>
+<span class="fc" id="L127">        result.append(&quot;%3A&quot;).append(smartCropDef.getName()).append(&quot;?&quot;)</span>
+<span class="fc" id="L128">            .append(&quot;wid=&quot;).append(dimension.getWidth()).append(&quot;&amp;&quot;)</span>
+<span class="fc" id="L129">            .append(&quot;hei=&quot;).append(dimension.getHeight()).append(&quot;&amp;&quot;)</span>
             // cropping/width/height is pre-calculated to fit with original ratio, make sure there are no 1px background lines visible
-<span class="fc" id="L130">            .append(&quot;fit=stretch&quot;);</span>
-<span class="fc" id="L131">        logResult(damContext, result);</span>
-<span class="fc" id="L132">        return result.toString();</span>
+<span class="fc" id="L131">            .append(&quot;fit=stretch&quot;);</span>
+<span class="fc" id="L132">        logResult(damContext, result);</span>
+<span class="fc" id="L133">        return result.toString();</span>
       }
     }
 
-<span class="fc" id="L136">    result.append(&quot;?&quot;);</span>
-<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (cropDimension != null) {</span>
-<span class="fc" id="L138">      result.append(&quot;crop=&quot;).append(cropDimension.getCropStringWidthHeight()).append(&quot;&amp;&quot;);</span>
+<span class="fc" id="L137">    result.append(&quot;?&quot;);</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">    if (cropDimension != null) {</span>
+<span class="fc" id="L139">      result.append(&quot;crop=&quot;).append(cropDimension.getCropStringWidthHeight()).append(&quot;&amp;&quot;);</span>
     }
-<span class="fc bfc" id="L140" title="All 2 branches covered.">    if (rotation != null) {</span>
-<span class="fc" id="L141">      result.append(&quot;rotate=&quot;).append(rotation).append(&quot;&amp;&quot;);</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">    if (rotation != null) {</span>
+<span class="fc" id="L142">      result.append(&quot;rotate=&quot;).append(rotation).append(&quot;&amp;&quot;);</span>
     }
-<span class="fc" id="L143">    result.append(&quot;wid=&quot;).append(dimension.getWidth()).append(&quot;&amp;&quot;)</span>
-<span class="fc" id="L144">        .append(&quot;hei=&quot;).append(dimension.getHeight()).append(&quot;&amp;&quot;)</span>
+<span class="fc" id="L144">    result.append(&quot;wid=&quot;).append(dimension.getWidth()).append(&quot;&amp;&quot;)</span>
+<span class="fc" id="L145">        .append(&quot;hei=&quot;).append(dimension.getHeight()).append(&quot;&amp;&quot;)</span>
         // cropping/width/height is pre-calculated to fit with original ratio, make sure there are no 1px background lines visible
-<span class="fc" id="L146">        .append(&quot;fit=stretch&quot;);</span>
-<span class="fc" id="L147">    logResult(damContext, result);</span>
-<span class="fc" id="L148">    return result.toString();</span>
+<span class="fc" id="L147">        .append(&quot;fit=stretch&quot;);</span>
+<span class="fc" id="L148">    logResult(damContext, result);</span>
+<span class="fc" id="L149">    return result.toString();</span>
   }
 
   private static void logResult(@NotNull DamContext damContext, @NotNull CharSequence result) {
-<span class="pc bpc" id="L152" title="1 of 2 branches missed.">    if (log.isTraceEnabled()) {</span>
-<span class="nc" id="L153">      log.trace(&quot;Build dynamic media path for {}: {}&quot;, damContext.getAsset().getPath(), result);</span>
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">    if (log.isTraceEnabled()) {</span>
+<span class="nc" id="L154">      log.trace(&quot;Build dynamic media path for {}: {}&quot;, damContext.getAsset().getPath(), result);</span>
     }
-<span class="fc" id="L155">  }</span>
+<span class="fc" id="L156">  }</span>
 
   /**
    * Checks if width or height is bigger than the allowed max. width/height.
@@ -162,20 +163,20 @@ public final class DynamicMediaPath {
    * @return Dimension with capped width/height
    */
   private static Dimension calcWidthHeight(@NotNull DamContext damContext, long width, long height) {
-<span class="fc" id="L165">    Dimension sizeLimit = damContext.getDynamicMediaImageSizeLimit();</span>
-<span class="fc bfc" id="L166" title="All 2 branches covered.">    if (width &gt; sizeLimit.getWidth()) {</span>
-<span class="fc" id="L167">      double ratio = Ratio.get(width, height);</span>
-<span class="fc" id="L168">      long newWidth = sizeLimit.getWidth();</span>
-<span class="fc" id="L169">      long newHeight = Math.round(newWidth / ratio);</span>
-<span class="fc" id="L170">      return calcWidthHeight(damContext, newWidth, newHeight);</span>
+<span class="fc" id="L166">    Dimension sizeLimit = damContext.getDynamicMediaImageSizeLimit();</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">    if (width &gt; sizeLimit.getWidth()) {</span>
+<span class="fc" id="L168">      double ratio = Ratio.get(width, height);</span>
+<span class="fc" id="L169">      long newWidth = sizeLimit.getWidth();</span>
+<span class="fc" id="L170">      long newHeight = Math.round(newWidth / ratio);</span>
+<span class="fc" id="L171">      return calcWidthHeight(damContext, newWidth, newHeight);</span>
     }
-<span class="fc bfc" id="L172" title="All 2 branches covered.">    if (height &gt; sizeLimit.getHeight()) {</span>
-<span class="fc" id="L173">      double ratio = Ratio.get(width, height);</span>
-<span class="fc" id="L174">      long newHeight = sizeLimit.getHeight();</span>
-<span class="fc" id="L175">      long newWidth = Math.round(newHeight * ratio);</span>
-<span class="fc" id="L176">      return new Dimension(newWidth, newHeight);</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">    if (height &gt; sizeLimit.getHeight()) {</span>
+<span class="fc" id="L174">      double ratio = Ratio.get(width, height);</span>
+<span class="fc" id="L175">      long newHeight = sizeLimit.getHeight();</span>
+<span class="fc" id="L176">      long newWidth = Math.round(newHeight * ratio);</span>
+<span class="fc" id="L177">      return new Dimension(newWidth, newHeight);</span>
     }
-<span class="fc" id="L178">    return new Dimension(width, height);</span>
+<span class="fc" id="L179">    return new Dimension(width, height);</span>
   }
 
   /**
@@ -184,18 +185,18 @@ public final class DynamicMediaPath {
    * @return Encoded path
    */
   private static String encodeDynamicMediaObject(@NotNull DamContext damContext) {
-<span class="fc" id="L187">    String[] pathParts = StringUtils.split(damContext.getDynamicMediaObject(), &quot;/&quot;);</span>
+<span class="fc" id="L188">    String[] pathParts = StringUtils.split(damContext.getDynamicMediaObject(), &quot;/&quot;);</span>
     try {
-<span class="fc bfc" id="L189" title="All 2 branches covered.">      for (int i = 0; i &lt; pathParts.length; i++) {</span>
-<span class="fc" id="L190">        pathParts[i] = URLEncoder.encode(pathParts[i], StandardCharsets.UTF_8.name());</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">      for (int i = 0; i &lt; pathParts.length; i++) {</span>
+<span class="fc" id="L191">        pathParts[i] = URLEncoder.encode(pathParts[i], StandardCharsets.UTF_8.name());</span>
         // replace &quot;+&quot; with %20 in URL paths
-<span class="fc" id="L192">        pathParts[i] = StringUtils.replace(pathParts[i], &quot;+&quot;, &quot;%20&quot;);</span>
+<span class="fc" id="L193">        pathParts[i] = StringUtils.replace(pathParts[i], &quot;+&quot;, &quot;%20&quot;);</span>
       }
     }
-<span class="nc" id="L195">    catch (UnsupportedEncodingException ex) {</span>
-<span class="nc" id="L196">      throw new RuntimeException(&quot;Unsupported encoding.&quot;, ex);</span>
-<span class="fc" id="L197">    }</span>
-<span class="fc" id="L198">    return StringUtils.join(pathParts, &quot;/&quot;);</span>
+<span class="nc" id="L196">    catch (UnsupportedEncodingException ex) {</span>
+<span class="nc" id="L197">      throw new RuntimeException(&quot;Unsupported encoding.&quot;, ex);</span>
+<span class="fc" id="L198">    }</span>
+<span class="fc" id="L199">    return StringUtils.join(pathParts, &quot;/&quot;);</span>
   }
 
 }
