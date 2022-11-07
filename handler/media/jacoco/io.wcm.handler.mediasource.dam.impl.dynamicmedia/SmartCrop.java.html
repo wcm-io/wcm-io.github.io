@@ -160,7 +160,22 @@ public final class SmartCrop {
 <span class="fc" id="L160">    long top = Math.round(originalHeight * topPercentage);</span>
 <span class="fc" id="L161">    long width = Math.round(originalWidth * widthPercentage);</span>
 <span class="fc" id="L162">    long height = Math.round(originalHeight * heightPercentage);</span>
-<span class="fc" id="L163">    return new CropDimension(left, top, width, height, true);</span>
+
+    // it may happen that DM provides inconsistent normalizedWidth/normalizedHeight values which results
+    // in renditions not matching the ratio of the cropping definition. In that case use only the one from the
+    // the two which results in the smaller rendition and calculate the missing value from the other
+<span class="fc" id="L167">    double expectedRatio = Ratio.get(smartCropDef.getWidth(), smartCropDef.getHeight());</span>
+<span class="fc" id="L168">    double actualRatio = Ratio.get(width, height);</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">    if (!Ratio.matches(expectedRatio, actualRatio)) {</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">      if (actualRatio &gt; expectedRatio) {</span>
+<span class="fc" id="L171">        width = Math.round(height * expectedRatio);</span>
+      }
+      else {
+<span class="fc" id="L174">        height = Math.round(width / expectedRatio);</span>
+      }
+    }
+
+<span class="fc" id="L178">    return new CropDimension(left, top, width, height, true);</span>
   }
 
   /**
@@ -175,30 +190,30 @@ public final class SmartCrop {
    */
   public static boolean isMatchingSize(@NotNull Asset asset, @NotNull ResourceResolver resourceResolver,
       @NotNull NamedDimension smartCropDef, long width, long height) {
-<span class="fc" id="L178">    CropDimension cropDimension = getCropDimensionForAsset(asset, resourceResolver, smartCropDef);</span>
-<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (cropDimension == null) {</span>
-      // no smart cropping rendition is not found in repository or it contains invalid values,
+<span class="fc" id="L193">    CropDimension cropDimension = getCropDimensionForAsset(asset, resourceResolver, smartCropDef);</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">    if (cropDimension == null) {</span>
+      // smart cropping rendition is not found in repository or it contains invalid values,
       // we assume the size should be fine and skip further checking
-<span class="fc" id="L182">      return true;</span>
+<span class="fc" id="L197">      return true;</span>
     }
 
     // check if smart cropping area is large enough
-<span class="fc" id="L186">    long croppedWidth = cropDimension.getWidth();</span>
-<span class="fc" id="L187">    long croppedHeight = cropDimension.getHeight();</span>
-<span class="pc bpc" id="L188" title="1 of 4 branches missed.">    boolean isMatchingSize = (cropDimension.getWidth() &gt;= width || croppedHeight &gt;= height);</span>
-<span class="fc bfc" id="L189" title="All 2 branches covered.">    if (!isMatchingSize) {</span>
-<span class="fc" id="L190">      log.debug(&quot;Smart cropping area '{}' for asset {} is too small ({} x {}) for requested size {} x {}.&quot;,</span>
-<span class="fc" id="L191">          smartCropDef.getName(), asset.getPath(), croppedWidth, croppedHeight, width, height);</span>
+<span class="fc" id="L201">    long croppedWidth = cropDimension.getWidth();</span>
+<span class="fc" id="L202">    long croppedHeight = cropDimension.getHeight();</span>
+<span class="pc bpc" id="L203" title="1 of 4 branches missed.">    boolean isMatchingSize = (cropDimension.getWidth() &gt;= width &amp;&amp; croppedHeight &gt;= height);</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">    if (!isMatchingSize) {</span>
+<span class="fc" id="L205">      log.debug(&quot;Smart cropping area '{}' for asset {} is too small ({} x {}) for requested size {} x {}.&quot;,</span>
+<span class="fc" id="L206">          smartCropDef.getName(), asset.getPath(), croppedWidth, croppedHeight, width, height);</span>
     }
-<span class="fc" id="L193">    return isMatchingSize;</span>
+<span class="fc" id="L208">    return isMatchingSize;</span>
   }
 
   private static boolean isValidTopLeft(double... numbers) {
-<span class="pc bpc" id="L197" title="2 of 4 branches missed.">    return Arrays.stream(numbers).allMatch(value -&gt; value &gt;= 0 &amp;&amp; value &lt;= 1);</span>
+<span class="pc bpc" id="L212" title="2 of 4 branches missed.">    return Arrays.stream(numbers).allMatch(value -&gt; value &gt;= 0 &amp;&amp; value &lt;= 1);</span>
   }
 
   private static boolean isValidWidthHeight(double... numbers) {
-<span class="pc bpc" id="L201" title="1 of 4 branches missed.">    return Arrays.stream(numbers).allMatch(value -&gt; value &gt;= MIN_NORMALIZED_WIDTH_HEIGHT &amp;&amp; value &lt;= 1);</span>
+<span class="pc bpc" id="L216" title="1 of 4 branches missed.">    return Arrays.stream(numbers).allMatch(value -&gt; value &gt;= MIN_NORMALIZED_WIDTH_HEIGHT &amp;&amp; value &lt;= 1);</span>
   }
 
 }
