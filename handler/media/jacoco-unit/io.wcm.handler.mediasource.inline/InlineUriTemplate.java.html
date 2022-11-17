@@ -26,7 +26,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.adapter.Adaptable;
 import org.apache.sling.api.resource.Resource;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import io.wcm.handler.media.CropDimension;
+import io.wcm.handler.media.Dimension;
 import io.wcm.handler.media.MediaArgs;
 import io.wcm.handler.media.UriTemplate;
 import io.wcm.handler.media.UriTemplateType;
@@ -40,62 +43,59 @@ class InlineUriTemplate implements UriTemplate {
 
   private final String uriTemplate;
   private final UriTemplateType type;
-  private final long width;
-  private final long height;
+  private final Dimension dimension;
 
-  InlineUriTemplate(@NotNull UriTemplateType type, long width, long height,
-<span class="fc" id="L47">      @NotNull Resource resource, @NotNull String fileName, @NotNull MediaArgs mediaArgs, @NotNull Adaptable adaptable) {</span>
-<span class="fc" id="L48">    this.uriTemplate = buildUriTemplate(type, resource, fileName, mediaArgs, adaptable);</span>
-<span class="fc" id="L49">    this.type = type;</span>
-<span class="fc" id="L50">    this.width = width;</span>
-<span class="fc" id="L51">    this.height = height;</span>
-<span class="fc" id="L52">  }</span>
+  @SuppressWarnings(&quot;java:S107&quot;) // allow more than 7 params
+  InlineUriTemplate(@NotNull UriTemplateType type, @NotNull Dimension dimension,
+      @NotNull Resource resource, @NotNull String fileName,
+      @Nullable CropDimension cropDimension, @Nullable Integer rotation,
+<span class="fc" id="L52">      @NotNull MediaArgs mediaArgs, @NotNull Adaptable adaptable) {</span>
+<span class="fc" id="L53">    this.uriTemplate = buildUriTemplate(type, resource, fileName, cropDimension, rotation, mediaArgs, adaptable);</span>
+<span class="fc" id="L54">    this.type = type;</span>
+<span class="fc" id="L55">    this.dimension = dimension;</span>
+<span class="fc" id="L56">  }</span>
 
   private static String buildUriTemplate(@NotNull UriTemplateType type, @NotNull Resource resource,
-      @NotNull String fileName, @NotNull MediaArgs mediaArgs, @NotNull Adaptable adaptable) {
-<span class="fc" id="L56">    String resourcePath = resource.getPath();</span>
+      @NotNull String fileName, @Nullable CropDimension cropDimension, @Nullable Integer rotation,
+      @NotNull MediaArgs mediaArgs, @NotNull Adaptable adaptable) {
+<span class="fc" id="L61">    String resourcePath = resource.getPath();</span>
 
     // if parent resource is a nt:file resource, use this one as path for scaled image
-<span class="fc" id="L59">    Resource parentResource = resource.getParent();</span>
-<span class="pc bpc" id="L60" title="2 of 4 branches missed.">    if (parentResource != null &amp;&amp; JcrBinary.isNtFile(parentResource)) {</span>
-<span class="nc" id="L61">      resourcePath = parentResource.getPath();</span>
+<span class="fc" id="L64">    Resource parentResource = resource.getParent();</span>
+<span class="pc bpc" id="L65" title="2 of 4 branches missed.">    if (parentResource != null &amp;&amp; JcrBinary.isNtFile(parentResource)) {</span>
+<span class="nc" id="L66">      resourcePath = parentResource.getPath();</span>
     }
 
     // URL to render scaled image via {@link InlineRenditionServlet}
-<span class="fc" id="L65">    final long DUMMY_WIDTH = 999991;</span>
-<span class="fc" id="L66">    final long DUMMY_HEIGHT = 999992;</span>
-<span class="fc" id="L67">    String path = resourcePath</span>
-<span class="fc" id="L68">        + &quot;.&quot; + ImageFileServlet.buildSelectorString(DUMMY_WIDTH, DUMMY_HEIGHT, null, null, false)</span>
-        + &quot;.&quot; + MediaFileServlet.EXTENSION + &quot;/&quot;
+<span class="fc" id="L70">    final long DUMMY_WIDTH = 999991;</span>
+<span class="fc" id="L71">    final long DUMMY_HEIGHT = 999992;</span>
+<span class="fc" id="L72">    String path = resourcePath</span>
+<span class="fc" id="L73">        + &quot;.&quot; + ImageFileServlet.buildSelectorString(DUMMY_WIDTH, DUMMY_HEIGHT, cropDimension, rotation, false)</span>
+        + &quot;.&quot; + MediaFileServlet.EXTENSION
         // replace extension based on the format supported by ImageFileServlet for rendering for this rendition
-<span class="fc" id="L71">        + ImageFileServlet.getImageFileName(fileName, mediaArgs.getEnforceOutputFileExtension());</span>
+<span class="fc" id="L76">        + &quot;/&quot; + ImageFileServlet.getImageFileName(fileName, mediaArgs.getEnforceOutputFileExtension());</span>
 
     // build externalized URL
-<span class="fc" id="L74">    UrlHandler urlHandler = AdaptTo.notNull(adaptable, UrlHandler.class);</span>
-<span class="fc" id="L75">    String url = urlHandler.get(path).urlMode(mediaArgs.getUrlMode()).buildExternalResourceUrl(resource);</span>
+<span class="fc" id="L79">    UrlHandler urlHandler = AdaptTo.notNull(adaptable, UrlHandler.class);</span>
+<span class="fc" id="L80">    String url = urlHandler.get(path).urlMode(mediaArgs.getUrlMode()).buildExternalResourceUrl(resource);</span>
 
-<span class="pc bpc" id="L77" title="1 of 4 branches missed.">    switch (type) {</span>
+<span class="pc bpc" id="L82" title="1 of 4 branches missed.">    switch (type) {</span>
       case CROP_CENTER:
-<span class="fc" id="L79">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), URI_TEMPLATE_PLACEHOLDER_WIDTH);</span>
-<span class="fc" id="L80">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), URI_TEMPLATE_PLACEHOLDER_HEIGHT);</span>
-<span class="fc" id="L81">        break;</span>
+<span class="fc" id="L84">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), URI_TEMPLATE_PLACEHOLDER_WIDTH);</span>
+<span class="fc" id="L85">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), URI_TEMPLATE_PLACEHOLDER_HEIGHT);</span>
+<span class="fc" id="L86">        break;</span>
       case SCALE_WIDTH:
-<span class="fc" id="L83">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), URI_TEMPLATE_PLACEHOLDER_WIDTH);</span>
-<span class="fc" id="L84">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), &quot;0&quot;);</span>
-<span class="fc" id="L85">        break;</span>
+<span class="fc" id="L88">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), URI_TEMPLATE_PLACEHOLDER_WIDTH);</span>
+<span class="fc" id="L89">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), &quot;0&quot;);</span>
+<span class="fc" id="L90">        break;</span>
       case SCALE_HEIGHT:
-<span class="fc" id="L87">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), &quot;0&quot;);</span>
-<span class="fc" id="L88">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), URI_TEMPLATE_PLACEHOLDER_HEIGHT);</span>
-<span class="fc" id="L89">        break;</span>
+<span class="fc" id="L92">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), &quot;0&quot;);</span>
+<span class="fc" id="L93">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), URI_TEMPLATE_PLACEHOLDER_HEIGHT);</span>
+<span class="fc" id="L94">        break;</span>
       default:
-<span class="nc" id="L91">        throw new IllegalArgumentException(&quot;Unsupported type: &quot; + type);</span>
+<span class="nc" id="L96">        throw new IllegalArgumentException(&quot;Unsupported type: &quot; + type);</span>
     }
-<span class="fc" id="L93">    return url;</span>
-  }
-
-  @Override
-  public String getUriTemplate() {
-<span class="fc" id="L98">    return uriTemplate;</span>
+<span class="fc" id="L98">    return url;</span>
   }
 
   @Override
@@ -104,18 +104,23 @@ class InlineUriTemplate implements UriTemplate {
   }
 
   @Override
+  public String getUriTemplate() {
+<span class="fc" id="L108">    return uriTemplate;</span>
+  }
+
+  @Override
   public long getMaxWidth() {
-<span class="fc" id="L108">    return width;</span>
+<span class="fc" id="L113">    return dimension.getWidth();</span>
   }
 
   @Override
   public long getMaxHeight() {
-<span class="fc" id="L113">    return height;</span>
+<span class="fc" id="L118">    return dimension.getHeight();</span>
   }
 
   @Override
   public String toString() {
-<span class="nc" id="L118">    return uriTemplate;</span>
+<span class="fc" id="L123">    return uriTemplate;</span>
   }
 
 }
