@@ -24,7 +24,9 @@ import java.util.stream.Stream;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.commons.osgi.Order;
 import org.apache.sling.commons.osgi.RankedServices;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Filter;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
@@ -42,77 +44,78 @@ class ContextAwareServiceTracker implements ServiceTrackerCustomizer&lt;ContextA
   private volatile RankedServices&lt;ServiceInfo&gt; rankedServices;
   private volatile long lastServiceChange;
 
-<span class="fc" id="L45">  private static final Logger log = LoggerFactory.getLogger(ContextAwareServiceTracker.class);</span>
+<span class="fc" id="L47">  private static final Logger log = LoggerFactory.getLogger(ContextAwareServiceTracker.class);</span>
 
-<span class="fc" id="L47">  ContextAwareServiceTracker(String serviceClassName, BundleContext bundleContext, PathPreprocessor pathPreprocessor) {</span>
-<span class="fc" id="L48">    this.bundleContext = bundleContext;</span>
-<span class="fc" id="L49">    this.pathPreprocessor = pathPreprocessor;</span>
-<span class="fc" id="L50">    this.rankedServices = new RankedServices&lt;&gt;(Order.DESCENDING);</span>
-<span class="fc" id="L51">    this.serviceTracker = new ServiceTracker&lt;&gt;(bundleContext, serviceClassName, this);</span>
-<span class="fc" id="L52">    this.serviceTracker.open();</span>
-<span class="fc" id="L53">  }</span>
+<span class="fc" id="L49">  ContextAwareServiceTracker(String serviceClassName, BundleContext bundleContext, PathPreprocessor pathPreprocessor) {</span>
+<span class="fc" id="L50">    this.bundleContext = bundleContext;</span>
+<span class="fc" id="L51">    this.pathPreprocessor = pathPreprocessor;</span>
+<span class="fc" id="L52">    this.rankedServices = new RankedServices&lt;&gt;(Order.DESCENDING);</span>
+<span class="fc" id="L53">    this.serviceTracker = new ServiceTracker&lt;&gt;(bundleContext, serviceClassName, this);</span>
+<span class="fc" id="L54">    this.serviceTracker.open();</span>
+<span class="fc" id="L55">  }</span>
 
   public void dispose() {
-<span class="fc" id="L56">    serviceTracker.close();</span>
-<span class="fc" id="L57">    rankedServices = null;</span>
-<span class="fc" id="L58">  }</span>
+<span class="fc" id="L58">    serviceTracker.close();</span>
+<span class="fc" id="L59">    rankedServices = null;</span>
+<span class="fc" id="L60">  }</span>
 
   @Override
   public ServiceInfo addingService(ServiceReference&lt;ContextAwareService&gt; reference) {
-<span class="fc" id="L62">    ServiceInfo serviceInfo = new ServiceInfo(reference, bundleContext);</span>
-<span class="pc bpc" id="L63" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L64">      log.debug(&quot;Add service {}&quot;, serviceInfo.getService().getClass().getName());</span>
+<span class="fc" id="L64">    ServiceInfo serviceInfo = new ServiceInfo(reference, bundleContext);</span>
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L66">      log.debug(&quot;Add service {}&quot;, serviceInfo.getService().getClass().getName());</span>
     }
-<span class="pc bpc" id="L66" title="1 of 2 branches missed.">    if (rankedServices != null) {</span>
-<span class="fc" id="L67">      rankedServices.bind(serviceInfo, serviceInfo.getServiceProperties());</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">    if (rankedServices != null) {</span>
+<span class="fc" id="L69">      rankedServices.bind(serviceInfo, serviceInfo.getServiceProperties());</span>
     }
-<span class="fc" id="L69">    lastServiceChange = System.currentTimeMillis();</span>
-<span class="fc" id="L70">    return serviceInfo;</span>
+<span class="fc" id="L71">    lastServiceChange = System.currentTimeMillis();</span>
+<span class="fc" id="L72">    return serviceInfo;</span>
   }
 
   @Override
   public void modifiedService(ServiceReference&lt;ContextAwareService&gt; reference, ServiceInfo serviceInfo) {
     // nothing to do
-<span class="nc" id="L76">  }</span>
+<span class="nc" id="L78">  }</span>
 
   @Override
   public void removedService(ServiceReference&lt;ContextAwareService&gt; reference, ServiceInfo serviceInfo) {
-<span class="pc bpc" id="L80" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L81">      log.debug(&quot;Remove service {}&quot;, serviceInfo.getService().getClass().getName());</span>
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L83">      log.debug(&quot;Remove service {}&quot;, serviceInfo.getService().getClass().getName());</span>
     }
-<span class="pc bpc" id="L83" title="1 of 2 branches missed.">    if (rankedServices != null) {</span>
-<span class="fc" id="L84">      rankedServices.unbind(serviceInfo, serviceInfo.getServiceProperties());</span>
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">    if (rankedServices != null) {</span>
+<span class="fc" id="L86">      rankedServices.unbind(serviceInfo, serviceInfo.getServiceProperties());</span>
     }
-<span class="fc" id="L86">    lastServiceChange = System.currentTimeMillis();</span>
-<span class="fc" id="L87">    bundleContext.ungetService(reference);</span>
-<span class="fc" id="L88">  }</span>
+<span class="fc" id="L88">    lastServiceChange = System.currentTimeMillis();</span>
+<span class="fc" id="L89">    bundleContext.ungetService(reference);</span>
+<span class="fc" id="L90">  }</span>
 
-  public Stream&lt;ServiceInfo&gt; resolve(Resource resource) {
-<span class="pc bpc" id="L91" title="1 of 2 branches missed.">    if (rankedServices == null) {</span>
-<span class="nc" id="L92">      return Stream.empty();</span>
+  public Stream&lt;ServiceInfo&gt; resolve(@Nullable Resource resource, @Nullable Filter filter) {
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">    if (rankedServices == null) {</span>
+<span class="nc" id="L94">      return Stream.empty();</span>
     }
-<span class="fc" id="L94">    return rankedServices.getList().stream()</span>
-<span class="fc" id="L95">        .filter(serviceInfo -&gt; matchesResource(serviceInfo, resource));</span>
+<span class="fc" id="L96">    return rankedServices.getList().stream()</span>
+<span class="fc" id="L97">        .filter(serviceInfo -&gt; serviceInfo.matchesFilter(filter))</span>
+<span class="fc" id="L98">        .filter(serviceInfo -&gt; matchesResource(serviceInfo, resource));</span>
   }
 
   private boolean matchesResource(ServiceInfo serviceInfo, Resource resource) {
-<span class="fc" id="L99">    String path = null;</span>
-<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (resource != null) {</span>
-<span class="fc" id="L101">      path = resource.getPath();</span>
-<span class="fc bfc" id="L102" title="All 2 branches covered.">      if (pathPreprocessor != null) {</span>
+<span class="fc" id="L102">    String path = null;</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">    if (resource != null) {</span>
+<span class="fc" id="L104">      path = resource.getPath();</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">      if (pathPreprocessor != null) {</span>
         // apply path preprocessor
-<span class="fc" id="L104">        path = pathPreprocessor.apply(path, resource.getResourceResolver());</span>
+<span class="fc" id="L107">        path = pathPreprocessor.apply(path, resource.getResourceResolver());</span>
       }
     }
-<span class="fc" id="L107">    return serviceInfo.matches(path);</span>
+<span class="fc" id="L110">    return serviceInfo.matches(path);</span>
   }
 
   public long getLastServiceChangeTimestamp() {
-<span class="fc" id="L111">    return this.lastServiceChange;</span>
+<span class="fc" id="L114">    return this.lastServiceChange;</span>
   }
 
   public Iterable&lt;ServiceInfo&gt; getServiceInfos() {
-<span class="nc" id="L115">    return rankedServices;</span>
+<span class="nc" id="L118">    return rankedServices;</span>
   }
 
 }
