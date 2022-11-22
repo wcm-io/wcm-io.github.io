@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContextAwareServiceCollectionResolverImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sling Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.sling.commons.caservice.impl</a> &gt; <span class="el_source">ContextAwareServiceCollectionResolverImpl.java</span></div><h1>ContextAwareServiceCollectionResolverImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2022 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.sling.commons.caservice.impl;
+
+import java.util.Collection;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.apache.sling.api.adapter.Adaptable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.ComponentServiceObjects;
+
+import io.wcm.sling.commons.caservice.ContextAwareService;
+import io.wcm.sling.commons.caservice.ContextAwareServiceCollectionResolver;
+
+class ContextAwareServiceCollectionResolverImpl&lt;S extends ContextAwareService, D&gt;
+    implements ContextAwareServiceCollectionResolver&lt;S, D&gt; {
+
+  private final Collection&lt;ServiceWrapper&lt;S, D&gt;&gt; services;
+  private final ResourcePathResolver resourcePathResolver;
+
+  ContextAwareServiceCollectionResolverImpl(@NotNull Collection&lt;ComponentServiceObjects&lt;S&gt;&gt; serviceObjectsCollection,
+<span class="fc" id="L42">      Function&lt;ComponentServiceObjects&lt;S&gt;, D&gt; decorator, @NotNull ResourcePathResolver resourcePathResolver) {</span>
+<span class="fc" id="L43">    this.services = serviceObjectsCollection.stream()</span>
+<span class="fc" id="L44">        .map(serviceObjects -&gt; new ServiceWrapper&lt;&gt;(serviceObjects, decorator))</span>
+<span class="fc" id="L45">        .filter(ServiceWrapper::isValid)</span>
+<span class="fc" id="L46">        .collect(Collectors.toList());</span>
+<span class="fc" id="L47">    this.resourcePathResolver = resourcePathResolver;</span>
+<span class="fc" id="L48">  }</span>
+
+  @Override
+  @SuppressWarnings(&quot;null&quot;)
+  public @Nullable S resolve(@Nullable Adaptable adaptable) {
+<span class="fc" id="L53">    return getMatching(adaptable)</span>
+<span class="fc" id="L54">        .map(ServiceWrapper::getService)</span>
+<span class="fc" id="L55">        .findFirst().orElse(null);</span>
+  }
+
+  @Override
+  @SuppressWarnings(&quot;null&quot;)
+  public @NotNull Stream&lt;S&gt; resolveAll(@Nullable Adaptable adaptable) {
+<span class="fc" id="L61">    return getMatching(adaptable)</span>
+<span class="fc" id="L62">        .map(ServiceWrapper::getService);</span>
+  }
+
+  @Override
+  @SuppressWarnings(&quot;null&quot;)
+  public @Nullable D resolveDecorated(@Nullable Adaptable adaptable) {
+<span class="fc" id="L68">    return getMatching(adaptable)</span>
+<span class="fc" id="L69">        .map(ServiceWrapper::getDecoration)</span>
+<span class="fc" id="L70">        .findFirst().orElse(null);</span>
+  }
+
+  @Override
+  @SuppressWarnings(&quot;null&quot;)
+  public @NotNull Stream&lt;D&gt; resolveAllDecorated(@Nullable Adaptable adaptable) {
+<span class="fc" id="L76">    return getMatching(adaptable)</span>
+<span class="fc" id="L77">        .map(ServiceWrapper::getDecoration);</span>
+  }
+
+  private Stream&lt;ServiceWrapper&lt;S, D&gt;&gt; getMatching(@Nullable Adaptable adaptable) {
+<span class="fc" id="L81">    String resourcePath = resourcePathResolver.get(adaptable);</span>
+<span class="fc" id="L82">    return services.stream()</span>
+<span class="fc" id="L83">        .filter(wrapper -&gt; wrapper.matches(resourcePath));</span>
+  }
+
+  private static class ServiceWrapper&lt;S extends ContextAwareService, D&gt; {
+
+    private final S service;
+    private final D decoration;
+    private final ServiceInfo&lt;S&gt; serviceInfo;
+
+<span class="fc" id="L92">    ServiceWrapper(ComponentServiceObjects&lt;S&gt; serviceObjects, Function&lt;ComponentServiceObjects&lt;S&gt;, D&gt; decorator) {</span>
+<span class="fc" id="L93">      this.service = serviceObjects.getService();</span>
+<span class="fc" id="L94">      this.decoration = decorator.apply(serviceObjects);</span>
+<span class="fc" id="L95">      this.serviceInfo = new ServiceInfo&lt;&gt;(serviceObjects.getServiceReference(), this.service);</span>
+<span class="fc" id="L96">    }</span>
+
+    boolean isValid() {
+<span class="fc" id="L99">      return this.serviceInfo.isValid();</span>
+    }
+
+    boolean matches(@Nullable String resourcePath) {
+<span class="fc" id="L103">      return this.serviceInfo.matches(resourcePath);</span>
+    }
+
+    S getService() {
+<span class="fc" id="L107">      return this.service;</span>
+    }
+
+    D getDecoration() {
+<span class="fc" id="L111">      return this.decoration;</span>
+    }
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
