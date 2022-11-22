@@ -32,13 +32,13 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.HttpConstants;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
 import com.day.cq.commons.jcr.JcrConstants;
 import com.day.cq.dam.api.handler.store.AssetStore;
 import com.day.image.Layer;
-import com.drew.lang.annotations.Nullable;
 
 import io.wcm.handler.media.CropDimension;
 import io.wcm.handler.media.format.Ratio;

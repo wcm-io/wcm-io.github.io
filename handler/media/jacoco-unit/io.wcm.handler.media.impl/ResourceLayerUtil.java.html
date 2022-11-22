@@ -24,12 +24,12 @@ import java.io.IOException;
 
 import org.apache.sling.api.resource.Resource;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.day.cq.dam.api.Rendition;
 import com.day.cq.dam.api.handler.AssetHandler;
 import com.day.cq.dam.api.handler.store.AssetStore;
 import com.day.image.Layer;
-import com.drew.lang.annotations.Nullable;
 
 /**
  * Gets layer from rendition resource.
