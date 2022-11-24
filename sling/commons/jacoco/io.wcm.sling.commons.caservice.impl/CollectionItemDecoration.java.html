@@ -23,10 +23,12 @@ import java.util.function.BiFunction;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.wcm.sling.commons.caservice.ContextAwareService;
 
 /**
@@ -38,40 +40,44 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
  */
 class CollectionItemDecoration&lt;S extends ContextAwareService, D&gt; {
 
-  private final S service;
-  private final D decoration;
+  private final @Nullable S service;
+  private final @Nullable D decoration;
   private final ServiceInfo&lt;S&gt; serviceInfo;
 
-  CollectionItemDecoration(ServiceReference&lt;S&gt; serviceReference,
-<span class="fc" id="L46">      BiFunction&lt;ServiceReference&lt;S&gt;, S, D&gt; decorator, BundleContext bundleContext) {</span>
-<span class="fc" id="L47">    this.service = bundleContext.getService(serviceReference);</span>
-<span class="fc" id="L48">    this.decoration = decorator.apply(serviceReference, this.service);</span>
-<span class="fc" id="L49">    this.serviceInfo = new ServiceInfo&lt;&gt;(serviceReference, this.service);</span>
-<span class="fc" id="L50">  }</span>
+  @SuppressFBWarnings(&quot;NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE&quot;)
+  CollectionItemDecoration(@NotNull ServiceReference&lt;S&gt; serviceReference,
+      @NotNull BiFunction&lt;@NotNull ServiceReference&lt;S&gt;, @Nullable S, @Nullable D&gt; decorator,
+<span class="fc" id="L50">      @NotNull BundleContext bundleContext) {</span>
+<span class="fc" id="L51">    this.service = bundleContext.getService(serviceReference);</span>
+<span class="fc" id="L52">    this.decoration = decorator.apply(serviceReference, this.service);</span>
+<span class="fc" id="L53">    this.serviceInfo = new ServiceInfo&lt;&gt;(serviceReference, this.service);</span>
+<span class="fc" id="L54">  }</span>
 
   boolean isValid() {
-<span class="fc" id="L53">    return this.serviceInfo.isValid();</span>
+<span class="fc" id="L57">    return this.serviceInfo.isValid();</span>
   }
 
   boolean matches(@Nullable String resourcePath) {
-<span class="fc" id="L57">    return this.serviceInfo.matches(resourcePath);</span>
+<span class="fc" id="L61">    return this.serviceInfo.matches(resourcePath);</span>
   }
 
+  @Nullable
   S getService() {
-<span class="fc" id="L61">    return this.service;</span>
+<span class="fc" id="L66">    return this.service;</span>
   }
 
+  @Nullable
   D getDecoration() {
-<span class="fc" id="L65">    return this.decoration;</span>
+<span class="fc" id="L71">    return this.decoration;</span>
   }
 
   @Override
   public String toString() {
-<span class="nc" id="L70">    return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)</span>
-<span class="nc" id="L71">        .append(&quot;service&quot;, service)</span>
-<span class="nc" id="L72">        .append(&quot;serviceInfo&quot;, serviceInfo)</span>
-<span class="nc" id="L73">        .append(&quot;decoration&quot;, decoration)</span>
-<span class="nc" id="L74">        .toString();</span>
+<span class="nc" id="L76">    return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)</span>
+<span class="nc" id="L77">        .append(&quot;service&quot;, service)</span>
+<span class="nc" id="L78">        .append(&quot;serviceInfo&quot;, serviceInfo)</span>
+<span class="nc" id="L79">        .append(&quot;decoration&quot;, decoration)</span>
+<span class="nc" id="L80">        .toString();</span>
   }
 
 }
