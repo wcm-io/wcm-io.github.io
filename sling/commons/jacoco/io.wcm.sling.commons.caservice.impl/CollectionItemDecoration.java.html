@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CollectionItemDecoration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Sling Commons</a> &gt; <a href="index.source.html" class="el_package">io.wcm.sling.commons.caservice.impl</a> &gt; <span class="el_source">CollectionItemDecoration.java</span></div><h1>CollectionItemDecoration.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2022 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.sling.commons.caservice.impl;
+
+import java.util.function.BiFunction;
+
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
+
+import io.wcm.sling.commons.caservice.ContextAwareService;
+
+/**
+ * Manages two decorations for each service reference that is managed in the collection by
+ * {@link ContextAwareServiceCollectionResolverImpl}: The {@link ServiceInfo} decoration which helps
+ * matching the context-aware resources, and and optional custom decoration provided by project code.
+ * @param &lt;S&gt; Service interface or class
+ * @param &lt;D&gt; Custom decoration
+ */
+class CollectionItemDecoration&lt;S extends ContextAwareService, D&gt; {
+
+  private final S service;
+  private final D decoration;
+  private final ServiceInfo&lt;S&gt; serviceInfo;
+
+  CollectionItemDecoration(ServiceReference&lt;S&gt; serviceReference,
+<span class="fc" id="L46">      BiFunction&lt;ServiceReference&lt;S&gt;, S, D&gt; decorator, BundleContext bundleContext) {</span>
+<span class="fc" id="L47">    this.service = bundleContext.getService(serviceReference);</span>
+<span class="fc" id="L48">    this.decoration = decorator.apply(serviceReference, this.service);</span>
+<span class="fc" id="L49">    this.serviceInfo = new ServiceInfo&lt;&gt;(serviceReference, this.service);</span>
+<span class="fc" id="L50">  }</span>
+
+  boolean isValid() {
+<span class="fc" id="L53">    return this.serviceInfo.isValid();</span>
+  }
+
+  boolean matches(@Nullable String resourcePath) {
+<span class="fc" id="L57">    return this.serviceInfo.matches(resourcePath);</span>
+  }
+
+  S getService() {
+<span class="fc" id="L61">    return this.service;</span>
+  }
+
+  D getDecoration() {
+<span class="fc" id="L65">    return this.decoration;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L70">    return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)</span>
+<span class="nc" id="L71">        .append(&quot;service&quot;, service)</span>
+<span class="nc" id="L72">        .append(&quot;serviceInfo&quot;, serviceInfo)</span>
+<span class="nc" id="L73">        .append(&quot;decoration&quot;, decoration)</span>
+<span class="nc" id="L74">        .toString();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
