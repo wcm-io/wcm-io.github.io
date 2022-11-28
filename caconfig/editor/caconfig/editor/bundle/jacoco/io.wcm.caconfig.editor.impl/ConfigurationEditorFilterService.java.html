@@ -19,22 +19,41 @@
  */
 package io.wcm.caconfig.editor.impl;
 
+import java.util.Collection;
+
 import org.apache.sling.api.resource.Resource;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.framework.ServiceReference;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.FieldOption;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
 
 import io.wcm.caconfig.editor.ConfigurationEditorFilter;
+import io.wcm.sling.commons.caservice.ContextAwareServiceCollectionResolver;
 import io.wcm.sling.commons.caservice.ContextAwareServiceResolver;
 
 /**
  * Aggregates configuration filters via Context-Aware services.
  */
 @Component(service = ConfigurationEditorFilterService.class)
-<span class="fc" id="L34">public class ConfigurationEditorFilterService {</span>
+<span class="fc" id="L43">public class ConfigurationEditorFilterService {</span>
+
+  @Reference(cardinality = ReferenceCardinality.MULTIPLE, fieldOption = FieldOption.UPDATE,
+      policy = ReferencePolicy.DYNAMIC, policyOption = ReferencePolicyOption.GREEDY)
+  private Collection&lt;ServiceReference&lt;ConfigurationEditorFilter&gt;&gt; filters;
 
   @Reference
-  private ContextAwareServiceResolver serviceResolver;
+  private ContextAwareServiceResolver contextAwareServiceResolver;
+  private ContextAwareServiceCollectionResolver&lt;ConfigurationEditorFilter, Void&gt; contextAwareServiceCollectionResolver;
+
+  @Activate
+  private void activate() {
+<span class="fc" id="L55">    this.contextAwareServiceCollectionResolver = contextAwareServiceResolver.getCollectionResolver(this.filters);</span>
+<span class="fc" id="L56">  }</span>
 
   /**
    * Allow to add configurations with this name in the configuration editor.
@@ -43,9 +62,9 @@ import io.wcm.sling.commons.caservice.ContextAwareServiceResolver;
    * @return if true, the configuration is offered in the &quot;add configuration&quot; dialog
    */
   public boolean allowAdd(@NotNull Resource contextResource, @NotNull String configName) {
-<span class="fc" id="L46">    return serviceResolver.resolveAll(ConfigurationEditorFilter.class, contextResource).getServices()</span>
-<span class="fc bfc" id="L47" title="All 2 branches covered.">        .filter(filter -&gt; !filter.allowAdd(configName))</span>
-<span class="fc bfc" id="L48" title="All 2 branches covered.">        .count() == 0;</span>
+<span class="fc" id="L65">    return contextAwareServiceCollectionResolver.resolveAll(contextResource)</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        .filter(filter -&gt; !filter.allowAdd(configName))</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        .count() == 0;</span>
   }
 
 }
