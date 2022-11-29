@@ -224,7 +224,7 @@ import io.wcm.wcm.commons.util.Path;
 <span class="fc" id="L224">    return UrlPrefix.applyAutoDetection(configuredUrlPrefix, self);</span>
   }
 
-  String buildUrl(String path, String selector, String extension, String suffix) { //NOPMD
+  String buildUrl(String path, String selector, String extension, String suffix, boolean disableSuffixSelector) { //NOPMD
 <span class="fc bfc" id="L228" title="All 2 branches covered.">    if (StringUtils.isBlank(path)) {</span>
 <span class="fc" id="L229">      return null;</span>
     }
@@ -260,96 +260,98 @@ import io.wcm.wcm.commons.util.Path;
       }
 
       // add a &quot;.suffix&quot; selector to avoid overlapping of filenames between suffixed and non-suffixed versions of the same page in the dispatcher cache
-<span class="fc" id="L263">      selectorPart.append('.').append(UrlHandler.SELECTOR_SUFFIX);</span>
+<span class="fc bfc" id="L263" title="All 2 branches covered.">      if (!disableSuffixSelector) {</span>
+<span class="fc" id="L264">        selectorPart.append('.').append(UrlHandler.SELECTOR_SUFFIX);</span>
+      }
     }
 
     // build externalized url
-<span class="fc" id="L267">    return path + selectorPart.toString() + extensionPart.toString() + suffixPart.toString();</span>
+<span class="fc" id="L269">    return path + selectorPart.toString() + extensionPart.toString() + suffixPart.toString();</span>
   }
 
   String appendQueryString(String url, String queryString, Set&lt;String&gt; inheritableParameterNames) {
-<span class="fc bfc" id="L271" title="All 2 branches covered.">    if (StringUtils.isEmpty(url)) {</span>
-<span class="fc" id="L272">      return url;</span>
+<span class="fc bfc" id="L273" title="All 2 branches covered.">    if (StringUtils.isEmpty(url)) {</span>
+<span class="fc" id="L274">      return url;</span>
     }
 
     // split url from existing query parameters
-<span class="fc" id="L276">    StringBuilder urlBuilder = new StringBuilder();</span>
-<span class="fc" id="L277">    StringBuilder queryParams = new StringBuilder();</span>
-<span class="fc" id="L278">    int separatorPos = url.indexOf('?');</span>
-<span class="fc bfc" id="L279" title="All 2 branches covered.">    if (separatorPos &gt;= 0) {</span>
-<span class="fc" id="L280">      queryParams.append(url.substring(separatorPos + 1));</span>
-<span class="fc" id="L281">      urlBuilder.append(url.substring(0, separatorPos));</span>
+<span class="fc" id="L278">    StringBuilder urlBuilder = new StringBuilder();</span>
+<span class="fc" id="L279">    StringBuilder queryParams = new StringBuilder();</span>
+<span class="fc" id="L280">    int separatorPos = url.indexOf('?');</span>
+<span class="fc bfc" id="L281" title="All 2 branches covered.">    if (separatorPos &gt;= 0) {</span>
+<span class="fc" id="L282">      queryParams.append(url.substring(separatorPos + 1));</span>
+<span class="fc" id="L283">      urlBuilder.append(url.substring(0, separatorPos));</span>
     }
     else {
-<span class="fc" id="L284">      urlBuilder.append(url);</span>
+<span class="fc" id="L286">      urlBuilder.append(url);</span>
     }
 
     // append new query parameters
-<span class="fc bfc" id="L288" title="All 2 branches covered.">    if (StringUtils.isNotBlank(queryString)) {</span>
-<span class="fc bfc" id="L289" title="All 2 branches covered.">      if (queryParams.length() &gt; 0) {</span>
-<span class="fc" id="L290">        queryParams.append('&amp;');</span>
+<span class="fc bfc" id="L290" title="All 2 branches covered.">    if (StringUtils.isNotBlank(queryString)) {</span>
+<span class="fc bfc" id="L291" title="All 2 branches covered.">      if (queryParams.length() &gt; 0) {</span>
+<span class="fc" id="L292">        queryParams.append('&amp;');</span>
       }
-<span class="fc" id="L292">      queryParams.append(queryString);</span>
+<span class="fc" id="L294">      queryParams.append(queryString);</span>
     }
 
     // inherit query parameters from current request (only if the parameter is not already included in the params list)
-<span class="fc bfc" id="L296" title="All 4 branches covered.">    if (inheritableParameterNames != null &amp;&amp; request != null) {</span>
-<span class="fc bfc" id="L297" title="All 2 branches covered.">      for (String parameterName : inheritableParameterNames) {</span>
-<span class="fc bfc" id="L298" title="All 2 branches covered.">        if (queryParams.indexOf(parameterName + &quot;=&quot;) == -1) {</span>
-<span class="fc" id="L299">          String[] values = RequestParam.getMultiple(request, parameterName);</span>
-<span class="fc bfc" id="L300" title="All 2 branches covered.">          if (values != null) {</span>
-<span class="fc bfc" id="L301" title="All 2 branches covered.">            for (String value : values) {</span>
-<span class="pc bpc" id="L302" title="1 of 2 branches missed.">              if (StringUtils.isNotEmpty(value)) {</span>
-<span class="fc bfc" id="L303" title="All 2 branches covered.">                if (queryParams.length() &gt; 0) {</span>
-<span class="fc" id="L304">                  queryParams.append('&amp;');</span>
+<span class="fc bfc" id="L298" title="All 4 branches covered.">    if (inheritableParameterNames != null &amp;&amp; request != null) {</span>
+<span class="fc bfc" id="L299" title="All 2 branches covered.">      for (String parameterName : inheritableParameterNames) {</span>
+<span class="fc bfc" id="L300" title="All 2 branches covered.">        if (queryParams.indexOf(parameterName + &quot;=&quot;) == -1) {</span>
+<span class="fc" id="L301">          String[] values = RequestParam.getMultiple(request, parameterName);</span>
+<span class="fc bfc" id="L302" title="All 2 branches covered.">          if (values != null) {</span>
+<span class="fc bfc" id="L303" title="All 2 branches covered.">            for (String value : values) {</span>
+<span class="pc bpc" id="L304" title="1 of 2 branches missed.">              if (StringUtils.isNotEmpty(value)) {</span>
+<span class="fc bfc" id="L305" title="All 2 branches covered.">                if (queryParams.length() &gt; 0) {</span>
+<span class="fc" id="L306">                  queryParams.append('&amp;');</span>
                 }
-<span class="fc" id="L306">                queryParams.append(parameterName);</span>
-<span class="fc" id="L307">                queryParams.append('=');</span>
-<span class="fc" id="L308">                queryParams.append(value);</span>
+<span class="fc" id="L308">                queryParams.append(parameterName);</span>
+<span class="fc" id="L309">                queryParams.append('=');</span>
+<span class="fc" id="L310">                queryParams.append(value);</span>
               }
             }
           }
         }
-<span class="fc" id="L313">      }</span>
+<span class="fc" id="L315">      }</span>
     }
 
     // build complete url
-<span class="fc bfc" id="L317" title="All 2 branches covered.">    if (queryParams.length() &gt; 0) {</span>
-<span class="fc" id="L318">      urlBuilder.append('?');</span>
-<span class="fc" id="L319">      urlBuilder.append(queryParams);</span>
+<span class="fc bfc" id="L319" title="All 2 branches covered.">    if (queryParams.length() &gt; 0) {</span>
+<span class="fc" id="L320">      urlBuilder.append('?');</span>
+<span class="fc" id="L321">      urlBuilder.append(queryParams);</span>
     }
-<span class="fc" id="L321">    return urlBuilder.toString();</span>
+<span class="fc" id="L323">    return urlBuilder.toString();</span>
   }
 
   String setFragment(String url, String fragment) {
-<span class="pc bpc" id="L325" title="1 of 2 branches missed.">    if (StringUtils.isEmpty(url)) {</span>
-<span class="nc" id="L326">      return url;</span>
+<span class="pc bpc" id="L327" title="1 of 2 branches missed.">    if (StringUtils.isEmpty(url)) {</span>
+<span class="nc" id="L328">      return url;</span>
     }
 
     // strip off anchor if already present
     StringBuilder urlBuilder;
-<span class="fc" id="L331">    int index = url.indexOf('#');</span>
-<span class="fc bfc" id="L332" title="All 2 branches covered.">    if (index &gt;= 0) {</span>
-<span class="fc" id="L333">      urlBuilder = new StringBuilder(url.substring(0, index));</span>
+<span class="fc" id="L333">    int index = url.indexOf('#');</span>
+<span class="fc bfc" id="L334" title="All 2 branches covered.">    if (index &gt;= 0) {</span>
+<span class="fc" id="L335">      urlBuilder = new StringBuilder(url.substring(0, index));</span>
     }
     else {
-<span class="fc" id="L336">      urlBuilder = new StringBuilder(url);</span>
+<span class="fc" id="L338">      urlBuilder = new StringBuilder(url);</span>
     }
 
     // prepend &quot;#&quot; for anchor if not present
-<span class="pc bpc" id="L340" title="1 of 2 branches missed.">    if (StringUtils.isNotBlank(fragment)) {</span>
-<span class="fc bfc" id="L341" title="All 2 branches covered.">      if (!StringUtils.startsWith(fragment, &quot;#&quot;)) {</span>
-<span class="fc" id="L342">        urlBuilder.append('#');</span>
+<span class="pc bpc" id="L342" title="1 of 2 branches missed.">    if (StringUtils.isNotBlank(fragment)) {</span>
+<span class="fc bfc" id="L343" title="All 2 branches covered.">      if (!StringUtils.startsWith(fragment, &quot;#&quot;)) {</span>
+<span class="fc" id="L344">        urlBuilder.append('#');</span>
       }
-<span class="fc" id="L344">      urlBuilder.append(fragment);</span>
+<span class="fc" id="L346">      urlBuilder.append(fragment);</span>
     }
 
-<span class="fc" id="L347">    return urlBuilder.toString();</span>
+<span class="fc" id="L349">    return urlBuilder.toString();</span>
   }
 
   @Override
   public String applySiteUrlAutoDetection(@Nullable String siteUrl) {
-<span class="fc" id="L352">    return UrlPrefix.applyAutoDetection(siteUrl, self);</span>
+<span class="fc" id="L354">    return UrlPrefix.applyAutoDetection(siteUrl, self);</span>
   }
 
 }
