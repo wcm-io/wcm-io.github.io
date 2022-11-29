@@ -32,6 +32,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
+import io.wcm.handler.url.UrlHandler;
 import io.wcm.handler.url.UrlMode;
 import io.wcm.wcm.commons.util.ToStringStyle;
 
@@ -39,7 +40,7 @@ import io.wcm.wcm.commons.util.ToStringStyle;
  * Holds parameters to influence the link resolving process.
  */
 @ProviderType
-<span class="fc" id="L42">public final class LinkArgs implements Cloneable {</span>
+<span class="fc" id="L43">public final class LinkArgs implements Cloneable {</span>
 
   private UrlMode urlMode;
   private boolean dummyLink;
@@ -50,15 +51,17 @@ import io.wcm.wcm.commons.util.ToStringStyle;
   private String queryString;
   private String fragment;
   private String windowTarget;
+  private boolean disableSuffixSelector;
   private ValueMap properties;
   private String[] linkTargetUrlFallbackProperty;
   private String[] linkTargetWindowTargetFallbackProperty;
+
 
   /**
    * @return URL mode for externalizing the URL
    */
   public @Nullable UrlMode getUrlMode() {
-<span class="fc" id="L61">    return this.urlMode;</span>
+<span class="fc" id="L64">    return this.urlMode;</span>
   }
 
   /**
@@ -66,15 +69,15 @@ import io.wcm.wcm.commons.util.ToStringStyle;
    * @return this
    */
   public @NotNull LinkArgs urlMode(@Nullable UrlMode value) {
-<span class="fc" id="L69">    this.urlMode = value;</span>
-<span class="fc" id="L70">    return this;</span>
+<span class="fc" id="L72">    this.urlMode = value;</span>
+<span class="fc" id="L73">    return this;</span>
   }
 
   /**
    * @return If set to true, link handler returns a dummy link in edit mode when link is invalid.
    */
   public boolean isDummyLink() {
-<span class="fc" id="L77">    return this.dummyLink;</span>
+<span class="fc" id="L80">    return this.dummyLink;</span>
   }
 
   /**
@@ -82,15 +85,15 @@ import io.wcm.wcm.commons.util.ToStringStyle;
    * @return this
    */
   public @NotNull LinkArgs dummyLink(boolean value) {
-<span class="fc" id="L85">    this.dummyLink = value;</span>
-<span class="fc" id="L86">    return this;</span>
+<span class="fc" id="L88">    this.dummyLink = value;</span>
+<span class="fc" id="L89">    return this;</span>
   }
 
   /**
    * @return Custom dummy link url. If null default dummy url is used.
    */
   public @Nullable String getDummyLinkUrl() {
-<span class="fc" id="L93">    return this.dummyLinkUrl;</span>
+<span class="fc" id="L96">    return this.dummyLinkUrl;</span>
   }
 
   /**
@@ -98,15 +101,15 @@ import io.wcm.wcm.commons.util.ToStringStyle;
    * @return this
    */
   public @NotNull LinkArgs dummyLinkUrl(@Nullable String value) {
-<span class="fc" id="L101">    this.dummyLinkUrl = value;</span>
-<span class="fc" id="L102">    return this;</span>
+<span class="fc" id="L104">    this.dummyLinkUrl = value;</span>
+<span class="fc" id="L105">    return this;</span>
   }
 
   /**
    * @return Selector string
    */
   public @Nullable String getSelectors() {
-<span class="fc" id="L109">    return this.selectors;</span>
+<span class="fc" id="L112">    return this.selectors;</span>
   }
 
   /**
@@ -114,15 +117,15 @@ import io.wcm.wcm.commons.util.ToStringStyle;
    * @return this
    */
   public @NotNull LinkArgs selectors(@Nullable String value) {
-<span class="fc" id="L117">    this.selectors = value;</span>
-<span class="fc" id="L118">    return this;</span>
+<span class="fc" id="L120">    this.selectors = value;</span>
+<span class="fc" id="L121">    return this;</span>
   }
 
   /**
    * @return File extension
    */
   public @Nullable String getExtension() {
-<span class="fc" id="L125">    return this.extension;</span>
+<span class="fc" id="L128">    return this.extension;</span>
   }
 
   /**
@@ -130,15 +133,15 @@ import io.wcm.wcm.commons.util.ToStringStyle;
    * @return this
    */
   public @NotNull LinkArgs extension(@Nullable String value) {
-<span class="fc" id="L133">    this.extension = value;</span>
-<span class="fc" id="L134">    return this;</span>
+<span class="fc" id="L136">    this.extension = value;</span>
+<span class="fc" id="L137">    return this;</span>
   }
 
   /**
    * @return Suffix string
    */
   public @Nullable String getSuffix() {
-<span class="fc" id="L141">    return this.suffix;</span>
+<span class="fc" id="L144">    return this.suffix;</span>
   }
 
   /**
@@ -146,15 +149,15 @@ import io.wcm.wcm.commons.util.ToStringStyle;
    * @return this
    */
   public @NotNull LinkArgs suffix(@Nullable String value) {
-<span class="fc" id="L149">    this.suffix = value;</span>
-<span class="fc" id="L150">    return this;</span>
+<span class="fc" id="L152">    this.suffix = value;</span>
+<span class="fc" id="L153">    return this;</span>
   }
 
   /**
    * @return Query parameters string (properly url-encoded)
    */
   public @Nullable String getQueryString() {
-<span class="fc" id="L157">    return this.queryString;</span>
+<span class="fc" id="L160">    return this.queryString;</span>
   }
 
   /**
@@ -162,15 +165,15 @@ import io.wcm.wcm.commons.util.ToStringStyle;
    * @return this
    */
   public @NotNull LinkArgs queryString(@Nullable String value) {
-<span class="fc" id="L165">    this.queryString = value;</span>
-<span class="fc" id="L166">    return this;</span>
+<span class="fc" id="L168">    this.queryString = value;</span>
+<span class="fc" id="L169">    return this;</span>
   }
 
   /**
    * @return Fragment identifier
    */
   public @Nullable String getFragment() {
-<span class="fc" id="L173">    return this.fragment;</span>
+<span class="fc" id="L176">    return this.fragment;</span>
   }
 
   /**
@@ -178,15 +181,15 @@ import io.wcm.wcm.commons.util.ToStringStyle;
    * @return this
    */
   public @NotNull LinkArgs fragment(@Nullable String value) {
-<span class="fc" id="L181">    this.fragment = value;</span>
-<span class="fc" id="L182">    return this;</span>
+<span class="fc" id="L184">    this.fragment = value;</span>
+<span class="fc" id="L185">    return this;</span>
   }
 
   /**
    * @return Link window target
    */
   public @Nullable String getWindowTarget() {
-<span class="fc" id="L189">    return this.windowTarget;</span>
+<span class="fc" id="L192">    return this.windowTarget;</span>
   }
 
   /**
@@ -194,8 +197,32 @@ import io.wcm.wcm.commons.util.ToStringStyle;
    * @return this
    */
   public @NotNull LinkArgs windowTarget(@Nullable String value) {
-<span class="fc" id="L197">    this.windowTarget = value;</span>
-<span class="fc" id="L198">    return this;</span>
+<span class="fc" id="L200">    this.windowTarget = value;</span>
+<span class="fc" id="L201">    return this;</span>
+  }
+
+  /**
+   * Disable the automatic addition of an additional selector {@link UrlHandler#SELECTOR_SUFFIX}
+   * in case a suffix is present for building the URL. Although recommended as best practice, this can
+   * be omitted if you are sure your URLs are always either include a suffix or never do, so there is no risk
+   * for file name clashes in dispatcher cache.
+   * @return If set to true, no additional suffix selector is added
+   */
+  public boolean isDisableSuffixSelector() {
+<span class="fc" id="L212">    return this.disableSuffixSelector;</span>
+  }
+
+  /**
+   * Disable the automatic addition of an additional selector {@link UrlHandler#SELECTOR_SUFFIX}
+   * in case a suffix is present for building the URL. Although recommended as best practice, this can
+   * be omitted if you are sure your URLs are always either include a suffix or never do, so there is no risk
+   * for file name clashes in dispatcher cache.
+   * @param value If set to true, no additional suffix selector is added
+   * @return this
+   */
+  public @NotNull LinkArgs disableSuffixSelector(boolean value) {
+<span class="fc" id="L224">    this.disableSuffixSelector = value;</span>
+<span class="fc" id="L225">    return this;</span>
   }
 
   /**
@@ -205,11 +232,11 @@ import io.wcm.wcm.commons.util.ToStringStyle;
    */
   @SuppressWarnings({ &quot;null&quot;, &quot;unused&quot; })
   public @NotNull LinkArgs properties(@NotNull Map&lt;String, Object&gt; map) {
-<span class="pc bpc" id="L208" title="1 of 2 branches missed.">    if (map == null) {</span>
-<span class="nc" id="L209">      throw new IllegalArgumentException(&quot;Map argument must not be null.&quot;);</span>
+<span class="pc bpc" id="L235" title="1 of 2 branches missed.">    if (map == null) {</span>
+<span class="nc" id="L236">      throw new IllegalArgumentException(&quot;Map argument must not be null.&quot;);</span>
     }
-<span class="fc" id="L211">    getProperties().putAll(map);</span>
-<span class="fc" id="L212">    return this;</span>
+<span class="fc" id="L238">    getProperties().putAll(map);</span>
+<span class="fc" id="L239">    return this;</span>
   }
 
   /**
@@ -220,11 +247,11 @@ import io.wcm.wcm.commons.util.ToStringStyle;
    */
   @SuppressWarnings({ &quot;null&quot;, &quot;unused&quot; })
   public @NotNull LinkArgs property(@NotNull String key, @Nullable Object value) {
-<span class="pc bpc" id="L223" title="1 of 2 branches missed.">    if (key == null) {</span>
-<span class="nc" id="L224">      throw new IllegalArgumentException(&quot;Key argument must not be null.&quot;);</span>
+<span class="pc bpc" id="L250" title="1 of 2 branches missed.">    if (key == null) {</span>
+<span class="nc" id="L251">      throw new IllegalArgumentException(&quot;Key argument must not be null.&quot;);</span>
     }
-<span class="fc" id="L226">    getProperties().put(key, value);</span>
-<span class="fc" id="L227">    return this;</span>
+<span class="fc" id="L253">    getProperties().put(key, value);</span>
+<span class="fc" id="L254">    return this;</span>
   }
 
   /**
@@ -232,10 +259,10 @@ import io.wcm.wcm.commons.util.ToStringStyle;
    * @return Value map
    */
   public @NotNull ValueMap getProperties() {
-<span class="fc bfc" id="L235" title="All 2 branches covered.">    if (this.properties == null) {</span>
-<span class="fc" id="L236">      this.properties = new ValueMapDecorator(new HashMap&lt;&gt;());</span>
+<span class="fc bfc" id="L262" title="All 2 branches covered.">    if (this.properties == null) {</span>
+<span class="fc" id="L263">      this.properties = new ValueMapDecorator(new HashMap&lt;&gt;());</span>
     }
-<span class="fc" id="L238">    return this.properties;</span>
+<span class="fc" id="L265">    return this.properties;</span>
   }
 
 
@@ -248,15 +275,15 @@ import io.wcm.wcm.commons.util.ToStringStyle;
    * @return this
    */
   public @NotNull LinkArgs linkTargetUrlFallbackProperty(@NotNull String @Nullable... propertyNames) {
-<span class="fc" id="L251">    this.linkTargetUrlFallbackProperty = propertyNames;</span>
-<span class="fc" id="L252">    return this;</span>
+<span class="fc" id="L278">    this.linkTargetUrlFallbackProperty = propertyNames;</span>
+<span class="fc" id="L279">    return this;</span>
   }
 
   /**
    * @return Property name(s)
    */
   public @Nullable String[] getLinkTargetUrlFallbackProperty() {
-<span class="fc" id="L259">    return this.linkTargetUrlFallbackProperty;</span>
+<span class="fc" id="L286">    return this.linkTargetUrlFallbackProperty;</span>
   }
 
   /**
@@ -268,31 +295,31 @@ import io.wcm.wcm.commons.util.ToStringStyle;
    * @return this
    */
   public @NotNull LinkArgs linkTargetWindowTargetFallbackProperty(@NotNull String @Nullable... propertyNames) {
-<span class="fc" id="L271">    this.linkTargetWindowTargetFallbackProperty = propertyNames;</span>
-<span class="fc" id="L272">    return this;</span>
+<span class="fc" id="L298">    this.linkTargetWindowTargetFallbackProperty = propertyNames;</span>
+<span class="fc" id="L299">    return this;</span>
   }
 
   /**
    * @return Property name(s)
    */
   public @Nullable String[] getLinkTargetWindowTargetFallbackProperty() {
-<span class="fc" id="L279">    return this.linkTargetWindowTargetFallbackProperty;</span>
+<span class="fc" id="L306">    return this.linkTargetWindowTargetFallbackProperty;</span>
   }
 
 
   @Override
   public int hashCode() {
-<span class="fc" id="L285">    return HashCodeBuilder.reflectionHashCode(this);</span>
+<span class="fc" id="L312">    return HashCodeBuilder.reflectionHashCode(this);</span>
   }
 
   @Override
   public boolean equals(Object obj) {
-<span class="nc" id="L290">    return EqualsBuilder.reflectionEquals(this, obj);</span>
+<span class="nc" id="L317">    return EqualsBuilder.reflectionEquals(this, obj);</span>
   }
 
   @Override
   public String toString() {
-<span class="fc" id="L295">    return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE);</span>
+<span class="fc" id="L322">    return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE);</span>
   }
 
   /**
@@ -303,24 +330,25 @@ import io.wcm.wcm.commons.util.ToStringStyle;
   @Override
   public LinkArgs clone() { //NOPMD
     // CHECKSTYLE:ON
-<span class="fc" id="L306">    LinkArgs clone = new LinkArgs();</span>
+<span class="fc" id="L333">    LinkArgs clone = new LinkArgs();</span>
 
-<span class="fc" id="L308">    clone.urlMode = this.urlMode;</span>
-<span class="fc" id="L309">    clone.dummyLink = this.dummyLink;</span>
-<span class="fc" id="L310">    clone.dummyLinkUrl = this.dummyLinkUrl;</span>
-<span class="fc" id="L311">    clone.selectors = this.selectors;</span>
-<span class="fc" id="L312">    clone.extension = this.extension;</span>
-<span class="fc" id="L313">    clone.suffix = this.suffix;</span>
-<span class="fc" id="L314">    clone.queryString = this.queryString;</span>
-<span class="fc" id="L315">    clone.fragment = this.fragment;</span>
-<span class="fc" id="L316">    clone.windowTarget = this.windowTarget;</span>
-<span class="fc" id="L317">    clone.linkTargetUrlFallbackProperty = ArrayUtils.clone(this.linkTargetUrlFallbackProperty);</span>
-<span class="fc" id="L318">    clone.linkTargetWindowTargetFallbackProperty = ArrayUtils.clone(this.linkTargetWindowTargetFallbackProperty);</span>
-<span class="fc bfc" id="L319" title="All 2 branches covered.">    if (this.properties != null) {</span>
-<span class="fc" id="L320">      clone.properties = new ValueMapDecorator(new HashMap&lt;&gt;(this.properties));</span>
+<span class="fc" id="L335">    clone.urlMode = this.urlMode;</span>
+<span class="fc" id="L336">    clone.dummyLink = this.dummyLink;</span>
+<span class="fc" id="L337">    clone.dummyLinkUrl = this.dummyLinkUrl;</span>
+<span class="fc" id="L338">    clone.selectors = this.selectors;</span>
+<span class="fc" id="L339">    clone.extension = this.extension;</span>
+<span class="fc" id="L340">    clone.suffix = this.suffix;</span>
+<span class="fc" id="L341">    clone.queryString = this.queryString;</span>
+<span class="fc" id="L342">    clone.fragment = this.fragment;</span>
+<span class="fc" id="L343">    clone.windowTarget = this.windowTarget;</span>
+<span class="fc" id="L344">    clone.disableSuffixSelector = this.disableSuffixSelector;</span>
+<span class="fc" id="L345">    clone.linkTargetUrlFallbackProperty = ArrayUtils.clone(this.linkTargetUrlFallbackProperty);</span>
+<span class="fc" id="L346">    clone.linkTargetWindowTargetFallbackProperty = ArrayUtils.clone(this.linkTargetWindowTargetFallbackProperty);</span>
+<span class="fc bfc" id="L347" title="All 2 branches covered.">    if (this.properties != null) {</span>
+<span class="fc" id="L348">      clone.properties = new ValueMapDecorator(new HashMap&lt;&gt;(this.properties));</span>
     }
 
-<span class="fc" id="L323">    return clone;</span>
+<span class="fc" id="L351">    return clone;</span>
   }
 
 }
