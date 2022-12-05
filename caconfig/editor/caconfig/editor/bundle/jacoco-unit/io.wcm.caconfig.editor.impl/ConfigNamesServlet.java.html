@@ -24,8 +24,10 @@ import static io.wcm.caconfig.editor.impl.JsonMapper.OBJECT_MAPPER;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
@@ -42,12 +44,15 @@ import org.apache.sling.caconfig.resource.ConfigurationResourceResolver;
 import org.apache.sling.caconfig.spi.metadata.ConfigurationMetadata;
 import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.component.annotations.ReferencePolicyOption;
 
+import io.wcm.caconfig.editor.ConfigurationCategory;
+import io.wcm.caconfig.editor.impl.data.confignames.ConfigCategoryItem;
 import io.wcm.caconfig.editor.impl.data.confignames.ConfigNameItem;
 import io.wcm.caconfig.editor.impl.data.confignames.ConfigNamesResponse;
 
@@ -60,7 +65,7 @@ import io.wcm.caconfig.editor.impl.data.confignames.ConfigNamesResponse;
     selectors = ConfigNamesServlet.SELECTOR,
     extensions = &quot;json&quot;,
     methods = &quot;GET&quot;)
-<span class="fc" id="L63">public class ConfigNamesServlet extends SlingSafeMethodsServlet {</span>
+<span class="fc" id="L68">public class ConfigNamesServlet extends SlingSafeMethodsServlet {</span>
   private static final long serialVersionUID = 1L;
 
   /**
@@ -77,84 +82,107 @@ import io.wcm.caconfig.editor.impl.data.confignames.ConfigNamesResponse;
   @Reference(policy = ReferencePolicy.STATIC, cardinality = ReferenceCardinality.OPTIONAL,
       policyOption = ReferencePolicyOption.GREEDY)
   private ConfigurationEditorFilterService configurationEditorFilterService;
+  @Reference(policy = ReferencePolicy.STATIC, cardinality = ReferenceCardinality.OPTIONAL,
+      policyOption = ReferencePolicyOption.GREEDY)
+  private ConfigurationCategoryProviderService configurationCategoryProviderService;
 
   @Override
   protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
-<span class="pc bpc" id="L83" title="1 of 2 branches missed.">    if (!editorConfig.isEnabled()) {</span>
-<span class="nc" id="L84">      response.sendError(HttpServletResponse.SC_FORBIDDEN);</span>
-<span class="nc" id="L85">      return;</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">    if (!editorConfig.isEnabled()) {</span>
+<span class="nc" id="L92">      response.sendError(HttpServletResponse.SC_FORBIDDEN);</span>
+<span class="nc" id="L93">      return;</span>
     }
 
-<span class="fc" id="L88">    Resource contextResource = request.getResource();</span>
-<span class="fc" id="L89">    ConfigNamesResponse result = new ConfigNamesResponse();</span>
-<span class="fc" id="L90">    result.setContextPath(getContextPath(contextResource));</span>
-<span class="fc" id="L91">    result.setConfigNames(getConfigNames(contextResource));</span>
+<span class="fc" id="L96">    Resource contextResource = request.getResource();</span>
+<span class="fc" id="L97">    ConfigNamesResponse result = new ConfigNamesResponse();</span>
+<span class="fc" id="L98">    result.setContextPath(getContextPath(contextResource));</span>
+<span class="fc" id="L99">    result.setConfigNames(getConfigNames(contextResource));</span>
+<span class="fc" id="L100">    result.setConfigCategories(getCategories(result.getConfigNames()));</span>
 
-<span class="fc" id="L93">    response.setContentType(&quot;application/json;charset=&quot; + StandardCharsets.UTF_8.name());</span>
-<span class="fc" id="L94">    response.getWriter().write(OBJECT_MAPPER.writeValueAsString(result));</span>
-<span class="fc" id="L95">  }</span>
+<span class="fc" id="L102">    response.setContentType(&quot;application/json;charset=&quot; + StandardCharsets.UTF_8.name());</span>
+<span class="fc" id="L103">    response.getWriter().write(OBJECT_MAPPER.writeValueAsString(result));</span>
+<span class="fc" id="L104">  }</span>
 
   private String getContextPath(Resource contextResource) {
-<span class="fc" id="L98">    return configurationResourceResolver.getContextPath(contextResource);</span>
+<span class="fc" id="L107">    return configurationResourceResolver.getContextPath(contextResource);</span>
   }
 
   private Collection&lt;ConfigNameItem&gt; getConfigNames(Resource contextResource) {
-<span class="fc" id="L102">    SortedSet&lt;String&gt; configNames = configManager.getConfigurationNames();</span>
-<span class="fc" id="L103">    SortedSet&lt;ConfigNameItem&gt; sortedResult = new TreeSet&lt;&gt;((ConfigNameItem o1, ConfigNameItem o2) -&gt; {</span>
-<span class="fc" id="L104">        String label1 = o1.getLabel();</span>
-<span class="fc" id="L105">        String label2 = o2.getLabel();</span>
-<span class="fc bfc" id="L106" title="All 2 branches covered.">        if (StringUtils.equals(label1, label2)) {</span>
-<span class="fc" id="L107">          String configName1 = o1.getConfigName();</span>
-<span class="fc" id="L108">          String configName2 = o2.getConfigName();</span>
-<span class="fc" id="L109">          return configName1.compareTo(configName2);</span>
+<span class="fc" id="L111">    SortedSet&lt;String&gt; configNames = configManager.getConfigurationNames();</span>
+<span class="fc" id="L112">    SortedSet&lt;ConfigNameItem&gt; sortedResult = new TreeSet&lt;&gt;((ConfigNameItem o1, ConfigNameItem o2) -&gt; {</span>
+<span class="fc" id="L113">        String label1 = o1.getLabel();</span>
+<span class="fc" id="L114">        String label2 = o2.getLabel();</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        if (StringUtils.equals(label1, label2)) {</span>
+<span class="fc" id="L116">          String configName1 = o1.getConfigName();</span>
+<span class="fc" id="L117">          String configName2 = o2.getConfigName();</span>
+<span class="fc" id="L118">          return configName1.compareTo(configName2);</span>
         }
-<span class="fc" id="L111">        return label1.compareTo(label2);</span>
+<span class="fc" id="L120">        return label1.compareTo(label2);</span>
     });
-<span class="fc bfc" id="L113" title="All 2 branches covered.">    for (String configName : configNames) {</span>
-<span class="fc" id="L114">      ConfigurationMetadata metadata = configManager.getConfigurationMetadata(configName);</span>
-<span class="pc bpc" id="L115" title="1 of 2 branches missed.">      if (metadata != null) {</span>
-<span class="fc" id="L116">        ConfigNameItem item = new ConfigNameItem();</span>
-<span class="fc" id="L117">        item.setConfigName(configName);</span>
-<span class="fc" id="L118">        item.setLabel(metadata.getLabel());</span>
-<span class="fc" id="L119">        item.setDescription(metadata.getDescription());</span>
-<span class="fc" id="L120">        item.setCollection(metadata.isCollection());</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">    for (String configName : configNames) {</span>
+<span class="fc" id="L123">      ConfigurationMetadata metadata = configManager.getConfigurationMetadata(configName);</span>
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">      if (metadata != null) {</span>
+<span class="fc" id="L125">        ConfigNameItem item = new ConfigNameItem();</span>
+<span class="fc" id="L126">        item.setConfigName(configName);</span>
+<span class="fc" id="L127">        item.setLabel(metadata.getLabel());</span>
+<span class="fc" id="L128">        item.setDescription(metadata.getDescription());</span>
+<span class="fc" id="L129">        item.setConfigurationCategory(getConfigurationCategory(contextResource, metadata));</span>
+<span class="fc" id="L130">        item.setCollection(metadata.isCollection());</span>
 
-<span class="fc" id="L122">        ConfigurationState state = getConfigurationState(contextResource, configName, metadata.isCollection());</span>
-<span class="fc" id="L123">        item.setExists(state.exists);</span>
-<span class="fc" id="L124">        item.setInherited(state.inherited);</span>
-<span class="fc" id="L125">        item.setOverridden(state.overridden);</span>
+<span class="fc" id="L132">        ConfigurationState state = getConfigurationState(contextResource, configName, metadata.isCollection());</span>
+<span class="fc" id="L133">        item.setExists(state.exists);</span>
+<span class="fc" id="L134">        item.setInherited(state.inherited);</span>
+<span class="fc" id="L135">        item.setOverridden(state.overridden);</span>
 
-<span class="fc" id="L127">        item.setAllowAdd(allowAdd(contextResource, configName));</span>
-<span class="fc" id="L128">        sortedResult.add(item);</span>
+<span class="fc" id="L137">        item.setAllowAdd(allowAdd(contextResource, configName));</span>
+<span class="fc" id="L138">        sortedResult.add(item);</span>
       }
-<span class="fc" id="L130">    }</span>
-<span class="fc" id="L131">    return sortedResult;</span>
+<span class="fc" id="L140">    }</span>
+<span class="fc" id="L141">    return sortedResult;</span>
+  }
+
+  private @Nullable ConfigurationCategory getConfigurationCategory(Resource contextResource, ConfigurationMetadata metadata) {
+<span class="fc bfc" id="L145" title="All 2 branches covered.">    if (this.configurationCategoryProviderService == null) {</span>
+<span class="fc" id="L146">      return ConfigurationCategoryProviderService.getAssignedCategory(metadata);</span>
+    }
+<span class="fc" id="L148">    return this.configurationCategoryProviderService.getCategory(contextResource, metadata);</span>
+  }
+
+  @SuppressWarnings(&quot;null&quot;)
+  private Collection&lt;ConfigCategoryItem&gt; getCategories(Collection&lt;ConfigNameItem&gt; configNames) {
+<span class="fc" id="L153">    return configNames.stream()</span>
+<span class="fc" id="L154">        .map(ConfigNameItem::getConfigurationCategory)</span>
+<span class="fc" id="L155">        .filter(Objects::nonNull)</span>
+<span class="fc" id="L156">        .distinct()</span>
+<span class="fc" id="L157">        .sorted()</span>
+<span class="fc" id="L158">        .map(category -&gt; new ConfigCategoryItem(category.getCategory(), category.getLabel()))</span>
+<span class="fc" id="L159">        .collect(Collectors.toList());</span>
   }
 
   private boolean allowAdd(Resource contextResource, String configName) {
-<span class="fc bfc" id="L135" title="All 2 branches covered.">    if (configurationEditorFilterService == null) {</span>
-<span class="fc" id="L136">      return true;</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">    if (configurationEditorFilterService == null) {</span>
+<span class="fc" id="L164">      return true;</span>
     }
-<span class="fc" id="L138">    return configurationEditorFilterService.allowAdd(contextResource, configName);</span>
+<span class="fc" id="L166">    return configurationEditorFilterService.allowAdd(contextResource, configName);</span>
   }
 
   private ConfigurationState getConfigurationState(Resource contextResource, String configName, boolean collection) {
-<span class="fc" id="L142">    ConfigurationState result = new ConfigurationState();</span>
-<span class="fc bfc" id="L143" title="All 2 branches covered.">    if (collection) {</span>
-<span class="fc" id="L144">      Collection&lt;ConfigurationData&gt; configs = configManager.getConfigurationCollection(contextResource, configName).getItems();</span>
-<span class="pc bpc" id="L145" title="1 of 2 branches missed.">      result.exists = !configs.isEmpty();</span>
-<span class="fc" id="L146">      result.inherited = configs.stream().anyMatch(ConfigurationData::isInherited);</span>
-<span class="fc" id="L147">      result.overridden = configs.stream().anyMatch(ConfigurationData::isOverridden);</span>
-<span class="fc" id="L148">    }</span>
+<span class="fc" id="L170">    ConfigurationState result = new ConfigurationState();</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">    if (collection) {</span>
+<span class="fc" id="L172">      Collection&lt;ConfigurationData&gt; configs = configManager.getConfigurationCollection(contextResource, configName).getItems();</span>
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">      result.exists = !configs.isEmpty();</span>
+<span class="fc" id="L174">      result.inherited = configs.stream().anyMatch(ConfigurationData::isInherited);</span>
+<span class="fc" id="L175">      result.overridden = configs.stream().anyMatch(ConfigurationData::isOverridden);</span>
+<span class="fc" id="L176">    }</span>
     else {
-<span class="fc" id="L150">      ConfigurationData config = configManager.getConfiguration(contextResource, configName);</span>
-<span class="fc bfc" id="L151" title="All 2 branches covered.">      if (config != null) {</span>
-<span class="fc bfc" id="L152" title="All 4 branches covered.">        result.exists = config.getResourcePath() != null || config.isOverridden();</span>
-<span class="fc" id="L153">        result.inherited = config.isInherited();</span>
-<span class="fc" id="L154">        result.overridden = config.isOverridden();</span>
+<span class="fc" id="L178">      ConfigurationData config = configManager.getConfiguration(contextResource, configName);</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">      if (config != null) {</span>
+<span class="fc bfc" id="L180" title="All 4 branches covered.">        result.exists = config.getResourcePath() != null || config.isOverridden();</span>
+<span class="fc" id="L181">        result.inherited = config.isInherited();</span>
+<span class="fc" id="L182">        result.overridden = config.isOverridden();</span>
       }
     }
-<span class="fc" id="L157">    return result;</span>
+<span class="fc" id="L185">    return result;</span>
   }
 
   private static final class ConfigurationState {
