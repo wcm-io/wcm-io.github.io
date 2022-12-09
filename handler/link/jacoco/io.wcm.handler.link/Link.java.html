@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -54,6 +55,7 @@ public final class Link {
   private @NotNull LinkRequest linkRequest;
   private boolean linkReferenceInvalid;
   private Anchor anchor;
+  private Function&lt;Link, Anchor&gt; anchorBuilder;
   private String url;
   private Page targetPage;
   private Asset targetAsset;
@@ -64,17 +66,17 @@ public final class Link {
    * @param linkType Link type
    * @param linkRequest Processed link reference
    */
-<span class="fc" id="L67">  public Link(@NotNull LinkType linkType, @NotNull LinkRequest linkRequest) {</span>
-<span class="fc" id="L68">    this.linkRequest = linkRequest;</span>
-<span class="fc" id="L69">    this.linkType = linkType;</span>
-<span class="fc" id="L70">  }</span>
+<span class="fc" id="L69">  public Link(@NotNull LinkType linkType, @NotNull LinkRequest linkRequest) {</span>
+<span class="fc" id="L70">    this.linkRequest = linkRequest;</span>
+<span class="fc" id="L71">    this.linkType = linkType;</span>
+<span class="fc" id="L72">  }</span>
 
   /**
    * @return Link type
    */
   @JsonUnwrapped
   public @NotNull LinkType getLinkType() {
-<span class="fc" id="L77">    return this.linkType;</span>
+<span class="fc" id="L79">    return this.linkType;</span>
   }
 
   /**
@@ -82,22 +84,22 @@ public final class Link {
    */
   @JsonIgnore
   public @NotNull LinkRequest getLinkRequest() {
-<span class="fc" id="L85">    return this.linkRequest;</span>
+<span class="fc" id="L87">    return this.linkRequest;</span>
   }
 
   /**
    * @param linkRequest Link request
    */
   public void setLinkRequest(@NotNull LinkRequest linkRequest) {
-<span class="fc" id="L92">    this.linkRequest = linkRequest;</span>
-<span class="fc" id="L93">  }</span>
+<span class="fc" id="L94">    this.linkRequest = linkRequest;</span>
+<span class="fc" id="L95">  }</span>
 
   /**
    * @return true if a link reference was set, but the reference was invalid and could not be resolved
    */
   @JsonIgnore
   public boolean isLinkReferenceInvalid() {
-<span class="fc" id="L100">    return this.linkReferenceInvalid;</span>
+<span class="fc" id="L102">    return this.linkReferenceInvalid;</span>
   }
 
   /**
@@ -105,15 +107,19 @@ public final class Link {
    *          resolved
    */
   public void setLinkReferenceInvalid(boolean linkReferenceInvalid) {
-<span class="fc" id="L108">    this.linkReferenceInvalid = linkReferenceInvalid;</span>
-<span class="fc" id="L109">  }</span>
+<span class="fc" id="L110">    this.linkReferenceInvalid = linkReferenceInvalid;</span>
+<span class="fc" id="L111">  }</span>
 
   /**
    * @return Anchor element
    */
   @JsonIgnore
   public Anchor getAnchor() {
-<span class="fc" id="L116">    return this.anchor;</span>
+<span class="fc bfc" id="L118" title="All 4 branches covered.">    if (this.anchor == null &amp;&amp; this.anchorBuilder != null) {</span>
+<span class="fc" id="L119">      this.anchor = this.anchorBuilder.apply(this);</span>
+<span class="fc" id="L120">      this.anchorBuilder = null;</span>
+    }
+<span class="fc" id="L122">    return this.anchor;</span>
   }
 
   /**
@@ -122,33 +128,42 @@ public final class Link {
   @JsonIgnore
   @SuppressWarnings(&quot;java:S1168&quot;)
   public Map&lt;String, String&gt; getAnchorAttributes() {
-<span class="fc bfc" id="L125" title="All 2 branches covered.">    if (getAnchor() == null) {</span>
-<span class="fc" id="L126">      return null;</span>
+<span class="fc" id="L131">    Anchor a = getAnchor();</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">    if (a == null) {</span>
+<span class="fc" id="L133">      return null;</span>
     }
-<span class="fc" id="L128">    Map&lt;String, String&gt; attributes = new HashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L129" title="All 2 branches covered.">    for (Attribute attribute : getAnchor().getAttributes()) {</span>
-<span class="fc" id="L130">      attributes.put(attribute.getName(), attribute.getValue());</span>
-<span class="fc" id="L131">    }</span>
-<span class="fc" id="L132">    return attributes;</span>
+<span class="fc" id="L135">    Map&lt;String, String&gt; attributes = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">    for (Attribute attribute : a.getAttributes()) {</span>
+<span class="fc" id="L137">      attributes.put(attribute.getName(), attribute.getValue());</span>
+<span class="fc" id="L138">    }</span>
+<span class="fc" id="L139">    return attributes;</span>
   }
 
   /**
    * @param anchor Anchor element
    */
   public void setAnchor(Anchor anchor) {
-<span class="fc" id="L139">    this.anchor = anchor;</span>
-<span class="fc" id="L140">  }</span>
+<span class="fc" id="L146">    this.anchor = anchor;</span>
+<span class="fc" id="L147">  }</span>
+
+  /**
+   * @param anchorBuilder Function that builds an anchor representation on demand
+   */
+  public void setAnchorBuilder(Function&lt;Link, Anchor&gt; anchorBuilder) {
+<span class="fc" id="L153">    this.anchorBuilder = anchorBuilder;</span>
+<span class="fc" id="L154">  }</span>
 
   /**
    * @return Link markup (only the opening anchor tag) or null if resolving was not successful.
    */
   @JsonIgnore
   public String getMarkup() {
-<span class="fc bfc" id="L147" title="All 2 branches covered.">    if (this.anchor != null) {</span>
-<span class="fc" id="L148">      return StringUtils.removeEnd(this.anchor.toString(), &quot;&lt;/a&gt;&quot;);</span>
+<span class="fc" id="L161">    Anchor a = getAnchor();</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">    if (a != null) {</span>
+<span class="fc" id="L163">      return StringUtils.removeEnd(a.toString(), &quot;&lt;/a&gt;&quot;);</span>
     }
     else {
-<span class="fc" id="L151">      return null;</span>
+<span class="fc" id="L166">      return null;</span>
     }
   }
 
@@ -156,60 +171,60 @@ public final class Link {
    * @return Link URL
    */
   public String getUrl() {
-<span class="fc" id="L159">    return this.url;</span>
+<span class="fc" id="L174">    return this.url;</span>
   }
 
   /**
    * @param url Link URL
    */
   public void setUrl(String url) {
-<span class="fc" id="L166">    this.url = url;</span>
-<span class="fc" id="L167">  }</span>
+<span class="fc" id="L181">    this.url = url;</span>
+<span class="fc" id="L182">  }</span>
 
   /**
    * @return Target page referenced by the link (applies only for internal links)
    */
   @JsonIgnore
   public Page getTargetPage() {
-<span class="fc" id="L174">    return this.targetPage;</span>
+<span class="fc" id="L189">    return this.targetPage;</span>
   }
 
   /**
    * @param targetPage Target page referenced by the link (applies only for internal links)
    */
   public void setTargetPage(Page targetPage) {
-<span class="fc" id="L181">    this.targetPage = targetPage;</span>
-<span class="fc" id="L182">  }</span>
+<span class="fc" id="L196">    this.targetPage = targetPage;</span>
+<span class="fc" id="L197">  }</span>
 
   /**
    * @return Target media item (applies only for media links)
    */
   @JsonIgnore
   public Asset getTargetAsset() {
-<span class="fc" id="L189">    return this.targetAsset;</span>
+<span class="fc" id="L204">    return this.targetAsset;</span>
   }
 
   /**
    * @param targetAsset Target media item (applies only for media links)
    */
   public void setTargetAsset(Asset targetAsset) {
-<span class="fc" id="L196">    this.targetAsset = targetAsset;</span>
-<span class="fc" id="L197">  }</span>
+<span class="fc" id="L211">    this.targetAsset = targetAsset;</span>
+<span class="fc" id="L212">  }</span>
 
   /**
    * @return Target media rendition (applies only for media links)
    */
   @JsonIgnore
   public Rendition getTargetRendition() {
-<span class="fc" id="L204">    return this.targetRendition;</span>
+<span class="fc" id="L219">    return this.targetRendition;</span>
   }
 
   /**
    * @param targetRendition Target media rendition (applies only for media links)
    */
   public void setTargetRendition(Rendition targetRendition) {
-<span class="fc" id="L211">    this.targetRendition = targetRendition;</span>
-<span class="fc" id="L212">  }</span>
+<span class="fc" id="L226">    this.targetRendition = targetRendition;</span>
+<span class="fc" id="L227">  }</span>
 
   /**
    * During link resolution one or multiple redirect pages may get resolved and replaced by the referenced
@@ -219,11 +234,11 @@ public final class Link {
    */
   @JsonIgnore
   public @NotNull List&lt;Page&gt; getRedirectPages() {
-<span class="fc bfc" id="L222" title="All 2 branches covered.">    if (redirectPages == null) {</span>
-<span class="fc" id="L223">      return ImmutableList.of();</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">    if (redirectPages == null) {</span>
+<span class="fc" id="L238">      return ImmutableList.of();</span>
     }
     else {
-<span class="fc" id="L226">      return ImmutableList.copyOf(redirectPages);</span>
+<span class="fc" id="L241">      return ImmutableList.copyOf(redirectPages);</span>
     }
   }
 
@@ -232,25 +247,25 @@ public final class Link {
    * @param redirectPage Redirect page
    */
   public void addRedirectPage(@NotNull Page redirectPage) {
-<span class="fc bfc" id="L235" title="All 2 branches covered.">    if (redirectPages == null) {</span>
-<span class="fc" id="L236">      redirectPages = new LinkedList&lt;&gt;();</span>
+<span class="fc bfc" id="L250" title="All 2 branches covered.">    if (redirectPages == null) {</span>
+<span class="fc" id="L251">      redirectPages = new LinkedList&lt;&gt;();</span>
     }
-<span class="fc" id="L238">    redirectPages.add(0, redirectPage);</span>
-<span class="fc" id="L239">  }</span>
+<span class="fc" id="L253">    redirectPages.add(0, redirectPage);</span>
+<span class="fc" id="L254">  }</span>
 
   /**
    * @return true if link is valid and was resolved successfully
    */
   @SuppressWarnings({ &quot;null&quot;, &quot;java:S2589&quot; }) // extra null checks for backward compatibility
   public boolean isValid() {
-<span class="fc bfc" id="L246" title="All 2 branches covered.">    return getLinkType() != null</span>
-<span class="fc bfc" id="L247" title="All 2 branches covered.">        &amp;&amp; getUrl() != null</span>
-<span class="pc bpc" id="L248" title="1 of 2 branches missed.">        &amp;&amp; !StringUtils.equals(getUrl(), LinkHandler.INVALID_LINK);</span>
+<span class="fc bfc" id="L261" title="All 2 branches covered.">    return getLinkType() != null</span>
+<span class="fc bfc" id="L262" title="All 2 branches covered.">        &amp;&amp; getUrl() != null</span>
+<span class="pc bpc" id="L263" title="1 of 2 branches missed.">        &amp;&amp; !StringUtils.equals(getUrl(), LinkHandler.INVALID_LINK);</span>
   }
 
   @Override
   public String toString() {
-<span class="fc" id="L253">    return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE);</span>
+<span class="fc" id="L268">    return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE);</span>
   }
 
 }
