@@ -199,117 +199,119 @@
 <a class="jxr_linenumber" name="L191" href="#L191">191</a>       <em class="jxr_comment">// generate markup (if markup builder is available) - first accepting wins</em>
 <a class="jxr_linenumber" name="L192" href="#L192">192</a>       List&lt;Class&lt;? <strong class="jxr_keyword">extends</strong> MediaMarkupBuilder&gt;&gt; mediaMarkupBuilders = mediaHandlerConfig.getMarkupBuilders();
 <a class="jxr_linenumber" name="L193" href="#L193">193</a>       <strong class="jxr_keyword">if</strong> (mediaMarkupBuilders != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L194" href="#L194">194</a>         <strong class="jxr_keyword">for</strong> (Class&lt;? <strong class="jxr_keyword">extends</strong> MediaMarkupBuilder&gt; mediaMarkupBuilderClass : mediaMarkupBuilders) {
-<a class="jxr_linenumber" name="L195" href="#L195">195</a>           <a name="MediaMarkupBuilder" href="../../../../../io/wcm/handler/media/spi/MediaMarkupBuilder.html#MediaMarkupBuilder">MediaMarkupBuilder</a> mediaMarkupBuilder = AdaptTo.notNull(adaptable, mediaMarkupBuilderClass);
-<a class="jxr_linenumber" name="L196" href="#L196">196</a>           <strong class="jxr_keyword">if</strong> (mediaMarkupBuilder.accepts(media)) {
-<a class="jxr_linenumber" name="L197" href="#L197">197</a>             log.trace(<span class="jxr_string">"Apply media markup builder ({}): {}"</span>, mediaMarkupBuilderClass, mediaRequest);
-<a class="jxr_linenumber" name="L198" href="#L198">198</a>             media.setElement(mediaMarkupBuilder.build(media));
-<a class="jxr_linenumber" name="L199" href="#L199">199</a>             <strong class="jxr_keyword">break</strong>;
-<a class="jxr_linenumber" name="L200" href="#L200">200</a>           }
-<a class="jxr_linenumber" name="L201" href="#L201">201</a>         }
-<a class="jxr_linenumber" name="L202" href="#L202">202</a>       }
-<a class="jxr_linenumber" name="L203" href="#L203">203</a> 
-<a class="jxr_linenumber" name="L204" href="#L204">204</a>       <em class="jxr_comment">// postprocess media request after resolving</em>
-<a class="jxr_linenumber" name="L205" href="#L205">205</a>       List&lt;Class&lt;? <strong class="jxr_keyword">extends</strong> MediaProcessor&gt;&gt; mediaPostProcessors = mediaHandlerConfig.getPostProcessors();
-<a class="jxr_linenumber" name="L206" href="#L206">206</a>       <strong class="jxr_keyword">if</strong> (mediaPostProcessors != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L207" href="#L207">207</a>         <strong class="jxr_keyword">for</strong> (Class&lt;? <strong class="jxr_keyword">extends</strong> MediaProcessor&gt; processorClass : mediaPostProcessors) {
-<a class="jxr_linenumber" name="L208" href="#L208">208</a>           log.trace(<span class="jxr_string">"Apply post processor ({}): {}"</span>, processorClass, mediaRequest);
-<a class="jxr_linenumber" name="L209" href="#L209">209</a>           <a name="MediaProcessor" href="../../../../../io/wcm/handler/media/spi/MediaProcessor.html#MediaProcessor">MediaProcessor</a> processor = AdaptTo.notNull(adaptable, processorClass);
-<a class="jxr_linenumber" name="L210" href="#L210">210</a>           media = processor.process(media);
-<a class="jxr_linenumber" name="L211" href="#L211">211</a>           <strong class="jxr_keyword">if</strong> (media == <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L212" href="#L212">212</a>             <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> RuntimeException(<span class="jxr_string">"MediaPostProcessor '"</span> + processor + <span class="jxr_string">"' returned null, request: "</span> + mediaRequest);
-<a class="jxr_linenumber" name="L213" href="#L213">213</a>           }
-<a class="jxr_linenumber" name="L214" href="#L214">214</a>         }
-<a class="jxr_linenumber" name="L215" href="#L215">215</a>       }
-<a class="jxr_linenumber" name="L216" href="#L216">216</a> 
-<a class="jxr_linenumber" name="L217" href="#L217">217</a>     }
-<a class="jxr_linenumber" name="L218" href="#L218">218</a>     <strong class="jxr_keyword">else</strong> {
-<a class="jxr_linenumber" name="L219" href="#L219">219</a>       log.trace(<span class="jxr_string">"Skip media resolving because media was set to invalid by prepocessor. reason={}, message={}"</span>,
-<a class="jxr_linenumber" name="L220" href="#L220">220</a>           media.getMediaInvalidReason(), media.getMediaInvalidReasonCustomMessage());
-<a class="jxr_linenumber" name="L221" href="#L221">221</a>     }
-<a class="jxr_linenumber" name="L222" href="#L222">222</a> 
-<a class="jxr_linenumber" name="L223" href="#L223">223</a>     log.debug(<span class="jxr_string">"Finished media processing: {}"</span>, media);
+<a class="jxr_linenumber" name="L194" href="#L194">194</a>         media.setElementBuilder(m -&gt; {
+<a class="jxr_linenumber" name="L195" href="#L195">195</a>           <strong class="jxr_keyword">for</strong> (Class&lt;? <strong class="jxr_keyword">extends</strong> MediaMarkupBuilder&gt; mediaMarkupBuilderClass : mediaMarkupBuilders) {
+<a class="jxr_linenumber" name="L196" href="#L196">196</a>             <a name="MediaMarkupBuilder" href="../../../../../io/wcm/handler/media/spi/MediaMarkupBuilder.html#MediaMarkupBuilder">MediaMarkupBuilder</a> mediaMarkupBuilder = AdaptTo.notNull(adaptable, mediaMarkupBuilderClass);
+<a class="jxr_linenumber" name="L197" href="#L197">197</a>             <strong class="jxr_keyword">if</strong> (mediaMarkupBuilder.accepts(m)) {
+<a class="jxr_linenumber" name="L198" href="#L198">198</a>               log.trace(<span class="jxr_string">"Apply media markup builder ({}): {}"</span>, mediaMarkupBuilderClass, mediaRequest);
+<a class="jxr_linenumber" name="L199" href="#L199">199</a>               <strong class="jxr_keyword">return</strong> mediaMarkupBuilder.build(m);
+<a class="jxr_linenumber" name="L200" href="#L200">200</a>             }
+<a class="jxr_linenumber" name="L201" href="#L201">201</a>           }
+<a class="jxr_linenumber" name="L202" href="#L202">202</a>           <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="L203" href="#L203">203</a>         });
+<a class="jxr_linenumber" name="L204" href="#L204">204</a>       }
+<a class="jxr_linenumber" name="L205" href="#L205">205</a> 
+<a class="jxr_linenumber" name="L206" href="#L206">206</a>       <em class="jxr_comment">// postprocess media request after resolving</em>
+<a class="jxr_linenumber" name="L207" href="#L207">207</a>       List&lt;Class&lt;? <strong class="jxr_keyword">extends</strong> MediaProcessor&gt;&gt; mediaPostProcessors = mediaHandlerConfig.getPostProcessors();
+<a class="jxr_linenumber" name="L208" href="#L208">208</a>       <strong class="jxr_keyword">if</strong> (mediaPostProcessors != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L209" href="#L209">209</a>         <strong class="jxr_keyword">for</strong> (Class&lt;? <strong class="jxr_keyword">extends</strong> MediaProcessor&gt; processorClass : mediaPostProcessors) {
+<a class="jxr_linenumber" name="L210" href="#L210">210</a>           log.trace(<span class="jxr_string">"Apply post processor ({}): {}"</span>, processorClass, mediaRequest);
+<a class="jxr_linenumber" name="L211" href="#L211">211</a>           <a name="MediaProcessor" href="../../../../../io/wcm/handler/media/spi/MediaProcessor.html#MediaProcessor">MediaProcessor</a> processor = AdaptTo.notNull(adaptable, processorClass);
+<a class="jxr_linenumber" name="L212" href="#L212">212</a>           media = processor.process(media);
+<a class="jxr_linenumber" name="L213" href="#L213">213</a>           <strong class="jxr_keyword">if</strong> (media == <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L214" href="#L214">214</a>             <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> RuntimeException(<span class="jxr_string">"MediaPostProcessor '"</span> + processor + <span class="jxr_string">"' returned null, request: "</span> + mediaRequest);
+<a class="jxr_linenumber" name="L215" href="#L215">215</a>           }
+<a class="jxr_linenumber" name="L216" href="#L216">216</a>         }
+<a class="jxr_linenumber" name="L217" href="#L217">217</a>       }
+<a class="jxr_linenumber" name="L218" href="#L218">218</a> 
+<a class="jxr_linenumber" name="L219" href="#L219">219</a>     }
+<a class="jxr_linenumber" name="L220" href="#L220">220</a>     <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="L221" href="#L221">221</a>       log.trace(<span class="jxr_string">"Skip media resolving because media was set to invalid by prepocessor. reason={}, message={}"</span>,
+<a class="jxr_linenumber" name="L222" href="#L222">222</a>           media.getMediaInvalidReason(), media.getMediaInvalidReasonCustomMessage());
+<a class="jxr_linenumber" name="L223" href="#L223">223</a>     }
 <a class="jxr_linenumber" name="L224" href="#L224">224</a> 
-<a class="jxr_linenumber" name="L225" href="#L225">225</a>     <strong class="jxr_keyword">return</strong> media;
-<a class="jxr_linenumber" name="L226" href="#L226">226</a>   }
-<a class="jxr_linenumber" name="L227" href="#L227">227</a> 
-<a class="jxr_linenumber" name="L228" href="#L228">228</a>   @Override
-<a class="jxr_linenumber" name="L229" href="#L229">229</a>   @SuppressWarnings(<span class="jxr_string">"null"</span>)
-<a class="jxr_linenumber" name="L230" href="#L230">230</a>   <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">boolean</strong> isValidElement(HtmlElement&lt;?&gt; element) {
-<a class="jxr_linenumber" name="L231" href="#L231">231</a> 
-<a class="jxr_linenumber" name="L232" href="#L232">232</a>     <em class="jxr_comment">// if it is null it is always invalid</em>
-<a class="jxr_linenumber" name="L233" href="#L233">233</a>     <strong class="jxr_keyword">if</strong> (element == <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L234" href="#L234">234</a>       <strong class="jxr_keyword">return</strong> false;
-<a class="jxr_linenumber" name="L235" href="#L235">235</a>     }
-<a class="jxr_linenumber" name="L236" href="#L236">236</a> 
-<a class="jxr_linenumber" name="L237" href="#L237">237</a>     <em class="jxr_comment">// otherwise check if any media markup builder is available that rates this html element valid</em>
-<a class="jxr_linenumber" name="L238" href="#L238">238</a>     List&lt;Class&lt;? <strong class="jxr_keyword">extends</strong> MediaMarkupBuilder&gt;&gt; mediaMarkupBuilders = mediaHandlerConfig.getMarkupBuilders();
-<a class="jxr_linenumber" name="L239" href="#L239">239</a>     <strong class="jxr_keyword">if</strong> (mediaMarkupBuilders != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L240" href="#L240">240</a>       <strong class="jxr_keyword">for</strong> (Class&lt;? <strong class="jxr_keyword">extends</strong> MediaMarkupBuilder&gt; mediaMarkupBuilderClass : mediaMarkupBuilders) {
-<a class="jxr_linenumber" name="L241" href="#L241">241</a>         <a name="MediaMarkupBuilder" href="../../../../../io/wcm/handler/media/spi/MediaMarkupBuilder.html#MediaMarkupBuilder">MediaMarkupBuilder</a> mediaMarkupBuilder = AdaptTo.notNull(adaptable, mediaMarkupBuilderClass);
-<a class="jxr_linenumber" name="L242" href="#L242">242</a>         <strong class="jxr_keyword">if</strong> (mediaMarkupBuilder.isValidMedia(element)) {
-<a class="jxr_linenumber" name="L243" href="#L243">243</a>           <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">true</strong>;
-<a class="jxr_linenumber" name="L244" href="#L244">244</a>         }
-<a class="jxr_linenumber" name="L245" href="#L245">245</a>       }
-<a class="jxr_linenumber" name="L246" href="#L246">246</a>     }
-<a class="jxr_linenumber" name="L247" href="#L247">247</a> 
-<a class="jxr_linenumber" name="L248" href="#L248">248</a>     <strong class="jxr_keyword">return</strong> false;
-<a class="jxr_linenumber" name="L249" href="#L249">249</a>   }
-<a class="jxr_linenumber" name="L250" href="#L250">250</a> 
-<a class="jxr_linenumber" name="L251" href="#L251">251</a>   <em class="jxr_javadoccomment">/**</em>
-<a class="jxr_linenumber" name="L252" href="#L252">252</a> <em class="jxr_javadoccomment">   * If a set of media formats is given it is filtered to contain only download media formats.</em>
-<a class="jxr_linenumber" name="L253" href="#L253">253</a> <em class="jxr_javadoccomment">   * If no is given a new set of allowed media formats is created by getting from all media formats those marked as</em>
-<a class="jxr_linenumber" name="L254" href="#L254">254</a> <em class="jxr_javadoccomment">   * "download".</em>
-<a class="jxr_linenumber" name="L255" href="#L255">255</a> <em class="jxr_javadoccomment">   * If the result is an empty set of media formats (but downloads are requested) resolution is not successful.</em>
-<a class="jxr_linenumber" name="L256" href="#L256">256</a> <em class="jxr_javadoccomment">   * If the result is an empty set because no media format requests and no download format at all defined, it is</em>
-<a class="jxr_linenumber" name="L257" href="#L257">257</a> <em class="jxr_javadoccomment">   * successful.</em>
-<a class="jxr_linenumber" name="L258" href="#L258">258</a> <em class="jxr_javadoccomment">   * @param mediaArgs Media args</em>
-<a class="jxr_linenumber" name="L259" href="#L259">259</a> <em class="jxr_javadoccomment">   * @return true if resolving was successful</em>
-<a class="jxr_linenumber" name="L260" href="#L260">260</a> <em class="jxr_javadoccomment">   */</em>
-<a class="jxr_linenumber" name="L261" href="#L261">261</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">boolean</strong> resolveDownloadMediaFormats(<a name="MediaArgs" href="../../../../../io/wcm/handler/media/MediaArgs.html#MediaArgs">MediaArgs</a> mediaArgs) {
-<a class="jxr_linenumber" name="L262" href="#L262">262</a>     <strong class="jxr_keyword">if</strong> (!mediaArgs.isDownload()) {
-<a class="jxr_linenumber" name="L263" href="#L263">263</a>       <em class="jxr_comment">// not filtering for downloads</em>
-<a class="jxr_linenumber" name="L264" href="#L264">264</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">true</strong>;
-<a class="jxr_linenumber" name="L265" href="#L265">265</a>     }
-<a class="jxr_linenumber" name="L266" href="#L266">266</a>     List&lt;MediaFormat&gt; candidates = <strong class="jxr_keyword">new</strong> ArrayList&lt;&gt;();
-<a class="jxr_linenumber" name="L267" href="#L267">267</a>     <strong class="jxr_keyword">boolean</strong> fallbackToAllMediaFormats = false;
-<a class="jxr_linenumber" name="L268" href="#L268">268</a>     <strong class="jxr_keyword">if</strong> (mediaArgs.getMediaFormats() != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L269" href="#L269">269</a>       candidates.addAll(ImmutableList.copyOf(mediaArgs.getMediaFormats()));
-<a class="jxr_linenumber" name="L270" href="#L270">270</a>     }
-<a class="jxr_linenumber" name="L271" href="#L271">271</a>     <strong class="jxr_keyword">else</strong> {
-<a class="jxr_linenumber" name="L272" href="#L272">272</a>       candidates.addAll(mediaFormatHandler.getMediaFormats());
-<a class="jxr_linenumber" name="L273" href="#L273">273</a>       fallbackToAllMediaFormats = <strong class="jxr_keyword">true</strong>;
-<a class="jxr_linenumber" name="L274" href="#L274">274</a>     }
-<a class="jxr_linenumber" name="L275" href="#L275">275</a>     <a name="MediaFormat" href="../../../../../io/wcm/handler/media/format/MediaFormat.html#MediaFormat">MediaFormat</a>[] result = candidates.stream()
-<a class="jxr_linenumber" name="L276" href="#L276">276</a>         .filter(MediaFormat::isDownload)
-<a class="jxr_linenumber" name="L277" href="#L277">277</a>         .toArray(size -&gt; <strong class="jxr_keyword">new</strong> <a name="MediaFormat" href="../../../../../io/wcm/handler/media/format/MediaFormat.html#MediaFormat">MediaFormat</a>[size]);
-<a class="jxr_linenumber" name="L278" href="#L278">278</a>     <strong class="jxr_keyword">if</strong> (result.length &gt; 0) {
-<a class="jxr_linenumber" name="L279" href="#L279">279</a>       mediaArgs.mediaFormats(result);
-<a class="jxr_linenumber" name="L280" href="#L280">280</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">true</strong>;
-<a class="jxr_linenumber" name="L281" href="#L281">281</a>     }
-<a class="jxr_linenumber" name="L282" href="#L282">282</a>     <strong class="jxr_keyword">else</strong> {
-<a class="jxr_linenumber" name="L283" href="#L283">283</a>       <em class="jxr_comment">// not successful when an explicit list of media formats was given, and this did not contain any download format</em>
-<a class="jxr_linenumber" name="L284" href="#L284">284</a>       <em class="jxr_comment">// successful when no media format was given, and the global list of all formats does not contain any download format</em>
-<a class="jxr_linenumber" name="L285" href="#L285">285</a>       <strong class="jxr_keyword">return</strong> fallbackToAllMediaFormats;
-<a class="jxr_linenumber" name="L286" href="#L286">286</a>     }
-<a class="jxr_linenumber" name="L287" href="#L287">287</a>   }
-<a class="jxr_linenumber" name="L288" href="#L288">288</a> 
-<a class="jxr_linenumber" name="L289" href="#L289">289</a>   @Override
-<a class="jxr_linenumber" name="L290" href="#L290">290</a>   @SuppressWarnings(<span class="jxr_string">"null"</span>)
-<a class="jxr_linenumber" name="L291" href="#L291">291</a>   @SuppressFBWarnings(<span class="jxr_string">"NP_NONNULL_PARAM_VIOLATION"</span>)
-<a class="jxr_linenumber" name="L292" href="#L292">292</a>   <strong class="jxr_keyword">public</strong> <a name="Media" href="../../../../../io/wcm/handler/media/Media.html#Media">Media</a> invalid() {
-<a class="jxr_linenumber" name="L293" href="#L293">293</a>     <em class="jxr_comment">// build invalid media with first media source</em>
-<a class="jxr_linenumber" name="L294" href="#L294">294</a>     Class&lt;? <strong class="jxr_keyword">extends</strong> MediaSource&gt; mediaSourceClass = mediaHandlerConfig.getSources().stream().findFirst().orElse(<strong class="jxr_keyword">null</strong>);
-<a class="jxr_linenumber" name="L295" href="#L295">295</a>     <strong class="jxr_keyword">if</strong> (mediaSourceClass == <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L296" href="#L296">296</a>       <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> RuntimeException(<span class="jxr_string">"No media sources defined."</span>);
-<a class="jxr_linenumber" name="L297" href="#L297">297</a>     }
-<a class="jxr_linenumber" name="L298" href="#L298">298</a>     <a name="MediaSource" href="../../../../../io/wcm/handler/media/spi/MediaSource.html#MediaSource">MediaSource</a> mediaSource = AdaptTo.notNull(adaptable, mediaSourceClass);
-<a class="jxr_linenumber" name="L299" href="#L299">299</a>     <a name="Media" href="../../../../../io/wcm/handler/media/Media.html#Media">Media</a> media = <strong class="jxr_keyword">new</strong> <a name="Media" href="../../../../../io/wcm/handler/media/Media.html#Media">Media</a>(mediaSource, <strong class="jxr_keyword">new</strong> <a name="MediaRequest" href="../../../../../io/wcm/handler/media/MediaRequest.html#MediaRequest">MediaRequest</a>((String)<strong class="jxr_keyword">null</strong>, <strong class="jxr_keyword">null</strong>));
-<a class="jxr_linenumber" name="L300" href="#L300">300</a>     media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_MISSING);
-<a class="jxr_linenumber" name="L301" href="#L301">301</a>     <strong class="jxr_keyword">return</strong> media;
-<a class="jxr_linenumber" name="L302" href="#L302">302</a>   }
-<a class="jxr_linenumber" name="L303" href="#L303">303</a> 
-<a class="jxr_linenumber" name="L304" href="#L304">304</a> }
+<a class="jxr_linenumber" name="L225" href="#L225">225</a>     log.debug(<span class="jxr_string">"Finished media processing: {}"</span>, media);
+<a class="jxr_linenumber" name="L226" href="#L226">226</a> 
+<a class="jxr_linenumber" name="L227" href="#L227">227</a>     <strong class="jxr_keyword">return</strong> media;
+<a class="jxr_linenumber" name="L228" href="#L228">228</a>   }
+<a class="jxr_linenumber" name="L229" href="#L229">229</a> 
+<a class="jxr_linenumber" name="L230" href="#L230">230</a>   @Override
+<a class="jxr_linenumber" name="L231" href="#L231">231</a>   @SuppressWarnings(<span class="jxr_string">"null"</span>)
+<a class="jxr_linenumber" name="L232" href="#L232">232</a>   <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">boolean</strong> isValidElement(HtmlElement&lt;?&gt; element) {
+<a class="jxr_linenumber" name="L233" href="#L233">233</a> 
+<a class="jxr_linenumber" name="L234" href="#L234">234</a>     <em class="jxr_comment">// if it is null it is always invalid</em>
+<a class="jxr_linenumber" name="L235" href="#L235">235</a>     <strong class="jxr_keyword">if</strong> (element == <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L236" href="#L236">236</a>       <strong class="jxr_keyword">return</strong> false;
+<a class="jxr_linenumber" name="L237" href="#L237">237</a>     }
+<a class="jxr_linenumber" name="L238" href="#L238">238</a> 
+<a class="jxr_linenumber" name="L239" href="#L239">239</a>     <em class="jxr_comment">// otherwise check if any media markup builder is available that rates this html element valid</em>
+<a class="jxr_linenumber" name="L240" href="#L240">240</a>     List&lt;Class&lt;? <strong class="jxr_keyword">extends</strong> MediaMarkupBuilder&gt;&gt; mediaMarkupBuilders = mediaHandlerConfig.getMarkupBuilders();
+<a class="jxr_linenumber" name="L241" href="#L241">241</a>     <strong class="jxr_keyword">if</strong> (mediaMarkupBuilders != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L242" href="#L242">242</a>       <strong class="jxr_keyword">for</strong> (Class&lt;? <strong class="jxr_keyword">extends</strong> MediaMarkupBuilder&gt; mediaMarkupBuilderClass : mediaMarkupBuilders) {
+<a class="jxr_linenumber" name="L243" href="#L243">243</a>         <a name="MediaMarkupBuilder" href="../../../../../io/wcm/handler/media/spi/MediaMarkupBuilder.html#MediaMarkupBuilder">MediaMarkupBuilder</a> mediaMarkupBuilder = AdaptTo.notNull(adaptable, mediaMarkupBuilderClass);
+<a class="jxr_linenumber" name="L244" href="#L244">244</a>         <strong class="jxr_keyword">if</strong> (mediaMarkupBuilder.isValidMedia(element)) {
+<a class="jxr_linenumber" name="L245" href="#L245">245</a>           <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">true</strong>;
+<a class="jxr_linenumber" name="L246" href="#L246">246</a>         }
+<a class="jxr_linenumber" name="L247" href="#L247">247</a>       }
+<a class="jxr_linenumber" name="L248" href="#L248">248</a>     }
+<a class="jxr_linenumber" name="L249" href="#L249">249</a> 
+<a class="jxr_linenumber" name="L250" href="#L250">250</a>     <strong class="jxr_keyword">return</strong> false;
+<a class="jxr_linenumber" name="L251" href="#L251">251</a>   }
+<a class="jxr_linenumber" name="L252" href="#L252">252</a> 
+<a class="jxr_linenumber" name="L253" href="#L253">253</a>   <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L254" href="#L254">254</a> <em class="jxr_javadoccomment">   * If a set of media formats is given it is filtered to contain only download media formats.</em>
+<a class="jxr_linenumber" name="L255" href="#L255">255</a> <em class="jxr_javadoccomment">   * If no is given a new set of allowed media formats is created by getting from all media formats those marked as</em>
+<a class="jxr_linenumber" name="L256" href="#L256">256</a> <em class="jxr_javadoccomment">   * "download".</em>
+<a class="jxr_linenumber" name="L257" href="#L257">257</a> <em class="jxr_javadoccomment">   * If the result is an empty set of media formats (but downloads are requested) resolution is not successful.</em>
+<a class="jxr_linenumber" name="L258" href="#L258">258</a> <em class="jxr_javadoccomment">   * If the result is an empty set because no media format requests and no download format at all defined, it is</em>
+<a class="jxr_linenumber" name="L259" href="#L259">259</a> <em class="jxr_javadoccomment">   * successful.</em>
+<a class="jxr_linenumber" name="L260" href="#L260">260</a> <em class="jxr_javadoccomment">   * @param mediaArgs Media args</em>
+<a class="jxr_linenumber" name="L261" href="#L261">261</a> <em class="jxr_javadoccomment">   * @return true if resolving was successful</em>
+<a class="jxr_linenumber" name="L262" href="#L262">262</a> <em class="jxr_javadoccomment">   */</em>
+<a class="jxr_linenumber" name="L263" href="#L263">263</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">boolean</strong> resolveDownloadMediaFormats(<a name="MediaArgs" href="../../../../../io/wcm/handler/media/MediaArgs.html#MediaArgs">MediaArgs</a> mediaArgs) {
+<a class="jxr_linenumber" name="L264" href="#L264">264</a>     <strong class="jxr_keyword">if</strong> (!mediaArgs.isDownload()) {
+<a class="jxr_linenumber" name="L265" href="#L265">265</a>       <em class="jxr_comment">// not filtering for downloads</em>
+<a class="jxr_linenumber" name="L266" href="#L266">266</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">true</strong>;
+<a class="jxr_linenumber" name="L267" href="#L267">267</a>     }
+<a class="jxr_linenumber" name="L268" href="#L268">268</a>     List&lt;MediaFormat&gt; candidates = <strong class="jxr_keyword">new</strong> ArrayList&lt;&gt;();
+<a class="jxr_linenumber" name="L269" href="#L269">269</a>     <strong class="jxr_keyword">boolean</strong> fallbackToAllMediaFormats = false;
+<a class="jxr_linenumber" name="L270" href="#L270">270</a>     <strong class="jxr_keyword">if</strong> (mediaArgs.getMediaFormats() != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L271" href="#L271">271</a>       candidates.addAll(ImmutableList.copyOf(mediaArgs.getMediaFormats()));
+<a class="jxr_linenumber" name="L272" href="#L272">272</a>     }
+<a class="jxr_linenumber" name="L273" href="#L273">273</a>     <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="L274" href="#L274">274</a>       candidates.addAll(mediaFormatHandler.getMediaFormats());
+<a class="jxr_linenumber" name="L275" href="#L275">275</a>       fallbackToAllMediaFormats = <strong class="jxr_keyword">true</strong>;
+<a class="jxr_linenumber" name="L276" href="#L276">276</a>     }
+<a class="jxr_linenumber" name="L277" href="#L277">277</a>     <a name="MediaFormat" href="../../../../../io/wcm/handler/media/format/MediaFormat.html#MediaFormat">MediaFormat</a>[] result = candidates.stream()
+<a class="jxr_linenumber" name="L278" href="#L278">278</a>         .filter(MediaFormat::isDownload)
+<a class="jxr_linenumber" name="L279" href="#L279">279</a>         .toArray(size -&gt; <strong class="jxr_keyword">new</strong> <a name="MediaFormat" href="../../../../../io/wcm/handler/media/format/MediaFormat.html#MediaFormat">MediaFormat</a>[size]);
+<a class="jxr_linenumber" name="L280" href="#L280">280</a>     <strong class="jxr_keyword">if</strong> (result.length &gt; 0) {
+<a class="jxr_linenumber" name="L281" href="#L281">281</a>       mediaArgs.mediaFormats(result);
+<a class="jxr_linenumber" name="L282" href="#L282">282</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">true</strong>;
+<a class="jxr_linenumber" name="L283" href="#L283">283</a>     }
+<a class="jxr_linenumber" name="L284" href="#L284">284</a>     <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="L285" href="#L285">285</a>       <em class="jxr_comment">// not successful when an explicit list of media formats was given, and this did not contain any download format</em>
+<a class="jxr_linenumber" name="L286" href="#L286">286</a>       <em class="jxr_comment">// successful when no media format was given, and the global list of all formats does not contain any download format</em>
+<a class="jxr_linenumber" name="L287" href="#L287">287</a>       <strong class="jxr_keyword">return</strong> fallbackToAllMediaFormats;
+<a class="jxr_linenumber" name="L288" href="#L288">288</a>     }
+<a class="jxr_linenumber" name="L289" href="#L289">289</a>   }
+<a class="jxr_linenumber" name="L290" href="#L290">290</a> 
+<a class="jxr_linenumber" name="L291" href="#L291">291</a>   @Override
+<a class="jxr_linenumber" name="L292" href="#L292">292</a>   @SuppressWarnings(<span class="jxr_string">"null"</span>)
+<a class="jxr_linenumber" name="L293" href="#L293">293</a>   @SuppressFBWarnings(<span class="jxr_string">"NP_NONNULL_PARAM_VIOLATION"</span>)
+<a class="jxr_linenumber" name="L294" href="#L294">294</a>   <strong class="jxr_keyword">public</strong> <a name="Media" href="../../../../../io/wcm/handler/media/Media.html#Media">Media</a> invalid() {
+<a class="jxr_linenumber" name="L295" href="#L295">295</a>     <em class="jxr_comment">// build invalid media with first media source</em>
+<a class="jxr_linenumber" name="L296" href="#L296">296</a>     Class&lt;? <strong class="jxr_keyword">extends</strong> MediaSource&gt; mediaSourceClass = mediaHandlerConfig.getSources().stream().findFirst().orElse(<strong class="jxr_keyword">null</strong>);
+<a class="jxr_linenumber" name="L297" href="#L297">297</a>     <strong class="jxr_keyword">if</strong> (mediaSourceClass == <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L298" href="#L298">298</a>       <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> RuntimeException(<span class="jxr_string">"No media sources defined."</span>);
+<a class="jxr_linenumber" name="L299" href="#L299">299</a>     }
+<a class="jxr_linenumber" name="L300" href="#L300">300</a>     <a name="MediaSource" href="../../../../../io/wcm/handler/media/spi/MediaSource.html#MediaSource">MediaSource</a> mediaSource = AdaptTo.notNull(adaptable, mediaSourceClass);
+<a class="jxr_linenumber" name="L301" href="#L301">301</a>     <a name="Media" href="../../../../../io/wcm/handler/media/Media.html#Media">Media</a> media = <strong class="jxr_keyword">new</strong> <a name="Media" href="../../../../../io/wcm/handler/media/Media.html#Media">Media</a>(mediaSource, <strong class="jxr_keyword">new</strong> <a name="MediaRequest" href="../../../../../io/wcm/handler/media/MediaRequest.html#MediaRequest">MediaRequest</a>((String)<strong class="jxr_keyword">null</strong>, <strong class="jxr_keyword">null</strong>));
+<a class="jxr_linenumber" name="L302" href="#L302">302</a>     media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_MISSING);
+<a class="jxr_linenumber" name="L303" href="#L303">303</a>     <strong class="jxr_keyword">return</strong> media;
+<a class="jxr_linenumber" name="L304" href="#L304">304</a>   }
+<a class="jxr_linenumber" name="L305" href="#L305">305</a> 
+<a class="jxr_linenumber" name="L306" href="#L306">306</a> }
 </pre>
 <hr/>
 <div id="footer">Copyright &#169; 2014&#x2013;2022 <a href="https://wcm.io">wcm.io</a>. All rights reserved.</div>
