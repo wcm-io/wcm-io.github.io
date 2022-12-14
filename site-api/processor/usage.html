@@ -114,7 +114,95 @@
  <div class="page-header">
   <h2 id="Site_API_Processor_usage">Site API Processor usage</h2>
  </div> 
- <p>TBD</p> 
+ <section> 
+  <h3 id="Configuring_built-in_processors">Configuring built-in processors</h3> 
+  <p>You can enable each of the built-in processors by providing an OSGi configuration:</p> 
+  <div class="source"> 
+   <pre><code>  io.wcm.siteapi.processor.impl.index.IndexProcessor
+    enabled=B"true"
+
+  io.wcm.siteapi.processor.impl.content.ContentProcessor
+    enabled=B"true"
+
+  io.wcm.siteapi.processor.impl.caconfig.ContextAwareConfigurationProcessor
+    enabled=B"true"
+</code></pre> 
+  </div> 
+  <p>For the <code>config</code> processor you can configure which Context-Aware configuration names should be exported:</p> 
+  <div class="source"> 
+   <pre><code>  io.wcm.siteapi.processor.impl.caconfig.ContextAwareConfigurationExport-XXX
+    names=["x.y.z.MyConfig1", "x.y.z.MyConfig2"]
+</code></pre> 
+  </div> 
+  <p>It's a factory configuration, so replace XXX with a project-specific suffix.</p> 
+  <p>To ensure a consistent JSON property/element ordering it is recommended to reconfigure the Sling Models Jackson exporter:</p> 
+  <div class="source"> 
+   <pre><code>  org.apache.sling.models.jacksonexporter.impl.JacksonExporter
+    mapping.options=[
+      "SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS\=true",
+      "MapperFeature.SORT_PROPERTIES_ALPHABETICALLY\=true"]
+</code></pre> 
+  </div> 
+ </section> 
+ <section> 
+  <h3 id="Implement_Processor_serving_JSON_objects">Implement Processor serving JSON objects</h3> 
+  <p>For most use cases you build your JSON response using Java objects or Map structures. This is supported by using the `JsonObjectProcessor':</p> 
+  <div class="source"> 
+   <pre><code class="language-java">@Component(service = Processor.class, property = {
+    ProcessorConstants.PROPERTY_SUFFIX + "=myprocessor",
+    ProcessorConstants.PROPERTY_ENABLED + "=true"
+})
+public class MyProcessor implements JsonObjectProcessor&lt;MyResponse&gt; {
+  @Override
+  public @Nullable MyResponse process(@NotNull ProcessorRequestContext context) {
+    // implement
+  }
+}
+</code></pre> 
+  </div> 
+  <p>If you return <code>null</code>, the Site API returns HTTP 404. You can use this e.g. to further validate the request context, page hierarchy or other input parameters to check if the request is valid.</p> 
+  <p>If you return an actual object, this is serialized to JSON and returned.</p> 
+  <p>It's easy to write unit tests for this type of processor implementations as you can write test against the Java API of the response, and do not have to parse and validate the returned JSON structure.</p> 
+  <p>Example implementations:</p> 
+  <ul> 
+   <li><a class="externalLink" href="https://github.com/wcm-io/io.wcm.site-api.processor/blob/develop/src/main/java/io/wcm/siteapi/processor/impl/index/IndexProcessor.java">IndexProcessor</a></li> 
+   <li><a class="externalLink" href="https://github.com/wcm-io/io.wcm.site-api.processor/blob/develop/src/main/java/io/wcm/siteapi/processor/impl/caconfig/ContextAwareConfigurationProcessor.java">ContextAwareConfigurationProcessor</a></li> 
+   <li><a class="externalLink" href="https://github.com/wcm-io/io.wcm.site-api.handler/blob/develop/src/main/java/io/wcm/siteapi/handler/processor/impl/navigation/NavigationProcessor.java">NavigationProcessor</a></li> 
+  </ul> 
+ </section> 
+ <section> 
+  <h3 id="Implement_Processor_serving_any_response">Implement Processor serving any response</h3> 
+  <p>If you need more control about the response, you can implement the <code>SlingHttpServletProcessor</code> interface:</p> 
+  <div class="source"> 
+   <pre><code class="language-java">@Component(service = Processor.class, property = {
+    ProcessorConstants.PROPERTY_SUFFIX + "=myprocessor",
+    ProcessorConstants.PROPERTY_ENABLED + "=true"
+})
+public class MyProcessor implements SlingHttpServletProcessor {
+@Override
+  public void process(@NotNull ProcessorRequestContext context, @NotNull SlingHttpServletResponse response)
+      throws ServletException, IOException {
+    // implement
+  }
+}
+</code></pre> 
+  </div> 
+  <p>In this case you have to take over full control over the servlet response and the data returned.</p> 
+  <p>Example implementations:</p> 
+  <ul> 
+   <li><a class="externalLink" href="https://github.com/wcm-io/io.wcm.site-api.processor/blob/develop/src/main/java/io/wcm/siteapi/processor/impl/content/ContentProcessor.java">ContentProcessor</a></li> 
+  </ul> 
+ </section> 
+ <section> 
+  <h3 id="Customize_Context-Aware_Configuration_Mapping">Customize Context-Aware Configuration Mapping</h3> 
+  <p>By default, all Context-Aware configuration structures are transformed in a sensible way to JSON structures, including more complex use cases like configuration collections and nested configurations.</p> 
+  <p>You can customize tha mapping for individual properties by implementing the interface <code>ContextAwareConfigurationPropertyMapper</code>.</p> 
+  <p>Example implementations:</p> 
+  <ul> 
+   <li><a class="externalLink" href="https://github.com/wcm-io/io.wcm.site-api.processor/blob/develop/src/main/java/io/wcm/siteapi/processor/caconfig/impl/property/JsonRawValuePropertyMapper.java">JsonRawValuePropertyMapper</a></li> 
+   <li><a class="externalLink" href="https://github.com/wcm-io/io.wcm.site-api.handler/blob/develop/src/main/java/io/wcm/siteapi/handler/caconfig/impl/property/ContentPathPropertyMapper.java">ContentPathPropertyMapper</a></li> 
+  </ul> 
+ </section> 
 </section>
       </div>
     </div>
@@ -123,7 +211,15 @@
         <div class="well">
           <ul class="nav nav-list">
             <li class="nav-header">Table of Contents</li>
-    <li><a href="#Site_API_Processor_usage" title="Site API Processor usage">Site API Processor usage</a>
+    <li class="dropdown"><a href="#Site_API_Processor_usage" title="Site API Processor usage">Site API Processor usage <b class="caret"></b></a>
+      <ul class="nav nav-list">
+    <li><a href="#Configuring_built-in_processors" title="Configuring built-in processors">Configuring built-in processors</a>
+    <li><a href="#Implement_Processor_serving_JSON_objects" title="Implement Processor serving JSON objects">Implement Processor serving JSON objects</a>
+    <li><a href="#Implement_Processor_serving_any_response" title="Implement Processor serving any response">Implement Processor serving any response</a>
+    <li><a href="#Customize_Context-Aware_Configuration_Mapping" title="Customize Context-Aware Configuration Mapping">Customize Context-Aware Configuration Mapping</a>
+        <li class="divider"></li>
+      </ul>
+    </li>
           </ul>
         </div>
       </div>
