@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IndexProcessor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Processor</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.processor.impl.index</a> &gt; <span class="el_source">IndexProcessor.java</span></div><h1>IndexProcessor.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2022 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.processor.impl.index;
+
+import static io.wcm.siteapi.processor.ProcessorConstants.PROCESSOR_INDEX;
+import static io.wcm.siteapi.processor.ProcessorConstants.PROPERTY_SUFFIX;
+
+import java.util.Collection;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.propertytypes.ServiceRanking;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+
+import com.day.cq.wcm.api.Page;
+
+import io.wcm.siteapi.processor.JsonObjectProcessor;
+import io.wcm.siteapi.processor.Processor;
+import io.wcm.siteapi.processor.ProcessorManager;
+import io.wcm.siteapi.processor.ProcessorMetadata;
+import io.wcm.siteapi.processor.ProcessorRequestContext;
+import io.wcm.siteapi.processor.url.UrlBuilder;
+
+/**
+ * Index processor
+ */
+@Designate(ocd = IndexProcessor.Config.class)
+@Component(service = Processor.class, configurationPolicy = ConfigurationPolicy.REQUIRE,
+    property = PROPERTY_SUFFIX + &quot;=&quot; + PROCESSOR_INDEX)
+@ServiceRanking(-500)
+<span class="fc" id="L56">public class IndexProcessor implements JsonObjectProcessor&lt;Collection&lt;ProcessorIndex&gt;&gt; {</span>
+
+  @ObjectClassDefinition(
+      name = &quot;wcm.io Site API Index Processor&quot;,
+      description = &quot;Provides an index of processors.&quot;)
+  @interface Config {
+
+    @AttributeDefinition(
+        name = &quot;Enabled&quot;,
+        description = &quot;Processor is enabled.&quot;)
+    boolean enabled() default false;
+
+  }
+
+  @Reference
+  private ProcessorManager processorManager;
+  @Reference
+  private UrlBuilder urlBuilder;
+
+  @Override
+  public @Nullable Collection&lt;ProcessorIndex&gt; process(@NotNull ProcessorRequestContext context) {
+<span class="fc" id="L77">    return getIndex(context.getPage(), context.getRequest());</span>
+  }
+
+  @SuppressWarnings(&quot;null&quot;)
+  private Collection&lt;ProcessorIndex&gt; getIndex(@NotNull Page page, @NotNull SlingHttpServletRequest request) {
+<span class="fc" id="L82">    return processorManager.getAll(page.getContentResource())</span>
+<span class="fc" id="L83">        .map(ProcessorMetadata::getSuffix)</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        .filter(suffix -&gt; !StringUtils.equals(suffix, PROCESSOR_INDEX))</span>
+<span class="fc" id="L85">        .map(suffix -&gt; new ProcessorIndex(suffix, urlBuilder.build(page, suffix, null, request)))</span>
+<span class="fc" id="L86">        .collect(Collectors.toList());</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

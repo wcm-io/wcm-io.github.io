@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProcessorData.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Processor</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.processor.impl</a> &gt; <span class="el_source">ProcessorData.java</span></div><h1>ProcessorData.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2022 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.processor.impl;
+
+import static io.wcm.siteapi.processor.ProcessorConstants.PROPERTY_ENABLED;
+import static io.wcm.siteapi.processor.ProcessorConstants.PROPERTY_SUFFIX;
+import static io.wcm.siteapi.processor.ProcessorConstants.PROPERTY_SUFFIX_PATTERN;
+
+import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.framework.ServiceReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.wcm.siteapi.processor.Processor;
+import io.wcm.siteapi.processor.ProcessorMetadata;
+import io.wcm.siteapi.processor.util.impl.DictionaryUtil;
+
+/**
+ * Wraps a processor instance with compiled and validated suffix pattern.
+ */
+class ProcessorData implements ProcessorMetadata {
+
+<span class="fc" id="L49">  private static final Logger log = LoggerFactory.getLogger(ProcessorData.class);</span>
+
+  private final Processor processor;
+  private final String suffix;
+  private final Pattern suffixPattern;
+  private final boolean enabled;
+  private final Map&lt;String, Object&gt; properties;
+
+<span class="fc" id="L57">  ProcessorData(@NotNull ServiceReference&lt;Processor&gt; serviceReference, @Nullable Processor processor) {</span>
+<span class="fc" id="L58">    this.processor = processor;</span>
+<span class="fc" id="L59">    this.suffix = getSuffix(serviceReference, this.processor);</span>
+<span class="fc" id="L60">    this.suffixPattern = getSuffixPattern(serviceReference, this.suffix, this.processor);</span>
+<span class="fc" id="L61">    this.enabled = getEnabled(serviceReference);</span>
+<span class="fc" id="L62">    this.properties = DictionaryUtil.toMap(serviceReference.getProperties());</span>
+<span class="fc" id="L63">  }</span>
+
+  public @Nullable Processor getProcessor() {
+<span class="fc" id="L66">    return processor;</span>
+  }
+
+  public boolean isValid() {
+<span class="pc bpc" id="L70" title="1 of 8 branches missed.">    return processor != null &amp;&amp; suffix != null &amp;&amp; suffixPattern != null &amp;&amp; enabled;</span>
+  }
+
+  @Override
+  public @NotNull String getSuffix() {
+<span class="fc" id="L75">    return this.suffix;</span>
+  }
+
+  @Override
+  public @NotNull Class&lt;? extends Processor&gt; getProcessorClass() {
+<span class="fc" id="L80">    return processor.getClass();</span>
+  }
+
+  @Override
+  public @NotNull Map&lt;String, Object&gt; getProperties() {
+<span class="fc" id="L85">    return properties;</span>
+  }
+
+  public boolean matches(@NotNull String givenSuffix) {
+<span class="fc" id="L89">    return suffixPattern.matcher(givenSuffix).matches();</span>
+  }
+
+  private static @Nullable String getSuffix(ServiceReference&lt;Processor&gt; serviceReference,
+      Processor processor) {
+<span class="fc" id="L94">    String suffix = (String)serviceReference.getProperty(PROPERTY_SUFFIX);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (StringUtils.isBlank(suffix)) {</span>
+<span class="fc" id="L96">      log.warn(&quot;Ignoring processor {} without {} property&quot;, processor, PROPERTY_SUFFIX);</span>
+<span class="fc" id="L97">      suffix = null;</span>
+    }
+<span class="fc" id="L99">    return suffix;</span>
+  }
+
+  private static @Nullable Pattern getSuffixPattern(ServiceReference&lt;Processor&gt; serviceReference, String suffix,
+      Processor processor) {
+<span class="fc bfc" id="L104" title="All 2 branches covered.">    if (suffix == null) {</span>
+<span class="fc" id="L105">      return null;</span>
+    }
+<span class="fc" id="L107">    String suffixPattern = (String)serviceReference.getProperty(PROPERTY_SUFFIX_PATTERN);</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">    if (StringUtils.isBlank(suffixPattern)) {</span>
+<span class="fc" id="L109">      suffixPattern = &quot;^&quot; + Pattern.quote(suffix) + &quot;$&quot;;</span>
+    }
+    try {
+<span class="fc" id="L112">      return Pattern.compile(suffixPattern);</span>
+    }
+<span class="fc" id="L114">    catch (PatternSyntaxException ex) {</span>
+<span class="fc" id="L115">      log.warn(&quot;Ignoring processor {} with invalid suffix pattern: {} - {}&quot;, processor, suffixPattern, ex.getMessage());</span>
+    }
+<span class="fc" id="L117">    return null;</span>
+  }
+
+  private static boolean getEnabled(ServiceReference&lt;Processor&gt; serviceReference) {
+<span class="fc" id="L121">    Object enabled = serviceReference.getProperty(PROPERTY_ENABLED);</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">    if (enabled == null) {</span>
+<span class="fc" id="L123">      return true;</span>
+    }
+<span class="fc bfc" id="L125" title="All 2 branches covered.">    else if (enabled instanceof Boolean) {</span>
+<span class="fc" id="L126">      return (Boolean)enabled;</span>
+    }
+    else {
+<span class="fc" id="L129">      return BooleanUtils.toBoolean(enabled.toString());</span>
+    }
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L135">    return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)</span>
+<span class="fc" id="L136">        .append(&quot;processor&quot;, processor)</span>
+<span class="fc" id="L137">        .append(&quot;suffix&quot;, suffix)</span>
+<span class="fc" id="L138">        .append(&quot;suffixPattern&quot;, suffixPattern)</span>
+<span class="fc" id="L139">        .toString();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
