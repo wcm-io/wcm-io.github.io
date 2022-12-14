@@ -114,7 +114,57 @@
  <div class="page-header">
   <h2 id="Site_API_Handler_Extensions_usage">Site API Handler Extensions usage</h2>
  </div> 
- <p>TBD</p> 
+ <section> 
+  <h3 id="Configure_Link_and_Media_Decorators">Configure Link and Media Decorators</h3> 
+  <p>It is recommended to define the link and media reference representation within you project via custom Java classes, and use this thorough the project (especially in Sling Models) to have a consistent representation of the reference. By default, the <code>Link</code> and <code>Media</code> instances returned by Link and Media Handler are used for this, but they may not fulfill your needs.</p> 
+  <p>By implementing the <code>LinkDecorator</code> and <code>MediaDecorator</code> service interface you can map those instances to project-specific Java objects.</p> 
+ </section> 
+ <section> 
+  <h3 id="Configure_Link_Handling">Configure Link Handling</h3> 
+  <p>Customize the link handler configuration in your project:</p> 
+  <div class="source"> 
+   <pre><code class="language-java">@Component(service = LinkHandlerConfig.class)
+public class LinkHandlerConfigImpl extends LinkHandlerConfig {
+
+  private static final List&lt;Class&lt;? extends LinkProcessor&gt;&gt; PRE_PROCESSORS = List.of(
+      SiteApiLinkPreProcessor.class);
+
+  private static final List&lt;Class&lt;? extends LinkMarkupBuilder&gt;&gt; LINK_MARKUP_BUILDERS = List.of(
+      SiteApiLinkMarkupBuilder.class,
+      SimpleLinkMarkupBuilder.class);
+
+  @Override
+  public @NotNull List&lt;Class&lt;? extends LinkProcessor&gt;&gt; getPreProcessors() {
+    return PRE_PROCESSORS;
+  }
+
+  @Override
+  public @NotNull List&lt;Class&lt;? extends LinkMarkupBuilder&gt;&gt; getMarkupBuilders() {
+    return LINK_MARKUP_BUILDERS;
+  }
+
+  ...
+
+}
+</code></pre> 
+  </div> 
+  <p>The <code>SiteApiLinkPreProcessor</code> steps in when a link is build via Link Handler in context of a Site API request (using Site API selector/extension/suffix). It rewrites the URL to the target page pointing to the <code>content</code> JSON endpoint. It works for every url generated with Link Handler, regardless if this takes place in a processor implementation or a Sling Model.</p> 
+  <p>The <code>SiteApiLinkMarkupBuilder</code> is useful when you return HTML fragments in the JSON API for rich text content. If you have customized your link representation by implementing a <code>LinkDecorator</code>, this markup builder generates the anchor element with the link URL and additional <code>data-</code> properties reflecting the properties of the Java object returned by the decorator.</p> 
+ </section> 
+ <section> 
+  <h3 id="Configuring_built-in_processors">Configuring built-in processors</h3> 
+  <p>You can enable the built-in processors by providing an OSGi configuration:</p> 
+  <div class="source"> 
+   <pre><code>  io.wcm.siteapi.handler.processor.impl.navigation.NavigationProcessor
+    enabled=B"true"
+</code></pre> 
+  </div> 
+ </section> 
+ <section> 
+  <h3 id="Map_Context-Aware_Configurations_with_Link_and_Media_references">Map Context-Aware Configurations with Link and Media references</h3> 
+  <p>The Site API Handler Extensions provide with <a class="externalLink" href="https://github.com/wcm-io/io.wcm.site-api.handler/blob/develop/src/main/java/io/wcm/siteapi/handler/caconfig/impl/property/ContentPathPropertyMapper.java">ContentPathPropertyMapper</a> a default implementation to customize the serialization of Context-Aware Configurations. It detects link and media references and maps them to the configured link and media decoration.</p> 
+  <p>This may be enough for your project. If you need more control about the mapping e.g. based on additional custom properties in the context-aware configuration definitions you can implement your own mapper with a higher service ranking.</p> 
+ </section> 
 </section>
       </div>
     </div>
@@ -123,7 +173,15 @@
         <div class="well">
           <ul class="nav nav-list">
             <li class="nav-header">Table of Contents</li>
-    <li><a href="#Site_API_Handler_Extensions_usage" title="Site API Handler Extensions usage">Site API Handler Extensions usage</a>
+    <li class="dropdown"><a href="#Site_API_Handler_Extensions_usage" title="Site API Handler Extensions usage">Site API Handler Extensions usage <b class="caret"></b></a>
+      <ul class="nav nav-list">
+    <li><a href="#Configure_Link_and_Media_Decorators" title="Configure Link and Media Decorators">Configure Link and Media Decorators</a>
+    <li><a href="#Configure_Link_Handling" title="Configure Link Handling">Configure Link Handling</a>
+    <li><a href="#Configuring_built-in_processors" title="Configuring built-in processors">Configuring built-in processors</a>
+    <li><a href="#Map_Context-Aware_Configurations_with_Link_and_Media_references" title="Map Context-Aware Configurations with Link and Media references">Map Context-Aware Configurations with Link and Media references</a>
+        <li class="divider"></li>
+      </ul>
+    </li>
           </ul>
         </div>
       </div>
