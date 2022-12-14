@@ -24,10 +24,12 @@ import static io.wcm.siteapi.processor.ProcessorConstants.PROPERTY_SUFFIX;
 import static io.wcm.siteapi.processor.ProcessorConstants.PROPERTY_SUFFIX_PATTERN;
 import static io.wcm.siteapi.processor.caconfig.ContextAwareConfigurationProperties.PROPERTY_CONFIG_EMBEDDED;
 
-import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
@@ -35,9 +37,12 @@ import org.apache.sling.caconfig.management.ConfigurationManager;
 import org.apache.sling.caconfig.spi.metadata.ConfigurationMetadata;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.FieldOption;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
@@ -50,9 +55,12 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import io.wcm.siteapi.processor.JsonObjectProcessor;
 import io.wcm.siteapi.processor.Processor;
 import io.wcm.siteapi.processor.ProcessorRequestContext;
+import io.wcm.siteapi.processor.caconfig.ContextAwareConfigurationExport;
 import io.wcm.siteapi.processor.caconfig.ContextAwareConfigurationMapper;
 import io.wcm.siteapi.processor.caconfig.impl.ConfigurationMetadataUtil;
 import io.wcm.siteapi.processor.url.UrlBuilder;
+import io.wcm.sling.commons.caservice.ContextAwareServiceCollectionResolver;
+import io.wcm.sling.commons.caservice.ContextAwareServiceResolver;
 
 /**
  * Generate context-aware configuration.
@@ -63,7 +71,7 @@ import io.wcm.siteapi.processor.url.UrlBuilder;
     PROPERTY_SUFFIX_PATTERN + &quot;=^&quot; + PROCESSOR_CONFIG + &quot;(/.*)?$&quot;
 })
 @ServiceRanking(-500)
-<span class="fc" id="L66">public class ContextAwareConfigurationProcessor implements JsonObjectProcessor&lt;Object&gt; {</span>
+<span class="fc" id="L74">public class ContextAwareConfigurationProcessor implements JsonObjectProcessor&lt;Object&gt; {</span>
 
   @ObjectClassDefinition(
       name = &quot;wcm.io Site API Context-Aware Configuration Processor&quot;,
@@ -82,9 +90,9 @@ import io.wcm.siteapi.processor.url.UrlBuilder;
 
   }
 
-  @Reference(cardinality = ReferenceCardinality.MULTIPLE, policy = ReferencePolicy.STATIC,
-      policyOption = ReferencePolicyOption.GREEDY)
-  private Collection&lt;ContextAwareConfigurationExport&gt; caconfigExports;
+<span class="fc" id="L93">  @Reference(cardinality = ReferenceCardinality.MULTIPLE, fieldOption = FieldOption.UPDATE,</span>
+      policy = ReferencePolicy.DYNAMIC, policyOption = ReferencePolicyOption.GREEDY)
+<span class="fc" id="L95">  private SortedSet&lt;ServiceReference&lt;ContextAwareConfigurationExport&gt;&gt; caconfigExports = new ConcurrentSkipListSet&lt;&gt;(Collections.reverseOrder());</span>
 
   @Reference
   private ConfigurationManager configManager;
@@ -92,6 +100,9 @@ import io.wcm.siteapi.processor.url.UrlBuilder;
   private ContextAwareConfigurationMapper contextAwareConfigurationMapper;
   @Reference
   private UrlBuilder urlBuilder;
+  @Reference
+  private ContextAwareServiceResolver serviceResolver;
+  private ContextAwareServiceCollectionResolver&lt;ContextAwareConfigurationExport, Void&gt; caconfigExportCollectionResolver;
 
   static final String NOT_EMBEDDED_LINK_SUFFIX = &quot;:link&quot;;
 
@@ -99,16 +110,22 @@ import io.wcm.siteapi.processor.url.UrlBuilder;
 
   @Activate
   private void activate(Config config) {
-<span class="fc" id="L102">    this.shortenConfigNames = config.shortenConfigNames();</span>
-<span class="fc" id="L103">  }</span>
+<span class="fc" id="L113">    this.shortenConfigNames = config.shortenConfigNames();</span>
+<span class="fc" id="L114">    this.caconfigExportCollectionResolver = serviceResolver.getCollectionResolver(this.caconfigExports);</span>
+<span class="fc" id="L115">  }</span>
+
+  @Deactivate
+  private void deactivate() {
+<span class="fc" id="L119">    this.caconfigExportCollectionResolver.close();</span>
+<span class="fc" id="L120">  }</span>
 
   @Override
   public @Nullable Object process(@NotNull ProcessorRequestContext context) {
-<span class="fc bfc" id="L107" title="All 2 branches covered.">    if (context.getSuffixExtension() != null) {</span>
-<span class="fc" id="L108">      return generateSingleConfig(context);</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (context.getSuffixExtension() != null) {</span>
+<span class="fc" id="L125">      return generateSingleConfig(context);</span>
     }
     else {
-<span class="fc" id="L111">      return generateAllConfigs(context);</span>
+<span class="fc" id="L128">      return generateAllConfigs(context);</span>
     }
   }
 
@@ -119,21 +136,21 @@ import io.wcm.siteapi.processor.url.UrlBuilder;
    * @return Configuration map
    */
   private @NotNull SortedMap&lt;String, Object&gt; generateAllConfigs(@NotNull ProcessorRequestContext context) {
-<span class="fc" id="L122">    SortedMap&lt;String, Object&gt; result = new TreeMap&lt;&gt;();</span>
-<span class="fc" id="L123">    getConfiguredConfigNames().forEach(configName -&gt; {</span>
-<span class="fc" id="L124">      Object configObject = contextAwareConfigurationMapper.get(configName, context.getRequest());</span>
-<span class="fc bfc" id="L125" title="All 2 branches covered.">      if (configObject != null) {</span>
-<span class="fc" id="L126">        String exportConfigName = getExportConfigName(configName);</span>
-<span class="fc bfc" id="L127" title="All 2 branches covered.">        if (isEmbeddable(configName)) {</span>
-<span class="fc" id="L128">          result.put(exportConfigName, configObject);</span>
+<span class="fc" id="L139">    SortedMap&lt;String, Object&gt; result = new TreeMap&lt;&gt;();</span>
+<span class="fc" id="L140">    getConfiguredConfigNames(context).forEach(configName -&gt; {</span>
+<span class="fc" id="L141">      Object configObject = contextAwareConfigurationMapper.get(configName, context.getRequest());</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">      if (configObject != null) {</span>
+<span class="fc" id="L143">        String exportConfigName = getExportConfigName(configName);</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">        if (isEmbeddable(configName)) {</span>
+<span class="fc" id="L145">          result.put(exportConfigName, configObject);</span>
         }
         else {
-<span class="fc" id="L131">          String url = urlBuilder.build(context.getPage(), PROCESSOR_CONFIG, exportConfigName, context.getRequest());</span>
-<span class="fc" id="L132">          result.put(exportConfigName + NOT_EMBEDDED_LINK_SUFFIX, Map.of(&quot;url&quot;, url));</span>
+<span class="fc" id="L148">          String url = urlBuilder.build(context.getPage(), PROCESSOR_CONFIG, exportConfigName, context.getRequest());</span>
+<span class="fc" id="L149">          result.put(exportConfigName + NOT_EMBEDDED_LINK_SUFFIX, Map.of(&quot;url&quot;, url));</span>
         }
       }
-<span class="fc" id="L135">    });</span>
-<span class="fc" id="L136">    return result;</span>
+<span class="fc" id="L152">    });</span>
+<span class="fc" id="L153">    return result;</span>
   }
 
   /**
@@ -142,20 +159,20 @@ import io.wcm.siteapi.processor.url.UrlBuilder;
    * @return Single configuration (or configuration collection) or null if no match found
    */
   private @Nullable Object generateSingleConfig(@NotNull ProcessorRequestContext context) {
-<span class="fc" id="L145">    String suffixExtension = context.getSuffixExtension();</span>
-<span class="fc" id="L146">    return getConfiguredConfigNames()</span>
-<span class="fc" id="L147">        .filter(configName -&gt; StringUtils.equals(getExportConfigName(configName), suffixExtension))</span>
-<span class="fc" id="L148">        .map(configName -&gt; contextAwareConfigurationMapper.get(configName, context.getRequest()))</span>
-<span class="fc" id="L149">        .findFirst().orElse(null);</span>
+<span class="fc" id="L162">    String suffixExtension = context.getSuffixExtension();</span>
+<span class="fc" id="L163">    return getConfiguredConfigNames(context)</span>
+<span class="fc" id="L164">        .filter(configName -&gt; StringUtils.equals(getExportConfigName(configName), suffixExtension))</span>
+<span class="fc" id="L165">        .map(configName -&gt; contextAwareConfigurationMapper.get(configName, context.getRequest()))</span>
+<span class="fc" id="L166">        .findFirst().orElse(null);</span>
   }
 
   /**
    * @return Sorted stream with all caconfig names configured in any configuration.
    */
-  private Stream&lt;String&gt; getConfiguredConfigNames() {
-<span class="fc" id="L156">    return caconfigExports.stream()</span>
-<span class="fc" id="L157">        .flatMap(item -&gt; item.getNames().stream())</span>
-<span class="fc" id="L158">        .sorted();</span>
+  private Stream&lt;String&gt; getConfiguredConfigNames(@NotNull ProcessorRequestContext context) {
+<span class="fc" id="L173">    return caconfigExportCollectionResolver.resolveAll(context.getRequest())</span>
+<span class="fc" id="L174">        .flatMap(item -&gt; item.getNames().stream())</span>
+<span class="fc" id="L175">        .sorted();</span>
   }
 
   /**
@@ -163,11 +180,11 @@ import io.wcm.siteapi.processor.url.UrlBuilder;
    * @return Shortened or unshortened config name (depending on configuration)
    */
   private @NotNull String getExportConfigName(@NotNull String configName) {
-<span class="fc bfc" id="L166" title="All 2 branches covered.">    if (this.shortenConfigNames) {</span>
-<span class="fc" id="L167">      return toConfigNameWithoutPrefix(configName);</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">    if (this.shortenConfigNames) {</span>
+<span class="fc" id="L184">      return toConfigNameWithoutPrefix(configName);</span>
     }
     else {
-<span class="fc" id="L170">      return configName;</span>
+<span class="fc" id="L187">      return configName;</span>
     }
   }
 
@@ -178,8 +195,8 @@ import io.wcm.siteapi.processor.url.UrlBuilder;
    * @return true if embeddable
    */
   private boolean isEmbeddable(@NotNull String configName) {
-<span class="fc" id="L181">    ConfigurationMetadata metadata = configManager.getConfigurationMetadata(configName);</span>
-<span class="fc" id="L182">    return ConfigurationMetadataUtil.isBoolean(metadata, PROPERTY_CONFIG_EMBEDDED, true);</span>
+<span class="fc" id="L198">    ConfigurationMetadata metadata = configManager.getConfigurationMetadata(configName);</span>
+<span class="fc" id="L199">    return ConfigurationMetadataUtil.isBoolean(metadata, PROPERTY_CONFIG_EMBEDDED, true);</span>
   }
 
   /**
@@ -189,11 +206,11 @@ import io.wcm.siteapi.processor.url.UrlBuilder;
    * @return Shortened config name
    */
   static @NotNull String toConfigNameWithoutPrefix(@NotNull String configName) {
-<span class="fc bfc" id="L192" title="All 2 branches covered.">    if (StringUtils.contains(configName, &quot;.&quot;)) {</span>
-<span class="fc" id="L193">      return StringUtils.substringAfterLast(configName, &quot;.&quot;);</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">    if (StringUtils.contains(configName, &quot;.&quot;)) {</span>
+<span class="fc" id="L210">      return StringUtils.substringAfterLast(configName, &quot;.&quot;);</span>
     }
     else {
-<span class="fc" id="L196">      return configName;</span>
+<span class="fc" id="L213">      return configName;</span>
     }
   }
 
