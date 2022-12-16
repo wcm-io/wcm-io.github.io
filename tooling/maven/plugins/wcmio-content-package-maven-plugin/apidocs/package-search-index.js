@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"io.wcm.maven.plugins.contentpackage"},{"l":"io.wcm.maven.plugins.wcmio_content_package_maven_plugin"}]
