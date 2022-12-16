@@ -1,0 +1,1 @@
+memberSearchIndex = [{"p":"io.wcm.testing.mock.wcmio.handler","c":"ContextPlugins","l":"WCMIO_HANDLER"}]
