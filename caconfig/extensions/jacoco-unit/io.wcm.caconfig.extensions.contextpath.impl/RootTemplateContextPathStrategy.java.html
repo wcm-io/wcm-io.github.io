@@ -46,7 +46,6 @@ import com.day.cq.wcm.api.NameConstants;
 import com.day.cq.wcm.api.Page;
 import com.day.cq.wcm.api.PageManager;
 import com.day.cq.wcm.api.PageManagerFactory;
-import com.google.common.collect.ImmutableSet;
 
 import io.wcm.wcm.commons.util.Path;
 
@@ -57,7 +56,7 @@ import io.wcm.wcm.commons.util.Path;
  */
 @Component(service = ContextPathStrategy.class)
 @Designate(ocd = RootTemplateContextPathStrategy.Config.class, factory = true)
-<span class="fc" id="L60">public class RootTemplateContextPathStrategy implements ContextPathStrategy {</span>
+<span class="fc" id="L59">public class RootTemplateContextPathStrategy implements ContextPathStrategy {</span>
 
   @ObjectClassDefinition(name = &quot;wcm.io Context-Aware Configuration Context Path Strategy: Root Templates&quot;,
       description = &quot;Detects context paths by matching parent pages against a list of allowed templates for context root. &quot;
@@ -110,116 +109,116 @@ import io.wcm.wcm.commons.util.Path;
   private String[] configPathPatterns;
   private int serviceRanking;
 
-<span class="fc" id="L113">  private static final Logger log = LoggerFactory.getLogger(RootTemplateContextPathStrategy.class);</span>
+<span class="fc" id="L112">  private static final Logger log = LoggerFactory.getLogger(RootTemplateContextPathStrategy.class);</span>
 
   @Reference
   private PageManagerFactory pageManagerFactory;
 
   @Activate
   void activate(Config config) {
-<span class="pc bpc" id="L120" title="1 of 2 branches missed.">    templatePaths = config.templatePaths() != null ? ImmutableSet.copyOf(config.templatePaths()) : Collections.&lt;String&gt;emptySet();</span>
-<span class="fc" id="L121">    templatMatchAllLevels = config.templateMatchAllLevels();</span>
-<span class="fc" id="L122">    minLevel = config.minLevel();</span>
-<span class="fc" id="L123">    maxLevel = config.maxLevel();</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">    templatePaths = config.templatePaths() != null ? Set.of(config.templatePaths()) : Collections.&lt;String&gt;emptySet();</span>
+<span class="fc" id="L120">    templatMatchAllLevels = config.templateMatchAllLevels();</span>
+<span class="fc" id="L121">    minLevel = config.minLevel();</span>
+<span class="fc" id="L122">    maxLevel = config.maxLevel();</span>
     try {
-<span class="fc" id="L125">      contextPathRegex = Pattern.compile(config.contextPathRegex());</span>
+<span class="fc" id="L124">      contextPathRegex = Pattern.compile(config.contextPathRegex());</span>
     }
-<span class="nc" id="L127">    catch (PatternSyntaxException ex) {</span>
-<span class="nc" id="L128">      log.warn(&quot;Invalid context path regex: {}&quot;, config.contextPathRegex(), ex);</span>
-<span class="fc" id="L129">    }</span>
-<span class="fc" id="L130">    configPathPatterns = config.configPathPatterns();</span>
-<span class="fc" id="L131">    serviceRanking = config.service_ranking();</span>
-<span class="fc" id="L132">  }</span>
+<span class="nc" id="L126">    catch (PatternSyntaxException ex) {</span>
+<span class="nc" id="L127">      log.warn(&quot;Invalid context path regex: {}&quot;, config.contextPathRegex(), ex);</span>
+<span class="fc" id="L128">    }</span>
+<span class="fc" id="L129">    configPathPatterns = config.configPathPatterns();</span>
+<span class="fc" id="L130">    serviceRanking = config.service_ranking();</span>
+<span class="fc" id="L131">  }</span>
 
   @Override
   public @NotNull Iterator&lt;ContextResource&gt; findContextResources(@NotNull Resource resource) {
-<span class="fc bfc" id="L136" title="All 2 branches covered.">    if (!isValidConfig()) {</span>
-<span class="fc" id="L137">      return Collections.emptyIterator();</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">    if (!isValidConfig()) {</span>
+<span class="fc" id="L136">      return Collections.emptyIterator();</span>
     }
 
-<span class="fc" id="L140">    ResourceResolver resourceResolver = resource.getResourceResolver();</span>
-<span class="fc" id="L141">    PageManager pageManager = pageManagerFactory.getPageManager(resource.getResourceResolver());</span>
-<span class="pc bpc" id="L142" title="1 of 2 branches missed.">    if (pageManager == null) {</span>
-<span class="nc" id="L143">      throw new RuntimeException(&quot;No page manager.&quot;);</span>
+<span class="fc" id="L139">    ResourceResolver resourceResolver = resource.getResourceResolver();</span>
+<span class="fc" id="L140">    PageManager pageManager = pageManagerFactory.getPageManager(resource.getResourceResolver());</span>
+<span class="pc bpc" id="L141" title="1 of 2 branches missed.">    if (pageManager == null) {</span>
+<span class="nc" id="L142">      throw new RuntimeException(&quot;No page manager.&quot;);</span>
     }
-<span class="fc" id="L145">    Page page = pageManager.getContainingPage(resource);</span>
-<span class="pc bpc" id="L146" title="1 of 2 branches missed.">    if (page == null) {</span>
-<span class="nc" id="L147">      log.debug(&quot;Skip findContextResources - no current page.&quot;);</span>
-<span class="nc" id="L148">      return Collections.emptyIterator();</span>
+<span class="fc" id="L144">    Page page = pageManager.getContainingPage(resource);</span>
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">    if (page == null) {</span>
+<span class="nc" id="L146">      log.debug(&quot;Skip findContextResources - no current page.&quot;);</span>
+<span class="nc" id="L147">      return Collections.emptyIterator();</span>
     }
     List&lt;String&gt; contextPathCandidats;
-<span class="fc bfc" id="L151" title="All 2 branches covered.">    if (templatMatchAllLevels) {</span>
-<span class="fc" id="L152">      contextPathCandidats = getContextPathCandidatesMatchAll(page, resourceResolver);</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">    if (templatMatchAllLevels) {</span>
+<span class="fc" id="L151">      contextPathCandidats = getContextPathCandidatesMatchAll(page, resourceResolver);</span>
     }
     else {
-<span class="fc" id="L155">      contextPathCandidats = getContextPathCandidatesMatchInnermost(page, resourceResolver);</span>
+<span class="fc" id="L154">      contextPathCandidats = getContextPathCandidatesMatchInnermost(page, resourceResolver);</span>
     }
 
-<span class="fc" id="L158">    List&lt;ContextResource&gt; contextResources = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L159" title="All 2 branches covered.">    for (String contextPath : contextPathCandidats) {</span>
-<span class="fc" id="L160">      Resource contextResource = resource.getResourceResolver().getResource(contextPath);</span>
-<span class="pc bpc" id="L161" title="1 of 2 branches missed.">      if (contextResource != null) {</span>
-<span class="fc bfc" id="L162" title="All 2 branches covered.">        for (String configPathPattern : configPathPatterns) {</span>
-<span class="fc" id="L163">          String configRef = deriveConfigRef(contextPath, configPathPattern, resourceResolver);</span>
-<span class="pc bpc" id="L164" title="1 of 2 branches missed.">          if (configRef != null) {</span>
-<span class="fc" id="L165">            contextResources.add(new ContextResource(contextResource, configRef, serviceRanking));</span>
+<span class="fc" id="L157">    List&lt;ContextResource&gt; contextResources = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">    for (String contextPath : contextPathCandidats) {</span>
+<span class="fc" id="L159">      Resource contextResource = resource.getResourceResolver().getResource(contextPath);</span>
+<span class="pc bpc" id="L160" title="1 of 2 branches missed.">      if (contextResource != null) {</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">        for (String configPathPattern : configPathPatterns) {</span>
+<span class="fc" id="L162">          String configRef = deriveConfigRef(contextPath, configPathPattern, resourceResolver);</span>
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">          if (configRef != null) {</span>
+<span class="fc" id="L164">            contextResources.add(new ContextResource(contextResource, configRef, serviceRanking));</span>
           }
         }
       }
-<span class="fc" id="L169">    }</span>
-<span class="fc" id="L170">    Collections.reverse(contextResources);</span>
-<span class="fc" id="L171">    return contextResources.iterator();</span>
+<span class="fc" id="L168">    }</span>
+<span class="fc" id="L169">    Collections.reverse(contextResources);</span>
+<span class="fc" id="L170">    return contextResources.iterator();</span>
   }
 
   private boolean isValidConfig() {
-<span class="pc bpc" id="L175" title="3 of 8 branches missed.">    return !templatePaths.isEmpty()</span>
+<span class="pc bpc" id="L174" title="3 of 8 branches missed.">    return !templatePaths.isEmpty()</span>
         &amp;&amp; contextPathRegex != null
         &amp;&amp; configPathPatterns != null
         &amp;&amp; configPathPatterns.length &gt; 0;
   }
 
   private List&lt;String&gt; getContextPathCandidatesMatchInnermost(Page page, ResourceResolver resourceResolver) {
-<span class="fc" id="L182">    List&lt;String&gt; candidates = new ArrayList&lt;&gt;();</span>
-<span class="pc bpc" id="L183" title="1 of 2 branches missed.">    if (page != null) {</span>
-<span class="fc bfc" id="L184" title="All 2 branches covered.">      for (int level = minLevel; level &lt;= maxLevel; level++) {</span>
-<span class="fc" id="L185">        Page rootPage = Path.getAbsoluteParent(page, level, resourceResolver);</span>
-<span class="fc bfc" id="L186" title="All 2 branches covered.">        if (rootPage != null) {</span>
-<span class="fc" id="L187">          String templatePath = rootPage.getProperties().get(NameConstants.PN_TEMPLATE, String.class);</span>
-<span class="pc bpc" id="L188" title="1 of 2 branches missed.">          if (templatePath != null) {</span>
-<span class="fc" id="L189">            candidates.add(rootPage.getPath());</span>
-<span class="fc bfc" id="L190" title="All 2 branches covered.">            if (templatePaths.contains(templatePath)) {</span>
-<span class="fc" id="L191">              break;</span>
+<span class="fc" id="L181">    List&lt;String&gt; candidates = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">    if (page != null) {</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">      for (int level = minLevel; level &lt;= maxLevel; level++) {</span>
+<span class="fc" id="L184">        Page rootPage = Path.getAbsoluteParent(page, level, resourceResolver);</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">        if (rootPage != null) {</span>
+<span class="fc" id="L186">          String templatePath = rootPage.getProperties().get(NameConstants.PN_TEMPLATE, String.class);</span>
+<span class="pc bpc" id="L187" title="1 of 2 branches missed.">          if (templatePath != null) {</span>
+<span class="fc" id="L188">            candidates.add(rootPage.getPath());</span>
+<span class="fc bfc" id="L189" title="All 2 branches covered.">            if (templatePaths.contains(templatePath)) {</span>
+<span class="fc" id="L190">              break;</span>
             }
           }
         }
       }
     }
-<span class="fc" id="L197">    return candidates;</span>
+<span class="fc" id="L196">    return candidates;</span>
   }
 
   private List&lt;String&gt; getContextPathCandidatesMatchAll(Page page, ResourceResolver resourceResolver) {
-<span class="fc" id="L201">    List&lt;String&gt; candidates = new ArrayList&lt;&gt;();</span>
-<span class="pc bpc" id="L202" title="1 of 2 branches missed.">    if (page != null) {</span>
-<span class="fc bfc" id="L203" title="All 2 branches covered.">      for (int level = minLevel; level &lt;= maxLevel; level++) {</span>
-<span class="fc" id="L204">        Page rootPage = Path.getAbsoluteParent(page, level, resourceResolver);</span>
-<span class="fc bfc" id="L205" title="All 2 branches covered.">        if (rootPage != null) {</span>
-<span class="fc" id="L206">          String templatePath = rootPage.getProperties().get(NameConstants.PN_TEMPLATE, String.class);</span>
-<span class="pc bpc" id="L207" title="1 of 4 branches missed.">          if (templatePath != null &amp;&amp; templatePaths.contains(templatePath)) {</span>
-<span class="fc" id="L208">            candidates.add(rootPage.getPath());</span>
+<span class="fc" id="L200">    List&lt;String&gt; candidates = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L201" title="1 of 2 branches missed.">    if (page != null) {</span>
+<span class="fc bfc" id="L202" title="All 2 branches covered.">      for (int level = minLevel; level &lt;= maxLevel; level++) {</span>
+<span class="fc" id="L203">        Page rootPage = Path.getAbsoluteParent(page, level, resourceResolver);</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">        if (rootPage != null) {</span>
+<span class="fc" id="L205">          String templatePath = rootPage.getProperties().get(NameConstants.PN_TEMPLATE, String.class);</span>
+<span class="pc bpc" id="L206" title="1 of 4 branches missed.">          if (templatePath != null &amp;&amp; templatePaths.contains(templatePath)) {</span>
+<span class="fc" id="L207">            candidates.add(rootPage.getPath());</span>
           }
         }
       }
     }
-<span class="fc" id="L213">    return candidates;</span>
+<span class="fc" id="L212">    return candidates;</span>
   }
 
   private String deriveConfigRef(String contextPath, String configPathPattern, ResourceResolver resourceResolver) {
-<span class="fc" id="L217">    Matcher matcher = contextPathRegex.matcher(Path.getOriginalPath(contextPath, resourceResolver));</span>
-<span class="pc bpc" id="L218" title="1 of 2 branches missed.">    if (matcher.matches()) {</span>
-<span class="fc" id="L219">      return matcher.replaceAll(configPathPattern);</span>
+<span class="fc" id="L216">    Matcher matcher = contextPathRegex.matcher(Path.getOriginalPath(contextPath, resourceResolver));</span>
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">    if (matcher.matches()) {</span>
+<span class="fc" id="L218">      return matcher.replaceAll(configPathPattern);</span>
     }
     else {
-<span class="nc" id="L222">      return null;</span>
+<span class="nc" id="L221">      return null;</span>
     }
   }
 
