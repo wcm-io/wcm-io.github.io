@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"io.wcm.maven.plugins.sling_initial_content_transform_maven_plugin"},{"l":"io.wcm.maven.plugins.slinginitialcontenttransform"},{"l":"io.wcm.maven.plugins.slinginitialcontenttransform.contentparser"}]
