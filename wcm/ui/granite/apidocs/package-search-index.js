@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"io.wcm.wcm.ui.granite.components.pathfield"},{"l":"io.wcm.wcm.ui.granite.resource"},{"l":"io.wcm.wcm.ui.granite.util"}]
