@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes","url":"allclasses-index.html"},{"p":"io.wcm.maven.plugins.cq_maven_plugin","l":"HelpMojo"},{"p":"io.wcm.maven.plugins.cq","l":"InstallMojo"}]
