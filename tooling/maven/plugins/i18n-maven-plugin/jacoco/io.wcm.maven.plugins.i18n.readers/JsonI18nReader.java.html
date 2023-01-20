@@ -25,48 +25,48 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.json.JsonObject;
+import javax.json.JsonValue;
+
 import org.apache.commons.io.IOUtils;
-import org.apache.sling.commons.json.JSONArray;
-import org.apache.sling.commons.json.JSONException;
-import org.apache.sling.commons.json.JSONObject;
+
+import io.wcm.maven.plugins.i18n.JsonUtil;
 
 /**
  * Reads i18n resources from JSON files.
  */
-<span class="fc" id="L36">public class JsonI18nReader implements I18nReader {</span>
+<span class="fc" id="L38">public class JsonI18nReader implements I18nReader {</span>
 
   @Override
   public Map&lt;String, String&gt; read(File sourceFile) throws IOException {
-<span class="fc" id="L40">    String fileContent = IOUtils.toString(sourceFile.toURI().toURL(), StandardCharsets.UTF_8);</span>
+
+<span class="fc" id="L43">    String fileContent = IOUtils.toString(sourceFile.toURI().toURL(), StandardCharsets.UTF_8);</span>
     try {
-<span class="fc" id="L42">      JSONObject root = new JSONObject(fileContent);</span>
-<span class="fc" id="L43">      Map&lt;String, String&gt; map = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L44">      parseJson(root, map, &quot;&quot;);</span>
-<span class="fc" id="L45">      return map;</span>
+<span class="fc" id="L45">      JsonObject root = JsonUtil.fromString(fileContent);</span>
+<span class="fc" id="L46">      Map&lt;String, String&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L47">      parseJson(root, map, &quot;&quot;);</span>
+<span class="fc" id="L48">      return map;</span>
     }
-<span class="nc" id="L47">    catch (JSONException ex) {</span>
-<span class="nc" id="L48">      throw new IOException(&quot;Unable to read JSON from &quot; + sourceFile.getAbsolutePath(), ex);</span>
+<span class="nc" id="L50">    catch (IOException ex) {</span>
+<span class="nc" id="L51">      throw new IOException(&quot;Unable to read JSON from &quot; + sourceFile.getAbsolutePath(), ex);</span>
     }
   }
 
-  private void parseJson(JSONObject node, Map&lt;String, String&gt; map, String prefix) throws IOException, JSONException {
-<span class="fc" id="L53">    JSONArray names = node.names();</span>
-<span class="pc bpc" id="L54" title="1 of 2 branches missed.">    if (names == null) {</span>
-<span class="nc" id="L55">      return;</span>
-    }
-<span class="fc bfc" id="L57" title="All 2 branches covered.">    for (int i = 0; i &lt; names.length(); i++) {</span>
-<span class="fc" id="L58">      String key = names.getString(i);</span>
-<span class="fc" id="L59">      Object item = node.get(key);</span>
-<span class="fc bfc" id="L60" title="All 2 branches covered.">      if (item instanceof JSONObject) {</span>
-<span class="fc" id="L61">        parseJson((JSONObject)item, map, prefix + key + &quot;.&quot;);</span>
+  private void parseJson(JsonObject node, Map&lt;String, String&gt; map, String prefix) throws IOException {
+<span class="fc bfc" id="L56" title="All 2 branches covered.">    for (Map.Entry&lt;String, JsonValue&gt; entry : node.entrySet()) {</span>
+<span class="fc" id="L57">      String key = entry.getKey();</span>
+<span class="fc" id="L58">      JsonValue value = entry.getValue();</span>
+<span class="pc bpc" id="L59" title="1 of 3 branches missed.">      switch (value.getValueType()) {</span>
+        case OBJECT:
+<span class="fc" id="L61">          parseJson(value.asJsonObject(), map, prefix + key + &quot;.&quot;);</span>
+<span class="fc" id="L62">          break;</span>
+        case STRING:
+<span class="fc" id="L64">          map.put(prefix + key, node.getString(key));</span>
+<span class="fc" id="L65">          break;</span>
+        default:
+<span class="nc" id="L67">          throw new IOException(&quot;Unsupported JSON value: &quot; + node.getValueType());</span>
       }
-<span class="pc bpc" id="L63" title="1 of 2 branches missed.">      else if (item instanceof String) {</span>
-<span class="fc" id="L64">        map.put(prefix + key, (String)item);</span>
-      }
-      else {
-<span class="nc" id="L67">        throw new IOException(&quot;Unsupported JSON value: &quot; + item.getClass().getName());</span>
-      }
-    }
+<span class="fc" id="L69">    }</span>
 <span class="fc" id="L70">  }</span>
 
 }

@@ -30,9 +30,11 @@ import java.util.Properties;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+
 import org.apache.commons.lang3.StringUtils;
-import org.apache.sling.commons.json.JSONException;
-import org.apache.sling.commons.json.JSONObject;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.Namespace;
@@ -45,19 +47,19 @@ import org.jdom2.output.XMLOutputter;
 class SlingI18nMap {
 
   private static final String JCR_LANGUAGE = &quot;language&quot;;
-<span class="fc" id="L48">  private static final List&lt;String&gt; JCR_MIX_LANGUAGE = Collections.singletonList(&quot;mix:language&quot;);</span>
+<span class="fc" id="L50">  private static final List&lt;String&gt; JCR_MIX_LANGUAGE = Collections.singletonList(&quot;mix:language&quot;);</span>
   private static final String JCR_MIXIN_TYPES = &quot;mixinTypes&quot;;
   private static final String JCR_NODETYPE_FOLDER = &quot;nt:folder&quot;;
   private static final String JCR_PRIMARY_TYPE = &quot;primaryType&quot;;
 
   private static final String SLING_KEY = &quot;key&quot;;
   private static final String SLING_MESSAGE = &quot;message&quot;;
-<span class="fc" id="L55">  private static final List&lt;String&gt; SLING_MESSAGE_MIXIN_TYPE = Collections.singletonList(&quot;sling:Message&quot;);</span>
+<span class="fc" id="L57">  private static final List&lt;String&gt; SLING_MESSAGE_MIXIN_TYPE = Collections.singletonList(&quot;sling:Message&quot;);</span>
 
-<span class="fc" id="L57">  private static final Namespace NAMESPACE_SLING = Namespace.getNamespace(&quot;sling&quot;, &quot;http://sling.apache.org/jcr/sling/1.0&quot;);</span>
-<span class="fc" id="L58">  private static final Namespace NAMESPACE_JCR = Namespace.getNamespace(&quot;jcr&quot;, &quot;http://www.jcp.org/jcr/1.0&quot;);</span>
-<span class="fc" id="L59">  private static final Namespace NAMESPACE_MIX = Namespace.getNamespace(&quot;mix&quot;, &quot;http://www.jcp.org/jcr/mix/1.0&quot;);</span>
-<span class="fc" id="L60">  private static final Namespace NAMESPACE_NT = Namespace.getNamespace(&quot;nt&quot;, &quot;http://www.jcp.org/jcr/nt/1.0&quot;);</span>
+<span class="fc" id="L59">  private static final Namespace NAMESPACE_SLING = Namespace.getNamespace(&quot;sling&quot;, &quot;http://sling.apache.org/jcr/sling/1.0&quot;);</span>
+<span class="fc" id="L60">  private static final Namespace NAMESPACE_JCR = Namespace.getNamespace(&quot;jcr&quot;, &quot;http://www.jcp.org/jcr/1.0&quot;);</span>
+<span class="fc" id="L61">  private static final Namespace NAMESPACE_MIX = Namespace.getNamespace(&quot;mix&quot;, &quot;http://www.jcp.org/jcr/mix/1.0&quot;);</span>
+<span class="fc" id="L62">  private static final Namespace NAMESPACE_NT = Namespace.getNamespace(&quot;nt&quot;, &quot;http://www.jcp.org/jcr/nt/1.0&quot;);</span>
 
   private final String languageKey;
   private final SortedMap&lt;String, String&gt; properties;
@@ -65,66 +67,66 @@ class SlingI18nMap {
   /**
    * @param languageKey Language key
    */
-<span class="fc" id="L68">  SlingI18nMap(String languageKey, Map&lt;String, String&gt; properties) {</span>
-<span class="fc" id="L69">    this.languageKey = languageKey;</span>
-<span class="fc" id="L70">    this.properties = new TreeMap&lt;&gt;(properties);</span>
-<span class="fc" id="L71">  }</span>
+<span class="fc" id="L70">  SlingI18nMap(String languageKey, Map&lt;String, String&gt; properties) {</span>
+<span class="fc" id="L71">    this.languageKey = languageKey;</span>
+<span class="fc" id="L72">    this.properties = new TreeMap&lt;&gt;(properties);</span>
+<span class="fc" id="L73">  }</span>
 
   /**
    * Build i18n resource JSON in Sling i18n Message format.
    * @return JSON
    */
-  public String getI18nJsonString() throws JSONException {
-<span class="fc" id="L78">    return buildI18nJson().toString(2);</span>
+  public String getI18nJsonString() {
+<span class="fc" id="L80">    return JsonUtil.toString(buildI18nJson());</span>
   }
 
-  private JSONObject buildI18nJson() throws JSONException {
+  private JsonObject buildI18nJson() {
 
     // get root
-<span class="fc" id="L84">    JSONObject jsonDocument = getMixLanguageJsonDocument();</span>
+<span class="fc" id="L86">    JsonObjectBuilder jsonDocument = getMixLanguageJsonDocument();</span>
 
     // add entries
-<span class="fc bfc" id="L87" title="All 2 branches covered.">    for (Entry&lt;String, String&gt; entry : properties.entrySet()) {</span>
-<span class="fc" id="L88">      String key = entry.getKey();</span>
-<span class="fc" id="L89">      String escapedKey = validName(key);</span>
-<span class="fc bfc" id="L90" title="All 2 branches covered.">      JSONObject value = getJsonI18nValue(key, entry.getValue(), !StringUtils.equals(key, escapedKey));</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">    for (Entry&lt;String, String&gt; entry : properties.entrySet()) {</span>
+<span class="fc" id="L90">      String key = entry.getKey();</span>
+<span class="fc" id="L91">      String escapedKey = validName(key);</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">      JsonObject value = getJsonI18nValue(key, entry.getValue(), !StringUtils.equals(key, escapedKey));</span>
 
-<span class="fc" id="L92">      jsonDocument.put(escapedKey, value);</span>
-<span class="fc" id="L93">    }</span>
+<span class="fc" id="L94">      jsonDocument.add(escapedKey, value);</span>
+<span class="fc" id="L95">    }</span>
 
     // return result
-<span class="fc" id="L96">    return jsonDocument;</span>
+<span class="fc" id="L98">    return jsonDocument.build();</span>
   }
 
-  private JSONObject getMixLanguageJsonDocument() throws JSONException {
-<span class="fc" id="L100">    JSONObject root = new JSONObject();</span>
+  private JsonObjectBuilder getMixLanguageJsonDocument() {
+<span class="fc" id="L102">    JsonObjectBuilder root = Json.createObjectBuilder();</span>
 
     // add boiler plate
-<span class="fc" id="L103">    root.put(&quot;jcr:&quot; + JCR_PRIMARY_TYPE, JCR_NODETYPE_FOLDER);</span>
-<span class="fc" id="L104">    root.put(&quot;jcr:&quot; + JCR_MIXIN_TYPES, JCR_MIX_LANGUAGE);</span>
+<span class="fc" id="L105">    root.add(&quot;jcr:&quot; + JCR_PRIMARY_TYPE, JCR_NODETYPE_FOLDER);</span>
+<span class="fc" id="L106">    root.add(&quot;jcr:&quot; + JCR_MIXIN_TYPES, Json.createArrayBuilder(JCR_MIX_LANGUAGE).build());</span>
 
     // add language
-<span class="fc" id="L107">    root.put(&quot;jcr:&quot; + JCR_LANGUAGE, languageKey);</span>
+<span class="fc" id="L109">    root.add(&quot;jcr:&quot; + JCR_LANGUAGE, languageKey);</span>
 
-<span class="fc" id="L109">    return root;</span>
+<span class="fc" id="L111">    return root;</span>
   }
 
-  private JSONObject getJsonI18nValue(String key, String value, boolean generatedKeyProperty) throws JSONException {
-<span class="fc" id="L113">    JSONObject valueNode = new JSONObject();</span>
+  private JsonObject getJsonI18nValue(String key, String value, boolean generatedKeyProperty) {
+<span class="fc" id="L115">    JsonObjectBuilder valueNode = Json.createObjectBuilder();</span>
 
     // add boiler plate
-<span class="fc" id="L116">    valueNode.put(&quot;jcr:&quot; + JCR_PRIMARY_TYPE, JCR_NODETYPE_FOLDER);</span>
-<span class="fc" id="L117">    valueNode.put(&quot;jcr:&quot; + JCR_MIXIN_TYPES, SLING_MESSAGE_MIXIN_TYPE);</span>
+<span class="fc" id="L118">    valueNode.add(&quot;jcr:&quot; + JCR_PRIMARY_TYPE, JCR_NODETYPE_FOLDER);</span>
+<span class="fc" id="L119">    valueNode.add(&quot;jcr:&quot; + JCR_MIXIN_TYPES, Json.createArrayBuilder(SLING_MESSAGE_MIXIN_TYPE).build());</span>
 
     // add extra key attribute
-<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (generatedKeyProperty) {</span>
-<span class="fc" id="L121">      valueNode.put(&quot;sling:&quot; + SLING_KEY, key);</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">    if (generatedKeyProperty) {</span>
+<span class="fc" id="L123">      valueNode.add(&quot;sling:&quot; + SLING_KEY, key);</span>
     }
 
     // add actual i18n value
-<span class="fc" id="L125">    valueNode.put(&quot;sling:&quot; + SLING_MESSAGE, value);</span>
+<span class="fc" id="L127">    valueNode.add(&quot;sling:&quot; + SLING_MESSAGE, value);</span>
 
-<span class="fc" id="L127">    return valueNode;</span>
+<span class="fc" id="L129">    return valueNode.build();</span>
   }
 
   /**
@@ -132,64 +134,64 @@ class SlingI18nMap {
    * @return XML
    */
   public String getI18nXmlString() {
-<span class="fc" id="L135">    Format format = Format.getPrettyFormat();</span>
-<span class="fc" id="L136">    XMLOutputter outputter = new XMLOutputter(format);</span>
-<span class="fc" id="L137">    return outputter.outputString(buildI18nXml());</span>
+<span class="fc" id="L137">    Format format = Format.getPrettyFormat();</span>
+<span class="fc" id="L138">    XMLOutputter outputter = new XMLOutputter(format);</span>
+<span class="fc" id="L139">    return outputter.outputString(buildI18nXml());</span>
   }
 
   private Document buildI18nXml() {
 
     // get root
-<span class="fc" id="L143">    Document xmlDocument = getMixLanguageXmlDocument();</span>
+<span class="fc" id="L145">    Document xmlDocument = getMixLanguageXmlDocument();</span>
 
     // add entries
-<span class="fc bfc" id="L146" title="All 2 branches covered.">    for (Entry&lt;String, String&gt; entry : properties.entrySet()) {</span>
-<span class="fc" id="L147">      String key = entry.getKey();</span>
-<span class="fc" id="L148">      String escapedKey = validName(key);</span>
-<span class="fc bfc" id="L149" title="All 2 branches covered.">      Element value = getXmlI18nValue(escapedKey, key, entry.getValue(), !StringUtils.equals(key, escapedKey));</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">    for (Entry&lt;String, String&gt; entry : properties.entrySet()) {</span>
+<span class="fc" id="L149">      String key = entry.getKey();</span>
+<span class="fc" id="L150">      String escapedKey = validName(key);</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">      Element value = getXmlI18nValue(escapedKey, key, entry.getValue(), !StringUtils.equals(key, escapedKey));</span>
 
-<span class="fc" id="L151">      xmlDocument.getRootElement().addContent(value);</span>
-<span class="fc" id="L152">    }</span>
+<span class="fc" id="L153">      xmlDocument.getRootElement().addContent(value);</span>
+<span class="fc" id="L154">    }</span>
 
     // return result
-<span class="fc" id="L155">    return xmlDocument;</span>
+<span class="fc" id="L157">    return xmlDocument;</span>
   }
 
   private Document getMixLanguageXmlDocument() {
-<span class="fc" id="L159">    Document doc = new Document();</span>
-<span class="fc" id="L160">    Element root = new Element(&quot;root&quot;, NAMESPACE_JCR);</span>
-<span class="fc" id="L161">    root.addNamespaceDeclaration(NAMESPACE_JCR);</span>
-<span class="fc" id="L162">    root.addNamespaceDeclaration(NAMESPACE_MIX);</span>
-<span class="fc" id="L163">    root.addNamespaceDeclaration(NAMESPACE_NT);</span>
-<span class="fc" id="L164">    root.addNamespaceDeclaration(NAMESPACE_SLING);</span>
-<span class="fc" id="L165">    doc.setRootElement(root);</span>
+<span class="fc" id="L161">    Document doc = new Document();</span>
+<span class="fc" id="L162">    Element root = new Element(&quot;root&quot;, NAMESPACE_JCR);</span>
+<span class="fc" id="L163">    root.addNamespaceDeclaration(NAMESPACE_JCR);</span>
+<span class="fc" id="L164">    root.addNamespaceDeclaration(NAMESPACE_MIX);</span>
+<span class="fc" id="L165">    root.addNamespaceDeclaration(NAMESPACE_NT);</span>
+<span class="fc" id="L166">    root.addNamespaceDeclaration(NAMESPACE_SLING);</span>
+<span class="fc" id="L167">    doc.setRootElement(root);</span>
 
     // add boiler plate
-<span class="fc" id="L168">    root.setAttribute(JCR_PRIMARY_TYPE, JCR_NODETYPE_FOLDER, NAMESPACE_JCR);</span>
-<span class="fc" id="L169">    root.setAttribute(JCR_MIXIN_TYPES, &quot;[&quot; + StringUtils.join(JCR_MIX_LANGUAGE, &quot;,&quot;) + &quot;]&quot;, NAMESPACE_JCR);</span>
+<span class="fc" id="L170">    root.setAttribute(JCR_PRIMARY_TYPE, JCR_NODETYPE_FOLDER, NAMESPACE_JCR);</span>
+<span class="fc" id="L171">    root.setAttribute(JCR_MIXIN_TYPES, &quot;[&quot; + StringUtils.join(JCR_MIX_LANGUAGE, &quot;,&quot;) + &quot;]&quot;, NAMESPACE_JCR);</span>
 
     // add language
-<span class="fc" id="L172">    root.setAttribute(JCR_LANGUAGE, languageKey, NAMESPACE_JCR);</span>
+<span class="fc" id="L174">    root.setAttribute(JCR_LANGUAGE, languageKey, NAMESPACE_JCR);</span>
 
-<span class="fc" id="L174">    return doc;</span>
+<span class="fc" id="L176">    return doc;</span>
   }
 
   private Element getXmlI18nValue(String escapedKey, String key, String value, boolean generatedKeyProperty) {
-<span class="fc" id="L178">    Element valueNode = new Element(escapedKey);</span>
+<span class="fc" id="L180">    Element valueNode = new Element(escapedKey);</span>
 
     // add boiler plate
-<span class="fc" id="L181">    valueNode.setAttribute(JCR_PRIMARY_TYPE, JCR_NODETYPE_FOLDER, NAMESPACE_JCR);</span>
-<span class="fc" id="L182">    valueNode.setAttribute(JCR_MIXIN_TYPES, &quot;[&quot; + StringUtils.join(SLING_MESSAGE_MIXIN_TYPE, &quot;,&quot;) + &quot;]&quot;, NAMESPACE_JCR);</span>
+<span class="fc" id="L183">    valueNode.setAttribute(JCR_PRIMARY_TYPE, JCR_NODETYPE_FOLDER, NAMESPACE_JCR);</span>
+<span class="fc" id="L184">    valueNode.setAttribute(JCR_MIXIN_TYPES, &quot;[&quot; + StringUtils.join(SLING_MESSAGE_MIXIN_TYPE, &quot;,&quot;) + &quot;]&quot;, NAMESPACE_JCR);</span>
 
     // add extra key attribute
-<span class="fc bfc" id="L185" title="All 2 branches covered.">    if (generatedKeyProperty) {</span>
-<span class="fc" id="L186">      valueNode.setAttribute(SLING_KEY, key, NAMESPACE_SLING);</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">    if (generatedKeyProperty) {</span>
+<span class="fc" id="L188">      valueNode.setAttribute(SLING_KEY, key, NAMESPACE_SLING);</span>
     }
 
     // add actual i18n value
-<span class="fc" id="L190">    valueNode.setAttribute(SLING_MESSAGE, value, NAMESPACE_SLING);</span>
+<span class="fc" id="L192">    valueNode.setAttribute(SLING_MESSAGE, value, NAMESPACE_SLING);</span>
 
-<span class="fc" id="L192">    return valueNode;</span>
+<span class="fc" id="L194">    return valueNode;</span>
   }
 
   /**
@@ -200,23 +202,23 @@ class SlingI18nMap {
   private static String validName(String value) {
 
     // replace some special chars first
-<span class="fc" id="L203">    String text = value;</span>
-<span class="fc" id="L204">    text = StringUtils.replace(text, &quot;ä&quot;, &quot;ae&quot;);</span>
-<span class="fc" id="L205">    text = StringUtils.replace(text, &quot;ö&quot;, &quot;oe&quot;);</span>
-<span class="fc" id="L206">    text = StringUtils.replace(text, &quot;ü&quot;, &quot;ue&quot;);</span>
-<span class="fc" id="L207">    text = StringUtils.replace(text, &quot;ß&quot;, &quot;ss&quot;);</span>
+<span class="fc" id="L205">    String text = value;</span>
+<span class="fc" id="L206">    text = StringUtils.replace(text, &quot;ä&quot;, &quot;ae&quot;);</span>
+<span class="fc" id="L207">    text = StringUtils.replace(text, &quot;ö&quot;, &quot;oe&quot;);</span>
+<span class="fc" id="L208">    text = StringUtils.replace(text, &quot;ü&quot;, &quot;ue&quot;);</span>
+<span class="fc" id="L209">    text = StringUtils.replace(text, &quot;ß&quot;, &quot;ss&quot;);</span>
 
     // replace all invalid chars
-<span class="fc" id="L210">    StringBuilder sb = new StringBuilder(text);</span>
-<span class="fc bfc" id="L211" title="All 2 branches covered.">    for (int i = 0; i &lt; sb.length(); i++) {</span>
-<span class="fc" id="L212">      char ch = sb.charAt(i);</span>
-<span class="pc bpc" id="L213" title="2 of 16 branches missed.">      if (!((ch &gt;= 'A' &amp;&amp; ch &lt;= 'Z') || (ch &gt;= 'a' &amp;&amp; ch &lt;= 'z') || (ch &gt;= '0' &amp;&amp; ch &lt;= '9')</span>
+<span class="fc" id="L212">    StringBuilder sb = new StringBuilder(text);</span>
+<span class="fc bfc" id="L213" title="All 2 branches covered.">    for (int i = 0; i &lt; sb.length(); i++) {</span>
+<span class="fc" id="L214">      char ch = sb.charAt(i);</span>
+<span class="pc bpc" id="L215" title="2 of 16 branches missed.">      if (!((ch &gt;= 'A' &amp;&amp; ch &lt;= 'Z') || (ch &gt;= 'a' &amp;&amp; ch &lt;= 'z') || (ch &gt;= '0' &amp;&amp; ch &lt;= '9')</span>
           || (ch == '_') || (ch == '.'))) {
-<span class="fc" id="L215">        ch = '-';</span>
-<span class="fc" id="L216">        sb.setCharAt(i, ch);</span>
+<span class="fc" id="L217">        ch = '-';</span>
+<span class="fc" id="L218">        sb.setCharAt(i, ch);</span>
       }
     }
-<span class="fc" id="L219">    return sb.toString();</span>
+<span class="fc" id="L221">    return sb.toString();</span>
   }
 
   /**
@@ -225,19 +227,19 @@ class SlingI18nMap {
    */
   public String getI18nPropertiesString() throws IOException {
     // Load all properties
-<span class="fc" id="L228">    Properties i18nProps = new Properties();</span>
+<span class="fc" id="L230">    Properties i18nProps = new Properties();</span>
 
     // add entries
-<span class="fc bfc" id="L231" title="All 2 branches covered.">    for (Entry&lt;String, String&gt; entry : properties.entrySet()) {</span>
-<span class="fc" id="L232">      String key = entry.getKey();</span>
-<span class="fc" id="L233">      String escapedKey = validName(key);</span>
-<span class="fc" id="L234">      i18nProps.put(escapedKey, entry.getValue());</span>
-<span class="fc" id="L235">    }</span>
+<span class="fc bfc" id="L233" title="All 2 branches covered.">    for (Entry&lt;String, String&gt; entry : properties.entrySet()) {</span>
+<span class="fc" id="L234">      String key = entry.getKey();</span>
+<span class="fc" id="L235">      String escapedKey = validName(key);</span>
+<span class="fc" id="L236">      i18nProps.put(escapedKey, entry.getValue());</span>
+<span class="fc" id="L237">    }</span>
 
-<span class="fc" id="L237">    try (ByteArrayOutputStream outStream = new ByteArrayOutputStream()) {</span>
-<span class="fc" id="L238">      i18nProps.store(outStream, null);</span>
+<span class="fc" id="L239">    try (ByteArrayOutputStream outStream = new ByteArrayOutputStream()) {</span>
+<span class="fc" id="L240">      i18nProps.store(outStream, null);</span>
       // Property files are always ISO 8859 encoded
-<span class="fc" id="L240">      return outStream.toString(StandardCharsets.ISO_8859_1.name());</span>
+<span class="fc" id="L242">      return outStream.toString(StandardCharsets.ISO_8859_1.name());</span>
     }
   }
 
