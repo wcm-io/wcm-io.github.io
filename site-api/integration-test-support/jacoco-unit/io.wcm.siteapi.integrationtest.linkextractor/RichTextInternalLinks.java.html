@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RichTextInternalLinks.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Integration Test Support</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.integrationtest.linkextractor</a> &gt; <span class="el_source">RichTextInternalLinks.java</span></div><h1>RichTextInternalLinks.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2023 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.integrationtest.linkextractor;
+
+import static com.jayway.jsonpath.Criteria.where;
+import static com.jayway.jsonpath.Filter.filter;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+
+/**
+ * Extracts internal links from rich text fragments in JSON.
+ * Looks for components with specific resource types and a &quot;text&quot; property containing the HTML fragment.
+ */
+public final class RichTextInternalLinks implements LinkExtractor {
+
+<span class="fc" id="L43">  private static final Set&lt;String&gt; SUFFIXES = Set.of(&quot;content&quot;);</span>
+  private final JsonPath jsonPath;
+
+  /**
+   * @param resourceTypes Resource type(s) for components containing rich text.
+   */
+  public RichTextInternalLinks(String... resourceTypes) {
+<span class="fc" id="L50">    this(Arrays.asList(resourceTypes));</span>
+<span class="fc" id="L51">  }</span>
+
+  /**
+   * @param resourceTypes Resource type(s) for components containing rich text.
+   */
+<span class="fc" id="L56">  public RichTextInternalLinks(List&lt;String&gt; resourceTypes) {</span>
+<span class="fc" id="L57">    jsonPath = JsonPath.compile(&quot;$..[?]&quot;,</span>
+<span class="fc" id="L58">        filter(where(&quot;:type&quot;).in(resourceTypes).and(&quot;text&quot;).exists(true)));</span>
+<span class="fc" id="L59">  }</span>
+
+  @Override
+  public boolean accept(String suffix) {
+<span class="fc" id="L63">    return SUFFIXES.contains(suffix);</span>
+  }
+
+  @Override
+  public Stream&lt;String&gt; getLinks(DocumentContext jsonPathContext) {
+    // find all rich text components and parse rich text from &quot;text&quot; property
+<span class="fc" id="L69">    final List&lt;Map&lt;String, String&gt;&gt; richTextComponents = jsonPathContext.read(jsonPath);</span>
+<span class="fc" id="L70">    return richTextComponents.stream()</span>
+<span class="fc" id="L71">        .map(entry -&gt; entry.get(&quot;text&quot;))</span>
+<span class="fc" id="L72">        .flatMap(this::extractLinksFromHtmlFragment);</span>
+  }
+
+  private Stream&lt;String&gt; extractLinksFromHtmlFragment(String html) {
+<span class="fc" id="L76">    final Document document = Jsoup.parse(html);</span>
+<span class="fc" id="L77">    return document.select(&quot;a[data-type='internal']&quot;).stream()</span>
+<span class="fc" id="L78">        .map(a -&gt; a.attr(&quot;href&quot;));</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

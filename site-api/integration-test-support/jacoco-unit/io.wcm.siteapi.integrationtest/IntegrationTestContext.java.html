@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IntegrationTestContext.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Integration Test Support</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.integrationtest</a> &gt; <span class="el_source">IntegrationTestContext.java</span></div><h1>IntegrationTestContext.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2023 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.integrationtest;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpClient.Redirect;
+import java.net.http.HttpClient.Version;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.time.Duration;
+import java.util.Collection;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+
+import io.wcm.siteapi.openapi.validator.OpenApiSchemaValidator;
+import io.wcm.siteapi.openapi.validator.OpenApiSpec;
+import io.wcm.siteapi.openapi.validator.OpenApiSpecVersions;
+
+/**
+ * Context for Site API integration tests.
+ */
+public final class IntegrationTestContext {
+
+  private final String publishUrl;
+  private final String selector;
+  private final String apiVersion;
+  private final String extension;
+  private final OpenApiSpecVersions specVersions;
+  private final HttpClient httpClient;
+  private final Duration httpRequestTimeout;
+
+<span class="fc" id="L53">  IntegrationTestContext(IntegrationTestContextBuilder builder) {</span>
+<span class="fc" id="L54">    this.publishUrl = builder.getPublishUrl();</span>
+<span class="fc" id="L55">    this.selector = builder.getSelector();</span>
+<span class="fc" id="L56">    this.apiVersion = builder.getApiVersion();</span>
+<span class="fc" id="L57">    this.extension = builder.getExtension();</span>
+<span class="fc" id="L58">    this.specVersions = builder.getSpecVersions();</span>
+<span class="fc" id="L59">    this.httpClient = HttpClient.newBuilder()</span>
+        // stick with HTTP 1.1 for AEMaaCS CM integration tests
+<span class="fc" id="L61">        .version(Version.HTTP_1_1)</span>
+<span class="fc" id="L62">        .followRedirects(Redirect.NORMAL)</span>
+<span class="fc" id="L63">        .connectTimeout(builder.getHttpConnectTimeout())</span>
+<span class="fc" id="L64">        .build();</span>
+<span class="fc" id="L65">    this.httpRequestTimeout = builder.getHttpRequestTimeout();</span>
+<span class="fc" id="L66">  }</span>
+
+  /**
+   * Build full Site API URL.
+   * @param path Content path
+   * @param suffix Suffix
+   * @return Site API URL
+   */
+  public String buildSiteApiUrl(@NotNull String path, @NotNull String suffix) {
+<span class="fc" id="L75">    StringBuilder result = new StringBuilder();</span>
+<span class="fc" id="L76">    result.append(publishUrl)</span>
+<span class="fc" id="L77">        .append(path)</span>
+<span class="fc" id="L78">        .append(&quot;.&quot;).append(selector);</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    if (!StringUtils.isEmpty(apiVersion)) {</span>
+<span class="fc" id="L80">      result.append(&quot;.&quot;).append(apiVersion);</span>
+    }
+<span class="fc" id="L82">    result.append(&quot;.&quot;).append(extension).append(&quot;/&quot;).append(suffix).append(&quot;.json&quot;);</span>
+<span class="fc" id="L83">    return result.toString();</span>
+  }
+
+  /**
+   * Fetch HTTP content. Check status code of response for success.
+   * @param url URL
+   * @return HTTP response.
+   */
+  @SuppressWarnings(&quot;CQRules:CWE-676&quot;)
+  public @NotNull HttpResponse&lt;String&gt; fetch(@NotNull String url) {
+<span class="fc" id="L93">    String urlWithTimestamp = appendTimestamp(url);</span>
+<span class="fc" id="L94">    HttpRequest request = HttpRequest.newBuilder()</span>
+<span class="fc" id="L95">        .uri(URI.create(urlWithTimestamp))</span>
+<span class="fc" id="L96">        .timeout(httpRequestTimeout)</span>
+<span class="fc" id="L97">        .build();</span>
+    try {
+<span class="fc" id="L99">      return httpClient.send(request, BodyHandlers.ofString());</span>
+    }
+<span class="fc" id="L101">    catch (IOException ex) {</span>
+<span class="fc" id="L102">      throw new HttpRequestFailedException(&quot;Unable to fetch &quot; + urlWithTimestamp + &quot;: &quot; + ex.getMessage(), ex);</span>
+    }
+<span class="nc" id="L104">    catch (InterruptedException ex) {</span>
+<span class="nc" id="L105">      Thread.currentThread().interrupt();</span>
+<span class="nc" id="L106">      throw new IllegalStateException(ex);</span>
+    }
+  }
+
+  /**
+   * Fetch HTTP content. Fails with exception when request does not return successfully.
+   * @param url URL
+   * @return Body string.
+   */
+  public @NotNull String fetchBody(@NotNull String url) {
+<span class="fc" id="L116">    String urlWithTimestamp = appendTimestamp(url);</span>
+<span class="fc" id="L117">    HttpResponse&lt;String&gt; response = fetch(urlWithTimestamp);</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (response.statusCode() == 200) {</span>
+<span class="fc" id="L119">      return response.body();</span>
+    }
+    else {
+<span class="fc" id="L122">      throw new HttpRequestFailedException(urlWithTimestamp + &quot; returned HTTP &quot; + response.statusCode());</span>
+    }
+  }
+
+  /**
+   * Attach timestamp to skip CDN and dispatcher cache layers
+   * @param url URL with or without timestamp parameter.
+   * @return URL with timestamp parameter.
+   */
+  private String appendTimestamp(String url) {
+<span class="fc bfc" id="L132" title="All 2 branches covered.">    if (!StringUtils.contains(url, &quot;?timestamp=&quot;)) {</span>
+<span class="fc" id="L133">      return url + &quot;?timestamp=&quot; + System.currentTimeMillis();</span>
+    }
+<span class="fc" id="L135">    return url;</span>
+  }
+
+  /**
+   * @return Get all available API versions.
+   */
+  public Collection&lt;String&gt; getAllApiVersions() {
+<span class="fc" id="L142">    return specVersions.getAllVersions();</span>
+  }
+
+  /**
+   * Get OAS3 schema validator for given processor/suffix.
+   * @param suffix Suffix e.g. &quot;content&quot;, &quot;navigation&quot;
+   * @return Validator
+   */
+  public OpenApiSchemaValidator getValidator(@NotNull String suffix) {
+<span class="fc" id="L151">    OpenApiSpec spec = specVersions.get(apiVersion);</span>
+<span class="fc" id="L152">    return spec.getSchemaValidator(suffix);</span>
+  }
+
+  /**
+   * @return Publish URL (without trailing /)
+   */
+  public String getPublishUrl() {
+<span class="fc" id="L159">    return this.publishUrl;</span>
+  }
+
+  /**
+   * @return Site API Selector
+   */
+  public String getSelector() {
+<span class="fc" id="L166">    return this.selector;</span>
+  }
+
+  /**
+   * @return Site API version
+   */
+  public String getApiVersion() {
+<span class="fc" id="L173">    return this.apiVersion;</span>
+  }
+
+  /**
+   * @return Site API Extension
+   */
+  public String getExtension() {
+<span class="fc" id="L180">    return this.extension;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
