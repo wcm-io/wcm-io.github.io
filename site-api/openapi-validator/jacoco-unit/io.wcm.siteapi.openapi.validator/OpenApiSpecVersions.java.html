@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenApiSpecVersions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Open API Validator</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.openapi.validator</a> &gt; <span class="el_source">OpenApiSpecVersions.java</span></div><h1>OpenApiSpecVersions.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2023 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.openapi.validator;
+
+import java.net.URL;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ScanResult;
+
+/**
+ * Get available versions of Site API specification.
+ * &lt;p&gt;
+ * By default, spec files are expected in the classpath at &lt;code&gt;/site-api-spec&lt;/code&gt;
+ * with filenames named following this pattern:
+ * &lt;/p&gt;
+ *
+ * &lt;pre&gt;
+ * site-api.yaml
+ * site-api-v1.yaml
+ * site-api-v2.yaml
+ * ...
+ * &lt;/pre&gt;
+ * &lt;p&gt;
+ * But you can also specify a custom path and file name pattern.
+ * &lt;/p&gt;
+ */
+public final class OpenApiSpecVersions {
+
+  /**
+   * Default classpath path to look for Site API spec files.
+   */
+  public static final String DEFAULT_RESOURCE_PATH = &quot;site-api-spec&quot;;
+
+  /**
+   * Default pattern for Site API spec files. Last group is expected to return the actual version.
+   */
+<span class="fc" id="L68">  public static final Pattern DEFAULT_FILENAME_PATTERN = Pattern.compile(&quot;site-api(-(\\w+))?.yaml&quot;);</span>
+
+  private final SortedSet&lt;String&gt; versions;
+  private final Map&lt;String, URL&gt; urls;
+
+  /**
+   * Get all Site API Specs detected in classpath matching the default path and pattern.
+   */
+  public OpenApiSpecVersions() {
+<span class="fc" id="L77">    this(DEFAULT_RESOURCE_PATH, DEFAULT_FILENAME_PATTERN, null);</span>
+<span class="fc" id="L78">  }</span>
+
+  /**
+   * Get all Site API Specs detected in classpath matching given path and filename pattern.
+   * @param path Directory in classpath
+   * @param filenamePattern File name pattern (last group is expected to return the actual version).
+   * @param versionComparator Comparator for versions (&quot;highest&quot; version is last version) -
+   *          or null to use standard string sorting
+   */
+  public OpenApiSpecVersions(@NotNull String path, @NotNull Pattern filenamePattern,
+<span class="fc" id="L88">      @Nullable Comparator&lt;String&gt; versionComparator) {</span>
+<span class="fc" id="L89">    versions = new TreeSet&lt;&gt;(versionComparator);</span>
+<span class="fc" id="L90">    urls = new HashMap&lt;&gt;();</span>
+    // get all matching spec files from classpath
+<span class="fc" id="L92">    try (ScanResult scanResult = new ClassGraph().acceptPathsNonRecursive(path).scan()) {</span>
+<span class="fc" id="L93">      scanResult.getAllResources().forEach(resource -&gt; {</span>
+<span class="fc" id="L94">        String filename = FilenameUtils.getName(resource.getPath());</span>
+<span class="fc" id="L95">        Matcher matcher = filenamePattern.matcher(filename);</span>
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">        if (matcher.matches()) {</span>
+<span class="fc" id="L97">          String version = StringUtils.defaultString(matcher.group(matcher.groupCount()));</span>
+<span class="fc" id="L98">          versions.add(version);</span>
+<span class="fc" id="L99">          urls.put(version, resource.getURL());</span>
+        }
+<span class="fc" id="L101">      });</span>
+    }
+<span class="fc bfc" id="L103" title="All 2 branches covered.">    if (versions.isEmpty()) {</span>
+<span class="fc" id="L104">      throw new IllegalArgumentException(&quot;No Site API spec found in classpath at '&quot; + path + &quot;' &quot;</span>
+          + &quot;with pattern: &quot; + filenamePattern);
+    }
+<span class="fc" id="L107">  }</span>
+
+  /**
+   * Get all Site API versions.
+   * @return Versions
+   */
+  public Collection&lt;String&gt; getAllVersions() {
+<span class="fc" id="L114">    return Collections.unmodifiableCollection(versions);</span>
+  }
+
+  /**
+   * Get latest version.
+   * @return Version
+   */
+  public @NotNull String getLatestVersion() {
+<span class="fc" id="L122">    return versions.last();</span>
+  }
+
+  /**
+   * Returns Site API specification for highest version number.
+   * @return Site API specification.
+   */
+  public @NotNull OpenApiSpec getLatest() {
+<span class="fc" id="L130">    return get(getLatestVersion());</span>
+  }
+
+  /**
+   * Returns Site API specification.
+   * @param version Requested spec version
+   * @return Site API specification.
+   */
+  public @NotNull OpenApiSpec get(@NotNull String version) {
+<span class="fc" id="L139">    URL url = urls.get(version);</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">    if (url == null) {</span>
+<span class="fc" id="L141">      throw new IllegalArgumentException(&quot;Invalid version: &quot; + version);</span>
+    }
+<span class="fc" id="L143">    return new OpenApiSpec(url, version);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
