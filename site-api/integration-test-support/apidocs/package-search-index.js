@@ -1,1 +1,1 @@
-packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"io.wcm.siteapi.integrationtest"},{"l":"io.wcm.siteapi.integrationtest.crawler"},{"l":"io.wcm.siteapi.integrationtest.httpclient"},{"l":"io.wcm.siteapi.integrationtest.linkextractor"}]
+packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"io.wcm.siteapi.integrationtestsupport"},{"l":"io.wcm.siteapi.integrationtestsupport.crawler"},{"l":"io.wcm.siteapi.integrationtestsupport.httpclient"},{"l":"io.wcm.siteapi.integrationtestsupport.linkextractor"}]
