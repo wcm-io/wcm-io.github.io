@@ -151,40 +151,50 @@ public final class OpenApiSpec {
   }
 
   /**
-   * @return Spec version or empty string.
+   * @return Spec version (derived from file name) or empty string.
    */
   public @NotNull String getVersion() {
 <span class="fc" id="L157">    return this.version;</span>
   }
 
   /**
-   * Get Schema for default response of operation mapped to given suffix ID.
+   * Get Schema for default response of operation mapped to given suffix.
+   * &lt;p&gt;
+   * It looks for a path definition ending with &lt;code&gt;/{suffix}.json&lt;/code&gt; in the spec
+   * and returns the JSON schema defined in the YAML for HTTP 200 GET response with &lt;code&gt;application/json&lt;/code&gt;
+   * content type.
+   * &lt;/p&gt;
+   * &lt;p&gt;
+   * See &lt;a href=
+   * &quot;https://github.com/wcm-io/io.wcm.site-api.openapi-validator/blob/develop/src/test/resources/site-api-spec/site-api.yaml&quot;&gt;site-api.yaml&lt;/a&gt;
+   * as minimal example for a valid specification.
+   * &lt;/p&gt;
    * @param suffix Suffix ID
    * @return Schema JSON node
    */
   public @NotNull OpenApiSchemaValidator getSchemaValidator(@NotNull String suffix) {
     // cache validators per suffixId in map
-<span class="fc" id="L167">    return validators.computeIfAbsent(suffix, this::buildSchemaValidator);</span>
+<span class="fc" id="L177">    return validators.computeIfAbsent(suffix, this::buildSchemaValidator);</span>
   }
 
   /**
-   * Get Schema for default response of operation mapped to given suffix ID.
+   * Get Schema for default response of operation mapped to given suffix.
    * @param suffix Suffix ID
    * @return Schema JSON node
    */
   private @NotNull OpenApiSchemaValidator buildSchemaValidator(@NotNull String suffix) {
-<span class="fc" id="L176">    JsonNode matchingPath = findMatchingPathNode(suffix);</span>
-<span class="fc bfc" id="L177" title="All 2 branches covered.">    if (matchingPath == null) {</span>
-<span class="fc" id="L178">      throw new IllegalArgumentException(&quot;No matching path definition found for suffix: &quot; + suffix);</span>
+<span class="fc" id="L186">    JsonNode matchingPath = findMatchingPathNode(suffix);</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">    if (matchingPath == null) {</span>
+<span class="fc" id="L188">      throw new IllegalArgumentException(&quot;No matching path definition found for suffix: &quot; + suffix);</span>
     }
     // ~1 = / in JSON pointer syntax
-<span class="fc" id="L181">    String pointer = &quot;/get/responses/200/content/application~1json/schema&quot;;</span>
-<span class="fc" id="L182">    JsonNode schemaNode = matchingPath.at(pointer);</span>
-<span class="pc bpc" id="L183" title="2 of 4 branches missed.">    if (schemaNode == null || schemaNode instanceof MissingNode) {</span>
-<span class="nc" id="L184">      throw new IllegalArgumentException(&quot;No matching JSON schema definition at: &quot; + pointer + &quot;, suffix: &quot; + suffix);</span>
+<span class="fc" id="L191">    String pointer = &quot;/get/responses/200/content/application~1json/schema&quot;;</span>
+<span class="fc" id="L192">    JsonNode schemaNode = matchingPath.at(pointer);</span>
+<span class="pc bpc" id="L193" title="2 of 4 branches missed.">    if (schemaNode == null || schemaNode instanceof MissingNode) {</span>
+<span class="nc" id="L194">      throw new IllegalArgumentException(&quot;No matching JSON schema definition at: &quot; + pointer + &quot;, suffix: &quot; + suffix);</span>
     }
-<span class="fc" id="L186">    SchemaValidator schemaValidator = new SchemaValidator(validationContext, null, schemaNode);</span>
-<span class="fc" id="L187">    return new OpenApiSchemaValidator(suffix, schemaValidator);</span>
+<span class="fc" id="L196">    SchemaValidator schemaValidator = new SchemaValidator(validationContext, null, schemaNode);</span>
+<span class="fc" id="L197">    return new OpenApiSchemaValidator(suffix, schemaValidator);</span>
   }
 
   /**
@@ -193,23 +203,23 @@ public final class OpenApiSpec {
    * @return Path node or null
    */
   private @Nullable JsonNode findMatchingPathNode(@NotNull String suffix) {
-<span class="fc" id="L196">    Pattern endsWithSuffixPattern = Pattern.compile(&quot;^.+/&quot; + Pattern.quote(suffix) + &quot;.json$&quot;);</span>
-<span class="fc" id="L197">    JsonNode paths = rootNode.findValue(&quot;paths&quot;);</span>
-<span class="pc bpc" id="L198" title="1 of 2 branches missed.">    if (paths != null) {</span>
-<span class="fc" id="L199">      Iterator&lt;String&gt; fieldNames = paths.fieldNames();</span>
-<span class="fc bfc" id="L200" title="All 2 branches covered.">      while (fieldNames.hasNext()) {</span>
-<span class="fc" id="L201">        String path = fieldNames.next();</span>
-<span class="fc bfc" id="L202" title="All 2 branches covered.">        if (endsWithSuffixPattern.matcher(path).matches()) {</span>
-<span class="fc" id="L203">          return paths.findValue(path);</span>
+<span class="fc" id="L206">    Pattern endsWithSuffixPattern = Pattern.compile(&quot;^.+/&quot; + Pattern.quote(suffix) + &quot;.json$&quot;);</span>
+<span class="fc" id="L207">    JsonNode paths = rootNode.findValue(&quot;paths&quot;);</span>
+<span class="pc bpc" id="L208" title="1 of 2 branches missed.">    if (paths != null) {</span>
+<span class="fc" id="L209">      Iterator&lt;String&gt; fieldNames = paths.fieldNames();</span>
+<span class="fc bfc" id="L210" title="All 2 branches covered.">      while (fieldNames.hasNext()) {</span>
+<span class="fc" id="L211">        String path = fieldNames.next();</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">        if (endsWithSuffixPattern.matcher(path).matches()) {</span>
+<span class="fc" id="L213">          return paths.findValue(path);</span>
         }
-<span class="fc" id="L205">      }</span>
+<span class="fc" id="L215">      }</span>
     }
-<span class="fc" id="L207">    return null;</span>
+<span class="fc" id="L217">    return null;</span>
   }
 
   @Override
   public String toString() {
-<span class="fc" id="L212">    return this.url.toString();</span>
+<span class="fc" id="L222">    return this.url.toString();</span>
   }
 
 }
