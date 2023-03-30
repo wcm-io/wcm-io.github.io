@@ -20,7 +20,6 @@
 package io.wcm.handler.url.impl;
 
 import java.lang.annotation.Annotation;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
@@ -32,11 +31,9 @@ import org.apache.sling.caconfig.ConfigurationBuilder;
 import org.apache.sling.caconfig.resource.ConfigurationResourceResolver;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import io.wcm.handler.url.SiteConfig;
 import io.wcm.handler.url.spi.UrlHandlerConfig;
@@ -52,65 +49,57 @@ import io.wcm.sling.commons.caservice.ContextAwareServiceResolver;
         AdapterFactory.ADAPTER_CLASSES + &quot;=io.wcm.handler.url.spi.UrlHandlerConfig&quot;,
         AdapterFactory.ADAPTER_CLASSES + &quot;=io.wcm.handler.url.SiteConfig&quot;
     })
-<span class="fc" id="L55">public class UrlHandlerAdapterFactory implements AdapterFactory {</span>
+<span class="fc" id="L52">public class UrlHandlerAdapterFactory implements AdapterFactory {</span>
 
   @Reference
   private ContextAwareServiceResolver serviceResolver;
   @Reference
   private ConfigurationResourceResolver configurationResourceResolver;
 
-<span class="fc" id="L62">  private static final Logger log = LoggerFactory.getLogger(UrlHandlerAdapterFactory.class);</span>
-
   // cache resolving of site root level per resource path
-<span class="fc" id="L65">  private final Cache&lt;String, SiteConfig&gt; siteConfigCache = CacheBuilder.newBuilder()</span>
-<span class="fc" id="L66">      .expireAfterWrite(5, TimeUnit.SECONDS)</span>
-<span class="fc" id="L67">      .maximumSize(10000)</span>
-<span class="fc" id="L68">      .build();</span>
+<span class="fc" id="L60">  private final Cache&lt;String, SiteConfig&gt; siteConfigCache = Caffeine.newBuilder()</span>
+<span class="fc" id="L61">      .expireAfterWrite(5, TimeUnit.SECONDS)</span>
+<span class="fc" id="L62">      .maximumSize(10000)</span>
+<span class="fc" id="L63">      .build();</span>
 
   @SuppressWarnings({ &quot;unchecked&quot;, &quot;null&quot; })
   @Override
   public &lt;AdapterType&gt; AdapterType getAdapter(Object adaptable, Class&lt;AdapterType&gt; type) {
-<span class="fc bfc" id="L73" title="All 2 branches covered.">    if (type == UrlHandlerConfig.class) {</span>
-<span class="fc" id="L74">      return (AdapterType)serviceResolver.resolve(UrlHandlerConfig.class, (Adaptable)adaptable);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">    if (type == UrlHandlerConfig.class) {</span>
+<span class="fc" id="L69">      return (AdapterType)serviceResolver.resolve(UrlHandlerConfig.class, (Adaptable)adaptable);</span>
     }
-<span class="pc bpc" id="L76" title="1 of 2 branches missed.">    if (type == SiteConfig.class) {</span>
-<span class="fc" id="L77">      return (AdapterType)getSiteConfigForSiteRoot(getContextResource(adaptable));</span>
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">    if (type == SiteConfig.class) {</span>
+<span class="fc" id="L72">      return (AdapterType)getSiteConfigForSiteRoot(getContextResource(adaptable));</span>
     }
-<span class="nc" id="L79">    return null;</span>
+<span class="nc" id="L74">    return null;</span>
   }
 
   private Resource getContextResource(Object adaptable) {
-<span class="fc bfc" id="L83" title="All 2 branches covered.">    if (adaptable instanceof Resource) {</span>
-<span class="fc" id="L84">      return (Resource)adaptable;</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">    if (adaptable instanceof Resource) {</span>
+<span class="fc" id="L79">      return (Resource)adaptable;</span>
     }
-<span class="pc bpc" id="L86" title="1 of 2 branches missed.">    else if (adaptable instanceof SlingHttpServletRequest) {</span>
-<span class="fc" id="L87">      return ((SlingHttpServletRequest)adaptable).getResource();</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">    else if (adaptable instanceof SlingHttpServletRequest) {</span>
+<span class="fc" id="L82">      return ((SlingHttpServletRequest)adaptable).getResource();</span>
     }
-<span class="nc" id="L89">    return null;</span>
+<span class="nc" id="L84">    return null;</span>
   }
 
   private SiteConfig getSiteConfigForSiteRoot(Resource contextResource) {
-<span class="pc bpc" id="L93" title="1 of 2 branches missed.">    if (contextResource == null) {</span>
-<span class="nc" id="L94">      return null;</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">    if (contextResource == null) {</span>
+<span class="nc" id="L89">      return null;</span>
     }
-<span class="fc" id="L96">    String contextRootPath = configurationResourceResolver.getContextPath(contextResource);</span>
+<span class="fc" id="L91">    String contextRootPath = configurationResourceResolver.getContextPath(contextResource);</span>
 
     // site root cannot be detected? then get SiteConfig directly from resource without any caching
-<span class="pc bpc" id="L99" title="1 of 2 branches missed.">    if (StringUtils.isBlank(contextRootPath)) {</span>
-<span class="nc" id="L100">      return getSiteConfigForResource(contextResource);</span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">    if (StringUtils.isBlank(contextRootPath)) {</span>
+<span class="nc" id="L95">      return getSiteConfigForResource(contextResource);</span>
     }
 
     // get site config for site root resource and cache the result (for a short time)
-    try {
-<span class="fc" id="L105">      return siteConfigCache.get(contextRootPath, () -&gt; {</span>
-<span class="fc" id="L106">        Resource siteRootResource = contextResource.getResourceResolver().getResource(contextRootPath);</span>
-<span class="fc" id="L107">        return getSiteConfigForResourceCacheable(siteRootResource);</span>
-      });
-    }
-<span class="nc" id="L110">    catch (ExecutionException ex) {</span>
-<span class="nc" id="L111">      log.warn(&quot;Unexpected exception.&quot;, ex);</span>
-<span class="nc" id="L112">      return null;</span>
-    }
+<span class="fc" id="L99">    return siteConfigCache.get(contextRootPath, path -&gt; {</span>
+<span class="fc" id="L100">      Resource siteRootResource = contextResource.getResourceResolver().getResource(contextRootPath);</span>
+<span class="fc" id="L101">      return getSiteConfigForResourceCacheable(siteRootResource);</span>
+    });
   }
 
   /**
@@ -120,34 +109,34 @@ import io.wcm.sling.commons.caservice.ContextAwareServiceResolver;
    * @return Cacheable site configuration
    */
   private SiteConfig getSiteConfigForResourceCacheable(Resource contextResource) {
-<span class="fc" id="L123">    final SiteConfig siteConfig = getSiteConfigForResource(contextResource);</span>
-<span class="fc" id="L124">    return new SiteConfig() {</span>
+<span class="fc" id="L112">    final SiteConfig siteConfig = getSiteConfigForResource(contextResource);</span>
+<span class="fc" id="L113">    return new SiteConfig() {</span>
       @Override
       public Class&lt;? extends Annotation&gt; annotationType() {
-<span class="nc" id="L127">        return SiteConfig.class;</span>
+<span class="nc" id="L116">        return SiteConfig.class;</span>
       }
       @Override
       public String siteUrl() {
-<span class="fc" id="L131">        return siteConfig.siteUrl();</span>
+<span class="fc" id="L120">        return siteConfig.siteUrl();</span>
       }
       @Override
       public String siteUrlSecure() {
-<span class="fc" id="L135">        return siteConfig.siteUrlSecure();</span>
+<span class="fc" id="L124">        return siteConfig.siteUrlSecure();</span>
       }
       @Override
       public String siteUrlAuthor() {
-<span class="fc" id="L139">        return siteConfig.siteUrlAuthor();</span>
+<span class="fc" id="L128">        return siteConfig.siteUrlAuthor();</span>
       }
 
     };
   }
 
   private SiteConfig getSiteConfigForResource(Resource contextResource) {
-<span class="fc" id="L146">    ConfigurationBuilder configurationBuilder = contextResource.adaptTo(ConfigurationBuilder.class);</span>
-<span class="pc bpc" id="L147" title="1 of 2 branches missed.">    if (configurationBuilder == null) {</span>
-<span class="nc" id="L148">      throw new RuntimeException(&quot;No configuration builder.&quot;);</span>
+<span class="fc" id="L135">    ConfigurationBuilder configurationBuilder = contextResource.adaptTo(ConfigurationBuilder.class);</span>
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">    if (configurationBuilder == null) {</span>
+<span class="nc" id="L137">      throw new RuntimeException(&quot;No configuration builder.&quot;);</span>
     }
-<span class="fc" id="L150">    return configurationBuilder.as(SiteConfig.class);</span>
+<span class="fc" id="L139">    return configurationBuilder.as(SiteConfig.class);</span>
   }
 
 }

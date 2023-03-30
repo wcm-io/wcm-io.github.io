@@ -19,7 +19,6 @@
  */
 package io.wcm.handler.url.impl;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.sling.api.resource.Resource;
@@ -30,8 +29,8 @@ import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import io.wcm.handler.url.SiteRootDetector;
 import io.wcm.wcm.commons.util.Path;
@@ -40,48 +39,42 @@ import io.wcm.wcm.commons.util.Path;
  * Implements {@link SiteRootDetector}.
  */
 @Component(service = SiteRootDetector.class)
-<span class="fc" id="L43">public class SiteRootDetectorImpl implements SiteRootDetector {</span>
+<span class="fc" id="L42">public class SiteRootDetectorImpl implements SiteRootDetector {</span>
 
   private static final int INVALID_SITE_ROOT_LEVEL = -1;
 
   @Reference
   private ConfigurationResourceResolver configurationResourceResolver;
 
-<span class="fc" id="L50">  private static final Logger log = LoggerFactory.getLogger(SiteRootDetectorImpl.class);</span>
+<span class="fc" id="L49">  private static final Logger log = LoggerFactory.getLogger(SiteRootDetectorImpl.class);</span>
 
   // cache resolving of site root level per resource path
-<span class="fc" id="L53">  private final Cache&lt;String, Integer&gt; cache = CacheBuilder.newBuilder()</span>
-<span class="fc" id="L54">      .expireAfterWrite(1, TimeUnit.MINUTES)</span>
-<span class="fc" id="L55">      .maximumSize(10000)</span>
-<span class="fc" id="L56">      .build();</span>
+<span class="fc" id="L52">  private final Cache&lt;String, Integer&gt; cache = Caffeine.newBuilder()</span>
+<span class="fc" id="L53">      .expireAfterWrite(1, TimeUnit.MINUTES)</span>
+<span class="fc" id="L54">      .maximumSize(10000)</span>
+<span class="fc" id="L55">      .build();</span>
 
   @Override
   public int getSiteRootLevel(@Nullable Resource contextResource) {
-<span class="fc bfc" id="L60" title="All 2 branches covered.">    if (contextResource == null) {</span>
-<span class="fc" id="L61">      return INVALID_SITE_ROOT_LEVEL;</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    if (contextResource == null) {</span>
+<span class="fc" id="L60">      return INVALID_SITE_ROOT_LEVEL;</span>
     }
-    try {
-<span class="fc" id="L64">      return cache.get(contextResource.getPath(), () -&gt; detectSiteRootLevel(contextResource));</span>
-    }
-<span class="nc" id="L66">    catch (ExecutionException ex) {</span>
-<span class="nc" id="L67">      log.warn(&quot;Unexpected exception.&quot;, ex);</span>
-<span class="nc" id="L68">      return INVALID_SITE_ROOT_LEVEL;</span>
-    }
+<span class="fc" id="L62">    return cache.get(contextResource.getPath(), path -&gt; detectSiteRootLevel(contextResource));</span>
   }
 
   private int detectSiteRootLevel(@Nullable Resource contextResource) {
-<span class="pc bpc" id="L73" title="1 of 2 branches missed.">    if (contextResource != null) {</span>
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">    if (contextResource != null) {</span>
       // assumption: inner-most context-aware configuration context path is site root path
-<span class="fc" id="L75">      String siteRootpath = configurationResourceResolver.getContextPath(contextResource);</span>
-<span class="fc bfc" id="L76" title="All 2 branches covered.">      if (siteRootpath != null) {</span>
-<span class="fc" id="L77">        int level = Path.getAbsoluteLevel(siteRootpath, contextResource.getResourceResolver());</span>
-<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L79">          log.debug(&quot;Detect site root level for {}: {}&quot;, contextResource.getPath(), level);</span>
+<span class="fc" id="L68">      String siteRootpath = configurationResourceResolver.getContextPath(contextResource);</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">      if (siteRootpath != null) {</span>
+<span class="fc" id="L70">        int level = Path.getAbsoluteLevel(siteRootpath, contextResource.getResourceResolver());</span>
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">        if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L72">          log.debug(&quot;Detect site root level for {}: {}&quot;, contextResource.getPath(), level);</span>
         }
-<span class="fc" id="L81">        return level;</span>
+<span class="fc" id="L74">        return level;</span>
       }
     }
-<span class="fc" id="L84">    return INVALID_SITE_ROOT_LEVEL;</span>
+<span class="fc" id="L77">    return INVALID_SITE_ROOT_LEVEL;</span>
   }
 
 }
