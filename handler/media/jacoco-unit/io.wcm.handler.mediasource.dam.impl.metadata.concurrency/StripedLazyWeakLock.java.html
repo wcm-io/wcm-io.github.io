@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StripedLazyWeakLock.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.impl.metadata.concurrency</a> &gt; <span class="el_source">StripedLazyWeakLock.java</span></div><h1>StripedLazyWeakLock.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2023 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.impl.metadata.concurrency;
+
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+
+/**
+ * A striped {@code Lock}. This offers the underlying lock striping similar
+ * to that of {@code ConcurrentHashMap} in a reusable form.
+ * Conceptually, lock striping is the technique of dividing a lock into many
+ * &lt;i&gt;stripes&lt;/i&gt;, increasing the granularity of a single lock and allowing independent operations
+ * to lock different stripes and proceed concurrently, instead of creating contention for a single
+ * lock.
+ * &lt;p&gt;
+ * This is inspired by Guava's &lt;a href=
+ * &quot;https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/Striped.java&quot;&gt;Striped&lt;/a&gt;,
+ * but uses Caffeine internally.
+ * &lt;/p&gt;
+ */
+public final class StripedLazyWeakLock {
+
+  private final StripeIndex stripeIndex;
+  private final LoadingCache&lt;Integer, Lock&gt; locks;
+
+  /**
+   * Creates a {@code Striped&lt;Lock&gt;} with lazily initialized, weakly referenced locks. Every lock is
+   * reentrant.
+   * @param stripes the minimum number of stripes (locks) required
+   */
+<span class="fc" id="L51">  public StripedLazyWeakLock(int stripes) {</span>
+<span class="fc" id="L52">    this.stripeIndex = new StripeIndex(stripes);</span>
+<span class="fc" id="L53">    this.locks = Caffeine.newBuilder().weakValues().build(key -&gt; new ReentrantLock());</span>
+<span class="fc" id="L54">  }</span>
+
+  /**
+   * Returns the stripe that corresponds to the passed key. It is always guaranteed that if {@code
+   * key1.equals(key2)}, then {@code get(key1) == get(key2)}.
+   * @param key an arbitrary, non-null key
+   * @return the stripe that the passed key corresponds to
+   */
+  public Lock get(Object key) {
+<span class="fc" id="L63">    return locks.get(stripeIndex.indexFor(key));</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StripeIndex.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.impl.metadata.concurrency</a> &gt; <span class="el_source">StripeIndex.java</span></div><h1>StripeIndex.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2023 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.impl.metadata.concurrency;
+
+/**
+ * Maps keys to a striped index set. Each key is mapped to a index within the max stripe count.
+ * &lt;p&gt;
+ * The logic is extracted from &lt;a href=
+ * &quot;https://github.com/google/guava/blob/master/guava/src/com/google/common/util/concurrent/Striped.java&quot;&gt;Striped&lt;/a&gt;,
+ * initially written by Dimitris Andreou from the Guava team (Apache 2.0 license).
+ * &lt;/p&gt;
+ */
+final class StripeIndex {
+
+  // Capacity (power of two) minus one, for fast mod evaluation
+  private final int mask;
+  private final int size;
+
+  // A bit mask were all bits are set.
+  private static final int ALL_SET = ~0;
+
+  // The largest power of two that can be represented as an {@code int}.
+  private static final int MAX_POWER_OF_TWO = 1 &lt;&lt; (Integer.SIZE - 2);
+
+  /**
+   * @param stripes the minimum number of stripes required
+   */
+<span class="fc" id="L45">  StripeIndex(int stripes) {</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">    if (stripes &lt;= 0) {</span>
+<span class="fc" id="L47">      throw new IllegalArgumentException(&quot;Invalid number of stripes: &quot; + stripes);</span>
+    }
+<span class="fc bfc" id="L49" title="All 2 branches covered.">    this.mask = stripes &gt; MAX_POWER_OF_TWO ? ALL_SET : ceilToPowerOfTwo(stripes) - 1;</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">    this.size = (mask == ALL_SET) ? Integer.MAX_VALUE : mask + 1;</span>
+<span class="fc" id="L51">  }</span>
+
+  /** Returns the total number of stripes in this instance. */
+  int size() {
+<span class="fc" id="L55">    return size;</span>
+  }
+
+  /**
+   * Returns the index to which the given key is mapped, so that getAt(indexFor(key)) == get(key).
+   */
+  int indexFor(Object key) {
+<span class="fc" id="L62">    int hash = smear(key.hashCode());</span>
+<span class="fc" id="L63">    return hash &amp; mask;</span>
+  }
+
+  private static int smear(int hashCode) {
+<span class="fc" id="L67">    int newHashCode = hashCode;</span>
+<span class="fc" id="L68">    newHashCode ^= (newHashCode &gt;&gt;&gt; 20) ^ (newHashCode &gt;&gt;&gt; 12);</span>
+<span class="fc" id="L69">    return newHashCode ^ (newHashCode &gt;&gt;&gt; 7) ^ (newHashCode &gt;&gt;&gt; 4);</span>
+  }
+
+  private static int ceilToPowerOfTwo(int x) {
+<span class="fc" id="L73">    return 1 &lt;&lt; log2RoundCeiling(x);</span>
+  }
+
+  private static int log2RoundCeiling(int x) {
+<span class="fc" id="L77">    return Integer.SIZE - Integer.numberOfLeadingZeros(x - 1);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
