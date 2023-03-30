@@ -32,10 +32,9 @@ import org.osgi.framework.ServiceReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.cache.RemovalNotification;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 
 import io.wcm.sling.commons.caservice.ContextAwareService;
 import io.wcm.sling.commons.caservice.ContextAwareServiceCollectionResolver;
@@ -49,78 +48,75 @@ class ContextAwareServiceCollectionResolverImpl&lt;S extends ContextAwareService
   // cache of service trackers for each SPI interface
   private final LoadingCache&lt;ServiceReference&lt;S&gt;, CollectionItemDecoration&lt;S, D&gt;&gt; decorationCache;
 
-<span class="fc" id="L52">  private static final Logger log = LoggerFactory.getLogger(ContextAwareServiceCollectionResolverImpl.class);</span>
+<span class="fc" id="L51">  private static final Logger log = LoggerFactory.getLogger(ContextAwareServiceCollectionResolverImpl.class);</span>
 
   ContextAwareServiceCollectionResolverImpl(@NotNull Collection&lt;ServiceReference&lt;S&gt;&gt; serviceReferenceCollection,
       @NotNull BiFunction&lt;@NotNull ServiceReference&lt;S&gt;, @Nullable S, @Nullable D&gt; decorator,
       @NotNull ResourcePathResolver resourcePathResolver,
-<span class="fc" id="L57">      @NotNull BundleContext bundleContext) {</span>
-<span class="fc" id="L58">    this.serviceReferenceCollection = serviceReferenceCollection;</span>
-<span class="fc" id="L59">    this.resourcePathResolver = resourcePathResolver;</span>
-<span class="fc" id="L60">    this.decorationCache = buildCache(decorator, bundleContext);</span>
-<span class="fc" id="L61">  }</span>
+<span class="fc" id="L56">      @NotNull BundleContext bundleContext) {</span>
+<span class="fc" id="L57">    this.serviceReferenceCollection = serviceReferenceCollection;</span>
+<span class="fc" id="L58">    this.resourcePathResolver = resourcePathResolver;</span>
+<span class="fc" id="L59">    this.decorationCache = buildCache(decorator, bundleContext);</span>
+<span class="fc" id="L60">  }</span>
 
   private static &lt;S extends ContextAwareService, D&gt; LoadingCache&lt;ServiceReference&lt;S&gt;, CollectionItemDecoration&lt;S, D&gt;&gt; buildCache(
       @NotNull BiFunction&lt;@NotNull ServiceReference&lt;S&gt;, @Nullable S, @Nullable D&gt; decorator, @NotNull BundleContext bundleContext) {
-<span class="fc" id="L65">    return CacheBuilder.newBuilder()</span>
+<span class="fc" id="L64">    return Caffeine.newBuilder()</span>
         // expire cached entry after 24h
-<span class="fc" id="L67">        .expireAfterAccess(24, TimeUnit.HOURS)</span>
+<span class="fc" id="L66">        .expireAfterAccess(24, TimeUnit.HOURS)</span>
         // unget service on removal
-<span class="fc" id="L69">        .removalListener((RemovalNotification&lt;ServiceReference&lt;S&gt;, CollectionItemDecoration&lt;S, D&gt;&gt; notification) -&gt; {</span>
-<span class="fc" id="L70">          log.debug(&quot;Remove service {}&quot;, notification.getValue());</span>
-<span class="fc" id="L71">          bundleContext.ungetService(notification.getKey());</span>
-<span class="fc" id="L72">        })</span>
+<span class="fc" id="L68">        .removalListener((ServiceReference&lt;S&gt; key, CollectionItemDecoration&lt;S, D&gt; value, RemovalCause cause) -&gt; {</span>
+<span class="fc" id="L69">          log.debug(&quot;Remove service {}&quot;, value);</span>
+<span class="fc" id="L70">          bundleContext.ungetService(key);</span>
+<span class="fc" id="L71">        })</span>
         // build cache lazily
-<span class="fc" id="L74">        .build(new CacheLoader&lt;ServiceReference&lt;S&gt;, CollectionItemDecoration&lt;S, D&gt;&gt;() {</span>
-          @Override
-          public CollectionItemDecoration&lt;S, D&gt; load(ServiceReference&lt;S&gt; serviceReference) {
-<span class="fc" id="L77">            CollectionItemDecoration&lt;S, D&gt; item = new CollectionItemDecoration&lt;&gt;(serviceReference, decorator, bundleContext);</span>
-<span class="fc" id="L78">            log.debug(&quot;Add service {}&quot;, item);</span>
-<span class="fc" id="L79">            return item;</span>
-          }
+<span class="fc" id="L73">        .build((ServiceReference&lt;S&gt; serviceReference) -&gt; {</span>
+<span class="fc" id="L74">          CollectionItemDecoration&lt;S, D&gt; item = new CollectionItemDecoration&lt;&gt;(serviceReference, decorator, bundleContext);</span>
+<span class="fc" id="L75">          log.debug(&quot;Add service {}&quot;, item);</span>
+<span class="fc" id="L76">          return item;</span>
         });
   }
 
   @Override
   public @Nullable S resolve(@Nullable Adaptable adaptable) {
-<span class="fc" id="L86">    return getMatching(adaptable)</span>
-<span class="fc" id="L87">        .map(CollectionItemDecoration::getService)</span>
-<span class="fc" id="L88">        .findFirst().orElse(null);</span>
+<span class="fc" id="L82">    return getMatching(adaptable)</span>
+<span class="fc" id="L83">        .map(CollectionItemDecoration::getService)</span>
+<span class="fc" id="L84">        .findFirst().orElse(null);</span>
   }
 
   @Override
   @SuppressWarnings(&quot;null&quot;)
   public @NotNull Stream&lt;S&gt; resolveAll(@Nullable Adaptable adaptable) {
-<span class="fc" id="L94">    return getMatching(adaptable)</span>
-<span class="fc" id="L95">        .map(CollectionItemDecoration::getService);</span>
+<span class="fc" id="L90">    return getMatching(adaptable)</span>
+<span class="fc" id="L91">        .map(CollectionItemDecoration::getService);</span>
   }
 
   @Override
   public @Nullable D resolveDecorated(@Nullable Adaptable adaptable) {
-<span class="fc" id="L100">    return getMatching(adaptable)</span>
-<span class="fc" id="L101">        .map(CollectionItemDecoration::getDecoration)</span>
-<span class="fc" id="L102">        .findFirst().orElse(null);</span>
+<span class="fc" id="L96">    return getMatching(adaptable)</span>
+<span class="fc" id="L97">        .map(CollectionItemDecoration::getDecoration)</span>
+<span class="fc" id="L98">        .findFirst().orElse(null);</span>
   }
 
   @Override
   @SuppressWarnings(&quot;null&quot;)
   public @NotNull Stream&lt;D&gt; resolveAllDecorated(@Nullable Adaptable adaptable) {
-<span class="fc" id="L108">    return getMatching(adaptable)</span>
-<span class="fc" id="L109">        .map(CollectionItemDecoration::getDecoration);</span>
+<span class="fc" id="L104">    return getMatching(adaptable)</span>
+<span class="fc" id="L105">        .map(CollectionItemDecoration::getDecoration);</span>
   }
 
   private @NotNull Stream&lt;CollectionItemDecoration&lt;S, D&gt;&gt; getMatching(@Nullable Adaptable adaptable) {
-<span class="fc" id="L113">    String resourcePath = resourcePathResolver.get(adaptable);</span>
-<span class="fc" id="L114">    return serviceReferenceCollection.stream()</span>
-<span class="fc" id="L115">        .map(decorationCache::getUnchecked)</span>
-<span class="fc" id="L116">        .filter(CollectionItemDecoration::isValid)</span>
-<span class="fc" id="L117">        .filter(item -&gt; item.matches(resourcePath));</span>
+<span class="fc" id="L109">    String resourcePath = resourcePathResolver.get(adaptable);</span>
+<span class="fc" id="L110">    return serviceReferenceCollection.stream()</span>
+<span class="fc" id="L111">        .map(decorationCache::get)</span>
+<span class="fc" id="L112">        .filter(CollectionItemDecoration::isValid)</span>
+<span class="fc" id="L113">        .filter(item -&gt; item.matches(resourcePath));</span>
   }
 
   @Override
   public void close() {
-<span class="fc" id="L122">    this.decorationCache.invalidateAll();</span>
-<span class="fc" id="L123">  }</span>
+<span class="fc" id="L118">    this.decorationCache.invalidateAll();</span>
+<span class="fc" id="L119">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
