@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ListV4Impl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Core Components</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.core.components.impl.models.v4</a> &gt; <span class="el_source">ListV4Impl.java</span></div><h1>ListV4Impl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2023 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.core.components.impl.models.v4;
+
+import java.text.Collator;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.models.annotations.Exporter;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.Via;
+import org.apache.sling.models.annotations.injectorspecific.Self;
+import org.apache.sling.models.annotations.via.ResourceSuperType;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.adobe.cq.export.json.ComponentExporter;
+import com.adobe.cq.export.json.ExporterConstants;
+import com.adobe.cq.wcm.core.components.models.List;
+import com.adobe.cq.wcm.core.components.models.ListItem;
+import com.day.cq.wcm.api.Page;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.wcm.handler.link.Link;
+import io.wcm.handler.link.LinkHandler;
+import io.wcm.wcm.core.components.impl.link.LinkWrapper;
+import io.wcm.wcm.core.components.impl.models.helpers.AbstractComponentImpl;
+import io.wcm.wcm.core.components.impl.models.helpers.LinkListItemV2Impl;
+import io.wcm.wcm.core.components.impl.models.helpers.PageListItemV4Impl;
+
+/**
+ * wcm.io-based enhancements for {@link List}:
+ * &lt;ul&gt;
+ * &lt;li&gt;Build link item links using Link handler&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Model(adaptables = SlingHttpServletRequest.class,
+    adapters = { List.class, ComponentExporter.class },
+    resourceType = ListV4Impl.RESOURCE_TYPE)
+@Exporter(
+    name = ExporterConstants.SLING_MODEL_EXPORTER_NAME,
+    extensions = ExporterConstants.SLING_MODEL_EXTENSION)
+<span class="fc" id="L72">public class ListV4Impl extends AbstractComponentImpl implements List {</span>
+
+  static final String RESOURCE_TYPE = &quot;wcm-io/wcm/core/components/list/v4/list&quot;;
+
+  static final String SOURCE_STATIC = &quot;static&quot;;
+  static final String ORDERBY_TITLE = &quot;title&quot;;
+  static final String ORDERBY_MODIFIED = &quot;modified&quot;;
+  static final String SORTORDER_DESC = &quot;desc&quot;;
+
+  private Collection&lt;ListItem&gt; staticListItems;
+
+  @Self
+  @Via(type = ResourceSuperType.class)
+  private List delegate;
+
+  @Self
+  private LinkHandler linkHandler;
+
+  @Override
+  @JsonProperty(&quot;items&quot;)
+  public @NotNull Collection&lt;ListItem&gt; getListItems() {
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">    if (this.staticListItems != null) {</span>
+<span class="nc" id="L94">      return staticListItems;</span>
+    }
+<span class="fc bfc" id="L96" title="All 2 branches covered.">    if (isListSourceStatic()) {</span>
+<span class="fc" id="L97">      Resource staticItems = this.resource.getChild(NN_STATIC);</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">      if (staticItems != null) {</span>
+<span class="fc" id="L99">        this.staticListItems = getStaticListItems(staticItems);</span>
+<span class="fc" id="L100">        return this.staticListItems;</span>
+      }
+    }
+<span class="fc" id="L103">    return transformToPageListItems(getItems());</span>
+  }
+
+  // --- delegated methods ---
+
+  @Override
+  @SuppressWarnings(&quot;null&quot;)
+  @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
+  public @NotNull String getId() {
+<span class="fc" id="L112">    return this.delegate.getId();</span>
+  }
+
+  @Override
+  @SuppressWarnings(&quot;deprecation&quot;)
+  public Collection&lt;Page&gt; getItems() {
+<span class="fc" id="L118">    return this.delegate.getItems();</span>
+  }
+
+  @Override
+  public boolean linkItems() {
+<span class="fc" id="L123">    return this.delegate.linkItems();</span>
+  }
+
+  @Override
+  public boolean showDescription() {
+<span class="fc" id="L128">    return this.delegate.showDescription();</span>
+  }
+
+  @Override
+  public boolean showModificationDate() {
+<span class="nc" id="L133">    return this.delegate.showModificationDate();</span>
+  }
+
+  @Override
+  public String getDateFormatString() {
+<span class="nc" id="L138">    return this.delegate.getDateFormatString();</span>
+  }
+
+  @Override
+  public boolean displayItemAsTeaser() {
+<span class="fc" id="L143">    return this.delegate.displayItemAsTeaser();</span>
+  }
+
+  // --- internal methods ---
+
+  private boolean isListSourceStatic() {
+<span class="fc" id="L149">    String source = resource.getValueMap().get(PN_SOURCE, String.class);</span>
+<span class="fc" id="L150">    return StringUtils.equals(source, SOURCE_STATIC);</span>
+  }
+
+  private Collection&lt;ListItem&gt; getStaticListItems(@NotNull Resource staticItemsResource) {
+<span class="fc" id="L154">    Stream&lt;Resource&gt; itemResources = StreamSupport.stream(staticItemsResource.getChildren().spliterator(), false);</span>
+<span class="fc" id="L155">    Stream&lt;ListItem&gt; listItems = itemResources</span>
+<span class="fc" id="L156">        .map(this::toLinkListItem)</span>
+<span class="fc" id="L157">        .filter(Objects::nonNull);</span>
+
+    // apply sorting
+<span class="fc" id="L160">    ValueMap properties = resource.getValueMap();</span>
+<span class="fc" id="L161">    String orderBy = properties.get(PN_ORDER_BY, String.class);</span>
+<span class="fc" id="L162">    String sortOrder = properties.get(PN_SORT_ORDER, String.class);</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">    int direction = StringUtils.equalsIgnoreCase(sortOrder, SORTORDER_DESC) ? -1 : 1;</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">    if (StringUtils.equals(orderBy, ORDERBY_TITLE)) {</span>
+      // getTitle may return null, define null to be greater than nonnull values
+<span class="fc" id="L166">      Comparator&lt;String&gt; titleComparator = Comparator.nullsLast(getCollator());</span>
+<span class="fc" id="L167">      listItems = listItems.sorted((item1, item2) -&gt; direction * titleComparator.compare(item1.getTitle(), item2.getTitle()));</span>
+<span class="fc" id="L168">    }</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">    else if (StringUtils.equals(orderBy, ORDERBY_MODIFIED)) {</span>
+      // getLastModified may return null, define null to be after nonnull values
+<span class="fc" id="L171">      listItems = listItems.sorted((item1, item2) -&gt; direction * ObjectUtils.compare(getLastModifiedDate(item1),</span>
+<span class="fc" id="L172">          getLastModifiedDate(item2), true));</span>
+    }
+
+<span class="fc" id="L175">    return listItems.collect(Collectors.toList());</span>
+  }
+
+  private Collator getCollator() {
+<span class="fc" id="L179">    Locale locale = Locale.US;</span>
+<span class="fc" id="L180">    Page currentPage = getCurrentPage();</span>
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">    if (currentPage != null) {</span>
+<span class="fc" id="L182">      locale = currentPage.getLanguage();</span>
+    }
+<span class="fc" id="L184">    Collator collator = Collator.getInstance(locale);</span>
+<span class="fc" id="L185">    collator.setStrength(Collator.PRIMARY);</span>
+<span class="fc" id="L186">    return collator;</span>
+  }
+
+  private Calendar getLastModifiedDate(ListItem item) {
+<span class="fc bfc" id="L190" title="All 2 branches covered.">    if (item instanceof PageListItemV4Impl) {</span>
+<span class="fc" id="L191">      return ((PageListItemV4Impl)item).getPage().getLastModified();</span>
+    }
+<span class="fc" id="L193">    return null;</span>
+  }
+
+  @SuppressWarnings(&quot;null&quot;)
+  private @Nullable ListItem toLinkListItem(@NotNull Resource itemResource) {
+<span class="fc" id="L198">    Link link = linkHandler.get(itemResource).build();</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">    if (!link.isValid()) {</span>
+<span class="fc" id="L200">      return null;</span>
+    }
+<span class="fc" id="L202">    String linkText = itemResource.getValueMap().get(List.PN_LINK_TEXT, String.class);</span>
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">    if (StringUtils.isBlank(linkText)) {</span>
+<span class="nc" id="L204">      linkText = link.getUrl();</span>
+    }
+<span class="fc bfc" id="L206" title="All 2 branches covered.">    if (link.getTargetPage() != null) {</span>
+<span class="fc" id="L207">      return newPageListItem(link.getTargetPage(), link, linkText);</span>
+    }
+    else {
+<span class="fc" id="L210">      return new LinkListItemV2Impl(linkText, new LinkWrapper(link), &quot;item&quot;, getId(), getParentComponent(), this.resource);</span>
+    }
+  }
+
+  protected Collection&lt;ListItem&gt; transformToPageListItems(Collection&lt;Page&gt; pages) {
+<span class="fc" id="L215">    return pages.stream()</span>
+<span class="fc" id="L216">        .filter(Objects::nonNull)</span>
+<span class="fc" id="L217">        .map(page -&gt; newPageListItem(page, linkHandler.get(page).build(), null))</span>
+<span class="fc" id="L218">        .collect(Collectors.toList());</span>
+  }
+
+  protected ListItem newPageListItem(@NotNull Page page, @NotNull Link link, @Nullable String linkText) {
+<span class="fc" id="L222">    return new PageListItemV4Impl(page, link,</span>
+<span class="pc bpc" id="L223" title="1 of 4 branches missed.">        getId(), getParentComponent(), showDescription(), linkItems() || displayItemAsTeaser(), linkText);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
