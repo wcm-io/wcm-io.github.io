@@ -32,9 +32,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.wcm.handler.link.Link;
 import io.wcm.handler.link.LinkArgs;
 import io.wcm.handler.link.spi.LinkProcessor;
+import io.wcm.handler.link.spi.LinkType;
 import io.wcm.handler.link.type.InternalCrossContextLinkType;
 import io.wcm.handler.link.type.InternalLinkType;
 import io.wcm.siteapi.genericedit.GenericEditConfig;
@@ -47,7 +49,7 @@ import io.wcm.sling.commons.request.RequestPath;
     SlingHttpServletRequest.class, Resource.class
 })
 @ProviderType
-<span class="fc" id="L50">public class SiteApiInternalLinkInheritGenericEditSelectorLinkPreProcessor implements LinkProcessor {</span>
+<span class="fc" id="L52">public class SiteApiInternalLinkInheritGenericEditSelectorLinkPreProcessor implements LinkProcessor {</span>
 
   // optional injection (only available if called inside a request)
   @SlingObject(injectionStrategy = InjectionStrategy.OPTIONAL)
@@ -59,36 +61,42 @@ import io.wcm.sling.commons.request.RequestPath;
 
   @PostConstruct
   private void activate() {
-<span class="fc" id="L62">    genericEditSelector = genericEditConfig.getSelector();</span>
-<span class="fc" id="L63">  }</span>
+<span class="fc" id="L64">    genericEditSelector = genericEditConfig.getSelector();</span>
+<span class="fc" id="L65">  }</span>
 
   @Override
   public @NotNull Link process(@NotNull Link link) {
-<span class="fc bfc" id="L67" title="All 4 branches covered.">    if (isInternalLink(link) &amp;&amp; isRequestHasGenericEditSelector()) {</span>
-<span class="fc" id="L68">      LinkArgs linkArgs = link.getLinkRequest().getLinkArgs();</span>
-<span class="fc" id="L69">      linkArgs.selectors(appendSelector(linkArgs.getSelectors()));</span>
+<span class="fc bfc" id="L69" title="All 4 branches covered.">    if (isInternalLink(link) &amp;&amp; isRequestHasGenericEditSelector()) {</span>
+<span class="fc" id="L70">      LinkArgs linkArgs = link.getLinkRequest().getLinkArgs();</span>
+<span class="fc" id="L71">      linkArgs.selectors(appendSelector(linkArgs.getSelectors()));</span>
     }
-<span class="fc" id="L71">    return link;</span>
+<span class="fc" id="L73">    return link;</span>
   }
 
+  @SuppressWarnings({ &quot;null&quot;, &quot;unused&quot; })
+  @SuppressFBWarnings(&quot;RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE&quot;)
   private boolean isInternalLink(@NotNull Link link) {
-<span class="fc bfc" id="L75" title="All 2 branches covered.">    return StringUtils.equals(link.getLinkType().getId(), InternalLinkType.ID)</span>
-<span class="pc bpc" id="L76" title="1 of 2 branches missed.">        || StringUtils.equals(link.getLinkType().getId(), InternalCrossContextLinkType.ID);</span>
+<span class="fc" id="L79">    LinkType linkType = link.getLinkType();</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">    if (linkType == null) { // should never be null, but actually can be null for null-reference link</span>
+<span class="fc" id="L81">      return false;</span>
+    }
+<span class="fc bfc" id="L83" title="All 2 branches covered.">    return StringUtils.equals(linkType.getId(), InternalLinkType.ID)</span>
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        || StringUtils.equals(linkType.getId(), InternalCrossContextLinkType.ID);</span>
   }
 
   private boolean isRequestHasGenericEditSelector() {
-<span class="fc bfc" id="L80" title="All 2 branches covered.">    if (request == null) {</span>
-<span class="fc" id="L81">      return false;</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (request == null) {</span>
+<span class="fc" id="L89">      return false;</span>
     }
-<span class="fc" id="L83">    return RequestPath.hasSelector(request, genericEditSelector);</span>
+<span class="fc" id="L91">    return RequestPath.hasSelector(request, genericEditSelector);</span>
   }
 
   private @NotNull String appendSelector(@Nullable String selectors) {
-<span class="fc bfc" id="L87" title="All 2 branches covered.">    if (selectors == null) {</span>
-<span class="fc" id="L88">      return genericEditSelector;</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (selectors == null) {</span>
+<span class="fc" id="L96">      return genericEditSelector;</span>
     }
     else {
-<span class="fc" id="L91">      return selectors + &quot;.&quot; + genericEditSelector;</span>
+<span class="fc" id="L99">      return selectors + &quot;.&quot; + genericEditSelector;</span>
     }
   }
 
