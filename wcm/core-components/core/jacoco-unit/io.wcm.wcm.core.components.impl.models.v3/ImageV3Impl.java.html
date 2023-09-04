@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImageV3Impl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Core Components</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.core.components.impl.models.v3</a> &gt; <span class="el_source">ImageV3Impl.java</span></div><h1>ImageV3Impl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2023 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.core.components.impl.models.v3;
+
+import static com.day.cq.commons.ImageResource.PN_ALT;
+import static com.day.cq.commons.jcr.JcrConstants.JCR_TITLE;
+import static io.wcm.handler.media.MediaNameConstants.PROP_CSS_CLASS;
+import static io.wcm.handler.media.MediaNameConstants.URI_TEMPLATE_PLACEHOLDER_WIDTH;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.models.annotations.Exporter;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
+import org.apache.sling.models.annotations.injectorspecific.Self;
+import org.apache.sling.models.annotations.injectorspecific.ValueMapValue;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.adobe.cq.export.json.ComponentExporter;
+import com.adobe.cq.export.json.ExporterConstants;
+import com.adobe.cq.wcm.core.components.models.Image;
+import com.adobe.cq.wcm.core.components.models.ImageArea;
+import com.adobe.cq.wcm.core.components.models.datalayer.ImageData;
+import com.adobe.cq.wcm.core.components.models.datalayer.builder.AssetDataBuilder;
+import com.adobe.cq.wcm.core.components.models.datalayer.builder.DataLayerBuilder;
+import com.day.cq.wcm.api.designer.Style;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import io.wcm.handler.link.LinkHandler;
+import io.wcm.handler.media.Asset;
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.MediaHandler;
+import io.wcm.handler.media.Rendition;
+import io.wcm.handler.media.UriTemplate;
+import io.wcm.handler.media.UriTemplateType;
+import io.wcm.handler.media.format.Ratio;
+import io.wcm.handler.url.UrlHandler;
+import io.wcm.sling.models.annotations.AemObject;
+import io.wcm.wcm.core.components.impl.link.LinkWrapper;
+import io.wcm.wcm.core.components.impl.models.helpers.AbstractComponentImpl;
+import io.wcm.wcm.core.components.impl.models.helpers.ImageAreaV2Impl;
+import io.wcm.wcm.core.components.impl.util.ComponentFeatureImageResolver;
+import io.wcm.wcm.core.components.impl.util.HandlerUnwrapper;
+import io.wcm.wcm.core.components.models.mixin.MediaMixin;
+
+/**
+ * wcm.io-based enhancements for {@link Image}:
+ * &lt;ul&gt;
+ * &lt;li&gt;Build image using Media handler&lt;/li&gt;
+ * &lt;li&gt;Build link using Link handler&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Model(adaptables = SlingHttpServletRequest.class,
+    adapters = { Image.class, ComponentExporter.class },
+    resourceType = ImageV3Impl.RESOURCE_TYPE)
+@Exporter(
+    name = ExporterConstants.SLING_MODEL_EXPORTER_NAME,
+    extensions = ExporterConstants.SLING_MODEL_EXTENSION)
+<span class="fc" id="L85">public class ImageV3Impl extends AbstractComponentImpl implements Image, MediaMixin {</span>
+
+  /**
+   * Resource type
+   */
+  static final String RESOURCE_TYPE = &quot;wcm-io/wcm/core/components/image/v3/image&quot;;
+
+  /**
+   * Width placeholder for URI template
+   */
+  public static final String WIDTH_PLACEHOLDER = &quot;{.width}&quot;;
+
+  @AemObject
+  protected Style currentStyle;
+  @Self
+  protected LinkHandler linkHandler;
+  @Self
+  protected MediaHandler mediaHandler;
+  @Self
+  protected UrlHandler urlHandler;
+
+  @ValueMapValue(name = PN_ALT, injectionStrategy = InjectionStrategy.OPTIONAL)
+  protected @Nullable String alt;
+  @ValueMapValue(name = JCR_TITLE, injectionStrategy = InjectionStrategy.OPTIONAL)
+  protected @Nullable String title;
+
+  @ValueMapValue(injectionStrategy = InjectionStrategy.OPTIONAL)
+  protected @Nullable String imageCrop;
+  @ValueMapValue(injectionStrategy = InjectionStrategy.OPTIONAL)
+  protected @Nullable String imageRotate;
+
+  protected LinkWrapper link;
+  protected Media media;
+  protected String uuid;
+  protected String fileReference;
+  protected boolean displayPopupTitle;
+  protected boolean enableLazyLoading;
+  protected int lazyThreshold;
+  protected boolean isDecorative;
+  protected List&lt;ImageArea&gt; areas;
+
+<span class="fc" id="L126">  protected List&lt;Long&gt; widths = Collections.emptyList();</span>
+  protected String srcPattern;
+
+  @PostConstruct
+  private void activate() {
+<span class="fc" id="L131">    ValueMap properties = resource.getValueMap();</span>
+
+    // read basic properties
+<span class="fc" id="L134">    displayPopupTitle = properties.get(PN_DISPLAY_POPUP_TITLE, currentStyle.get(PN_DISPLAY_POPUP_TITLE, true));</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">    enableLazyLoading = !currentStyle.get(PN_DESIGN_LAZY_LOADING_ENABLED, true);</span>
+<span class="fc" id="L136">    lazyThreshold = currentStyle.get(PN_DESIGN_LAZY_THRESHOLD, 0);</span>
+<span class="fc" id="L137">    isDecorative = properties.get(PN_IS_DECORATIVE, currentStyle.get(PN_IS_DECORATIVE, false));</span>
+<span class="fc" id="L138">    boolean altFromAsset = properties.get(PN_ALT_VALUE_FROM_DAM, currentStyle.get(PN_ALT_VALUE_FROM_DAM, true));</span>
+<span class="fc" id="L139">    boolean imageFromPageImage = properties.get(PN_IMAGE_FROM_PAGE_IMAGE, true);</span>
+
+    // resolve link - decorative images have no link and no alt text by definition
+<span class="fc bfc" id="L142" title="All 2 branches covered.">    if (isDecorative) {</span>
+<span class="fc" id="L143">      link = new LinkWrapper(linkHandler.invalid());</span>
+    }
+    else {
+<span class="fc" id="L146">      link = new LinkWrapper(HandlerUnwrapper.get(linkHandler, resource).build());</span>
+    }
+
+    // resolve media and properties from DAM asset
+<span class="fc" id="L150">    media = buildMedia(altFromAsset, imageFromPageImage);</span>
+
+<span class="fc bfc" id="L152" title="All 4 branches covered.">    if (media.isValid() &amp;&amp; !media.getRendition().isImage()) {</span>
+      // no image asset selected (cannot be rendered) - set to invalid
+<span class="fc" id="L154">      media = mediaHandler.invalid();</span>
+    }
+<span class="fc bfc" id="L156" title="All 2 branches covered.">    if (media.isValid()) {</span>
+<span class="fc" id="L157">      initPropertiesFromDamAsset(properties);</span>
+<span class="fc" id="L158">      widths = buildRenditionWidths();</span>
+<span class="fc" id="L159">      srcPattern = buildSrcPattern();</span>
+<span class="fc" id="L160">      areas = buildAreas();</span>
+    }
+
+<span class="fc" id="L163">  }</span>
+
+  protected Media buildMedia(boolean altFromAsset, boolean imageFromPageImage) {
+<span class="fc" id="L166">    ComponentFeatureImageResolver imageResolver = new ComponentFeatureImageResolver(resource, getCurrentPage(), currentStyle, mediaHandler)</span>
+<span class="fc" id="L167">        .targetPage(getCurrentPage())</span>
+<span class="fc" id="L168">        .altValueFromDam(altFromAsset)</span>
+<span class="fc" id="L169">        .imageFromPageImage(imageFromPageImage)</span>
+<span class="fc" id="L170">        .mediaHandlerProperty(PROP_CSS_CLASS, &quot;cmp-image__image&quot;)</span>
+<span class="fc" id="L171">        .mediaHandlerProperty(&quot;itemprop&quot;, &quot;contentUrl&quot;);</span>
+<span class="fc" id="L172">    String imageTitle = title;</span>
+<span class="fc bfc" id="L173" title="All 4 branches covered.">    if (displayPopupTitle &amp;&amp; imageTitle != null) {</span>
+<span class="fc" id="L174">      imageResolver.mediaHandlerProperty(&quot;title&quot;, imageTitle);</span>
+    }
+<span class="fc" id="L176">    return imageResolver.buildMedia();</span>
+  }
+
+  protected List&lt;ImageArea&gt; buildAreas() {
+<span class="fc" id="L180">    return ImageAreaV2Impl.convertMap(media.getMap());</span>
+  }
+
+  /**
+   * Checks if the resolved media is a DAM asset, and initializes properties from it.
+   * @param properties Resource properties
+   */
+  private void initPropertiesFromDamAsset(ValueMap properties) {
+<span class="fc" id="L188">    Asset asset = media.getAsset();</span>
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">    if (asset != null) {</span>
+<span class="fc" id="L190">      com.day.cq.dam.api.Asset damAsset = asset.adaptTo(com.day.cq.dam.api.Asset.class);</span>
+<span class="fc bfc" id="L191" title="All 2 branches covered.">      if (damAsset != null) {</span>
+<span class="fc" id="L192">        boolean titleFromAsset = properties.get(PN_TITLE_VALUE_FROM_DAM, currentStyle.get(PN_TITLE_VALUE_FROM_DAM, true));</span>
+<span class="fc" id="L193">        boolean uuidDisabled = currentStyle.get(PN_UUID_DISABLED, false);</span>
+
+<span class="fc" id="L195">        fileReference = damAsset.getPath();</span>
+<span class="fc" id="L196">        alt = asset.getAltText();</span>
+
+<span class="fc bfc" id="L198" title="All 2 branches covered.">        if (!uuidDisabled) {</span>
+<span class="fc" id="L199">          uuid = damAsset.getID();</span>
+        }
+
+<span class="fc bfc" id="L202" title="All 2 branches covered.">        if (titleFromAsset) {</span>
+<span class="fc" id="L203">          String assetTitle = asset.getTitle();</span>
+<span class="pc bpc" id="L204" title="1 of 2 branches missed.">          if (StringUtils.isNotEmpty(assetTitle)) {</span>
+<span class="fc" id="L205">            title = assetTitle;</span>
+          }
+        }
+      }
+    }
+<span class="fc" id="L210">  }</span>
+
+  /**
+   * Build lists of rendition widths based on the resolved media renditions
+   * (those that share the same ratio as the primary rendition)
+   * @return Widths
+   */
+  protected List&lt;Long&gt; buildRenditionWidths() {
+<span class="fc" id="L218">    double primaryRatio = media.getRendition().getRatio();</span>
+<span class="fc" id="L219">    return media.getRenditions().stream()</span>
+<span class="fc" id="L220">        .filter(rendition -&gt; Ratio.matches(rendition.getRatio(), primaryRatio))</span>
+<span class="fc" id="L221">        .map(Rendition::getWidth)</span>
+<span class="fc" id="L222">        .distinct()</span>
+<span class="fc" id="L223">        .sorted()</span>
+<span class="fc" id="L224">        .collect(Collectors.toList());</span>
+  }
+
+  /**
+   * Build image url pattern via Media Handler URI template.
+   * @return Url pattern
+   */
+  protected String buildSrcPattern() {
+<span class="fc" id="L232">    Rendition rendition = media.getRendition();</span>
+<span class="pc bpc" id="L233" title="1 of 4 branches missed.">    if (!rendition.isImage() || rendition.isVectorImage()) {</span>
+<span class="fc" id="L234">      return null;</span>
+    }
+<span class="fc" id="L236">    UriTemplate uriTempalte = rendition.getUriTemplate(UriTemplateType.SCALE_WIDTH);</span>
+<span class="fc" id="L237">    return StringUtils.replace(uriTempalte.getUriTemplate(), URI_TEMPLATE_PLACEHOLDER_WIDTH, WIDTH_PLACEHOLDER);</span>
+  }
+
+  @Override
+  @NotNull
+  public Media getMediaObject() {
+<span class="fc" id="L243">    return media;</span>
+  }
+
+  @Override
+  public String getSrc() {
+<span class="fc" id="L248">    return media.getUrl();</span>
+  }
+
+  @Override
+  public String getAlt() {
+<span class="fc" id="L253">    return alt;</span>
+  }
+
+  @Override
+  public String getTitle() {
+<span class="fc" id="L258">    return title;</span>
+  }
+
+  @Override
+  public String getUuid() {
+<span class="fc" id="L263">    return uuid;</span>
+  }
+
+  @Override
+  public com.adobe.cq.wcm.core.components.commons.link.Link getImageLink() {
+<span class="fc" id="L268">    return link.orNull();</span>
+  }
+
+  /**
+   * @deprecated Deprecated in API
+   */
+  @Override
+  @Deprecated(forRemoval = true)
+  public String getLink() {
+<span class="fc" id="L277">    return link.getURL();</span>
+  }
+
+  @Override
+  public boolean displayPopupTitle() {
+<span class="fc" id="L282">    return displayPopupTitle;</span>
+  }
+
+  @Override
+  public String getFileReference() {
+<span class="fc" id="L287">    return fileReference;</span>
+  }
+
+  @Override
+  public boolean isLazyEnabled() {
+<span class="fc" id="L292">    return enableLazyLoading;</span>
+  }
+
+  @Override
+  public int getLazyThreshold() {
+<span class="fc" id="L297">    return lazyThreshold;</span>
+  }
+
+  @Override
+  public String getSrcUriTemplate() {
+<span class="fc" id="L302">    return srcPattern;</span>
+  }
+
+  @Override
+  public int @NotNull [] getWidths() {
+<span class="fc" id="L307">    return widths.stream()</span>
+<span class="fc" id="L308">        .mapToInt(Long::intValue)</span>
+<span class="fc" id="L309">        .toArray();</span>
+  }
+
+  @Override
+  public List&lt;ImageArea&gt; getAreas() {
+<span class="fc" id="L314">    return areas;</span>
+  }
+
+  @Override
+  public boolean isDecorative() {
+<span class="fc" id="L319">    return isDecorative;</span>
+  }
+
+  @Override
+  public String getWidth() {
+<span class="fc" id="L324">    return null;</span>
+  }
+
+  @Override
+  public String getHeight() {
+<span class="fc" id="L329">    return null;</span>
+  }
+
+  @Override
+  public @Nullable String getSizes() {
+<span class="fc" id="L334">    return null;</span>
+  }
+
+  @Override
+  public String getSrcset() {
+<span class="fc" id="L339">    return null;</span>
+  }
+
+  @Override
+  public String getSmartCropRendition() {
+<span class="fc" id="L344">    return null;</span>
+  }
+
+  @Override
+  public boolean isDmImage() {
+<span class="fc" id="L349">    return false;</span>
+  }
+
+
+  // --- data layer ---
+
+  @Override
+  @JsonIgnore
+  @SuppressWarnings(&quot;null&quot;)
+  public @NotNull ImageData getComponentData() {
+<span class="fc" id="L359">    return DataLayerBuilder.extending(super.getComponentData()).asImageComponent()</span>
+<span class="fc" id="L360">        .withTitle(this::getTitle)</span>
+<span class="fc" id="L361">        .withLinkUrl(() -&gt; this.link.getLinkObject().getUrl())</span>
+<span class="fc" id="L362">        .withAssetData(() -&gt; Optional.of(media)</span>
+<span class="fc" id="L363">            .filter(Media::isValid)</span>
+<span class="fc" id="L364">            .map(Media::getAsset)</span>
+<span class="fc" id="L365">            .map(asset -&gt; asset.adaptTo(com.day.cq.dam.api.Asset.class))</span>
+<span class="fc" id="L366">            .map(DataLayerBuilder::forAsset)</span>
+<span class="fc" id="L367">            .map(AssetDataBuilder::build)</span>
+<span class="fc" id="L368">            .orElse(null))</span>
+<span class="fc" id="L369">        .build();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
