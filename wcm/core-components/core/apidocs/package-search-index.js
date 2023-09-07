@@ -1,1 +1,1 @@
-packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"io.wcm.wcm.core.components.models"},{"l":"io.wcm.wcm.core.components.models.mixin"}]
+packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"io.wcm.wcm.core.components.commons.link"},{"l":"io.wcm.wcm.core.components.models"},{"l":"io.wcm.wcm.core.components.models.mixin"}]
