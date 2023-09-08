@@ -58,6 +58,10 @@ import io.wcm.wcm.commons.component.ComponentPropertyResolverFactory;
  * Resolves Media Handler component properties for the component associated
  * with the given resource from content policies and properties defined in the component resource.
  * Please make sure to {@link #close()} instances of this class after usage.
+ * &lt;p&gt;
+ * Alternatively, it's possible to use the resolver on a ValueMap. In this case, the properties
+ * are directly read from the provided value map. Picture Sources are not supported for that option.
+ * &lt;/p&gt;
  */
 @ProviderType
 @SuppressFBWarnings(&quot;NP_NONNULL_RETURN_VIOLATION&quot;)
@@ -74,19 +78,30 @@ public final class MediaComponentPropertyResolver implements AutoCloseable {
   static final String PN_PICTURE_SOURCES_SIZES = &quot;sizes&quot;;
   static final String PN_PICTURE_SOURCES_WIDTHS = &quot;widths&quot;;
 
-  private final ComponentPropertyResolver resolver;
+  private final @Nullable ComponentPropertyResolver resolver;
+  private final PropertyAccessor propertyAccessor;
 
   /**
+   * Resolves
    * @param resource Resource
    * @param componentPropertyResolverFactory Component property resolver factory
    */
   public MediaComponentPropertyResolver(@NotNull Resource resource,
-<span class="fc" id="L84">      @NotNull ComponentPropertyResolverFactory componentPropertyResolverFactory) {</span>
+<span class="fc" id="L90">      @NotNull ComponentPropertyResolverFactory componentPropertyResolverFactory) {</span>
     // resolve media component properties 1. from policies and 2. from component definition
-<span class="fc" id="L86">    resolver = componentPropertyResolverFactory.get(resource, true)</span>
-<span class="fc" id="L87">        .contentPolicyResolution(ComponentPropertyResolution.RESOLVE)</span>
-<span class="fc" id="L88">        .componentPropertiesResolution(ComponentPropertyResolution.RESOLVE_INHERIT);</span>
-<span class="fc" id="L89">  }</span>
+<span class="fc" id="L92">    resolver = componentPropertyResolverFactory.get(resource, true)</span>
+<span class="fc" id="L93">        .contentPolicyResolution(ComponentPropertyResolution.RESOLVE)</span>
+<span class="fc" id="L94">        .componentPropertiesResolution(ComponentPropertyResolution.RESOLVE_INHERIT);</span>
+<span class="fc" id="L95">    propertyAccessor = new ComponentPropertyResolverPropertyAccessor(resolver);</span>
+<span class="fc" id="L96">  }</span>
+
+  /**
+   * @param valueMap Value map to read properties directly from
+   */
+<span class="fc" id="L101">  public MediaComponentPropertyResolver(@NotNull ValueMap valueMap) {</span>
+<span class="fc" id="L102">    resolver = null;</span>
+<span class="fc" id="L103">    propertyAccessor = new ValueMapPropertyAccessor(valueMap);</span>
+<span class="fc" id="L104">  }</span>
 
   /**
    * @param resource Resource
@@ -94,62 +109,63 @@ public final class MediaComponentPropertyResolver implements AutoCloseable {
    */
   @Deprecated
   @SuppressWarnings(&quot;resource&quot;)
-<span class="nc" id="L97">  public MediaComponentPropertyResolver(@NotNull Resource resource) {</span>
+<span class="nc" id="L112">  public MediaComponentPropertyResolver(@NotNull Resource resource) {</span>
     // resolve media component properties 1. from policies and 2. from component definition
-<span class="nc" id="L99">    resolver = new ComponentPropertyResolver(resource, true)</span>
-<span class="nc" id="L100">        .contentPolicyResolution(ComponentPropertyResolution.RESOLVE)</span>
-<span class="nc" id="L101">        .componentPropertiesResolution(ComponentPropertyResolution.RESOLVE_INHERIT);</span>
-<span class="nc" id="L102">  }</span>
+<span class="nc" id="L114">    resolver = new ComponentPropertyResolver(resource, true)</span>
+<span class="nc" id="L115">        .contentPolicyResolution(ComponentPropertyResolution.RESOLVE)</span>
+<span class="nc" id="L116">        .componentPropertiesResolution(ComponentPropertyResolution.RESOLVE_INHERIT);</span>
+<span class="nc" id="L117">    propertyAccessor = new ComponentPropertyResolverPropertyAccessor(resolver);</span>
+<span class="nc" id="L118">  }</span>
 
   /**
    * @return AutoCrop state
    */
   public boolean isAutoCrop() {
-<span class="fc" id="L108">    return resolver.get(PN_COMPONENT_MEDIA_AUTOCROP, false);</span>
+<span class="fc" id="L124">    return propertyAccessor.get(PN_COMPONENT_MEDIA_AUTOCROP, false);</span>
   }
 
   /**
    * @return List of media formats with and without mandatory setting.
    */
   public @NotNull MediaFormatOption @Nullable [] getMediaFormatOptions() {
-<span class="fc" id="L115">    Map&lt;String, MediaFormatOption&gt; mediaFormatOptions = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L131">    Map&lt;String, MediaFormatOption&gt; mediaFormatOptions = new LinkedHashMap&lt;&gt;();</span>
 
     // media formats with optional mandatory boolean flag(s)
-<span class="fc" id="L118">    String[] mediaFormatNames = resolver.get(PN_COMPONENT_MEDIA_FORMATS, String[].class);</span>
-<span class="fc" id="L119">    Boolean[] mediaFormatsMandatory = resolver.get(PN_COMPONENT_MEDIA_FORMATS_MANDATORY, Boolean[].class);</span>
-<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (mediaFormatNames != null) {</span>
-<span class="fc bfc" id="L121" title="All 2 branches covered.">      for (int i = 0; i &lt; mediaFormatNames.length; i++) {</span>
-<span class="fc" id="L122">        boolean mandatory = false;</span>
-<span class="fc bfc" id="L123" title="All 2 branches covered.">        if (mediaFormatsMandatory != null) {</span>
-<span class="fc bfc" id="L124" title="All 2 branches covered.">          if (mediaFormatsMandatory.length == 1) {</span>
+<span class="fc" id="L134">    String[] mediaFormatNames = propertyAccessor.get(PN_COMPONENT_MEDIA_FORMATS, String[].class);</span>
+<span class="fc" id="L135">    Boolean[] mediaFormatsMandatory = propertyAccessor.get(PN_COMPONENT_MEDIA_FORMATS_MANDATORY, Boolean[].class);</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">    if (mediaFormatNames != null) {</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">      for (int i = 0; i &lt; mediaFormatNames.length; i++) {</span>
+<span class="fc" id="L138">        boolean mandatory = false;</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        if (mediaFormatsMandatory != null) {</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">          if (mediaFormatsMandatory.length == 1) {</span>
             // backward compatibility: support a single flag for all media formats
-<span class="fc" id="L126">            mandatory = mediaFormatsMandatory[0];</span>
+<span class="fc" id="L142">            mandatory = mediaFormatsMandatory[0];</span>
           }
-<span class="pc bpc" id="L128" title="1 of 2 branches missed.">          else if (mediaFormatsMandatory.length &gt; i) {</span>
-<span class="fc" id="L129">            mandatory = mediaFormatsMandatory[i];</span>
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">          else if (mediaFormatsMandatory.length &gt; i) {</span>
+<span class="fc" id="L145">            mandatory = mediaFormatsMandatory[i];</span>
           }
         }
-<span class="pc bpc" id="L132" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(mediaFormatNames[i])) {</span>
-<span class="fc" id="L133">          mediaFormatOptions.put(mediaFormatNames[i], new MediaFormatOption(mediaFormatNames[i], mandatory));</span>
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(mediaFormatNames[i])) {</span>
+<span class="fc" id="L149">          mediaFormatOptions.put(mediaFormatNames[i], new MediaFormatOption(mediaFormatNames[i], mandatory));</span>
         }
       }
     }
 
     // support additional property with list of media format names that are all rated as mandatory
-<span class="fc" id="L139">    String[] mediaFormatsMandatoryNames = resolver.get(PN_COMPONENT_MEDIA_FORMATS_MANDATORY_NAMES, String[].class);</span>
-<span class="fc bfc" id="L140" title="All 2 branches covered.">    if (mediaFormatsMandatoryNames != null) {</span>
-<span class="fc bfc" id="L141" title="All 2 branches covered.">      for (String mediaFormatName : mediaFormatsMandatoryNames) {</span>
-<span class="pc bpc" id="L142" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(mediaFormatName)) {</span>
-<span class="fc" id="L143">          mediaFormatOptions.put(mediaFormatName, new MediaFormatOption(mediaFormatName, true));</span>
+<span class="fc" id="L155">    String[] mediaFormatsMandatoryNames = propertyAccessor.get(PN_COMPONENT_MEDIA_FORMATS_MANDATORY_NAMES, String[].class);</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">    if (mediaFormatsMandatoryNames != null) {</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">      for (String mediaFormatName : mediaFormatsMandatoryNames) {</span>
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(mediaFormatName)) {</span>
+<span class="fc" id="L159">          mediaFormatOptions.put(mediaFormatName, new MediaFormatOption(mediaFormatName, true));</span>
         }
       }
     }
 
-<span class="fc bfc" id="L148" title="All 2 branches covered.">    if (mediaFormatOptions.isEmpty()) {</span>
-<span class="fc" id="L149">      return null;</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">    if (mediaFormatOptions.isEmpty()) {</span>
+<span class="fc" id="L165">      return null;</span>
     }
     else {
-<span class="fc" id="L152">      return mediaFormatOptions.values().stream().toArray(size -&gt; new MediaFormatOption[size]);</span>
+<span class="fc" id="L168">      return mediaFormatOptions.values().stream().toArray(size -&gt; new MediaFormatOption[size]);</span>
     }
   }
 
@@ -158,17 +174,17 @@ public final class MediaComponentPropertyResolver implements AutoCloseable {
    */
   @SuppressWarnings(&quot;PMD.ReturnEmptyCollectionRatherThanNull&quot;)
   public @NotNull String @Nullable [] getMediaFormatNames() {
-<span class="fc" id="L161">    MediaFormatOption[] mediaFormatOptions = getMediaFormatOptions();</span>
-<span class="pc bpc" id="L162" title="1 of 2 branches missed.">    if (mediaFormatOptions != null) {</span>
-<span class="fc" id="L163">      String[] result = Arrays.stream(mediaFormatOptions)</span>
-<span class="fc" id="L164">          .map(MediaFormatOption::getMediaFormatName)</span>
-<span class="fc" id="L165">          .filter(Objects::nonNull)</span>
-<span class="fc" id="L166">          .toArray(size -&gt; new String[size]);</span>
-<span class="pc bpc" id="L167" title="1 of 2 branches missed.">      if (result.length &gt; 0) {</span>
-<span class="fc" id="L168">        return result;</span>
+<span class="fc" id="L177">    MediaFormatOption[] mediaFormatOptions = getMediaFormatOptions();</span>
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">    if (mediaFormatOptions != null) {</span>
+<span class="fc" id="L179">      String[] result = Arrays.stream(mediaFormatOptions)</span>
+<span class="fc" id="L180">          .map(MediaFormatOption::getMediaFormatName)</span>
+<span class="fc" id="L181">          .filter(Objects::nonNull)</span>
+<span class="fc" id="L182">          .toArray(size -&gt; new String[size]);</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">      if (result.length &gt; 0) {</span>
+<span class="fc" id="L184">        return result;</span>
       }
     }
-<span class="nc" id="L171">    return null;</span>
+<span class="nc" id="L187">    return null;</span>
   }
 
   /**
@@ -176,18 +192,18 @@ public final class MediaComponentPropertyResolver implements AutoCloseable {
    */
   @SuppressWarnings(&quot;PMD.ReturnEmptyCollectionRatherThanNull&quot;)
   public @NotNull String @Nullable [] getMandatoryMediaFormatNames() {
-<span class="fc" id="L179">    MediaFormatOption[] mediaFormatOptions = getMediaFormatOptions();</span>
-<span class="pc bpc" id="L180" title="1 of 2 branches missed.">    if (mediaFormatOptions != null) {</span>
-<span class="fc" id="L181">      String[] result = Arrays.stream(mediaFormatOptions)</span>
-<span class="fc" id="L182">          .filter(MediaFormatOption::isMandatory)</span>
-<span class="fc" id="L183">          .map(MediaFormatOption::getMediaFormatName)</span>
-<span class="fc" id="L184">          .filter(Objects::nonNull)</span>
-<span class="fc" id="L185">          .toArray(size -&gt; new String[size]);</span>
-<span class="fc bfc" id="L186" title="All 2 branches covered.">      if (result.length &gt; 0) {</span>
-<span class="fc" id="L187">        return result;</span>
+<span class="fc" id="L195">    MediaFormatOption[] mediaFormatOptions = getMediaFormatOptions();</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">    if (mediaFormatOptions != null) {</span>
+<span class="fc" id="L197">      String[] result = Arrays.stream(mediaFormatOptions)</span>
+<span class="fc" id="L198">          .filter(MediaFormatOption::isMandatory)</span>
+<span class="fc" id="L199">          .map(MediaFormatOption::getMediaFormatName)</span>
+<span class="fc" id="L200">          .filter(Objects::nonNull)</span>
+<span class="fc" id="L201">          .toArray(size -&gt; new String[size]);</span>
+<span class="fc bfc" id="L202" title="All 2 branches covered.">      if (result.length &gt; 0) {</span>
+<span class="fc" id="L203">        return result;</span>
       }
     }
-<span class="fc" id="L190">    return null;</span>
+<span class="fc" id="L206">    return null;</span>
   }
 
   /**
@@ -195,25 +211,25 @@ public final class MediaComponentPropertyResolver implements AutoCloseable {
    */
   @SuppressWarnings({ &quot;deprecation&quot;, &quot;null&quot; })
   public @Nullable ImageSizes getImageSizes() {
-<span class="fc" id="L198">    String responsiveType = getResponsiveType();</span>
-<span class="fc bfc" id="L199" title="All 4 branches covered.">    if (responsiveType != null &amp;&amp; !StringUtils.equals(responsiveType, RESPONSIVE_TYPE_IMAGE_SIZES)) {</span>
-<span class="fc" id="L200">      return null;</span>
+<span class="fc" id="L214">    String responsiveType = getResponsiveType();</span>
+<span class="fc bfc" id="L215" title="All 4 branches covered.">    if (responsiveType != null &amp;&amp; !StringUtils.equals(responsiveType, RESPONSIVE_TYPE_IMAGE_SIZES)) {</span>
+<span class="fc" id="L216">      return null;</span>
     }
 
-<span class="fc" id="L203">    String sizes = StringUtils.trimToNull(resolver.get(NN_COMPONENT_MEDIA_RESPONSIVEIMAGE_SIZES + &quot;/&quot; + PN_IMAGES_SIZES_SIZES, String.class));</span>
-<span class="fc" id="L204">    WidthOption[] widths = WidthUtils.parseWidths(resolver.get(NN_COMPONENT_MEDIA_RESPONSIVEIMAGE_SIZES + &quot;/&quot; + PN_IMAGES_SIZES_WIDTHS, String.class));</span>
-<span class="fc bfc" id="L205" title="All 4 branches covered.">    if (sizes != null &amp;&amp; widths != null) {</span>
-<span class="fc" id="L206">      return new ImageSizes(sizes, widths);</span>
+<span class="fc" id="L219">    String sizes = StringUtils.trimToNull(propertyAccessor.get(NN_COMPONENT_MEDIA_RESPONSIVEIMAGE_SIZES + &quot;/&quot; + PN_IMAGES_SIZES_SIZES, String.class));</span>
+<span class="fc" id="L220">    WidthOption[] widths = WidthUtils.parseWidths(propertyAccessor.get(NN_COMPONENT_MEDIA_RESPONSIVEIMAGE_SIZES + &quot;/&quot; + PN_IMAGES_SIZES_WIDTHS, String.class));</span>
+<span class="fc bfc" id="L221" title="All 4 branches covered.">    if (sizes != null &amp;&amp; widths != null) {</span>
+<span class="fc" id="L222">      return new ImageSizes(sizes, widths);</span>
     }
 
     // try to fallback to deprecated constant with node names with typo (backward compatibility)
-<span class="fc" id="L210">    sizes = StringUtils.trimToNull(resolver.get(NN_COMPONENT_MEDIA_RESPONSIVE_IMAGE_SIZES + &quot;/&quot; + PN_IMAGES_SIZES_SIZES, String.class));</span>
-<span class="fc" id="L211">    widths = WidthUtils.parseWidths(resolver.get(NN_COMPONENT_MEDIA_RESPONSIVE_IMAGE_SIZES + &quot;/&quot; + PN_IMAGES_SIZES_WIDTHS, String.class));</span>
-<span class="fc bfc" id="L212" title="All 4 branches covered.">    if (sizes != null &amp;&amp; widths != null) {</span>
-<span class="fc" id="L213">      return new ImageSizes(sizes, widths);</span>
+<span class="fc" id="L226">    sizes = StringUtils.trimToNull(propertyAccessor.get(NN_COMPONENT_MEDIA_RESPONSIVE_IMAGE_SIZES + &quot;/&quot; + PN_IMAGES_SIZES_SIZES, String.class));</span>
+<span class="fc" id="L227">    widths = WidthUtils.parseWidths(propertyAccessor.get(NN_COMPONENT_MEDIA_RESPONSIVE_IMAGE_SIZES + &quot;/&quot; + PN_IMAGES_SIZES_WIDTHS, String.class));</span>
+<span class="fc bfc" id="L228" title="All 4 branches covered.">    if (sizes != null &amp;&amp; widths != null) {</span>
+<span class="fc" id="L229">      return new ImageSizes(sizes, widths);</span>
     }
 
-<span class="fc" id="L216">    return null;</span>
+<span class="fc" id="L232">    return null;</span>
   }
 
   /**
@@ -221,51 +237,91 @@ public final class MediaComponentPropertyResolver implements AutoCloseable {
    */
   @SuppressWarnings({ &quot;deprecation&quot;, &quot;null&quot; })
   public @NotNull PictureSource @Nullable [] getPictureSources() {
-<span class="fc" id="L224">    String responsiveType = getResponsiveType();</span>
-<span class="fc bfc" id="L225" title="All 4 branches covered.">    if (responsiveType != null &amp;&amp; !StringUtils.equals(responsiveType, RESPONSIVE_TYPE_PICTURE_SOURCES)) {</span>
-<span class="fc" id="L226">      return null;</span>
+<span class="fc" id="L240">    String responsiveType = getResponsiveType();</span>
+<span class="pc bpc" id="L241" title="1 of 6 branches missed.">    if (resolver == null || responsiveType != null &amp;&amp; !StringUtils.equals(responsiveType, RESPONSIVE_TYPE_PICTURE_SOURCES)) {</span>
+<span class="fc" id="L242">      return null;</span>
     }
 
-<span class="fc" id="L229">    Collection&lt;Resource&gt; sourceResources = resolver.getResources(NN_COMPONENT_MEDIA_RESPONSIVEPICTURE_SOURCES);</span>
-<span class="fc bfc" id="L230" title="All 2 branches covered.">    if (sourceResources == null) {</span>
+<span class="fc" id="L245">    Collection&lt;Resource&gt; sourceResources = resolver.getResources(NN_COMPONENT_MEDIA_RESPONSIVEPICTURE_SOURCES);</span>
+<span class="fc bfc" id="L246" title="All 2 branches covered.">    if (sourceResources == null) {</span>
       // try to fallback to deprecated constant with node names with typo (backward compatibility)
-<span class="fc" id="L232">      sourceResources = resolver.getResources(NN_COMPONENT_MEDIA_RESPONSIVE_PICTURE_SOURCES);</span>
-<span class="fc bfc" id="L233" title="All 2 branches covered.">      if (sourceResources == null) {</span>
-<span class="fc" id="L234">        return null;</span>
+<span class="fc" id="L248">      sourceResources = resolver.getResources(NN_COMPONENT_MEDIA_RESPONSIVE_PICTURE_SOURCES);</span>
+<span class="fc bfc" id="L249" title="All 2 branches covered.">      if (sourceResources == null) {</span>
+<span class="fc" id="L250">        return null;</span>
       }
     }
 
-<span class="fc" id="L238">    List&lt;PictureSource&gt; sources = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L239" title="All 2 branches covered.">    for (Resource sourceResource : sourceResources) {</span>
-<span class="fc" id="L240">      ValueMap props = sourceResource.getValueMap();</span>
-<span class="fc" id="L241">      String mediaFormatName = StringUtils.trimToNull(props.get(PN_PICTURE_SOURCES_MEDIAFORMAT, String.class));</span>
-<span class="fc" id="L242">      String media = StringUtils.trimToNull(props.get(PN_PICTURE_SOURCES_MEDIA, String.class));</span>
-<span class="fc" id="L243">      String sizes = StringUtils.trimToNull(props.get(PN_PICTURE_SOURCES_SIZES, String.class));</span>
-<span class="fc" id="L244">      WidthOption[] widths = WidthUtils.parseWidths(props.get(PN_PICTURE_SOURCES_WIDTHS, String.class));</span>
-<span class="fc bfc" id="L245" title="All 4 branches covered.">      if (mediaFormatName != null &amp;&amp; widths != null) {</span>
-<span class="fc" id="L246">        sources.add(new PictureSource(mediaFormatName)</span>
-<span class="fc" id="L247">            .media(media)</span>
-<span class="fc" id="L248">            .sizes(sizes)</span>
-<span class="fc" id="L249">            .widthOptions(widths));</span>
+<span class="fc" id="L254">    List&lt;PictureSource&gt; sources = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L255" title="All 2 branches covered.">    for (Resource sourceResource : sourceResources) {</span>
+<span class="fc" id="L256">      ValueMap props = sourceResource.getValueMap();</span>
+<span class="fc" id="L257">      String mediaFormatName = StringUtils.trimToNull(props.get(PN_PICTURE_SOURCES_MEDIAFORMAT, String.class));</span>
+<span class="fc" id="L258">      String media = StringUtils.trimToNull(props.get(PN_PICTURE_SOURCES_MEDIA, String.class));</span>
+<span class="fc" id="L259">      String sizes = StringUtils.trimToNull(props.get(PN_PICTURE_SOURCES_SIZES, String.class));</span>
+<span class="fc" id="L260">      WidthOption[] widths = WidthUtils.parseWidths(props.get(PN_PICTURE_SOURCES_WIDTHS, String.class));</span>
+<span class="fc bfc" id="L261" title="All 4 branches covered.">      if (mediaFormatName != null &amp;&amp; widths != null) {</span>
+<span class="fc" id="L262">        sources.add(new PictureSource(mediaFormatName)</span>
+<span class="fc" id="L263">            .media(media)</span>
+<span class="fc" id="L264">            .sizes(sizes)</span>
+<span class="fc" id="L265">            .widthOptions(widths));</span>
       }
-<span class="fc" id="L251">    }</span>
+<span class="fc" id="L267">    }</span>
 
-<span class="fc bfc" id="L253" title="All 2 branches covered.">    if (sources.isEmpty()) {</span>
-<span class="fc" id="L254">      return null;</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">    if (sources.isEmpty()) {</span>
+<span class="fc" id="L270">      return null;</span>
     }
     else {
-<span class="fc" id="L257">      return sources.stream().toArray(size -&gt; new PictureSource[size]);</span>
+<span class="fc" id="L273">      return sources.stream().toArray(size -&gt; new PictureSource[size]);</span>
     }
   }
 
   private String getResponsiveType() {
-<span class="fc" id="L262">    return resolver.get(PN_COMPONENT_MEDIA_RESPONSIVE_TYPE, String.class);</span>
+<span class="fc" id="L278">    return propertyAccessor.get(PN_COMPONENT_MEDIA_RESPONSIVE_TYPE, String.class);</span>
   }
 
   @Override
-  public void close() throws Exception {
-<span class="fc" id="L267">    resolver.close();</span>
-<span class="fc" id="L268">  }</span>
+  @SuppressWarnings(&quot;null&quot;)
+  public void close() {
+<span class="fc bfc" id="L284" title="All 2 branches covered.">    if (resolver != null) {</span>
+<span class="fc" id="L285">      resolver.close();</span>
+    }
+<span class="fc" id="L287">  }</span>
+
+  private interface PropertyAccessor {
+    @Nullable
+    &lt;T&gt; T get(@NotNull String name, @NotNull Class&lt;T&gt; type);
+
+    &lt;T&gt; T get(@NotNull String name, @NotNull T defaultValue);
+  }
+
+  private static class ComponentPropertyResolverPropertyAccessor implements PropertyAccessor {
+    private final ComponentPropertyResolver componentPropertyResolver;
+<span class="fc" id="L298">    ComponentPropertyResolverPropertyAccessor(ComponentPropertyResolver componentPropertyResolver) {</span>
+<span class="fc" id="L299">      this.componentPropertyResolver = componentPropertyResolver;</span>
+<span class="fc" id="L300">    }</span>
+    @Override
+    public &lt;T&gt; @Nullable T get(@NotNull String name, @NotNull Class&lt;T&gt; type) {
+<span class="fc" id="L303">      return componentPropertyResolver.get(name, type);</span>
+    }
+    @Override
+    public &lt;T&gt; T get(@NotNull String name, @NotNull T defaultValue) {
+<span class="fc" id="L307">      return componentPropertyResolver.get(name, defaultValue);</span>
+    }
+  }
+
+  private static class ValueMapPropertyAccessor implements PropertyAccessor {
+    private final ValueMap valueMap;
+<span class="fc" id="L313">    ValueMapPropertyAccessor(ValueMap valueMap) {</span>
+<span class="fc" id="L314">      this.valueMap = valueMap;</span>
+<span class="fc" id="L315">    }</span>
+    @Override
+    public &lt;T&gt; @Nullable T get(@NotNull String name, @NotNull Class&lt;T&gt; type) {
+<span class="nc" id="L318">      return valueMap.get(name, type);</span>
+    }
+    @Override
+    public &lt;T&gt; T get(@NotNull String name, @NotNull T defaultValue) {
+<span class="fc" id="L322">      return valueMap.get(name, defaultValue);</span>
+    }
+  }
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.10.202304240956</span></div></body></html>
