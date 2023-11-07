@@ -19,6 +19,8 @@
  */
 package io.wcm.handler.media.markup;
 
+import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
@@ -54,6 +56,11 @@ import io.wcm.sling.commons.request.RequestParam;
 @ProviderType
 public final class MediaMarkupBuilderUtil {
 
+  /**
+   * List of OOTB IPE editor types for images.
+   */
+<span class="fc" id="L62">  public static final Set&lt;String&gt; DEFAULT_ALLOWED_IPE_EDITOR_TYPES = Set.of(&quot;image&quot;);</span>
+
   private MediaMarkupBuilderUtil() {
     // static methods only
   }
@@ -71,8 +78,8 @@ public final class MediaMarkupBuilderUtil {
   @Deprecated
   public static void addDiffDecoration(@NotNull HtmlElement&lt;?&gt; mediaElement, @NotNull Resource resource,
       @NotNull String refProperty, @NotNull SlingHttpServletRequest request) {
-<span class="nc" id="L74">    addDiffDecoration(mediaElement, resource, refProperty, request, null);</span>
-<span class="nc" id="L75">  }</span>
+<span class="nc" id="L81">    addDiffDecoration(mediaElement, resource, refProperty, request, null);</span>
+<span class="nc" id="L82">  }</span>
 
   /**
    * Adds CSS classes that denote the changes to the media element when compared to a different version.
@@ -88,48 +95,48 @@ public final class MediaMarkupBuilderUtil {
   public static void addDiffDecoration(@NotNull HtmlElement&lt;?&gt; mediaElement, @NotNull Resource resource,
       @NotNull String refProperty, @NotNull SlingHttpServletRequest request, @Nullable MediaHandlerConfig mediaHandlerConfig) {
 
-<span class="fc" id="L91">    PageManager pageManager = request.getResourceResolver().adaptTo(PageManager.class);</span>
-<span class="fc" id="L92">    Page currentPage = pageManager.getContainingPage(request.getResource());</span>
-<span class="fc" id="L93">    Page resourcePage = pageManager.getContainingPage(resource);</span>
+<span class="fc" id="L98">    PageManager pageManager = request.getResourceResolver().adaptTo(PageManager.class);</span>
+<span class="fc" id="L99">    Page currentPage = pageManager.getContainingPage(request.getResource());</span>
+<span class="fc" id="L100">    Page resourcePage = pageManager.getContainingPage(resource);</span>
 
-<span class="fc" id="L95">    String versionLabel = RequestParam.get(request, DiffService.REQUEST_PARAM_DIFF_TO);</span>
+<span class="fc" id="L102">    String versionLabel = RequestParam.get(request, DiffService.REQUEST_PARAM_DIFF_TO);</span>
     // Only try to diff when the resource is contained within the current page as the version number requested always
     // refers to the version history of the current page. So chances a resource on another page doesn't have a matching
     // version, and even if it has, it's comparing apples and oranges
-<span class="pc bpc" id="L99" title="1 of 4 branches missed.">    if (StringUtils.isNotEmpty(versionLabel)</span>
-<span class="pc bpc" id="L100" title="1 of 2 branches missed.">        &amp;&amp; currentPage != null &amp;&amp; currentPage.equals(resourcePage)) {</span>
-<span class="fc" id="L101">      Resource versionedResource = DiffInfo.getVersionedResource(resource, versionLabel);</span>
-<span class="pc bpc" id="L102" title="1 of 2 branches missed.">      if (versionedResource != null) {</span>
-<span class="nc" id="L103">        ValueMap currentProperties = resource.getValueMap();</span>
-<span class="nc" id="L104">        ValueMap oldProperties = versionedResource.getValueMap();</span>
+<span class="pc bpc" id="L106" title="1 of 4 branches missed.">    if (StringUtils.isNotEmpty(versionLabel)</span>
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">        &amp;&amp; currentPage != null &amp;&amp; currentPage.equals(resourcePage)) {</span>
+<span class="fc" id="L108">      Resource versionedResource = DiffInfo.getVersionedResource(resource, versionLabel);</span>
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">      if (versionedResource != null) {</span>
+<span class="nc" id="L110">        ValueMap currentProperties = resource.getValueMap();</span>
+<span class="nc" id="L111">        ValueMap oldProperties = versionedResource.getValueMap();</span>
 
-<span class="nc" id="L106">        String currentMediaRef = currentProperties.get(refProperty, String.class);</span>
-<span class="nc" id="L107">        String oldMediaRef = oldProperties.get(refProperty, String.class);</span>
-<span class="nc bnc" id="L108" title="All 2 branches missed.">        if (!StringUtils.equals(currentMediaRef, oldMediaRef)) {</span>
-<span class="nc bnc" id="L109" title="All 2 branches missed.">          if (StringUtils.isEmpty(currentMediaRef)) {</span>
-<span class="nc" id="L110">            mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_REMOVED);</span>
+<span class="nc" id="L113">        String currentMediaRef = currentProperties.get(refProperty, String.class);</span>
+<span class="nc" id="L114">        String oldMediaRef = oldProperties.get(refProperty, String.class);</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">        if (!StringUtils.equals(currentMediaRef, oldMediaRef)) {</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">          if (StringUtils.isEmpty(currentMediaRef)) {</span>
+<span class="nc" id="L117">            mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_REMOVED);</span>
           }
-<span class="nc bnc" id="L112" title="All 2 branches missed.">          else if (StringUtils.isEmpty(oldMediaRef)) {</span>
-<span class="nc" id="L113">            mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_ADDED);</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">          else if (StringUtils.isEmpty(oldMediaRef)) {</span>
+<span class="nc" id="L120">            mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_ADDED);</span>
           }
           else {
-<span class="nc" id="L116">            mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_UPDATED);</span>
+<span class="nc" id="L123">            mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_UPDATED);</span>
           }
         }
         else {
           String cropProperty;
-<span class="nc bnc" id="L121" title="All 2 branches missed.">          if (mediaHandlerConfig != null) {</span>
-<span class="nc" id="L122">            cropProperty = mediaHandlerConfig.getMediaCropProperty();</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">          if (mediaHandlerConfig != null) {</span>
+<span class="nc" id="L129">            cropProperty = mediaHandlerConfig.getMediaCropProperty();</span>
           }
           else {
-<span class="nc" id="L125">            cropProperty = MediaNameConstants.PN_MEDIA_CROP;</span>
+<span class="nc" id="L132">            cropProperty = MediaNameConstants.PN_MEDIA_CROP;</span>
           }
 
           // If the mediaRef itself hasn't changed, check the cropping coordinates
-<span class="nc" id="L129">          String currentMediaCrop = currentProperties.get(cropProperty, String.class);</span>
-<span class="nc" id="L130">          String oldMediaCrop = oldProperties.get(cropProperty, String.class);</span>
-<span class="nc bnc" id="L131" title="All 2 branches missed.">          if (!StringUtils.equals(currentMediaCrop, oldMediaCrop)) {</span>
-<span class="nc" id="L132">            mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_UPDATED);</span>
+<span class="nc" id="L136">          String currentMediaCrop = currentProperties.get(cropProperty, String.class);</span>
+<span class="nc" id="L137">          String oldMediaCrop = oldProperties.get(cropProperty, String.class);</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">          if (!StringUtils.equals(currentMediaCrop, oldMediaCrop)) {</span>
+<span class="nc" id="L139">            mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_UPDATED);</span>
           }
 
           // we also could try to determine here whether it resolves to another rendition
@@ -137,13 +144,13 @@ public final class MediaMarkupBuilderUtil {
           // changed).
           // This however, is out of scope for this feature right now
         }
-<span class="nc" id="L140">      }</span>
+<span class="nc" id="L147">      }</span>
       else {
         // The resource didn't exist in the old version at all
-<span class="fc" id="L143">        mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_ADDED);</span>
+<span class="fc" id="L150">        mediaElement.addCssClass(MediaNameConstants.CSS_DIFF_ADDED);</span>
       }
     }
-<span class="fc" id="L146">  }</span>
+<span class="fc" id="L153">  }</span>
 
   /**
    * Get dimension from first media format defined in media args. Fall back to dummy min. dimension if none specified.
@@ -152,30 +159,30 @@ public final class MediaMarkupBuilderUtil {
    */
   public static @NotNull Dimension getMediaformatDimension(@NotNull Media media) {
     // Create dummy image element to be displayed in Edit mode as placeholder.
-<span class="fc" id="L155">    MediaArgs mediaArgs = media.getMediaRequest().getMediaArgs();</span>
-<span class="fc" id="L156">    MediaFormat[] mediaFormats = mediaArgs.getMediaFormats();</span>
+<span class="fc" id="L162">    MediaArgs mediaArgs = media.getMediaRequest().getMediaArgs();</span>
+<span class="fc" id="L163">    MediaFormat[] mediaFormats = mediaArgs.getMediaFormats();</span>
 
     // detect width/height - either from media args, or from first media format
-<span class="fc" id="L159">    long width = mediaArgs.getFixedWidth();</span>
-<span class="fc" id="L160">    long height = mediaArgs.getFixedHeight();</span>
-<span class="pc bpc" id="L161" title="2 of 8 branches missed.">    if ((width == 0 || height == 0) &amp;&amp; mediaFormats != null &amp;&amp; mediaFormats.length &gt; 0) {</span>
-<span class="fc" id="L162">      MediaFormat firstMediaFormat = mediaArgs.getMediaFormats()[0];</span>
-<span class="fc" id="L163">      Dimension dimension = firstMediaFormat.getMinDimension();</span>
-<span class="fc bfc" id="L164" title="All 2 branches covered.">      if (dimension != null) {</span>
-<span class="fc" id="L165">        width = dimension.getWidth();</span>
-<span class="fc" id="L166">        height = dimension.getHeight();</span>
+<span class="fc" id="L166">    long width = mediaArgs.getFixedWidth();</span>
+<span class="fc" id="L167">    long height = mediaArgs.getFixedHeight();</span>
+<span class="pc bpc" id="L168" title="2 of 8 branches missed.">    if ((width == 0 || height == 0) &amp;&amp; mediaFormats != null &amp;&amp; mediaFormats.length &gt; 0) {</span>
+<span class="fc" id="L169">      MediaFormat firstMediaFormat = mediaArgs.getMediaFormats()[0];</span>
+<span class="fc" id="L170">      Dimension dimension = firstMediaFormat.getMinDimension();</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">      if (dimension != null) {</span>
+<span class="fc" id="L172">        width = dimension.getWidth();</span>
+<span class="fc" id="L173">        height = dimension.getHeight();</span>
       }
     }
 
     // fallback to min width/height
-<span class="fc bfc" id="L171" title="All 2 branches covered.">    if (width == 0) {</span>
-<span class="fc" id="L172">      width = MediaMarkupBuilder.DUMMY_MIN_DIMENSION;</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">    if (width == 0) {</span>
+<span class="fc" id="L179">      width = MediaMarkupBuilder.DUMMY_MIN_DIMENSION;</span>
     }
-<span class="fc bfc" id="L174" title="All 2 branches covered.">    if (height == 0) {</span>
-<span class="fc" id="L175">      height = MediaMarkupBuilder.DUMMY_MIN_DIMENSION;</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">    if (height == 0) {</span>
+<span class="fc" id="L182">      height = MediaMarkupBuilder.DUMMY_MIN_DIMENSION;</span>
     }
 
-<span class="fc" id="L178">    return new Dimension(width, height);</span>
+<span class="fc" id="L185">    return new Dimension(width, height);</span>
   }
 
   /**
@@ -186,25 +193,25 @@ public final class MediaMarkupBuilderUtil {
    */
   public static boolean canApplyDragDropSupport(@NotNull MediaRequest mediaRequest,
       @Nullable ComponentContext wcmComponentContext) {
-<span class="pc bpc" id="L189" title="1 of 4 branches missed.">    switch (mediaRequest.getMediaArgs().getDragDropSupport()) {</span>
+<span class="pc bpc" id="L196" title="1 of 4 branches missed.">    switch (mediaRequest.getMediaArgs().getDragDropSupport()) {</span>
       case ALWAYS:
-<span class="fc" id="L191">        return true;</span>
+<span class="fc" id="L198">        return true;</span>
       case NEVER:
-<span class="fc" id="L193">        return false;</span>
+<span class="fc" id="L200">        return false;</span>
       case AUTO:
-<span class="fc" id="L195">        String resourcePath = null;</span>
-<span class="fc" id="L196">        Resource mediaRequestResource = mediaRequest.getResource();</span>
-<span class="fc bfc" id="L197" title="All 2 branches covered.">        if (mediaRequestResource != null) {</span>
-<span class="fc" id="L198">          resourcePath = mediaRequestResource.getPath();</span>
+<span class="fc" id="L202">        String resourcePath = null;</span>
+<span class="fc" id="L203">        Resource mediaRequestResource = mediaRequest.getResource();</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">        if (mediaRequestResource != null) {</span>
+<span class="fc" id="L205">          resourcePath = mediaRequestResource.getPath();</span>
         }
-<span class="fc" id="L200">        String componentResourcePath = null;</span>
-<span class="pc bpc" id="L201" title="1 of 4 branches missed.">        if (wcmComponentContext != null &amp;&amp; wcmComponentContext.getResource() != null) {</span>
-<span class="fc" id="L202">          componentResourcePath = wcmComponentContext.getResource().getPath();</span>
+<span class="fc" id="L207">        String componentResourcePath = null;</span>
+<span class="pc bpc" id="L208" title="2 of 4 branches missed.">        if (wcmComponentContext != null &amp;&amp; wcmComponentContext.getResource() != null) {</span>
+<span class="fc" id="L209">          componentResourcePath = wcmComponentContext.getResource().getPath();</span>
         }
-<span class="pc bpc" id="L204" title="1 of 4 branches missed.">        return resourcePath != null &amp;&amp; StringUtils.equals(resourcePath, componentResourcePath);</span>
+<span class="pc bpc" id="L211" title="1 of 4 branches missed.">        return resourcePath != null &amp;&amp; StringUtils.equals(resourcePath, componentResourcePath);</span>
       default:
-<span class="nc" id="L206">        throw new IllegalArgumentException(&quot;Unsupported drag&amp;drop support mode: &quot;</span>
-<span class="nc" id="L207">            + mediaRequest.getMediaArgs().getDragDropSupport());</span>
+<span class="nc" id="L213">        throw new IllegalArgumentException(&quot;Unsupported drag&amp;drop support mode: &quot;</span>
+<span class="nc" id="L214">            + mediaRequest.getMediaArgs().getDragDropSupport());</span>
     }
 
   }
@@ -217,37 +224,49 @@ public final class MediaMarkupBuilderUtil {
    */
   public static boolean canSetCustomIPECropRatios(@NotNull MediaRequest mediaRequest,
       @Nullable ComponentContext wcmComponentContext) {
+<span class="fc" id="L227">    return canSetCustomIPECropRatios(mediaRequest, wcmComponentContext, DEFAULT_ALLOWED_IPE_EDITOR_TYPES);</span>
+  }
 
-<span class="fc" id="L221">    EditConfig editConfig = null;</span>
-<span class="fc" id="L222">    InplaceEditingConfig ipeConfig = null;</span>
-<span class="pc bpc" id="L223" title="2 of 4 branches missed.">    if (wcmComponentContext != null &amp;&amp; wcmComponentContext.getEditContext() != null</span>
-<span class="pc bpc" id="L224" title="1 of 2 branches missed.">        &amp;&amp; wcmComponentContext.getEditContext().getEditConfig() != null</span>
-<span class="pc bpc" id="L225" title="1 of 2 branches missed.">        &amp;&amp; wcmComponentContext.getResource() != null) {</span>
-<span class="fc" id="L226">      editConfig = wcmComponentContext.getEditContext().getEditConfig();</span>
-<span class="fc" id="L227">      ipeConfig = editConfig.getInplaceEditingConfig();</span>
+  /**
+   * Implements check whether to set customized IPE cropping ratios as described in {@link IPERatioCustomize}.
+   * @param mediaRequest Media request
+   * @param wcmComponentContext WCM component context
+   * @param allowedIpeEditorTypes Allowed editor types for image IPE (in-place editor).
+   * @return true if customized IP cropping ratios can be set
+   */
+  public static boolean canSetCustomIPECropRatios(@NotNull MediaRequest mediaRequest,
+      @Nullable ComponentContext wcmComponentContext, @NotNull Set&lt;String&gt; allowedIpeEditorTypes) {
+
+<span class="fc" id="L240">    EditConfig editConfig = null;</span>
+<span class="fc" id="L241">    InplaceEditingConfig ipeConfig = null;</span>
+<span class="pc bpc" id="L242" title="2 of 4 branches missed.">    if (wcmComponentContext != null &amp;&amp; wcmComponentContext.getEditContext() != null</span>
+<span class="pc bpc" id="L243" title="1 of 2 branches missed.">        &amp;&amp; wcmComponentContext.getEditContext().getEditConfig() != null</span>
+<span class="pc bpc" id="L244" title="1 of 2 branches missed.">        &amp;&amp; wcmComponentContext.getResource() != null) {</span>
+<span class="fc" id="L245">      editConfig = wcmComponentContext.getEditContext().getEditConfig();</span>
+<span class="fc" id="L246">      ipeConfig = editConfig.getInplaceEditingConfig();</span>
     }
-<span class="pc bpc" id="L229" title="2 of 4 branches missed.">    if (editConfig == null || ipeConfig == null</span>
-<span class="pc bpc" id="L230" title="1 of 2 branches missed.">        || !StringUtils.equals(ipeConfig.getEditorType(), &quot;image&quot;)) {</span>
+<span class="pc bpc" id="L248" title="2 of 4 branches missed.">    if (editConfig == null || ipeConfig == null</span>
+<span class="fc bfc" id="L249" title="All 2 branches covered.">        || !allowedIpeEditorTypes.contains(ipeConfig.getEditorType())) {</span>
       // no image IPE activated - never customize crop ratios
-<span class="nc" id="L232">      return false;</span>
+<span class="fc" id="L251">      return false;</span>
     }
 
-<span class="pc bpc" id="L235" title="3 of 4 branches missed.">    switch (mediaRequest.getMediaArgs().getIPERatioCustomize()) {</span>
+<span class="pc bpc" id="L254" title="1 of 4 branches missed.">    switch (mediaRequest.getMediaArgs().getIPERatioCustomize()) {</span>
       case ALWAYS:
-<span class="nc" id="L237">        return true;</span>
+<span class="fc" id="L256">        return true;</span>
       case NEVER:
-<span class="nc" id="L239">        return false;</span>
+<span class="fc" id="L258">        return false;</span>
       case AUTO:
-<span class="pc bpc" id="L241" title="1 of 2 branches missed.">        if (StringUtils.isNotEmpty(ipeConfig.getConfigPath())) {</span>
-<span class="fc" id="L242">          String ratiosPath = ipeConfig.getConfigPath() + &quot;/plugins/crop/aspectRatios&quot;;</span>
+<span class="fc bfc" id="L260" title="All 2 branches covered.">        if (StringUtils.isNotEmpty(ipeConfig.getConfigPath())) {</span>
+<span class="fc" id="L261">          String ratiosPath = ipeConfig.getConfigPath() + &quot;/plugins/crop/aspectRatios&quot;;</span>
           @SuppressWarnings(&quot;null&quot;)
-<span class="fc" id="L244">          ResourceResolver resolver = wcmComponentContext.getResource().getResourceResolver();</span>
-<span class="pc bpc" id="L245" title="1 of 2 branches missed.">          return resolver.getResource(ratiosPath) == null;</span>
+<span class="fc" id="L263">          ResourceResolver resolver = wcmComponentContext.getResource().getResourceResolver();</span>
+<span class="fc bfc" id="L264" title="All 2 branches covered.">          return resolver.getResource(ratiosPath) == null;</span>
         }
-<span class="nc" id="L247">        return true;</span>
+<span class="fc" id="L266">        return true;</span>
       default:
-<span class="nc" id="L249">        throw new IllegalArgumentException(&quot;Unsupported IPE ratio customize mode: &quot;</span>
-<span class="nc" id="L250">            + mediaRequest.getMediaArgs().getIPERatioCustomize());</span>
+<span class="nc" id="L268">        throw new IllegalArgumentException(&quot;Unsupported IPE ratio customize mode: &quot;</span>
+<span class="nc" id="L269">            + mediaRequest.getMediaArgs().getIPERatioCustomize());</span>
     }
 
   }

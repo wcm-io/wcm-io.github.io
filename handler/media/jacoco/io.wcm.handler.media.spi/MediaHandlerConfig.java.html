@@ -21,6 +21,7 @@ package io.wcm.handler.media.spi;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -30,6 +31,7 @@ import com.day.cq.wcm.api.Page;
 
 import io.wcm.handler.media.MediaNameConstants;
 import io.wcm.handler.media.markup.DummyImageMediaMarkupBuilder;
+import io.wcm.handler.media.markup.MediaMarkupBuilderUtil;
 import io.wcm.handler.media.markup.SimpleImageMediaMarkupBuilder;
 import io.wcm.handler.mediasource.dam.DamMediaSource;
 import io.wcm.sling.commons.caservice.ContextAwareService;
@@ -40,17 +42,17 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
  * configuration only for resources that match the relevant resource paths.
  */
 @ConsumerType
-<span class="fc" id="L43">public abstract class MediaHandlerConfig implements ContextAwareService {</span>
+<span class="fc" id="L45">public abstract class MediaHandlerConfig implements ContextAwareService {</span>
 
   /**
    * Default value for JPEG quality.
    */
   public static final double DEFAULT_JPEG_QUALITY = 0.98d;
 
-<span class="fc" id="L50">  private static final List&lt;Class&lt;? extends MediaSource&gt;&gt; DEFAULT_MEDIA_SOURCES = List.of(</span>
+<span class="fc" id="L52">  private static final List&lt;Class&lt;? extends MediaSource&gt;&gt; DEFAULT_MEDIA_SOURCES = List.of(</span>
       DamMediaSource.class);
 
-<span class="fc" id="L53">  private static final List&lt;Class&lt;? extends MediaMarkupBuilder&gt;&gt; DEFAULT_MEDIA_MARKUP_BUILDERS = List.of(</span>
+<span class="fc" id="L55">  private static final List&lt;Class&lt;? extends MediaMarkupBuilder&gt;&gt; DEFAULT_MEDIA_MARKUP_BUILDERS = List.of(</span>
       SimpleImageMediaMarkupBuilder.class,
       DummyImageMediaMarkupBuilder.class);
 
@@ -58,14 +60,14 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    * @return Supported media sources
    */
   public @NotNull List&lt;Class&lt;? extends MediaSource&gt;&gt; getSources() {
-<span class="fc" id="L61">    return DEFAULT_MEDIA_SOURCES;</span>
+<span class="fc" id="L63">    return DEFAULT_MEDIA_SOURCES;</span>
   }
 
   /**
    * @return Available media markup builders
    */
   public @NotNull List&lt;Class&lt;? extends MediaMarkupBuilder&gt;&gt; getMarkupBuilders() {
-<span class="fc" id="L68">    return DEFAULT_MEDIA_MARKUP_BUILDERS;</span>
+<span class="fc" id="L70">    return DEFAULT_MEDIA_MARKUP_BUILDERS;</span>
   }
 
   /**
@@ -73,7 +75,7 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    */
   public @NotNull List&lt;Class&lt;? extends MediaProcessor&gt;&gt; getPreProcessors() {
     // no processors
-<span class="fc" id="L76">    return Collections.emptyList();</span>
+<span class="fc" id="L78">    return Collections.emptyList();</span>
   }
 
   /**
@@ -81,7 +83,7 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    */
   public @NotNull List&lt;Class&lt;? extends MediaProcessor&gt;&gt; getPostProcessors() {
     // no processors
-<span class="fc" id="L84">    return Collections.emptyList();</span>
+<span class="fc" id="L86">    return Collections.emptyList();</span>
   }
 
   /**
@@ -92,17 +94,17 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    * @return Quality factor
    */
   public double getDefaultImageQuality(String mimeType) {
-<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(mimeType)) {</span>
-<span class="fc" id="L96">      String format = StringUtils.substringAfter(mimeType.toLowerCase(), &quot;image/&quot;);</span>
-<span class="fc bfc" id="L97" title="All 4 branches covered.">      if (StringUtils.equals(format, &quot;jpg&quot;) || StringUtils.equals(format, &quot;jpeg&quot;)) {</span>
-<span class="fc" id="L98">        return DEFAULT_JPEG_QUALITY;</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(mimeType)) {</span>
+<span class="fc" id="L98">      String format = StringUtils.substringAfter(mimeType.toLowerCase(), &quot;image/&quot;);</span>
+<span class="fc bfc" id="L99" title="All 4 branches covered.">      if (StringUtils.equals(format, &quot;jpg&quot;) || StringUtils.equals(format, &quot;jpeg&quot;)) {</span>
+<span class="fc" id="L100">        return DEFAULT_JPEG_QUALITY;</span>
       }
-<span class="fc bfc" id="L100" title="All 2 branches covered.">      else if (StringUtils.equals(format, &quot;gif&quot;)) {</span>
-<span class="fc" id="L101">        return 256d; // 256 colors</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">      else if (StringUtils.equals(format, &quot;gif&quot;)) {</span>
+<span class="fc" id="L103">        return 256d; // 256 colors</span>
       }
     }
     // return quality &quot;1&quot; for all other mime types
-<span class="fc" id="L105">    return 1d;</span>
+<span class="fc" id="L107">    return 1d;</span>
   }
 
   /**
@@ -121,18 +123,18 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    * @return If true, Adobe standard property and node names are used.
    */
   public boolean useAdobeStandardNames() {
-<span class="fc" id="L124">    return false;</span>
+<span class="fc" id="L126">    return false;</span>
   }
 
   /**
    * @return Default property name for reference to media library item
    */
   public @NotNull String getMediaRefProperty() {
-<span class="fc bfc" id="L131" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
-<span class="fc" id="L132">      return MediaNameConstants.PN_MEDIA_REF_STANDARD;</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
+<span class="fc" id="L134">      return MediaNameConstants.PN_MEDIA_REF_STANDARD;</span>
     }
     else {
-<span class="fc" id="L135">      return MediaNameConstants.PN_MEDIA_REF;</span>
+<span class="fc" id="L137">      return MediaNameConstants.PN_MEDIA_REF;</span>
     }
   }
 
@@ -140,11 +142,11 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    * @return Default property name for cropping parameters
    */
   public @NotNull String getMediaCropProperty() {
-<span class="fc bfc" id="L143" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
-<span class="fc" id="L144">      return MediaNameConstants.PN_MEDIA_CROP_STANDARD;</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
+<span class="fc" id="L146">      return MediaNameConstants.PN_MEDIA_CROP_STANDARD;</span>
     }
     else {
-<span class="fc" id="L147">      return MediaNameConstants.PN_MEDIA_CROP;</span>
+<span class="fc" id="L149">      return MediaNameConstants.PN_MEDIA_CROP;</span>
     }
   }
 
@@ -152,11 +154,11 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    * @return Default property name for rotate parameter
    */
   public @NotNull String getMediaRotationProperty() {
-<span class="fc bfc" id="L155" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
-<span class="fc" id="L156">      return MediaNameConstants.PN_MEDIA_ROTATION_STANDARD;</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
+<span class="fc" id="L158">      return MediaNameConstants.PN_MEDIA_ROTATION_STANDARD;</span>
     }
     else {
-<span class="fc" id="L159">      return MediaNameConstants.PN_MEDIA_ROTATION;</span>
+<span class="fc" id="L161">      return MediaNameConstants.PN_MEDIA_ROTATION;</span>
     }
   }
 
@@ -164,11 +166,11 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    * @return Default property name for map parameter
    */
   public @NotNull String getMediaMapProperty() {
-<span class="fc bfc" id="L167" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
-<span class="fc" id="L168">      return MediaNameConstants.PN_MEDIA_MAP_STANDARD;</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
+<span class="fc" id="L170">      return MediaNameConstants.PN_MEDIA_MAP_STANDARD;</span>
     }
     else {
-<span class="fc" id="L171">      return MediaNameConstants.PN_MEDIA_MAP;</span>
+<span class="fc" id="L173">      return MediaNameConstants.PN_MEDIA_MAP;</span>
     }
   }
 
@@ -176,11 +178,11 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    * @return Default property name for media alt. text
    */
   public @NotNull String getMediaAltTextProperty() {
-<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
-<span class="fc" id="L180">      return MediaNameConstants.PN_MEDIA_ALTTEXT_STANDARD;</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
+<span class="fc" id="L182">      return MediaNameConstants.PN_MEDIA_ALTTEXT_STANDARD;</span>
     }
     else {
-<span class="fc" id="L183">      return MediaNameConstants.PN_MEDIA_ALTTEXT;</span>
+<span class="fc" id="L185">      return MediaNameConstants.PN_MEDIA_ALTTEXT;</span>
     }
   }
 
@@ -188,11 +190,11 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    * @return Default property name for forcing reading alt. text from DAM asset description
    */
   public @NotNull String getMediaForceAltTextFromAssetProperty() {
-<span class="pc bpc" id="L191" title="1 of 2 branches missed.">    if (useAdobeStandardNames()) {</span>
-<span class="nc" id="L192">      return MediaNameConstants.PN_MEDIA_FORCE_ALTTEXT_FROM_ASSET_STANDARD;</span>
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">    if (useAdobeStandardNames()) {</span>
+<span class="nc" id="L194">      return MediaNameConstants.PN_MEDIA_FORCE_ALTTEXT_FROM_ASSET_STANDARD;</span>
     }
     else {
-<span class="fc" id="L195">      return MediaNameConstants.PN_MEDIA_FORCE_ALTTEXT_FROM_ASSET;</span>
+<span class="fc" id="L197">      return MediaNameConstants.PN_MEDIA_FORCE_ALTTEXT_FROM_ASSET;</span>
     }
   }
 
@@ -200,11 +202,11 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    * @return Default property name for marking image as &quot;decorative&quot; - requiring no alt. text
    */
   public @NotNull String getMediaIsDecorativeProperty() {
-<span class="fc bfc" id="L203" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
-<span class="fc" id="L204">      return MediaNameConstants.PN_MEDIA_IS_DECORATIVE_STANDARD;</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">    if (useAdobeStandardNames()) {</span>
+<span class="fc" id="L206">      return MediaNameConstants.PN_MEDIA_IS_DECORATIVE_STANDARD;</span>
     }
     else {
-<span class="fc" id="L207">      return MediaNameConstants.PN_MEDIA_IS_DECORATIVE;</span>
+<span class="fc" id="L209">      return MediaNameConstants.PN_MEDIA_IS_DECORATIVE;</span>
     }
   }
 
@@ -212,11 +214,11 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    * @return Default node name for inline media item stored in node within the content page
    */
   public @NotNull String getMediaInlineNodeName() {
-<span class="pc bpc" id="L215" title="1 of 2 branches missed.">    if (useAdobeStandardNames()) {</span>
-<span class="nc" id="L216">      return MediaNameConstants.NN_MEDIA_INLINE_STANDARD;</span>
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">    if (useAdobeStandardNames()) {</span>
+<span class="nc" id="L218">      return MediaNameConstants.NN_MEDIA_INLINE_STANDARD;</span>
     }
     else {
-<span class="fc" id="L219">      return MediaNameConstants.NN_MEDIA_INLINE;</span>
+<span class="fc" id="L221">      return MediaNameConstants.NN_MEDIA_INLINE;</span>
     }
   }
 
@@ -225,7 +227,7 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    *         taken into account by default when trying to resolve the media request.
    */
   public boolean includeAssetWebRenditionsByDefault() {
-<span class="fc" id="L228">    return true;</span>
+<span class="fc" id="L230">    return true;</span>
   }
 
   /**
@@ -244,7 +246,15 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    * @return Enforce always returning virtual renditions for images.
    */
   public boolean enforceVirtualRenditions() {
-<span class="fc" id="L247">    return false;</span>
+<span class="fc" id="L249">    return false;</span>
+  }
+
+  /**
+   * @return Allowed editor types for image IPE (in-place editor).
+   *         By default, only the OOTB &quot;image&quot; editor type is supported.
+   */
+  public @NotNull Set&lt;String&gt; allowedIpeEditorTypes() {
+<span class="fc" id="L257">    return MediaMarkupBuilderUtil.DEFAULT_ALLOWED_IPE_EDITOR_TYPES;</span>
   }
 
   /**
@@ -253,7 +263,7 @@ import io.wcm.sling.commons.caservice.ContextAwareService;
    * @return DAM root path
    */
   public @NotNull String getDamRootPath(@NotNull Page page) {
-<span class="nc" id="L256">    return &quot;/content/dam&quot;;</span>
+<span class="nc" id="L266">    return &quot;/content/dam&quot;;</span>
   }
 
 }
