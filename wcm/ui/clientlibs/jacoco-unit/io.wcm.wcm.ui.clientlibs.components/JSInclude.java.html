@@ -82,22 +82,25 @@ import com.adobe.granite.ui.clientlibs.LibraryType;
   private String referrerpolicy;
   @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
   private String type;
+  @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private Object customAttributes;
 
   private String include;
 
   @PostConstruct
   private void activate() {
     // build include string
-<span class="fc" id="L91">    String[] categoryArray = IncludeUtil.toCategoryArray(categories);</span>
-<span class="fc bfc" id="L92" title="All 2 branches covered.">    if (categoryArray != null) {</span>
-<span class="fc" id="L93">      List&lt;String&gt; libraryPaths = IncludeUtil.getLibraryUrls(htmlLibraryManager, resourceResolver,</span>
+<span class="fc" id="L93">    String[] categoryArray = IncludeUtil.toArray(categories);</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (categoryArray != null) {</span>
+<span class="fc" id="L95">      List&lt;String&gt; libraryPaths = IncludeUtil.getLibraryUrls(htmlLibraryManager, resourceResolver,</span>
           categoryArray, LibraryType.JS);
-<span class="fc bfc" id="L95" title="All 2 branches covered.">      if (!libraryPaths.isEmpty()) {</span>
-<span class="fc" id="L96">        Map&lt;String, String&gt; attrs = validateAndBuildAttributes();</span>
-<span class="fc" id="L97">        this.include = buildIncludeString(libraryPaths, attrs);</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">      if (!libraryPaths.isEmpty()) {</span>
+<span class="fc" id="L98">        Map&lt;String, String&gt; attrs = validateAndBuildAttributes();</span>
+<span class="fc" id="L99">        Map&lt;String, String&gt; customAttrs = IncludeUtil.getCustomAttributes(customAttributes);</span>
+<span class="fc" id="L100">        this.include = buildIncludeString(libraryPaths, attrs, customAttrs);</span>
       }
     }
-<span class="fc" id="L100">  }</span>
+<span class="fc" id="L103">  }</span>
 
   /**
    * Validate attribute values from HTL script, escape them properly and build a map with all attributes
@@ -105,56 +108,59 @@ import com.adobe.granite.ui.clientlibs.LibraryType;
    * @return Map with attribute for script tag
    */
   private @NotNull Map&lt;String, String&gt; validateAndBuildAttributes() {
-<span class="fc" id="L108">    Map&lt;String, String&gt; attrs = new HashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (async) {</span>
-<span class="fc" id="L110">      attrs.put(&quot;async&quot;, null);</span>
+<span class="fc" id="L111">    Map&lt;String, String&gt; attrs = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (async) {</span>
+<span class="fc" id="L113">      attrs.put(&quot;async&quot;, null);</span>
     }
-<span class="fc bfc" id="L112" title="All 4 branches covered.">    if (crossorigin != null &amp;&amp; CROSSORIGIN_ALLOWED_VALUES.contains(crossorigin)) {</span>
-<span class="fc" id="L113">      attrs.put(&quot;crossorigin&quot;, crossorigin);</span>
+<span class="fc bfc" id="L115" title="All 4 branches covered.">    if (crossorigin != null &amp;&amp; CROSSORIGIN_ALLOWED_VALUES.contains(crossorigin)) {</span>
+<span class="fc" id="L116">      attrs.put(&quot;crossorigin&quot;, crossorigin);</span>
     }
-<span class="fc bfc" id="L115" title="All 2 branches covered.">    if (defer) {</span>
-<span class="fc" id="L116">      attrs.put(&quot;defer&quot;, null);</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (defer) {</span>
+<span class="fc" id="L119">      attrs.put(&quot;defer&quot;, null);</span>
     }
-<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(integrity)) {</span>
-<span class="fc" id="L119">      attrs.put(&quot;integrity&quot;, xssApi.encodeForHTMLAttr(integrity));</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(integrity)) {</span>
+<span class="fc" id="L122">      attrs.put(&quot;integrity&quot;, xssApi.encodeForHTMLAttr(integrity));</span>
     }
-<span class="fc bfc" id="L121" title="All 2 branches covered.">    if (nomodule) {</span>
-<span class="fc" id="L122">      attrs.put(&quot;nomodule&quot;, null);</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (nomodule) {</span>
+<span class="fc" id="L125">      attrs.put(&quot;nomodule&quot;, null);</span>
     }
-<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(nonce)) {</span>
-<span class="fc" id="L125">      attrs.put(&quot;nonce&quot;, xssApi.encodeForHTMLAttr(nonce));</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(nonce)) {</span>
+<span class="fc" id="L128">      attrs.put(&quot;nonce&quot;, xssApi.encodeForHTMLAttr(nonce));</span>
     }
-<span class="fc bfc" id="L127" title="All 4 branches covered.">    if (referrerpolicy != null &amp;&amp; REFERRERPOLICY_ALLOWED_VALUES.contains(referrerpolicy)) {</span>
-<span class="fc" id="L128">      attrs.put(&quot;referrerpolicy&quot;, referrerpolicy);</span>
+<span class="fc bfc" id="L130" title="All 4 branches covered.">    if (referrerpolicy != null &amp;&amp; REFERRERPOLICY_ALLOWED_VALUES.contains(referrerpolicy)) {</span>
+<span class="fc" id="L131">      attrs.put(&quot;referrerpolicy&quot;, referrerpolicy);</span>
     }
-<span class="fc bfc" id="L130" title="All 4 branches covered.">    if (type != null &amp;&amp; TYPE_ALLOWED_VALUES.contains(type)) {</span>
-<span class="fc" id="L131">      attrs.put(&quot;type&quot;, type);</span>
+<span class="fc bfc" id="L133" title="All 4 branches covered.">    if (type != null &amp;&amp; TYPE_ALLOWED_VALUES.contains(type)) {</span>
+<span class="fc" id="L134">      attrs.put(&quot;type&quot;, type);</span>
     }
-<span class="fc" id="L133">    return attrs;</span>
+<span class="fc" id="L136">    return attrs;</span>
   }
 
   /**
    * Build script tags for all client libraries with the defined custom script tag attributes set.
    * @param libraryPaths Library paths
    * @param attrs HTML attributes for script tag
+   * @param customAttrs Custom HTML attributes for script tag
    * @return HTML markup with script tags
    */
-  private @NotNull String buildIncludeString(@NotNull List&lt;String&gt; libraryPaths, @NotNull Map&lt;String, String&gt; attrs) {
-<span class="fc" id="L143">    StringBuilder markup = new StringBuilder();</span>
-<span class="fc bfc" id="L144" title="All 2 branches covered.">    for (String libraryPath : libraryPaths) {</span>
-<span class="fc" id="L145">      HtmlTagBuilder builder = new HtmlTagBuilder(&quot;script&quot;, true, xssApi);</span>
-<span class="fc" id="L146">      builder.setAttrs(attrs);</span>
-<span class="fc" id="L147">      builder.setAttr(&quot;src&quot;, libraryPath);</span>
-<span class="fc" id="L148">      markup.append(builder.build());</span>
-<span class="fc" id="L149">    }</span>
-<span class="fc" id="L150">    return markup.toString();</span>
+  private @NotNull String buildIncludeString(@NotNull List&lt;String&gt; libraryPaths, @NotNull Map&lt;String, String&gt; attrs,
+      @NotNull Map&lt;String, String&gt; customAttrs) {
+<span class="fc" id="L148">    StringBuilder markup = new StringBuilder();</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">    for (String libraryPath : libraryPaths) {</span>
+<span class="fc" id="L150">      HtmlTagBuilder builder = new HtmlTagBuilder(&quot;script&quot;, true, xssApi);</span>
+<span class="fc" id="L151">      builder.setAttrs(attrs);</span>
+<span class="fc" id="L152">      builder.setAttrs(customAttrs);</span>
+<span class="fc" id="L153">      builder.setAttr(&quot;src&quot;, libraryPath);</span>
+<span class="fc" id="L154">      markup.append(builder.build());</span>
+<span class="fc" id="L155">    }</span>
+<span class="fc" id="L156">    return markup.toString();</span>
   }
 
   /**
    * @return HTML markup with script tags
    */
   public @Nullable String getInclude() {
-<span class="fc" id="L157">    return include;</span>
+<span class="fc" id="L163">    return include;</span>
   }
 
 }
