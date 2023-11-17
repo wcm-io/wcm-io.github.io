@@ -19,7 +19,10 @@
  */
 package io.wcm.wcm.ui.clientlibs.components;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
@@ -43,7 +46,10 @@ import com.adobe.granite.ui.clientlibs.LibraryType;
  */
 @Model(adaptables = SlingHttpServletRequest.class)
 @ProviderType
-<span class="fc" id="L46">public class CSSInclude {</span>
+<span class="fc" id="L49">public class CSSInclude {</span>
+
+<span class="fc" id="L51">  private static final Set&lt;String&gt; REL_ALLOWED_VALUES = Set.of(</span>
+      &quot;prefetch&quot;, &quot;preload&quot;);
 
   @SlingObject
   private ResourceResolver resourceResolver;
@@ -54,40 +60,64 @@ import com.adobe.granite.ui.clientlibs.LibraryType;
 
   @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
   private Object categories;
+  @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private String rel;
 
   private String include;
 
   @PostConstruct
   private void activate() {
     // build include string
-<span class="fc" id="L63">    String[] categoryArray = IncludeUtil.toCategoryArray(categories);</span>
-<span class="fc bfc" id="L64" title="All 2 branches covered.">    if (categoryArray != null) {</span>
-<span class="fc" id="L65">      List&lt;String&gt; libraryPaths = IncludeUtil.getLibraryUrls(htmlLibraryManager, resourceResolver,</span>
+<span class="fc" id="L71">    String[] categoryArray = IncludeUtil.toCategoryArray(categories);</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (categoryArray != null) {</span>
+<span class="fc" id="L73">      List&lt;String&gt; libraryPaths = IncludeUtil.getLibraryUrls(htmlLibraryManager, resourceResolver,</span>
           categoryArray, LibraryType.CSS);
-<span class="fc bfc" id="L67" title="All 2 branches covered.">      if (!libraryPaths.isEmpty()) {</span>
-<span class="fc" id="L68">        this.include = buildIncludeString(libraryPaths);</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">      if (!libraryPaths.isEmpty()) {</span>
+<span class="fc" id="L76">        Map&lt;String, String&gt; attrs = validateAndBuildAttributes();</span>
+<span class="fc" id="L77">        this.include = buildIncludeString(libraryPaths, attrs);</span>
       }
     }
-<span class="fc" id="L71">  }</span>
+<span class="fc" id="L80">  }</span>
+
+  /**
+   * Validate attribute values from HTL script, escape them properly and build a map with all attributes
+   * for the resulting script tag(s).
+   * @return Map with attribute for script tag
+   */
+  private @NotNull Map&lt;String, String&gt; validateAndBuildAttributes() {
+<span class="fc" id="L88">    Map&lt;String, String&gt; attrs = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L89" title="All 4 branches covered.">    if (rel != null &amp;&amp; REL_ALLOWED_VALUES.contains(rel)) {</span>
+<span class="fc" id="L90">      attrs.put(&quot;rel&quot;, rel);</span>
+    }
+    else {
+      // no specific rel defined, provide default rel/type attrs for CSS
+<span class="fc" id="L94">      attrs.put(&quot;rel&quot;, &quot;stylesheet&quot;);</span>
+<span class="fc" id="L95">      attrs.put(&quot;type&quot;, &quot;text/css&quot;);</span>
+    }
+<span class="fc" id="L97">    return attrs;</span>
+  }
 
   /**
    * Build CSS link tags for all client libraries with the defined custom script tag attributes set.
    * @param libraryPaths Library paths
    * @return HTML markup with script tags
    */
-  private @NotNull String buildIncludeString(@NotNull List&lt;String&gt; libraryPaths) {
-<span class="fc" id="L79">    StringBuilder markup = new StringBuilder();</span>
-<span class="fc bfc" id="L80" title="All 2 branches covered.">    for (String libraryPath : libraryPaths) {</span>
-<span class="fc" id="L81">      markup.append(&quot;&lt;link rel=\&quot;stylesheet\&quot; href=\&quot;&quot;).append(xssApi.encodeForHTMLAttr(libraryPath)).append(&quot;\&quot; type=\&quot;text/css\&quot;&gt;\n&quot;);</span>
-<span class="fc" id="L82">    }</span>
-<span class="fc" id="L83">    return markup.toString();</span>
+  private @NotNull String buildIncludeString(@NotNull List&lt;String&gt; libraryPaths, @NotNull Map&lt;String, String&gt; attrs) {
+<span class="fc" id="L106">    StringBuilder markup = new StringBuilder();</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">    for (String libraryPath : libraryPaths) {</span>
+<span class="fc" id="L108">      HtmlTagBuilder builder = new HtmlTagBuilder(&quot;link&quot;, false, xssApi);</span>
+<span class="fc" id="L109">      builder.setAttrs(attrs);</span>
+<span class="fc" id="L110">      builder.setAttr(&quot;href&quot;, libraryPath);</span>
+<span class="fc" id="L111">      markup.append(builder.build());</span>
+<span class="fc" id="L112">    }</span>
+<span class="fc" id="L113">    return markup.toString();</span>
   }
 
   /**
    * @return HTML markup with script tags
    */
   public @Nullable String getInclude() {
-<span class="fc" id="L90">    return include;</span>
+<span class="fc" id="L120">    return include;</span>
   }
 
 }

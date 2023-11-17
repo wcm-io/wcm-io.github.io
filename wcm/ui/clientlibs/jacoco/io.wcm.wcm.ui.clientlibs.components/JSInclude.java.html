@@ -19,12 +19,10 @@
  */
 package io.wcm.wcm.ui.clientlibs.components;
 
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 import javax.annotation.PostConstruct;
 
@@ -49,15 +47,15 @@ import com.adobe.granite.ui.clientlibs.LibraryType;
  */
 @Model(adaptables = SlingHttpServletRequest.class)
 @ProviderType
-<span class="fc" id="L52">public class JSInclude {</span>
+<span class="fc" id="L50">public class JSInclude {</span>
 
-<span class="fc" id="L54">  private static final Set&lt;String&gt; CROSSORIGIN_ALLOWED_VALUES = new HashSet&lt;&gt;(Arrays.asList(</span>
-      &quot;anonymous&quot;, &quot;use-credentials&quot;));
-<span class="fc" id="L56">  private static final Set&lt;String&gt; REFERRERPOLICY_ALLOWED_VALUES = new HashSet&lt;&gt;(Arrays.asList(</span>
+<span class="fc" id="L52">  private static final Set&lt;String&gt; CROSSORIGIN_ALLOWED_VALUES = Set.of(</span>
+      &quot;anonymous&quot;, &quot;use-credentials&quot;);
+<span class="fc" id="L54">  private static final Set&lt;String&gt; REFERRERPOLICY_ALLOWED_VALUES = Set.of(</span>
       &quot;no-referrer&quot;, &quot;no-referrer-when-downgrade&quot;, &quot;origin&quot;, &quot;origin-when-cross-origin&quot;,
-      &quot;same-origin&quot;, &quot;strict-origin&quot;, &quot;strict-origin-when-cross-origin&quot;, &quot;unsafe-url&quot;));
-<span class="fc" id="L59">  private static final Set&lt;String&gt; TYPE_ALLOWED_VALUES = new HashSet&lt;&gt;(Arrays.asList(</span>
-      &quot;text/javascript&quot;, &quot;module&quot;));
+      &quot;same-origin&quot;, &quot;strict-origin&quot;, &quot;strict-origin-when-cross-origin&quot;, &quot;unsafe-url&quot;);
+<span class="fc" id="L57">  private static final Set&lt;String&gt; TYPE_ALLOWED_VALUES = Set.of(</span>
+      &quot;text/javascript&quot;, &quot;module&quot;);
 
   @SlingObject
   private ResourceResolver resourceResolver;
@@ -90,16 +88,16 @@ import com.adobe.granite.ui.clientlibs.LibraryType;
   @PostConstruct
   private void activate() {
     // build include string
-<span class="fc" id="L93">    String[] categoryArray = IncludeUtil.toCategoryArray(categories);</span>
-<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (categoryArray != null) {</span>
-<span class="fc" id="L95">      List&lt;String&gt; libraryPaths = IncludeUtil.getLibraryUrls(htmlLibraryManager, resourceResolver,</span>
+<span class="fc" id="L91">    String[] categoryArray = IncludeUtil.toCategoryArray(categories);</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">    if (categoryArray != null) {</span>
+<span class="fc" id="L93">      List&lt;String&gt; libraryPaths = IncludeUtil.getLibraryUrls(htmlLibraryManager, resourceResolver,</span>
           categoryArray, LibraryType.JS);
-<span class="fc bfc" id="L97" title="All 2 branches covered.">      if (!libraryPaths.isEmpty()) {</span>
-<span class="fc" id="L98">        Map&lt;String, String&gt; attrs = validateAndBuildAttributes();</span>
-<span class="fc" id="L99">        this.include = buildIncludeString(libraryPaths, attrs);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">      if (!libraryPaths.isEmpty()) {</span>
+<span class="fc" id="L96">        Map&lt;String, String&gt; attrs = validateAndBuildAttributes();</span>
+<span class="fc" id="L97">        this.include = buildIncludeString(libraryPaths, attrs);</span>
       }
     }
-<span class="fc" id="L102">  }</span>
+<span class="fc" id="L100">  }</span>
 
   /**
    * Validate attribute values from HTL script, escape them properly and build a map with all attributes
@@ -107,32 +105,32 @@ import com.adobe.granite.ui.clientlibs.LibraryType;
    * @return Map with attribute for script tag
    */
   private @NotNull Map&lt;String, String&gt; validateAndBuildAttributes() {
-<span class="fc" id="L110">    Map&lt;String, String&gt; attrs = new TreeMap&lt;&gt;();</span>
-<span class="fc bfc" id="L111" title="All 2 branches covered.">    if (async) {</span>
-<span class="fc" id="L112">      attrs.put(&quot;async&quot;, null);</span>
+<span class="fc" id="L108">    Map&lt;String, String&gt; attrs = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (async) {</span>
+<span class="fc" id="L110">      attrs.put(&quot;async&quot;, null);</span>
     }
-<span class="fc bfc" id="L114" title="All 2 branches covered.">    if (CROSSORIGIN_ALLOWED_VALUES.contains(crossorigin)) {</span>
-<span class="fc" id="L115">      attrs.put(&quot;crossorigin&quot;, crossorigin);</span>
+<span class="fc bfc" id="L112" title="All 4 branches covered.">    if (crossorigin != null &amp;&amp; CROSSORIGIN_ALLOWED_VALUES.contains(crossorigin)) {</span>
+<span class="fc" id="L113">      attrs.put(&quot;crossorigin&quot;, crossorigin);</span>
     }
-<span class="fc bfc" id="L117" title="All 2 branches covered.">    if (defer) {</span>
-<span class="fc" id="L118">      attrs.put(&quot;defer&quot;, null);</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">    if (defer) {</span>
+<span class="fc" id="L116">      attrs.put(&quot;defer&quot;, null);</span>
     }
-<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(integrity)) {</span>
-<span class="fc" id="L121">      attrs.put(&quot;integrity&quot;, xssApi.encodeForHTMLAttr(integrity));</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(integrity)) {</span>
+<span class="fc" id="L119">      attrs.put(&quot;integrity&quot;, xssApi.encodeForHTMLAttr(integrity));</span>
     }
-<span class="fc bfc" id="L123" title="All 2 branches covered.">    if (nomodule) {</span>
-<span class="fc" id="L124">      attrs.put(&quot;nomodule&quot;, null);</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">    if (nomodule) {</span>
+<span class="fc" id="L122">      attrs.put(&quot;nomodule&quot;, null);</span>
     }
-<span class="fc bfc" id="L126" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(nonce)) {</span>
-<span class="fc" id="L127">      attrs.put(&quot;nonce&quot;, xssApi.encodeForHTMLAttr(nonce));</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(nonce)) {</span>
+<span class="fc" id="L125">      attrs.put(&quot;nonce&quot;, xssApi.encodeForHTMLAttr(nonce));</span>
     }
-<span class="fc bfc" id="L129" title="All 2 branches covered.">    if (REFERRERPOLICY_ALLOWED_VALUES.contains(referrerpolicy)) {</span>
-<span class="fc" id="L130">      attrs.put(&quot;referrerpolicy&quot;, referrerpolicy);</span>
+<span class="fc bfc" id="L127" title="All 4 branches covered.">    if (referrerpolicy != null &amp;&amp; REFERRERPOLICY_ALLOWED_VALUES.contains(referrerpolicy)) {</span>
+<span class="fc" id="L128">      attrs.put(&quot;referrerpolicy&quot;, referrerpolicy);</span>
     }
-<span class="fc bfc" id="L132" title="All 2 branches covered.">    if (TYPE_ALLOWED_VALUES.contains(type)) {</span>
-<span class="fc" id="L133">      attrs.put(&quot;type&quot;, type);</span>
+<span class="fc bfc" id="L130" title="All 4 branches covered.">    if (type != null &amp;&amp; TYPE_ALLOWED_VALUES.contains(type)) {</span>
+<span class="fc" id="L131">      attrs.put(&quot;type&quot;, type);</span>
     }
-<span class="fc" id="L135">    return attrs;</span>
+<span class="fc" id="L133">    return attrs;</span>
   }
 
   /**
@@ -142,28 +140,21 @@ import com.adobe.granite.ui.clientlibs.LibraryType;
    * @return HTML markup with script tags
    */
   private @NotNull String buildIncludeString(@NotNull List&lt;String&gt; libraryPaths, @NotNull Map&lt;String, String&gt; attrs) {
-<span class="fc" id="L145">    StringBuilder markup = new StringBuilder();</span>
-<span class="fc bfc" id="L146" title="All 2 branches covered.">    for (String libraryPath : libraryPaths) {</span>
-<span class="fc" id="L147">      markup.append(&quot;&lt;script src=\&quot;&quot;).append(xssApi.encodeForHTMLAttr(libraryPath)).append(&quot;\&quot;&quot;);</span>
-<span class="fc bfc" id="L148" title="All 2 branches covered.">      for (Map.Entry&lt;String, String&gt; attr : attrs.entrySet()) {</span>
-<span class="fc" id="L149">        markup.append(&quot; &quot;);</span>
-<span class="fc" id="L150">        markup.append(attr.getKey());</span>
-<span class="fc bfc" id="L151" title="All 2 branches covered.">        if (attr.getValue() != null) {</span>
-<span class="fc" id="L152">          markup.append(&quot;=\&quot;&quot;);</span>
-<span class="fc" id="L153">          markup.append(attr.getValue());</span>
-<span class="fc" id="L154">          markup.append(&quot;\&quot;&quot;);</span>
-        }
-<span class="fc" id="L156">      }</span>
-<span class="fc" id="L157">      markup.append(&quot;&gt;&lt;/script&gt;\n&quot;);</span>
-<span class="fc" id="L158">    }</span>
-<span class="fc" id="L159">    return markup.toString();</span>
+<span class="fc" id="L143">    StringBuilder markup = new StringBuilder();</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">    for (String libraryPath : libraryPaths) {</span>
+<span class="fc" id="L145">      HtmlTagBuilder builder = new HtmlTagBuilder(&quot;script&quot;, true, xssApi);</span>
+<span class="fc" id="L146">      builder.setAttrs(attrs);</span>
+<span class="fc" id="L147">      builder.setAttr(&quot;src&quot;, libraryPath);</span>
+<span class="fc" id="L148">      markup.append(builder.build());</span>
+<span class="fc" id="L149">    }</span>
+<span class="fc" id="L150">    return markup.toString();</span>
   }
 
   /**
    * @return HTML markup with script tags
    */
   public @Nullable String getInclude() {
-<span class="fc" id="L166">    return include;</span>
+<span class="fc" id="L157">    return include;</span>
   }
 
 }
