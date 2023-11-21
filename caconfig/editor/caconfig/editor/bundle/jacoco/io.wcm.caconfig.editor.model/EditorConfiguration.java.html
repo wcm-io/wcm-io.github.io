@@ -44,20 +44,21 @@ import io.wcm.caconfig.editor.impl.ConfigDataServlet;
 import io.wcm.caconfig.editor.impl.ConfigNamesServlet;
 import io.wcm.caconfig.editor.impl.ConfigPersistServlet;
 import io.wcm.caconfig.editor.impl.EditorConfig;
+import io.wcm.caconfig.editor.impl.UnifiedShellDetector;
 
 /**
  * Provides editor configuration options
  */
 @Model(adaptables = HttpServletRequest.class)
 @ProviderType
-<span class="fc" id="L53">public class EditorConfiguration {</span>
+<span class="fc" id="L54">public class EditorConfiguration {</span>
 
   static final String RT_WCMIO_PATHFIELD = &quot;wcm-io/wcm/ui/granite/components/form/pathfield&quot;;
   static final String PATH_PATHFIELD_STANDARD = &quot;/mnt/overlay/granite/ui/content/coral/foundation/form/pathfield&quot;;
   static final String PATH_PATHFIELD_WCMIO = &quot;/mnt/overlay/wcm-io/wcm/ui/granite/content/form/pathfield&quot;;
   static final String PATH_TAGFIELD_CQ = &quot;/mnt/overlay/cq/gui/content/coral/common/form/tagfield&quot;;
 
-<span class="fc" id="L60">  private static final Logger log = LoggerFactory.getLogger(EditorConfiguration.class);</span>
+<span class="fc" id="L61">  private static final Logger log = LoggerFactory.getLogger(EditorConfiguration.class);</span>
 
   @SlingObject
   private Resource currentResource;
@@ -67,6 +68,8 @@ import io.wcm.caconfig.editor.impl.EditorConfig;
   private ConfigurationResourceResolver configResourceResolver;
   @OSGiService
   private EditorConfig editorConfig;
+  @OSGiService
+  private UnifiedShellDetector unifiedShellDetector;
 
   private String servletContextPathPrefix;
   private String configNamesUrl;
@@ -78,26 +81,28 @@ import io.wcm.caconfig.editor.impl.EditorConfig;
   private String language;
   private boolean enabled;
   private boolean canReplicate;
+  private boolean unifiedShellAvailable;
 
   @PostConstruct
   private void activate() {
-<span class="fc" id="L84">    this.servletContextPathPrefix = StringUtils.defaultString(request.getContextPath());</span>
-<span class="fc bfc" id="L85" title="All 2 branches covered.">    if (StringUtils.equals(this.servletContextPathPrefix, &quot;/&quot;)) {</span>
-<span class="fc" id="L86">      this.servletContextPathPrefix = &quot;&quot;;</span>
+<span class="fc" id="L88">    this.servletContextPathPrefix = StringUtils.defaultString(request.getContextPath());</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">    if (StringUtils.equals(this.servletContextPathPrefix, &quot;/&quot;)) {</span>
+<span class="fc" id="L90">      this.servletContextPathPrefix = &quot;&quot;;</span>
     }
-<span class="fc" id="L88">    this.configNamesUrl = buildServletPath(ConfigNamesServlet.SELECTOR);</span>
-<span class="fc" id="L89">    this.configDataUrl = buildServletPath(ConfigDataServlet.SELECTOR);</span>
-<span class="fc" id="L90">    this.configPersistUrl = buildServletPath(ConfigPersistServlet.SELECTOR);</span>
-<span class="fc" id="L91">    this.contextPath = configResourceResolver.getContextPath(currentResource);</span>
-<span class="fc" id="L92">    this.pathfieldContentPath = buildPathfieldContentPath();</span>
-<span class="fc" id="L93">    this.tagfieldContentPath = buildTagfieldContentPath();</span>
-<span class="fc" id="L94">    this.language = request.getLocale().getLanguage();</span>
-<span class="fc" id="L95">    this.enabled = editorConfig.isEnabled();</span>
-<span class="fc" id="L96">    this.canReplicate = hasPermission(Replicator.REPLICATE_PRIVILEGE);</span>
-<span class="fc" id="L97">  }</span>
+<span class="fc" id="L92">    this.configNamesUrl = buildServletPath(ConfigNamesServlet.SELECTOR);</span>
+<span class="fc" id="L93">    this.configDataUrl = buildServletPath(ConfigDataServlet.SELECTOR);</span>
+<span class="fc" id="L94">    this.configPersistUrl = buildServletPath(ConfigPersistServlet.SELECTOR);</span>
+<span class="fc" id="L95">    this.contextPath = configResourceResolver.getContextPath(currentResource);</span>
+<span class="fc" id="L96">    this.pathfieldContentPath = buildPathfieldContentPath();</span>
+<span class="fc" id="L97">    this.tagfieldContentPath = buildTagfieldContentPath();</span>
+<span class="fc" id="L98">    this.language = request.getLocale().getLanguage();</span>
+<span class="fc" id="L99">    this.enabled = editorConfig.isEnabled();</span>
+<span class="fc" id="L100">    this.canReplicate = hasPermission(Replicator.REPLICATE_PRIVILEGE);</span>
+<span class="fc" id="L101">    this.unifiedShellAvailable = unifiedShellDetector.isAvailable();</span>
+<span class="fc" id="L102">  }</span>
 
   private String buildServletPath(String selector) {
-<span class="fc" id="L100">    return servletContextPathPrefix + currentResource.getPath() + &quot;.&quot; + selector + &quot;.json&quot;;</span>
+<span class="fc" id="L105">    return servletContextPathPrefix + currentResource.getPath() + &quot;.&quot; + selector + &quot;.json&quot;;</span>
   }
 
   /**
@@ -106,72 +111,76 @@ import io.wcm.caconfig.editor.impl.EditorConfig;
    * @return Pathfield content path
    */
   private String buildPathfieldContentPath() {
-<span class="fc" id="L109">    ComponentManager componentManager = request.getResourceResolver().adaptTo(ComponentManager.class);</span>
-<span class="pc bpc" id="L110" title="1 of 4 branches missed.">    if (componentManager != null &amp;&amp; componentManager.getComponent(RT_WCMIO_PATHFIELD) != null) {</span>
-<span class="fc" id="L111">      return servletContextPathPrefix + PATH_PATHFIELD_WCMIO;</span>
+<span class="fc" id="L114">    ComponentManager componentManager = request.getResourceResolver().adaptTo(ComponentManager.class);</span>
+<span class="pc bpc" id="L115" title="1 of 4 branches missed.">    if (componentManager != null &amp;&amp; componentManager.getComponent(RT_WCMIO_PATHFIELD) != null) {</span>
+<span class="fc" id="L116">      return servletContextPathPrefix + PATH_PATHFIELD_WCMIO;</span>
     }
     else {
-<span class="fc" id="L114">      return servletContextPathPrefix + PATH_PATHFIELD_STANDARD;</span>
+<span class="fc" id="L119">      return servletContextPathPrefix + PATH_PATHFIELD_STANDARD;</span>
     }
   }
 
   private boolean hasPermission(String privilegeName) {
-<span class="fc" id="L119">    Session session = request.getResourceResolver().adaptTo(Session.class);</span>
-<span class="pc bpc" id="L120" title="1 of 2 branches missed.">    if (session != null) {</span>
+<span class="fc" id="L124">    Session session = request.getResourceResolver().adaptTo(Session.class);</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">    if (session != null) {</span>
       try {
-<span class="nc" id="L122">        AccessControlManager accessControlManager = session.getAccessControlManager();</span>
-<span class="nc" id="L123">        Privilege privilege = accessControlManager.privilegeFromName(privilegeName);</span>
-<span class="nc" id="L124">        return accessControlManager.hasPrivileges(currentResource.getPath(), new Privilege[] { privilege });</span>
+<span class="nc" id="L127">        AccessControlManager accessControlManager = session.getAccessControlManager();</span>
+<span class="nc" id="L128">        Privilege privilege = accessControlManager.privilegeFromName(privilegeName);</span>
+<span class="nc" id="L129">        return accessControlManager.hasPrivileges(currentResource.getPath(), new Privilege[] { privilege });</span>
       }
-<span class="nc" id="L126">      catch (RepositoryException ex) {</span>
-<span class="nc" id="L127">        log.warn(&quot;Failed to check permission for {}&quot;, currentResource.getPath(), ex);</span>
+<span class="nc" id="L131">      catch (RepositoryException ex) {</span>
+<span class="nc" id="L132">        log.warn(&quot;Failed to check permission for {}&quot;, currentResource.getPath(), ex);</span>
       }
     }
-<span class="fc" id="L130">    return false;</span>
+<span class="fc" id="L135">    return false;</span>
   }
 
   private String buildTagfieldContentPath() {
-<span class="fc" id="L134">    return servletContextPathPrefix + PATH_TAGFIELD_CQ;</span>
+<span class="fc" id="L139">    return servletContextPathPrefix + PATH_TAGFIELD_CQ;</span>
   }
 
   public String getServletContextPathPrefix() {
-<span class="fc" id="L138">    return this.servletContextPathPrefix;</span>
+<span class="fc" id="L143">    return this.servletContextPathPrefix;</span>
   }
 
   public String getConfigNamesUrl() {
-<span class="fc" id="L142">    return configNamesUrl;</span>
+<span class="fc" id="L147">    return configNamesUrl;</span>
   }
 
   public String getConfigDataUrl() {
-<span class="fc" id="L146">    return configDataUrl;</span>
+<span class="fc" id="L151">    return configDataUrl;</span>
   }
 
   public String getConfigPersistUrl() {
-<span class="fc" id="L150">    return configPersistUrl;</span>
+<span class="fc" id="L155">    return configPersistUrl;</span>
   }
 
   public String getContextPath() {
-<span class="fc" id="L154">    return this.contextPath;</span>
+<span class="fc" id="L159">    return this.contextPath;</span>
   }
 
   public String getPathfieldContentPath() {
-<span class="fc" id="L158">    return this.pathfieldContentPath;</span>
+<span class="fc" id="L163">    return this.pathfieldContentPath;</span>
   }
 
   public String getTagfieldContentPath() {
-<span class="fc" id="L162">    return this.tagfieldContentPath;</span>
+<span class="fc" id="L167">    return this.tagfieldContentPath;</span>
   }
 
   public String getLanguage() {
-<span class="fc" id="L166">    return this.language;</span>
+<span class="fc" id="L171">    return this.language;</span>
   }
 
   public boolean isEnabled() {
-<span class="fc" id="L170">    return this.enabled;</span>
+<span class="fc" id="L175">    return this.enabled;</span>
   }
 
   public boolean isCanReplicate() {
-<span class="fc" id="L174">    return this.canReplicate;</span>
+<span class="fc" id="L179">    return this.canReplicate;</span>
+  }
+
+  public boolean isUnifiedShellAvailable() {
+<span class="fc" id="L183">    return this.unifiedShellAvailable;</span>
   }
 
 }
