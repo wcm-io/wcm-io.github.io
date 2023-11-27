@@ -1,1 +1,0 @@
-typeSearchIndex = [{"l":"All Classes","url":"allclasses-index.html"},{"p":"io.wcm.siteapi.genericedit.handler.link","l":"SiteApiInternalLinkInheritGenericEditSelectorLinkPreProcessor"}]
