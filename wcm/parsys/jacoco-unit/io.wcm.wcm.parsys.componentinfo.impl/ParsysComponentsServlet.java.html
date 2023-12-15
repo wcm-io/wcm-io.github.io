@@ -20,6 +20,8 @@
 package io.wcm.wcm.parsys.componentinfo.impl;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -41,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import com.day.cq.wcm.api.Page;
 import com.day.cq.wcm.api.PageManager;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.wcm.sling.commons.adapter.AdaptTo;
 import io.wcm.sling.commons.request.RequestParam;
@@ -59,14 +62,16 @@ import io.wcm.wcm.parsys.componentinfo.AllowedComponentsProvider;
     &quot;sling.servlet.resourceTypes=sling/servlet/default&quot;,
     &quot;sling.servlet.methods=&quot; + HttpConstants.METHOD_GET
 })
-<span class="fc" id="L62">public final class ParsysComponentsServlet extends SlingSafeMethodsServlet {</span>
+<span class="fc" id="L65">public final class ParsysComponentsServlet extends SlingSafeMethodsServlet {</span>
   private static final long serialVersionUID = 1L;
 
   static final String RP_PATH = &quot;path&quot;;
   static final String RP_RESOURCE_TYPE = &quot;resourceType&quot;;
   static final String SELECTOR = &quot;wcmio-parsys-components&quot;;
 
-<span class="fc" id="L69">  private static final Logger log = LoggerFactory.getLogger(ParsysComponentsServlet.class);</span>
+<span class="fc" id="L72">  private static final Logger log = LoggerFactory.getLogger(ParsysComponentsServlet.class);</span>
+
+<span class="fc" id="L74">  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();</span>
 
   @Reference
   private AllowedComponentsProvider allowedComponentsProvider;
@@ -79,59 +84,59 @@ import io.wcm.wcm.parsys.componentinfo.AllowedComponentsProvider;
   @Activate
   protected void activate() {
     // Activate only in author mode
-<span class="fc" id="L82">    enabled = instanceTypeService.isAuthor();</span>
-<span class="fc" id="L83">  }</span>
+<span class="fc" id="L87">    enabled = instanceTypeService.isAuthor();</span>
+<span class="fc" id="L88">  }</span>
 
-  @SuppressWarnings({ &quot;null&quot;, &quot;deprecation&quot; })
+  @SuppressWarnings(&quot;null&quot;)
   @Override
   protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
-<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (!enabled) {</span>
-<span class="fc" id="L89">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
-<span class="fc" id="L90">      return;</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">    if (!enabled) {</span>
+<span class="fc" id="L94">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="fc" id="L95">      return;</span>
     }
 
-<span class="fc" id="L93">    ResourceResolver resolver = request.getResourceResolver();</span>
-<span class="fc" id="L94">    PageManager pageManager = AdaptTo.notNull(resolver, PageManager.class);</span>
-<span class="fc" id="L95">    Page currentPage = pageManager.getContainingPage(request.getResource());</span>
+<span class="fc" id="L98">    ResourceResolver resolver = request.getResourceResolver();</span>
+<span class="fc" id="L99">    PageManager pageManager = AdaptTo.notNull(resolver, PageManager.class);</span>
+<span class="fc" id="L100">    Page currentPage = pageManager.getContainingPage(request.getResource());</span>
 
-<span class="pc bpc" id="L97" title="1 of 2 branches missed.">    if (currentPage == null) {</span>
-<span class="nc" id="L98">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
-<span class="nc" id="L99">      return;</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">    if (currentPage == null) {</span>
+<span class="nc" id="L103">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="nc" id="L104">      return;</span>
     }
 
-<span class="fc" id="L102">    long startTime = 0;</span>
-<span class="pc bpc" id="L103" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L104">      startTime = System.currentTimeMillis();</span>
+<span class="fc" id="L107">    long startTime = 0;</span>
+<span class="pc bpc" id="L108" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L109">      startTime = System.currentTimeMillis();</span>
     }
 
-<span class="fc" id="L107">    response.setContentType(ContentType.JSON);</span>
+<span class="fc" id="L112">    response.setContentType(ContentType.JSON);</span>
 
-<span class="fc" id="L109">    org.apache.sling.commons.json.JSONArray allowedComponents = new org.apache.sling.commons.json.JSONArray();</span>
+<span class="fc" id="L114">    Collection&lt;String&gt; allowedComponents = Collections.emptyList();</span>
 
-<span class="fc" id="L111">    String relativePath = RequestParam.get(request, RP_PATH);</span>
-<span class="fc" id="L112">    String resourceType = RequestParam.get(request, RP_RESOURCE_TYPE);</span>
-<span class="fc bfc" id="L113" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(relativePath)) {</span>
+<span class="fc" id="L116">    String relativePath = RequestParam.get(request, RP_PATH);</span>
+<span class="fc" id="L117">    String resourceType = RequestParam.get(request, RP_RESOURCE_TYPE);</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(relativePath)) {</span>
       // get resource from paragraph system
-<span class="fc" id="L115">      Set&lt;String&gt; allowed = allowedComponentsProvider.getAllowedComponents(currentPage, relativePath, resourceType, resolver);</span>
+<span class="fc" id="L120">      Set&lt;String&gt; allowed = allowedComponentsProvider.getAllowedComponents(currentPage, relativePath, resourceType, resolver);</span>
 
       // create set with relative resource type paths
-<span class="fc" id="L118">      Set&lt;String&gt; allowedComponentsRelative = new TreeSet&lt;&gt;();</span>
-<span class="fc bfc" id="L119" title="All 2 branches covered.">      for (String allowedResourceType : allowed) {</span>
-<span class="fc" id="L120">        allowedComponentsRelative.add(ResourceType.makeAbsolute(allowedResourceType, resolver));</span>
-<span class="fc" id="L121">      }</span>
+<span class="fc" id="L123">      Set&lt;String&gt; allowedComponentsRelative = new TreeSet&lt;&gt;();</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">      for (String allowedResourceType : allowed) {</span>
+<span class="fc" id="L125">        allowedComponentsRelative.add(ResourceType.makeAbsolute(allowedResourceType, resolver));</span>
+<span class="fc" id="L126">      }</span>
 
-<span class="fc" id="L123">      allowedComponents = new org.apache.sling.commons.json.JSONArray(allowedComponentsRelative);</span>
+<span class="fc" id="L128">      allowedComponents = allowedComponentsRelative;</span>
     }
 
-<span class="fc" id="L126">    response.getWriter().write(allowedComponents.toString());</span>
+<span class="fc" id="L131">    response.getWriter().write(OBJECT_MAPPER.writeValueAsString(allowedComponents));</span>
 
     // output profiling info in DEBUG mode
-<span class="pc bpc" id="L129" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L130">      long endTime = System.currentTimeMillis();</span>
-<span class="nc" id="L131">      long duration = endTime - startTime;</span>
-<span class="nc" id="L132">      log.debug(&quot;ParsysComponentsServlet for {}/{} took {}ms&quot;, currentPage.getPath(), relativePath, duration);</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L135">      long endTime = System.currentTimeMillis();</span>
+<span class="nc" id="L136">      long duration = endTime - startTime;</span>
+<span class="nc" id="L137">      log.debug(&quot;ParsysComponentsServlet for {}/{} took {}ms&quot;, currentPage.getPath(), relativePath, duration);</span>
     }
-<span class="fc" id="L134">  }</span>
+<span class="fc" id="L139">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
