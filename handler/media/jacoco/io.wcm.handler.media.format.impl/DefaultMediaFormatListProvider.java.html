@@ -20,7 +20,9 @@
 package io.wcm.handler.media.format.impl;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import javax.servlet.Servlet;
@@ -30,11 +32,13 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.servlets.HttpConstants;
 import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
-import org.apache.sling.commons.json.JSONArray;
-import org.apache.sling.commons.json.JSONException;
-import org.apache.sling.commons.json.JSONObject;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Component;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.wcm.handler.media.format.MediaFormat;
 import io.wcm.handler.media.format.MediaFormatHandler;
@@ -50,57 +54,115 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
     &quot;sling.servlet.resourceTypes=sling/servlet/default&quot;,
     &quot;sling.servlet.methods=&quot; + HttpConstants.METHOD_GET
 })
-@SuppressWarnings(&quot;deprecation&quot;)
-<span class="fc" id="L54">public final class DefaultMediaFormatListProvider extends SlingSafeMethodsServlet {</span>
+<span class="fc" id="L57">public final class DefaultMediaFormatListProvider extends SlingSafeMethodsServlet {</span>
   private static final long serialVersionUID = 1L;
 
   @Override
   protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
-    try {
+    // get list of media formats for current medialib path
+<span class="fc" id="L63">    Set&lt;MediaFormat&gt; mediaFormats = getMediaFormats(request);</span>
 
-      // get list of media formats for current medialib path
-<span class="fc" id="L62">      Set&lt;MediaFormat&gt; mediaFormats = getMediaFormats(request);</span>
-
-<span class="fc" id="L64">      response.setContentType(ContentType.JSON);</span>
-
-<span class="fc" id="L66">      JSONArray mediaFormatList = new JSONArray();</span>
-
-<span class="pc bpc" id="L68" title="1 of 2 branches missed.">      if (mediaFormats != null) {</span>
-<span class="fc bfc" id="L69" title="All 2 branches covered.">        for (MediaFormat mediaFormat : mediaFormats) {</span>
-<span class="fc bfc" id="L70" title="All 2 branches covered.">          if (!mediaFormat.isInternal()) {</span>
-<span class="fc" id="L71">            JSONObject mediaFormatItem = new JSONObject();</span>
-<span class="fc" id="L72">            mediaFormatItem.put(&quot;name&quot;, mediaFormat.getName());</span>
-<span class="fc" id="L73">            mediaFormatItem.put(&quot;text&quot;, mediaFormat.toString());</span>
-<span class="fc" id="L74">            mediaFormatItem.put(&quot;width&quot;, mediaFormat.getWidth());</span>
-<span class="fc" id="L75">            mediaFormatItem.put(&quot;height&quot;, mediaFormat.getHeight());</span>
-<span class="fc" id="L76">            mediaFormatItem.put(&quot;widthMin&quot;, mediaFormat.getMinWidth());</span>
-<span class="fc" id="L77">            mediaFormatItem.put(&quot;heightMin&quot;, mediaFormat.getMinHeight());</span>
-<span class="fc" id="L78">            mediaFormatItem.put(&quot;widthHeightMin&quot;, mediaFormat.getMinWidthHeight());</span>
-<span class="fc" id="L79">            mediaFormatItem.put(&quot;isImage&quot;, mediaFormat.isImage());</span>
-<span class="fc" id="L80">            mediaFormatItem.put(&quot;ratio&quot;, mediaFormat.getRatio());</span>
-<span class="fc" id="L81">            mediaFormatItem.put(&quot;ratioWidth&quot;, mediaFormat.getRatioWidthAsDouble());</span>
-<span class="fc" id="L82">            mediaFormatItem.put(&quot;ratioHeight&quot;, mediaFormat.getRatioHeightAsDouble());</span>
-<span class="fc" id="L83">            mediaFormatItem.put(&quot;ratioDisplayString&quot;, mediaFormat.getRatioDisplayString());</span>
-<span class="fc" id="L84">            mediaFormatList.put(mediaFormatItem);</span>
-          }
-<span class="fc" id="L86">        }</span>
-      }
-
-<span class="fc" id="L89">      response.getWriter().write(mediaFormatList.toString());</span>
+<span class="fc" id="L65">    List&lt;MediaFormatItem&gt; mediaFormatList = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">    if (mediaFormats != null) {</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">      for (MediaFormat mediaFormat : mediaFormats) {</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (!mediaFormat.isInternal()) {</span>
+<span class="fc" id="L69">          MediaFormatItem mediaFormatItem = new MediaFormatItem();</span>
+<span class="fc" id="L70">          mediaFormatItem.name = mediaFormat.getName();</span>
+<span class="fc" id="L71">          mediaFormatItem.text = mediaFormat.toString();</span>
+<span class="fc" id="L72">          mediaFormatItem.width = mediaFormat.getWidth();</span>
+<span class="fc" id="L73">          mediaFormatItem.height = mediaFormat.getHeight();</span>
+<span class="fc" id="L74">          mediaFormatItem.widthMin = mediaFormat.getMinWidth();</span>
+<span class="fc" id="L75">          mediaFormatItem.heightMin = mediaFormat.getMinHeight();</span>
+<span class="fc" id="L76">          mediaFormatItem.widthHeightMin = mediaFormat.getMinWidthHeight();</span>
+<span class="fc" id="L77">          mediaFormatItem.isImage = mediaFormat.isImage();</span>
+<span class="fc" id="L78">          mediaFormatItem.ratio = mediaFormat.getRatio();</span>
+<span class="fc" id="L79">          mediaFormatItem.ratioWidth = mediaFormat.getRatioWidthAsDouble();</span>
+<span class="fc" id="L80">          mediaFormatItem.ratioHeight = mediaFormat.getRatioHeightAsDouble();</span>
+<span class="fc" id="L81">          mediaFormatItem.ratioDisplayString = mediaFormat.getRatioDisplayString();</span>
+<span class="fc" id="L82">          mediaFormatList.add(mediaFormatItem);</span>
+        }
+<span class="fc" id="L84">      }</span>
     }
-<span class="nc" id="L91">    catch (JSONException ex) {</span>
-<span class="nc" id="L92">      throw new ServletException(ex);</span>
-<span class="fc" id="L93">    }</span>
-<span class="fc" id="L94">  }</span>
+
+    // serialize to JSON using Jackson
+<span class="fc" id="L88">    response.setContentType(ContentType.JSON);</span>
+<span class="fc" id="L89">    response.getWriter().write(new ObjectMapper().writeValueAsString(mediaFormatList));</span>
+<span class="fc" id="L90">  }</span>
 
   protected Set&lt;MediaFormat&gt; getMediaFormats(SlingHttpServletRequest request) {
-<span class="fc" id="L97">    MediaFormatHandler mediaFormatHandler = request.adaptTo(MediaFormatHandler.class);</span>
-<span class="pc bpc" id="L98" title="1 of 2 branches missed.">    if (mediaFormatHandler != null) {</span>
-<span class="fc" id="L99">      return mediaFormatHandler.getMediaFormats();</span>
+<span class="fc" id="L93">    MediaFormatHandler mediaFormatHandler = request.adaptTo(MediaFormatHandler.class);</span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">    if (mediaFormatHandler != null) {</span>
+<span class="fc" id="L95">      return mediaFormatHandler.getMediaFormats();</span>
     }
     else {
-<span class="nc" id="L102">      return Collections.emptySet();</span>
+<span class="nc" id="L98">      return Collections.emptySet();</span>
     }
+  }
+
+  @JsonInclude(Include.NON_NULL)
+<span class="fc" id="L103">  static class MediaFormatItem {</span>
+    private String name;
+    private String text;
+    private long width;
+    private long height;
+    private long widthMin;
+    private long heightMin;
+    private long widthHeightMin;
+    private boolean isImage;
+    private double ratio;
+    private double ratioWidth;
+    private double ratioHeight;
+    private String ratioDisplayString;
+
+    public String getName() {
+<span class="fc" id="L118">      return this.name;</span>
+    }
+
+    public String getText() {
+<span class="fc" id="L122">      return this.text;</span>
+    }
+
+    public long getWidth() {
+<span class="fc" id="L126">      return this.width;</span>
+    }
+
+    public long getHeight() {
+<span class="fc" id="L130">      return this.height;</span>
+    }
+
+    public long getWidthMin() {
+<span class="fc" id="L134">      return this.widthMin;</span>
+    }
+
+    public long getHeightMin() {
+<span class="fc" id="L138">      return this.heightMin;</span>
+    }
+
+    public long getWidthHeightMin() {
+<span class="fc" id="L142">      return this.widthHeightMin;</span>
+    }
+
+    @JsonProperty(&quot;isImage&quot;)
+    public boolean isImage() {
+<span class="fc" id="L147">      return this.isImage;</span>
+    }
+
+    public double getRatio() {
+<span class="fc" id="L151">      return this.ratio;</span>
+    }
+
+    public double getRatioWidth() {
+<span class="fc" id="L155">      return this.ratioWidth;</span>
+    }
+
+    public double getRatioHeight() {
+<span class="fc" id="L159">      return this.ratioHeight;</span>
+    }
+
+    public String getRatioDisplayString() {
+<span class="fc" id="L163">      return this.ratioDisplayString;</span>
+    }
+
   }
 
 }
