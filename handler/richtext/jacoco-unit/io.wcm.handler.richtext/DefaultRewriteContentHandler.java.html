@@ -19,22 +19,23 @@
  */
 package io.wcm.handler.richtext;
 
-import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.CharEncoding;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.adapter.Adaptable;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ValueMap;
-import org.apache.sling.commons.json.JSONArray;
-import org.apache.sling.commons.json.JSONException;
-import org.apache.sling.commons.json.JSONObject;
 import org.apache.sling.models.annotations.Model;
 import org.apache.sling.models.annotations.injectorspecific.Self;
 import org.apache.sling.models.annotations.injectorspecific.SlingObject;
@@ -48,6 +49,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.day.cq.commons.jcr.JcrConstants;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.wcm.handler.link.Link;
 import io.wcm.handler.link.LinkHandler;
@@ -68,8 +72,7 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
  * Default implementation of {@link RewriteContentHandler}.
  */
 @Model(adaptables = { SlingHttpServletRequest.class, Resource.class })
-@SuppressWarnings(&quot;deprecation&quot;)
-<span class="fc" id="L72">public final class DefaultRewriteContentHandler implements RewriteContentHandler {</span>
+<span class="fc" id="L75">public final class DefaultRewriteContentHandler implements RewriteContentHandler {</span>
 
   @Self
   private Adaptable adaptable;
@@ -82,12 +85,16 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
   @Self
   private MediaHandler mediaHandler;
 
-<span class="fc" id="L85">  private static final Logger log = LoggerFactory.getLogger(DefaultRewriteContentHandler.class);</span>
+<span class="fc" id="L88">  private static final Logger log = LoggerFactory.getLogger(DefaultRewriteContentHandler.class);</span>
+<span class="fc" id="L89">  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();</span>
+<span class="fc" id="L90">  private static final TypeReference&lt;HashMap&lt;String, Object&gt;&gt; MAP_TYPE_REFERENCE = new TypeReference&lt;HashMap&lt;String, Object&gt;&gt;() {</span>
+    // type reference
+  };
 
   /**
    * List of all tag names that should not be rendered &quot;self-closing&quot; to avoid interpretation errors in browsers
    */
-<span class="fc" id="L90">  private static final Set&lt;String&gt; NONSELFCLOSING_TAGS = Set.of(</span>
+<span class="fc" id="L97">  private static final Set&lt;String&gt; NONSELFCLOSING_TAGS = Set.of(</span>
       &quot;div&quot;,
       &quot;span&quot;,
       &quot;strong&quot;,
@@ -112,35 +119,35 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
   public List&lt;Content&gt; rewriteElement(@NotNull Element element) {
 
     // rewrite anchor elements
-<span class="fc bfc" id="L115" title="All 2 branches covered.">    if (StringUtils.equalsIgnoreCase(element.getName(), &quot;a&quot;)) {</span>
-<span class="fc" id="L116">      return rewriteAnchor(element);</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">    if (StringUtils.equalsIgnoreCase(element.getName(), &quot;a&quot;)) {</span>
+<span class="fc" id="L123">      return rewriteAnchor(element);</span>
     }
 
     // rewrite image elements
-<span class="pc bpc" id="L120" title="1 of 2 branches missed.">    else if (StringUtils.equalsIgnoreCase(element.getName(), &quot;img&quot;)) {</span>
-<span class="nc" id="L121">      return rewriteImage(element);</span>
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">    else if (StringUtils.equalsIgnoreCase(element.getName(), &quot;img&quot;)) {</span>
+<span class="nc" id="L128">      return rewriteImage(element);</span>
     }
 
     // detect BR elements and turn those into &quot;self-closing&quot; elements
     // since the otherwise generated &lt;br&gt; &lt;/br&gt; structures are illegal and
     // are not handled correctly by Internet Explorers
-<span class="pc bpc" id="L127" title="1 of 2 branches missed.">    else if (StringUtils.equalsIgnoreCase(element.getName(), &quot;br&quot;)) {</span>
-<span class="nc bnc" id="L128" title="All 2 branches missed.">      if (!element.getContent().isEmpty()) {</span>
-<span class="nc" id="L129">        element.removeContent();</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">    else if (StringUtils.equalsIgnoreCase(element.getName(), &quot;br&quot;)) {</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">      if (!element.getContent().isEmpty()) {</span>
+<span class="nc" id="L136">        element.removeContent();</span>
       }
-<span class="nc" id="L131">      return null;</span>
+<span class="nc" id="L138">      return null;</span>
     }
 
     // detect empty elements and insert at least an empty string to avoid &quot;self-closing&quot; elements
     // that are not handled correctly by most browsers
-<span class="fc bfc" id="L136" title="All 2 branches covered.">    else if (NONSELFCLOSING_TAGS.contains(StringUtils.lowerCase(element.getName()))) {</span>
-<span class="fc bfc" id="L137" title="All 2 branches covered.">      if (element.getContent().isEmpty()) {</span>
-<span class="fc" id="L138">        element.setText(&quot;&quot;);</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">    else if (NONSELFCLOSING_TAGS.contains(StringUtils.lowerCase(element.getName()))) {</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">      if (element.getContent().isEmpty()) {</span>
+<span class="fc" id="L145">        element.setText(&quot;&quot;);</span>
       }
-<span class="fc" id="L140">      return null;</span>
+<span class="fc" id="L147">      return null;</span>
     }
 
-<span class="fc" id="L143">    return null;</span>
+<span class="fc" id="L150">    return null;</span>
   }
 
   /**
@@ -154,26 +161,26 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
 
     // detect empty anchor elements and insert at least an empty string to avoid &quot;self-closing&quot; elements
     // that are not handled correctly by most browsers
-<span class="fc bfc" id="L157" title="All 2 branches covered.">    if (element.getContent().isEmpty()) {</span>
-<span class="fc" id="L158">      element.setText(&quot;&quot;);</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">    if (element.getContent().isEmpty()) {</span>
+<span class="fc" id="L165">      element.setText(&quot;&quot;);</span>
     }
 
     // resolve link metadata from DOM element
-<span class="fc" id="L162">    Link link = getAnchorLink(element);</span>
+<span class="fc" id="L169">    Link link = getAnchorLink(element);</span>
 
     // build anchor for link metadata
-<span class="fc" id="L165">    Element anchorElement = buildAnchorElement(link, element);</span>
+<span class="fc" id="L172">    Element anchorElement = buildAnchorElement(link, element);</span>
 
     // Replace anchor tag or remove anchor tag if invalid - add any sub-content in every case
-<span class="fc" id="L168">    List&lt;Content&gt; content = new ArrayList&lt;&gt;();</span>
-<span class="pc bpc" id="L169" title="1 of 2 branches missed.">    if (anchorElement != null) {</span>
-<span class="fc" id="L170">      anchorElement.addContent(element.cloneContent());</span>
-<span class="fc" id="L171">      content.add(anchorElement);</span>
+<span class="fc" id="L175">    List&lt;Content&gt; content = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">    if (anchorElement != null) {</span>
+<span class="fc" id="L177">      anchorElement.addContent(element.cloneContent());</span>
+<span class="fc" id="L178">      content.add(anchorElement);</span>
     }
     else {
-<span class="nc" id="L174">      content.addAll(element.getContent());</span>
+<span class="nc" id="L181">      content.addAll(element.getContent());</span>
     }
-<span class="fc" id="L176">    return content;</span>
+<span class="fc" id="L183">    return content;</span>
   }
 
   /**
@@ -182,28 +189,28 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
    * @return Link metadata
    */
   private Link getAnchorLink(Element element) {
-<span class="fc" id="L185">    Resource currentResource = getCurrentResource();</span>
-<span class="pc bpc" id="L186" title="1 of 2 branches missed.">    if (currentResource == null) {</span>
-<span class="nc" id="L187">      return linkHandler.invalid();</span>
+<span class="fc" id="L192">    Resource currentResource = getCurrentResource();</span>
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">    if (currentResource == null) {</span>
+<span class="nc" id="L194">      return linkHandler.invalid();</span>
     }
 
-<span class="fc" id="L190">    SyntheticLinkResource resource = new SyntheticLinkResource(resourceResolver,</span>
-<span class="fc" id="L191">        currentResource.getPath() + &quot;/$link$&quot;);</span>
-<span class="fc" id="L192">    ValueMap resourceProps = resource.getValueMap();</span>
+<span class="fc" id="L197">    SyntheticLinkResource resource = new SyntheticLinkResource(resourceResolver,</span>
+<span class="fc" id="L198">        currentResource.getPath() + &quot;/$link$&quot;);</span>
+<span class="fc" id="L199">    ValueMap resourceProps = resource.getValueMap();</span>
 
     // get link metadata from data element
-<span class="fc" id="L195">    boolean foundMetadata = getAnchorMetadataFromData(resourceProps, element);</span>
-<span class="fc bfc" id="L196" title="All 2 branches covered.">    if (!foundMetadata) {</span>
+<span class="fc" id="L202">    boolean foundMetadata = getAnchorMetadataFromData(resourceProps, element);</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">    if (!foundMetadata) {</span>
       // support for legacy metadata stored in single &quot;data&quot; attribute
-<span class="fc" id="L198">      foundMetadata = getAnchorLegacyMetadataFromSingleData(resourceProps, element);</span>
-<span class="fc bfc" id="L199" title="All 2 branches covered.">      if (!foundMetadata) {</span>
+<span class="fc" id="L205">      foundMetadata = getAnchorLegacyMetadataFromSingleData(resourceProps, element);</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">      if (!foundMetadata) {</span>
         // support for legacy metadata stored in rel attribute
-<span class="fc" id="L201">        getAnchorLegacyMetadataFromRel(resourceProps, element);</span>
+<span class="fc" id="L208">        getAnchorLegacyMetadataFromRel(resourceProps, element);</span>
       }
     }
 
     // build anchor via linkhandler
-<span class="fc" id="L206">    return linkHandler.get(resource).build();</span>
+<span class="fc" id="L213">    return linkHandler.get(resource).build();</span>
   }
 
   /**
@@ -213,16 +220,16 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
    * @return Anchor element or null if link is invalid
    */
   private Element buildAnchorElement(Link link, Element element) {
-<span class="fc bfc" id="L216" title="All 2 branches covered.">    if (link.isValid()) {</span>
-<span class="fc" id="L217">      return link.getAnchor();</span>
+<span class="fc bfc" id="L223" title="All 2 branches covered.">    if (link.isValid()) {</span>
+<span class="fc" id="L224">      return link.getAnchor();</span>
     }
-<span class="pc bpc" id="L219" title="2 of 6 branches missed.">    else if ((element.getAttributeValue(&quot;id&quot;) != null || element.getAttributeValue(&quot;name&quot;) != null) &amp;&amp; element.getAttributeValue(&quot;src&quot;) == null) {</span>
+<span class="pc bpc" id="L226" title="2 of 6 branches missed.">    else if ((element.getAttributeValue(&quot;id&quot;) != null || element.getAttributeValue(&quot;name&quot;) != null) &amp;&amp; element.getAttributeValue(&quot;src&quot;) == null) {</span>
       // not a valid link, but it seems to be a named anchor - keep it
       // support both id attribute (valid in HTML4+HTML5) and the name attribute (only valid in HTML4)
-<span class="fc" id="L222">      return element;</span>
+<span class="fc" id="L229">      return element;</span>
     }
     else {
-<span class="nc" id="L225">      return null;</span>
+<span class="nc" id="L232">      return null;</span>
     }
   }
 
@@ -233,36 +240,32 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
    * @return true if any metadata attribute was found
    */
   private boolean getAnchorMetadataFromData(ValueMap resourceProps, Element element) {
-<span class="fc" id="L236">    boolean foundAny = false;</span>
+<span class="fc" id="L243">    boolean foundAny = false;</span>
 
-<span class="fc" id="L238">    List&lt;Attribute&gt; attributes = element.getAttributes();</span>
-<span class="fc bfc" id="L239" title="All 2 branches covered.">    for (Attribute attribute : attributes) {</span>
-<span class="fc bfc" id="L240" title="All 2 branches covered.">      if (DataPropertyUtil.isHtml5DataName(attribute.getName())) {</span>
-<span class="fc" id="L241">        String value = attribute.getValue();</span>
-<span class="pc bpc" id="L242" title="1 of 2 branches missed.">        if (StringUtils.isNotEmpty(value)) {</span>
-<span class="fc" id="L243">          String property = DataPropertyUtil.toHeadlessCamelCaseName(attribute.getName());</span>
-<span class="pc bpc" id="L244" title="1 of 4 branches missed.">          if (StringUtils.startsWith(value, &quot;[&quot;) &amp;&amp; StringUtils.endsWith(value, &quot;]&quot;)) {</span>
+<span class="fc" id="L245">    List&lt;Attribute&gt; attributes = element.getAttributes();</span>
+<span class="fc bfc" id="L246" title="All 2 branches covered.">    for (Attribute attribute : attributes) {</span>
+<span class="fc bfc" id="L247" title="All 2 branches covered.">      if (DataPropertyUtil.isHtml5DataName(attribute.getName())) {</span>
+<span class="fc" id="L248">        String value = attribute.getValue();</span>
+<span class="pc bpc" id="L249" title="1 of 2 branches missed.">        if (StringUtils.isNotEmpty(value)) {</span>
+<span class="fc" id="L250">          String property = DataPropertyUtil.toHeadlessCamelCaseName(attribute.getName());</span>
+<span class="pc bpc" id="L251" title="1 of 4 branches missed.">          if (StringUtils.startsWith(value, &quot;[&quot;) &amp;&amp; StringUtils.endsWith(value, &quot;]&quot;)) {</span>
             try {
-<span class="fc" id="L246">              JSONArray jsonArray = new JSONArray(value);</span>
-<span class="fc" id="L247">              String[] values = new String[jsonArray.length()];</span>
-<span class="fc bfc" id="L248" title="All 2 branches covered.">              for (int i = 0; i &lt; jsonArray.length(); i++) {</span>
-<span class="fc" id="L249">                values[i] = jsonArray.optString(i);</span>
-              }
-<span class="fc" id="L251">              resourceProps.put(property, values);</span>
+<span class="fc" id="L253">              String[] values = OBJECT_MAPPER.readValue(value, String[].class);</span>
+<span class="fc" id="L254">              resourceProps.put(property, values);</span>
             }
-<span class="nc" id="L253">            catch (JSONException ex) {</span>
-              // ignore
-<span class="pc" id="L255">            }</span>
+<span class="nc" id="L256">            catch (JsonProcessingException ex) {</span>
+<span class="nc" id="L257">              log.debug(&quot;Unable to parse JSON array: {}&quot;, value, ex);</span>
+<span class="pc" id="L258">            }</span>
           }
           else {
-<span class="fc" id="L258">            resourceProps.put(property, value);</span>
+<span class="fc" id="L261">            resourceProps.put(property, value);</span>
           }
-<span class="fc" id="L260">          foundAny = true;</span>
+<span class="fc" id="L263">          foundAny = true;</span>
         }
       }
-<span class="fc" id="L263">    }</span>
+<span class="fc" id="L266">    }</span>
 
-<span class="fc" id="L265">    return foundAny;</span>
+<span class="fc" id="L268">    return foundAny;</span>
   }
 
   /**
@@ -271,31 +274,31 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
    * @param element Link element
    */
   private boolean getAnchorLegacyMetadataFromSingleData(ValueMap resourceProps, Element element) {
-<span class="fc" id="L274">    boolean foundAny = false;</span>
+<span class="fc" id="L277">    boolean foundAny = false;</span>
 
-<span class="fc" id="L276">    JSONObject metadata = null;</span>
-<span class="fc" id="L277">    Attribute dataAttribute = element.getAttribute(&quot;data&quot;);</span>
-<span class="fc bfc" id="L278" title="All 2 branches covered.">    if (dataAttribute != null) {</span>
-<span class="fc" id="L279">      String metadataString = dataAttribute.getValue();</span>
-<span class="pc bpc" id="L280" title="1 of 2 branches missed.">      if (StringUtils.isNotEmpty(metadataString)) {</span>
+<span class="fc" id="L279">    Map&lt;String, Object&gt; metadata = null;</span>
+<span class="fc" id="L280">    Attribute dataAttribute = element.getAttribute(&quot;data&quot;);</span>
+<span class="fc bfc" id="L281" title="All 2 branches covered.">    if (dataAttribute != null) {</span>
+<span class="fc" id="L282">      String metadataString = dataAttribute.getValue();</span>
+<span class="pc bpc" id="L283" title="1 of 2 branches missed.">      if (StringUtils.isNotEmpty(metadataString)) {</span>
         try {
-<span class="fc" id="L282">          metadata = new JSONObject(metadataString);</span>
+<span class="fc" id="L285">          metadata = OBJECT_MAPPER.readValue(metadataString, MAP_TYPE_REFERENCE);</span>
         }
-<span class="nc" id="L284">        catch (JSONException ex) {</span>
-<span class="nc" id="L285">          log.debug(&quot;Invalid link metadata: {}&quot;, metadataString, ex);</span>
-<span class="fc" id="L286">        }</span>
+<span class="nc" id="L287">        catch (JsonProcessingException ex) {</span>
+<span class="nc" id="L288">          log.debug(&quot;Invalid link metadata: {}&quot;, metadataString, ex);</span>
+<span class="fc" id="L289">        }</span>
       }
     }
-<span class="fc bfc" id="L289" title="All 2 branches covered.">    if (metadata != null) {</span>
-<span class="fc" id="L290">      JSONArray names = metadata.names();</span>
-<span class="fc bfc" id="L291" title="All 2 branches covered.">      for (int i = 0; i &lt; names.length(); i++) {</span>
-<span class="fc" id="L292">        String name = names.optString(i);</span>
-<span class="fc" id="L293">        resourceProps.put(name, metadata.opt(name));</span>
-<span class="fc" id="L294">        foundAny = true;</span>
-      }
+<span class="fc bfc" id="L292" title="All 2 branches covered.">    if (metadata != null) {</span>
+<span class="fc" id="L293">      Iterator&lt;Map.Entry&lt;String, Object&gt;&gt; entries = metadata.entrySet().iterator();</span>
+<span class="fc bfc" id="L294" title="All 2 branches covered.">      while (entries.hasNext()) {</span>
+<span class="fc" id="L295">        Map.Entry&lt;String, Object&gt; entry = entries.next();</span>
+<span class="fc" id="L296">        resourceProps.put(entry.getKey(), entry.getValue());</span>
+<span class="fc" id="L297">        foundAny = true;</span>
+<span class="fc" id="L298">      }</span>
     }
 
-<span class="fc" id="L298">    return foundAny;</span>
+<span class="fc" id="L301">    return foundAny;</span>
   }
 
   /**
@@ -305,87 +308,93 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
    */
   private void getAnchorLegacyMetadataFromRel(ValueMap resourceProps, Element element) {
     // Check href attribute - do not change elements with no href or links to anchor names
-<span class="fc" id="L308">    String href = element.getAttributeValue(&quot;href&quot;);</span>
-<span class="fc" id="L309">    String linkWindowTarget = element.getAttributeValue(&quot;target&quot;);</span>
-<span class="pc bpc" id="L310" title="1 of 4 branches missed.">    if (href == null || href.startsWith(&quot;#&quot;)) {</span>
-<span class="fc" id="L311">      return;</span>
+<span class="fc" id="L311">    String href = element.getAttributeValue(&quot;href&quot;);</span>
+<span class="fc" id="L312">    String linkWindowTarget = element.getAttributeValue(&quot;target&quot;);</span>
+<span class="pc bpc" id="L313" title="1 of 4 branches missed.">    if (href == null || href.startsWith(&quot;#&quot;)) {</span>
+<span class="fc" id="L314">      return;</span>
     }
 
     // get link metadata from rel element
-<span class="fc" id="L315">    JSONObject metadata = null;</span>
-<span class="fc" id="L316">    String metadataString = element.getAttributeValue(&quot;rel&quot;);</span>
-<span class="pc bpc" id="L317" title="1 of 2 branches missed.">    if (StringUtils.isNotEmpty(metadataString)) {</span>
+<span class="fc" id="L318">    Map&lt;String, Object&gt; metadata = null;</span>
+<span class="fc" id="L319">    String metadataString = element.getAttributeValue(&quot;rel&quot;);</span>
+<span class="pc bpc" id="L320" title="1 of 2 branches missed.">    if (StringUtils.isNotEmpty(metadataString)) {</span>
       try {
-<span class="fc" id="L319">        metadata = new JSONObject(metadataString);</span>
+<span class="nc" id="L322">        metadata = OBJECT_MAPPER.readValue(metadataString, MAP_TYPE_REFERENCE);</span>
       }
-<span class="nc" id="L321">      catch (JSONException ex) {</span>
-<span class="nc" id="L322">        log.debug(&quot;Invalid link metadata: {}&quot;, metadataString, ex);</span>
-<span class="fc" id="L323">      }</span>
+<span class="fc" id="L324">      catch (JsonProcessingException ex) {</span>
+<span class="fc" id="L325">        log.debug(&quot;Invalid link metadata: {}&quot;, metadataString, ex);</span>
+<span class="nc" id="L326">      }</span>
     }
-<span class="pc bpc" id="L325" title="1 of 2 branches missed.">    if (metadata == null) {</span>
-<span class="nc" id="L326">      metadata = new JSONObject();</span>
+<span class="pc bpc" id="L328" title="1 of 2 branches missed.">    if (metadata == null) {</span>
+<span class="fc" id="L329">      metadata = new HashMap&lt;&gt;();</span>
     }
 
     // transform link metadata to virtual JCR resource with JCR properties
-<span class="fc" id="L330">    JSONArray metadataPropertyNames = metadata.names();</span>
-<span class="pc bpc" id="L331" title="1 of 2 branches missed.">    if (metadataPropertyNames != null) {</span>
-<span class="fc bfc" id="L332" title="All 2 branches covered.">      for (int i = 0; i &lt; metadataPropertyNames.length(); i++) {</span>
-<span class="fc" id="L333">        String metadataPropertyName = metadataPropertyNames.optString(i);</span>
+<span class="fc" id="L333">    Iterator&lt;Map.Entry&lt;String, Object&gt;&gt; entries = metadata.entrySet().iterator();</span>
+<span class="pc bpc" id="L334" title="1 of 2 branches missed.">    while (entries.hasNext()) {</span>
+<span class="nc" id="L335">      Map.Entry&lt;String, Object&gt; entry = entries.next();</span>
+<span class="nc" id="L336">      String metadataPropertyName = entry.getKey();</span>
+<span class="nc" id="L337">      Object value = entry.getValue();</span>
 
+      // check if value is collection
+<span class="nc bnc" id="L340" title="All 2 branches missed.">      if (value != null) {</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">        if (value instanceof Collection) {</span>
+<span class="nc" id="L342">          resourceProps.put(metadataPropertyName, ((Collection)value).toArray());</span>
+        }
         // check if value is array
-<span class="fc" id="L336">        JSONArray valueArray = metadata.optJSONArray(metadataPropertyName);</span>
-<span class="fc bfc" id="L337" title="All 2 branches covered.">        if (valueArray != null) {</span>
+<span class="nc bnc" id="L345" title="All 2 branches missed.">        else if (value.getClass().isArray()) {</span>
           // store array values
-<span class="fc" id="L339">          List&lt;String&gt; values = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L340" title="All 2 branches covered.">          for (int j = 0; j &lt; valueArray.length(); j++) {</span>
-<span class="fc" id="L341">            values.add(valueArray.optString(j));</span>
+<span class="nc" id="L347">          List&lt;String&gt; values = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L348">          int arrayLength = Array.getLength(value);</span>
+<span class="nc bnc" id="L349" title="All 2 branches missed.">          for (int j = 0; j &lt; arrayLength; j++) {</span>
+<span class="nc" id="L350">            Object arrayItem = Array.get(value, j);</span>
+<span class="nc bnc" id="L351" title="All 2 branches missed.">            if (arrayItem != null) {</span>
+<span class="nc" id="L352">              values.add(arrayItem.toString());</span>
+            }
           }
-<span class="fc" id="L343">          resourceProps.put(metadataPropertyName, values.toArray(new String[0]));</span>
-<span class="fc" id="L344">        }</span>
+<span class="nc" id="L355">          resourceProps.put(metadataPropertyName, values.toArray());</span>
+<span class="nc" id="L356">        }</span>
         else {
           // store simple value
-<span class="fc" id="L347">          Object value = metadata.opt(metadataPropertyName);</span>
-<span class="pc bpc" id="L348" title="1 of 2 branches missed.">          if (value != null) {</span>
-<span class="fc" id="L349">            resourceProps.put(metadataPropertyName, value);</span>
-          }
+<span class="nc" id="L359">          resourceProps.put(metadataPropertyName, value);</span>
         }
       }
-    }
+<span class="nc" id="L362">    }</span>
 
     // detect link type
-<span class="fc" id="L356">    LinkType linkType = null;</span>
-<span class="fc" id="L357">    String linkTypeString = resourceProps.get(LinkNameConstants.PN_LINK_TYPE, String.class);</span>
-<span class="pc bpc" id="L358" title="1 of 2 branches missed.">    for (Class&lt;? extends LinkType&gt; candidateClass : linkHandlerConfig.getLinkTypes()) {</span>
-<span class="fc" id="L359">      LinkType candidate = AdaptTo.notNull(adaptable, candidateClass);</span>
-<span class="pc bpc" id="L360" title="1 of 2 branches missed.">      if (StringUtils.isNotEmpty(linkTypeString)) {</span>
-<span class="nc bnc" id="L361" title="All 2 branches missed.">        if (StringUtils.equals(linkTypeString, candidate.getId())) {</span>
-<span class="nc" id="L362">          linkType = candidate;</span>
-<span class="nc" id="L363">          break;</span>
+<span class="fc" id="L365">    LinkType linkType = null;</span>
+<span class="fc" id="L366">    String linkTypeString = resourceProps.get(LinkNameConstants.PN_LINK_TYPE, String.class);</span>
+<span class="pc bpc" id="L367" title="1 of 2 branches missed.">    for (Class&lt;? extends LinkType&gt; candidateClass : linkHandlerConfig.getLinkTypes()) {</span>
+<span class="fc" id="L368">      LinkType candidate = AdaptTo.notNull(adaptable, candidateClass);</span>
+<span class="pc bpc" id="L369" title="1 of 2 branches missed.">      if (StringUtils.isNotEmpty(linkTypeString)) {</span>
+<span class="nc bnc" id="L370" title="All 2 branches missed.">        if (StringUtils.equals(linkTypeString, candidate.getId())) {</span>
+<span class="nc" id="L371">          linkType = candidate;</span>
+<span class="nc" id="L372">          break;</span>
         }
       }
-<span class="fc bfc" id="L366" title="All 2 branches covered.">      else if (candidate.accepts(href)) {</span>
-<span class="fc" id="L367">        linkType = candidate;</span>
-<span class="fc" id="L368">        break;</span>
+<span class="fc bfc" id="L375" title="All 2 branches covered.">      else if (candidate.accepts(href)) {</span>
+<span class="fc" id="L376">        linkType = candidate;</span>
+<span class="fc" id="L377">        break;</span>
       }
-<span class="fc" id="L370">    }</span>
-<span class="pc bpc" id="L371" title="1 of 2 branches missed.">    if (linkType == null) {</span>
+<span class="fc" id="L379">    }</span>
+<span class="pc bpc" id="L380" title="1 of 2 branches missed.">    if (linkType == null) {</span>
       // skip further processing if link type was not detected
-<span class="nc" id="L373">      return;</span>
+<span class="nc" id="L382">      return;</span>
     }
 
     // workaround: strip off &quot;.html&quot; extension if it was added automatically by the RTE
-<span class="pc bpc" id="L377" title="2 of 4 branches missed.">    if (linkType instanceof InternalLinkType || linkType instanceof MediaLinkType) {</span>
-<span class="nc" id="L378">      String htmlSuffix = &quot;.&quot; + FileExtension.HTML;</span>
-<span class="nc bnc" id="L379" title="All 2 branches missed.">      if (StringUtils.endsWith(href, htmlSuffix)) {</span>
-<span class="nc" id="L380">        href = StringUtils.substringBeforeLast(href, htmlSuffix);</span>
+<span class="pc bpc" id="L386" title="2 of 4 branches missed.">    if (linkType instanceof InternalLinkType || linkType instanceof MediaLinkType) {</span>
+<span class="nc" id="L387">      String htmlSuffix = &quot;.&quot; + FileExtension.HTML;</span>
+<span class="nc bnc" id="L388" title="All 2 branches missed.">      if (StringUtils.endsWith(href, htmlSuffix)) {</span>
+<span class="nc" id="L389">        href = StringUtils.substringBeforeLast(href, htmlSuffix);</span>
       }
     }
 
     // store link reference (property depending on link type)
-<span class="fc" id="L385">    resourceProps.put(linkType.getPrimaryLinkRefProperty(), href);</span>
-<span class="fc" id="L386">    resourceProps.put(LinkNameConstants.PN_LINK_WINDOW_TARGET, linkWindowTarget);</span>
+<span class="fc" id="L394">    resourceProps.put(linkType.getPrimaryLinkRefProperty(), href);</span>
+<span class="fc" id="L395">    resourceProps.put(LinkNameConstants.PN_LINK_WINDOW_TARGET, linkWindowTarget);</span>
 
-<span class="fc" id="L388">  }</span>
+<span class="fc" id="L397">  }</span>
 
   /**
    * Checks if the given image element has to be rewritten.
@@ -397,17 +406,17 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
   private List&lt;Content&gt; rewriteImage(Element element) {
 
     // resolve media metadata from DOM element
-<span class="nc" id="L400">    Media media = getImageMedia(element);</span>
+<span class="nc" id="L409">    Media media = getImageMedia(element);</span>
 
     // build image for media metadata
-<span class="nc" id="L403">    Element imageElement = buildImageElement(media, element);</span>
+<span class="nc" id="L412">    Element imageElement = buildImageElement(media, element);</span>
 
     // return modified element
-<span class="nc" id="L406">    List&lt;Content&gt; content = new ArrayList&lt;&gt;();</span>
-<span class="nc bnc" id="L407" title="All 2 branches missed.">    if (imageElement != null) {</span>
-<span class="nc" id="L408">      content.add(imageElement);</span>
+<span class="nc" id="L415">    List&lt;Content&gt; content = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L416" title="All 2 branches missed.">    if (imageElement != null) {</span>
+<span class="nc" id="L417">      content.add(imageElement);</span>
     }
-<span class="nc" id="L410">    return content;</span>
+<span class="nc" id="L419">    return content;</span>
   }
 
   /**
@@ -416,11 +425,11 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
    * @return Media metadata
    */
   private Media getImageMedia(Element element) {
-<span class="nc" id="L419">    String ref = element.getAttributeValue(&quot;src&quot;);</span>
-<span class="nc bnc" id="L420" title="All 2 branches missed.">    if (StringUtils.isNotEmpty(ref)) {</span>
-<span class="nc" id="L421">      ref = unexternalizeImageRef(ref);</span>
+<span class="nc" id="L428">    String ref = element.getAttributeValue(&quot;src&quot;);</span>
+<span class="nc bnc" id="L429" title="All 2 branches missed.">    if (StringUtils.isNotEmpty(ref)) {</span>
+<span class="nc" id="L430">      ref = unexternalizeImageRef(ref);</span>
     }
-<span class="nc" id="L423">    return mediaHandler.get(ref).build();</span>
+<span class="nc" id="L432">    return mediaHandler.get(ref).build();</span>
   }
 
   /**
@@ -430,10 +439,10 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
    * @return Image element or null if media reference is invalid
    */
   private Element buildImageElement(Media media, Element element) {
-<span class="nc bnc" id="L433" title="All 2 branches missed.">    if (media.isValid()) {</span>
-<span class="nc" id="L434">      element.setAttribute(&quot;src&quot;, media.getUrl());</span>
+<span class="nc bnc" id="L442" title="All 2 branches missed.">    if (media.isValid()) {</span>
+<span class="nc" id="L443">      element.setAttribute(&quot;src&quot;, media.getUrl());</span>
     }
-<span class="nc" id="L436">    return element;</span>
+<span class="nc" id="L445">    return element;</span>
   }
 
   /**
@@ -442,20 +451,20 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
    * @return Internal media reference
    */
   private String unexternalizeImageRef(String ref) {
-<span class="nc" id="L445">    String unexternalizedRef = ref;</span>
+<span class="nc" id="L454">    String unexternalizedRef = ref;</span>
 
-<span class="nc bnc" id="L447" title="All 2 branches missed.">    if (StringUtils.isNotEmpty(unexternalizedRef)) {</span>
+<span class="nc bnc" id="L456" title="All 2 branches missed.">    if (StringUtils.isNotEmpty(unexternalizedRef)) {</span>
 
       // decode if required
-<span class="nc" id="L450">      unexternalizedRef = decodeIfEncoded(unexternalizedRef);</span>
+<span class="nc" id="L459">      unexternalizedRef = decodeIfEncoded(unexternalizedRef);</span>
 
       // TODO: implementation has to be aligned with MediaSource implementations!
       // remove default servlet extension that is needed for inline images in RTE
-<span class="nc" id="L454">      unexternalizedRef = StringUtils.removeEnd(unexternalizedRef, &quot;/&quot; + JcrConstants.JCR_CONTENT + &quot;.default&quot;);</span>
-<span class="nc" id="L455">      unexternalizedRef = StringUtils.removeEnd(unexternalizedRef, &quot;/_jcr_content.default&quot;);</span>
+<span class="nc" id="L463">      unexternalizedRef = StringUtils.removeEnd(unexternalizedRef, &quot;/&quot; + JcrConstants.JCR_CONTENT + &quot;.default&quot;);</span>
+<span class="nc" id="L464">      unexternalizedRef = StringUtils.removeEnd(unexternalizedRef, &quot;/_jcr_content.default&quot;);</span>
     }
 
-<span class="nc" id="L458">    return unexternalizedRef;</span>
+<span class="nc" id="L467">    return unexternalizedRef;</span>
   }
 
   /**
@@ -464,32 +473,27 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
    * @return Decoded value
    */
   private String decodeIfEncoded(String value) {
-<span class="nc bnc" id="L467" title="All 2 branches missed.">    if (StringUtils.contains(value, &quot;%&quot;)) {</span>
-      try {
-<span class="nc" id="L469">        return URLDecoder.decode(value, CharEncoding.UTF_8);</span>
-      }
-<span class="nc" id="L471">      catch (UnsupportedEncodingException ex) {</span>
-<span class="nc" id="L472">        throw new RuntimeException(ex);</span>
-      }
+<span class="nc bnc" id="L476" title="All 2 branches missed.">    if (StringUtils.contains(value, &quot;%&quot;)) {</span>
+<span class="nc" id="L477">      return URLDecoder.decode(value, StandardCharsets.UTF_8);</span>
     }
-<span class="nc" id="L475">    return value;</span>
+<span class="nc" id="L479">    return value;</span>
   }
 
   @Override
   @SuppressWarnings({ &quot;PMD.ReturnEmptyCollectionRatherThanNull&quot;, &quot;java:S1168&quot; })
   public List&lt;Content&gt; rewriteText(@NotNull Text text) {
     // nothing to do with text element
-<span class="fc" id="L482">    return null;</span>
+<span class="fc" id="L486">    return null;</span>
   }
 
   private @Nullable Resource getCurrentResource() {
-<span class="fc bfc" id="L486" title="All 2 branches covered.">    if (adaptable instanceof Resource) {</span>
-<span class="fc" id="L487">      return (Resource)adaptable;</span>
+<span class="fc bfc" id="L490" title="All 2 branches covered.">    if (adaptable instanceof Resource) {</span>
+<span class="fc" id="L491">      return (Resource)adaptable;</span>
     }
-<span class="pc bpc" id="L489" title="1 of 2 branches missed.">    if (adaptable instanceof SlingHttpServletRequest) {</span>
-<span class="fc" id="L490">      return ((SlingHttpServletRequest)adaptable).getResource();</span>
+<span class="pc bpc" id="L493" title="1 of 2 branches missed.">    if (adaptable instanceof SlingHttpServletRequest) {</span>
+<span class="fc" id="L494">      return ((SlingHttpServletRequest)adaptable).getResource();</span>
     }
-<span class="nc" id="L492">    return null;</span>
+<span class="nc" id="L496">    return null;</span>
   }
 
 }
