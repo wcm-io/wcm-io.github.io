@@ -181,14 +181,15 @@ class InlineRendition extends SlingAdaptable implements Rendition {
 <span class="fc" id="L181">    this.url = buildMediaUrl(scaledDimension);</span>
 
     // set first media format as resolved format - because only the first is supported
-<span class="pc bpc" id="L184" title="1 of 6 branches missed.">    if (url != null &amp;&amp; mediaArgs.getMediaFormats() != null &amp;&amp; mediaArgs.getMediaFormats().length &gt; 0) {</span>
-<span class="fc" id="L185">      this.resolvedMediaFormat = mediaArgs.getMediaFormats()[0];</span>
+<span class="fc" id="L184">    MediaFormat[] mediaFormats = mediaArgs.getMediaFormats();</span>
+<span class="pc bpc" id="L185" title="1 of 6 branches missed.">    if (url != null &amp;&amp; mediaFormats != null &amp;&amp; mediaFormats.length &gt; 0) {</span>
+<span class="fc" id="L186">      this.resolvedMediaFormat = mediaFormats[0];</span>
     }
 
-<span class="fc" id="L188">  }</span>
+<span class="fc" id="L189">  }</span>
 
   private boolean isValidScalingDimension(@Nullable Dimension dimension) {
-<span class="fc bfc" id="L191" title="All 4 branches covered.">    return dimension == null || !dimension.equals(SCALING_NOT_POSSIBLE_DIMENSION);</span>
+<span class="fc bfc" id="L192" title="All 4 branches covered.">    return dimension == null || !dimension.equals(SCALING_NOT_POSSIBLE_DIMENSION);</span>
   }
 
   /**
@@ -198,17 +199,17 @@ class InlineRendition extends SlingAdaptable implements Rendition {
    * @return Dimension
    */
   private List&lt;Dimension&gt; getImageOrCroppedDimensions() {
-<span class="fc" id="L201">    List&lt;Dimension&gt; dimensions = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L202">    List&lt;Dimension&gt; dimensions = new ArrayList&lt;&gt;();</span>
 
-<span class="fc" id="L203">    Dimension originalDimension = getImageDimension();</span>
-<span class="pc bpc" id="L204" title="1 of 2 branches missed.">    if (originalDimension != null) {</span>
-<span class="fc bfc" id="L205" title="All 2 branches covered.">      if (this.cropDimension != null) {</span>
-<span class="fc" id="L206">        dimensions.add(this.cropDimension);</span>
+<span class="fc" id="L204">    Dimension originalDimension = getImageDimension();</span>
+<span class="pc bpc" id="L205" title="1 of 2 branches missed.">    if (originalDimension != null) {</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">      if (this.cropDimension != null) {</span>
+<span class="fc" id="L207">        dimensions.add(this.cropDimension);</span>
       }
-<span class="fc" id="L208">      dimensions.add(originalDimension);</span>
+<span class="fc" id="L209">      dimensions.add(originalDimension);</span>
     }
 
-<span class="fc" id="L211">    return dimensions;</span>
+<span class="fc" id="L212">    return dimensions;</span>
   }
 
   /**
@@ -216,15 +217,15 @@ class InlineRendition extends SlingAdaptable implements Rendition {
    * @return Dimension
    */
   private Dimension getImageDimension() {
-<span class="fc" id="L219">    Dimension dimension = null;</span>
+<span class="fc" id="L220">    Dimension dimension = null;</span>
 
     // if binary is image try to calculate dimensions by loading it into a layer
-<span class="fc" id="L222">    Layer layer = this.resource.adaptTo(Layer.class);</span>
-<span class="pc bpc" id="L223" title="1 of 2 branches missed.">    if (layer != null) {</span>
-<span class="fc" id="L224">      dimension = new Dimension(layer.getWidth(), layer.getHeight());</span>
+<span class="fc" id="L223">    Layer layer = this.resource.adaptTo(Layer.class);</span>
+<span class="pc bpc" id="L224" title="1 of 2 branches missed.">    if (layer != null) {</span>
+<span class="fc" id="L225">      dimension = new Dimension(layer.getWidth(), layer.getHeight());</span>
     }
 
-<span class="fc" id="L227">    return dimension;</span>
+<span class="fc" id="L228">    return dimension;</span>
   }
 
   /**
@@ -236,45 +237,45 @@ class InlineRendition extends SlingAdaptable implements Rendition {
   private @Nullable Dimension getScaledDimension(@NotNull Dimension originalDimension) {
 
     // check if image has to be rescaled
-<span class="fc" id="L239">    Dimension requestedDimension = getRequestedDimension();</span>
-<span class="fc" id="L240">    double requestedRatio = getRequestedRatio();</span>
-<span class="fc" id="L241">    double imageRatio = Ratio.get(originalDimension);</span>
-<span class="fc bfc" id="L242" title="All 4 branches covered.">    if (requestedRatio &gt; 0 &amp;&amp; !Ratio.matches(requestedRatio, imageRatio)) {</span>
-<span class="fc" id="L243">      return SCALING_NOT_POSSIBLE_DIMENSION;</span>
+<span class="fc" id="L240">    Dimension requestedDimension = getRequestedDimension();</span>
+<span class="fc" id="L241">    double requestedRatio = getRequestedRatio();</span>
+<span class="fc" id="L242">    double imageRatio = Ratio.get(originalDimension);</span>
+<span class="fc bfc" id="L243" title="All 4 branches covered.">    if (requestedRatio &gt; 0 &amp;&amp; !Ratio.matches(requestedRatio, imageRatio)) {</span>
+<span class="fc" id="L244">      return SCALING_NOT_POSSIBLE_DIMENSION;</span>
     }
 
-<span class="fc bfc" id="L246" title="All 2 branches covered.">    boolean scaleWidth = (requestedDimension.getWidth() &gt; 0</span>
-<span class="fc bfc" id="L247" title="All 2 branches covered.">        &amp;&amp; requestedDimension.getWidth() != originalDimension.getWidth());</span>
-<span class="fc bfc" id="L248" title="All 2 branches covered.">    boolean scaleHeight = (requestedDimension.getHeight() &gt; 0</span>
-<span class="fc bfc" id="L249" title="All 2 branches covered.">        &amp;&amp; requestedDimension.getHeight() != originalDimension.getHeight());</span>
-<span class="fc bfc" id="L250" title="All 4 branches covered.">    if (scaleWidth || scaleHeight) {</span>
-<span class="fc" id="L251">      long requestedWidth = requestedDimension.getWidth();</span>
-<span class="fc" id="L252">      long requestedHeight = requestedDimension.getHeight();</span>
+<span class="fc bfc" id="L247" title="All 2 branches covered.">    boolean scaleWidth = (requestedDimension.getWidth() &gt; 0</span>
+<span class="fc bfc" id="L248" title="All 2 branches covered.">        &amp;&amp; requestedDimension.getWidth() != originalDimension.getWidth());</span>
+<span class="fc bfc" id="L249" title="All 2 branches covered.">    boolean scaleHeight = (requestedDimension.getHeight() &gt; 0</span>
+<span class="fc bfc" id="L250" title="All 2 branches covered.">        &amp;&amp; requestedDimension.getHeight() != originalDimension.getHeight());</span>
+<span class="fc bfc" id="L251" title="All 4 branches covered.">    if (scaleWidth || scaleHeight) {</span>
+<span class="fc" id="L252">      long requestedWidth = requestedDimension.getWidth();</span>
+<span class="fc" id="L253">      long requestedHeight = requestedDimension.getHeight();</span>
 
       // calculate missing width/height from ratio if not specified
-<span class="pc bpc" id="L255" title="1 of 4 branches missed.">      if (requestedWidth == 0 &amp;&amp; requestedHeight &gt; 0) {</span>
-<span class="fc" id="L256">        requestedWidth = Math.round(requestedHeight * imageRatio);</span>
+<span class="pc bpc" id="L256" title="1 of 4 branches missed.">      if (requestedWidth == 0 &amp;&amp; requestedHeight &gt; 0) {</span>
+<span class="fc" id="L257">        requestedWidth = Math.round(requestedHeight * imageRatio);</span>
       }
-<span class="pc bpc" id="L258" title="1 of 4 branches missed.">      else if (requestedWidth &gt; 0 &amp;&amp; requestedHeight == 0) {</span>
-<span class="fc" id="L259">        requestedHeight = Math.round(requestedWidth / imageRatio);</span>
+<span class="pc bpc" id="L259" title="1 of 4 branches missed.">      else if (requestedWidth &gt; 0 &amp;&amp; requestedHeight == 0) {</span>
+<span class="fc" id="L260">        requestedHeight = Math.round(requestedWidth / imageRatio);</span>
       }
 
       // calculate requested ratio
-<span class="fc" id="L263">      requestedRatio = Ratio.get(requestedWidth, requestedHeight);</span>
+<span class="fc" id="L264">      requestedRatio = Ratio.get(requestedWidth, requestedHeight);</span>
 
       // if ratio does not match, or requested width/height is larger than the original image scaling is not possible
-<span class="pc bpc" id="L266" title="1 of 2 branches missed.">      if (!Ratio.matches(imageRatio, requestedRatio)</span>
-<span class="fc bfc" id="L267" title="All 2 branches covered.">          || (originalDimension.getWidth() &lt; requestedWidth)</span>
-<span class="pc bpc" id="L268" title="1 of 2 branches missed.">          || (originalDimension.getHeight() &lt; requestedHeight)) {</span>
-<span class="fc" id="L269">        return SCALING_NOT_POSSIBLE_DIMENSION;</span>
+<span class="pc bpc" id="L267" title="1 of 2 branches missed.">      if (!Ratio.matches(imageRatio, requestedRatio)</span>
+<span class="fc bfc" id="L268" title="All 2 branches covered.">          || (originalDimension.getWidth() &lt; requestedWidth)</span>
+<span class="pc bpc" id="L269" title="1 of 2 branches missed.">          || (originalDimension.getHeight() &lt; requestedHeight)) {</span>
+<span class="fc" id="L270">        return SCALING_NOT_POSSIBLE_DIMENSION;</span>
       }
       else {
-<span class="fc" id="L272">        return new Dimension(requestedWidth, requestedHeight);</span>
+<span class="fc" id="L273">        return new Dimension(requestedWidth, requestedHeight);</span>
       }
 
     }
 
-<span class="fc" id="L277">    return null;</span>
+<span class="fc" id="L278">    return null;</span>
   }
 
   /**
@@ -284,57 +285,57 @@ class InlineRendition extends SlingAdaptable implements Rendition {
   private String buildMediaUrl(Dimension scaledDimension) {
 
     // check for file extension filtering
-<span class="pc bpc" id="L287" title="1 of 2 branches missed.">    if (!isMatchingFileExtension()) {</span>
-<span class="nc" id="L288">      return null;</span>
+<span class="pc bpc" id="L288" title="1 of 2 branches missed.">    if (!isMatchingFileExtension()) {</span>
+<span class="nc" id="L289">      return null;</span>
     }
 
     // check if image has to be rescaled
-<span class="fc bfc" id="L292" title="All 2 branches covered.">    if (scaledDimension != null) {</span>
+<span class="fc bfc" id="L293" title="All 2 branches covered.">    if (scaledDimension != null) {</span>
 
       // check if scaling is not possible
-<span class="fc bfc" id="L295" title="All 2 branches covered.">      if (scaledDimension.equals(SCALING_NOT_POSSIBLE_DIMENSION)) {</span>
-<span class="fc" id="L296">        return null;</span>
+<span class="fc bfc" id="L296" title="All 2 branches covered.">      if (scaledDimension.equals(SCALING_NOT_POSSIBLE_DIMENSION)) {</span>
+<span class="fc" id="L297">        return null;</span>
       }
 
       // otherwise generate scaled image URL
-<span class="fc" id="L300">      return buildScaledMediaUrl(scaledDimension, this.cropDimension);</span>
+<span class="fc" id="L301">      return buildScaledMediaUrl(scaledDimension, this.cropDimension);</span>
     }
 
     // if no scaling but cropping or rotation required build scaled image URL
-<span class="fc bfc" id="L304" title="All 4 branches covered.">    if (this.cropDimension != null || this.rotation != null) {</span>
-<span class="fc bfc" id="L305" title="All 2 branches covered.">      return buildScaledMediaUrl(this.cropDimension != null ? this.cropDimension : this.imageDimension, this.cropDimension);</span>
+<span class="fc bfc" id="L305" title="All 4 branches covered.">    if (this.cropDimension != null || this.rotation != null) {</span>
+<span class="fc bfc" id="L306" title="All 2 branches covered.">      return buildScaledMediaUrl(this.cropDimension != null ? this.cropDimension : this.imageDimension, this.cropDimension);</span>
     }
 
-<span class="fc bfc" id="L308" title="All 2 branches covered.">    if (mediaArgs.isContentDispositionAttachment()) {</span>
+<span class="fc bfc" id="L309" title="All 2 branches covered.">    if (mediaArgs.isContentDispositionAttachment()) {</span>
       // if not scaling and no cropping required but special content disposition headers required build download url
-<span class="fc" id="L310">      return buildDownloadMediaUrl();</span>
+<span class="fc" id="L311">      return buildDownloadMediaUrl();</span>
     }
-<span class="fc bfc" id="L312" title="All 4 branches covered.">    else if (MediaFileType.isBrowserImage(getFileExtension()) || !MediaFileType.isImage(getFileExtension())) {</span>
-<span class="fc bfc" id="L313" title="All 2 branches covered.">      if (enforceVirtualRendition()) {</span>
+<span class="fc bfc" id="L313" title="All 4 branches covered.">    else if (MediaFileType.isBrowserImage(getFileExtension()) || !MediaFileType.isImage(getFileExtension())) {</span>
+<span class="fc bfc" id="L314" title="All 2 branches covered.">      if (enforceVirtualRendition()) {</span>
         // enforce virtual rendition instead of native media URL
-<span class="fc" id="L315">        return buildScaledMediaUrl(this.imageDimension, null);</span>
+<span class="fc" id="L316">        return buildScaledMediaUrl(this.imageDimension, null);</span>
       }
       else {
         // if no scaling and no cropping required build native media URL
-<span class="fc" id="L319">        return buildNativeMediaUrl();</span>
+<span class="fc" id="L320">        return buildNativeMediaUrl();</span>
       }
     }
     else {
       // image rendition uses a file extension that cannot be displayed in browser directly - render via ImageFileServlet
-<span class="fc" id="L324">      return buildScaledMediaUrl(this.imageDimension, null);</span>
+<span class="fc" id="L325">      return buildScaledMediaUrl(this.imageDimension, null);</span>
     }
   }
 
   private boolean enforceVirtualRendition() {
-<span class="fc bfc" id="L329" title="All 4 branches covered.">    if (MediaFileType.isImage(getFileExtension()) &amp;&amp; !MediaFileType.isVectorImage(getFileExtension())) {</span>
-<span class="fc bfc" id="L330" title="All 2 branches covered.">      if (mediaHandlerConfig.enforceVirtualRenditions()) {</span>
-<span class="fc" id="L331">        return true;</span>
+<span class="fc bfc" id="L330" title="All 4 branches covered.">    if (MediaFileType.isImage(getFileExtension()) &amp;&amp; !MediaFileType.isVectorImage(getFileExtension())) {</span>
+<span class="fc bfc" id="L331" title="All 2 branches covered.">      if (mediaHandlerConfig.enforceVirtualRenditions()) {</span>
+<span class="fc" id="L332">        return true;</span>
       }
-<span class="fc bfc" id="L333" title="All 2 branches covered.">      if (mediaArgs.getEnforceOutputFileExtension() != null) {</span>
-<span class="pc bpc" id="L334" title="1 of 2 branches missed.">        return !StringUtils.equalsIgnoreCase(getFileExtension(), mediaArgs.getEnforceOutputFileExtension());</span>
+<span class="fc bfc" id="L334" title="All 2 branches covered.">      if (mediaArgs.getEnforceOutputFileExtension() != null) {</span>
+<span class="pc bpc" id="L335" title="1 of 2 branches missed.">        return !StringUtils.equalsIgnoreCase(getFileExtension(), mediaArgs.getEnforceOutputFileExtension());</span>
       }
     }
-<span class="fc" id="L337">    return false;</span>
+<span class="fc" id="L338">    return false;</span>
   }
 
   /**
@@ -342,27 +343,27 @@ class InlineRendition extends SlingAdaptable implements Rendition {
    * @return Media URL
    */
   private String buildNativeMediaUrl() {
-<span class="fc" id="L345">    String path = null;</span>
+<span class="fc" id="L346">    String path = null;</span>
 
-<span class="fc" id="L347">    Resource parentResource = this.resource.getParent();</span>
-<span class="pc bpc" id="L348" title="1 of 4 branches missed.">    if (parentResource != null &amp;&amp; JcrBinary.isNtFile(parentResource)) {</span>
+<span class="fc" id="L348">    Resource parentResource = this.resource.getParent();</span>
+<span class="pc bpc" id="L349" title="1 of 4 branches missed.">    if (parentResource != null &amp;&amp; JcrBinary.isNtFile(parentResource)) {</span>
       // if parent resource is nt:file and its node name equals the detected filename, directly use the nt:file node path
-<span class="fc bfc" id="L350" title="All 2 branches covered.">      if (StringUtils.equals(parentResource.getName(), getFileName())) {</span>
-<span class="fc" id="L351">        path = parentResource.getPath();</span>
+<span class="fc bfc" id="L351" title="All 2 branches covered.">      if (StringUtils.equals(parentResource.getName(), getFileName())) {</span>
+<span class="fc" id="L352">        path = parentResource.getPath();</span>
       }
       // otherwise use nt:file node path with custom filename
       else {
-<span class="fc" id="L355">        path = parentResource.getPath() + &quot;./&quot; + getFileName();</span>
+<span class="fc" id="L356">        path = parentResource.getPath() + &quot;./&quot; + getFileName();</span>
       }
     }
     else {
       // nt:resource node does not have a nt:file parent, use its path directly
-<span class="fc" id="L360">      path = this.resource.getPath() + &quot;./&quot; + getFileName();</span>
+<span class="fc" id="L361">      path = this.resource.getPath() + &quot;./&quot; + getFileName();</span>
     }
 
     // build externalized URL
-<span class="fc" id="L364">    UrlHandler urlHandler = AdaptTo.notNull(this.adaptable, UrlHandler.class);</span>
-<span class="fc" id="L365">    return urlHandler.get(path).urlMode(this.mediaArgs.getUrlMode()).buildExternalResourceUrl(this.resource);</span>
+<span class="fc" id="L365">    UrlHandler urlHandler = AdaptTo.notNull(this.adaptable, UrlHandler.class);</span>
+<span class="fc" id="L366">    return urlHandler.get(path).urlMode(this.mediaArgs.getUrlMode()).buildExternalResourceUrl(this.resource);</span>
   }
 
   /**
@@ -372,31 +373,31 @@ class InlineRendition extends SlingAdaptable implements Rendition {
   @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
   private String buildScaledMediaUrl(@NotNull Dimension dimension, @Nullable CropDimension mediaUrlCropDimension) {
 
-<span class="fc bfc" id="L375" title="All 2 branches covered.">    if (isVectorImage()) {</span>
+<span class="fc bfc" id="L376" title="All 2 branches covered.">    if (isVectorImage()) {</span>
       // vector images are scaled in browser, so use native URL
-<span class="fc" id="L377">      return buildNativeMediaUrl();</span>
+<span class="fc" id="L378">      return buildNativeMediaUrl();</span>
     }
 
-<span class="fc" id="L380">    String resourcePath = this.resource.getPath();</span>
+<span class="fc" id="L381">    String resourcePath = this.resource.getPath();</span>
 
     // if parent resource is a nt:file resource, use this one as path for scaled image
-<span class="fc" id="L383">    Resource parentResource = this.resource.getParent();</span>
-<span class="pc bpc" id="L384" title="1 of 4 branches missed.">    if (parentResource != null &amp;&amp; JcrBinary.isNtFile(parentResource)) {</span>
-<span class="fc" id="L385">      resourcePath = parentResource.getPath();</span>
+<span class="fc" id="L384">    Resource parentResource = this.resource.getParent();</span>
+<span class="pc bpc" id="L385" title="1 of 4 branches missed.">    if (parentResource != null &amp;&amp; JcrBinary.isNtFile(parentResource)) {</span>
+<span class="fc" id="L386">      resourcePath = parentResource.getPath();</span>
     }
 
     // URL to render scaled image via {@link InlineRenditionServlet}
-<span class="fc" id="L389">    String path = resourcePath</span>
-<span class="fc" id="L390">        + &quot;.&quot; + ImageFileServlet.buildSelectorString(dimension.getWidth(), dimension.getHeight(),</span>
-<span class="fc" id="L391">            mediaUrlCropDimension, this.rotation, this.mediaArgs.isContentDispositionAttachment())</span>
+<span class="fc" id="L390">    String path = resourcePath</span>
+<span class="fc" id="L391">        + &quot;.&quot; + ImageFileServlet.buildSelectorString(dimension.getWidth(), dimension.getHeight(),</span>
+<span class="fc" id="L392">            mediaUrlCropDimension, this.rotation, this.mediaArgs.isContentDispositionAttachment())</span>
         + &quot;.&quot; + MediaFileServlet.EXTENSION + &quot;/&quot;
         // replace extension based on the format supported by ImageFileServlet for rendering for this rendition
-<span class="fc" id="L394">        + ImageFileServlet.getImageFileName(getFileName(),</span>
-<span class="fc" id="L395">            mediaArgs.getEnforceOutputFileExtension());</span>
+<span class="fc" id="L395">        + ImageFileServlet.getImageFileName(getFileName(),</span>
+<span class="fc" id="L396">            mediaArgs.getEnforceOutputFileExtension());</span>
 
     // build externalized URL
-<span class="fc" id="L398">    UrlHandler urlHandler = AdaptTo.notNull(this.adaptable, UrlHandler.class);</span>
-<span class="fc" id="L399">    return urlHandler.get(path).urlMode(this.mediaArgs.getUrlMode()).buildExternalResourceUrl(this.resource);</span>
+<span class="fc" id="L399">    UrlHandler urlHandler = AdaptTo.notNull(this.adaptable, UrlHandler.class);</span>
+<span class="fc" id="L400">    return urlHandler.get(path).urlMode(this.mediaArgs.getUrlMode()).buildExternalResourceUrl(this.resource);</span>
   }
 
   /**
@@ -404,22 +405,22 @@ class InlineRendition extends SlingAdaptable implements Rendition {
    * @return Media URL
    */
   private String buildDownloadMediaUrl() {
-<span class="fc" id="L407">    String resourcePath = this.resource.getPath();</span>
+<span class="fc" id="L408">    String resourcePath = this.resource.getPath();</span>
 
     // if parent resource is a nt:file resource, use this one as path for scaled image
-<span class="fc" id="L410">    Resource parentResource = this.resource.getParent();</span>
-<span class="pc bpc" id="L411" title="1 of 4 branches missed.">    if (parentResource != null &amp;&amp; JcrBinary.isNtFile(parentResource)) {</span>
-<span class="fc" id="L412">      resourcePath = parentResource.getPath();</span>
+<span class="fc" id="L411">    Resource parentResource = this.resource.getParent();</span>
+<span class="pc bpc" id="L412" title="1 of 4 branches missed.">    if (parentResource != null &amp;&amp; JcrBinary.isNtFile(parentResource)) {</span>
+<span class="fc" id="L413">      resourcePath = parentResource.getPath();</span>
     }
 
     // URL to render scaled image via {@link InlineRenditionServlet}
-<span class="fc" id="L416">    String path = resourcePath + &quot;.&quot; + MediaFileServlet.SELECTOR</span>
+<span class="fc" id="L417">    String path = resourcePath + &quot;.&quot; + MediaFileServlet.SELECTOR</span>
         + &quot;.&quot; + MediaFileServlet.SELECTOR_DOWNLOAD
-<span class="fc" id="L418">        + &quot;.&quot; + MediaFileServlet.EXTENSION + &quot;/&quot; + getFileName();</span>
+<span class="fc" id="L419">        + &quot;.&quot; + MediaFileServlet.EXTENSION + &quot;/&quot; + getFileName();</span>
 
     // build externalized URL
-<span class="fc" id="L421">    UrlHandler urlHandler = AdaptTo.notNull(this.adaptable, UrlHandler.class);</span>
-<span class="fc" id="L422">    return urlHandler.get(path).urlMode(this.mediaArgs.getUrlMode()).buildExternalResourceUrl(this.resource);</span>
+<span class="fc" id="L422">    UrlHandler urlHandler = AdaptTo.notNull(this.adaptable, UrlHandler.class);</span>
+<span class="fc" id="L423">    return urlHandler.get(path).urlMode(this.mediaArgs.getUrlMode()).buildExternalResourceUrl(this.resource);</span>
   }
 
   /**
@@ -427,20 +428,20 @@ class InlineRendition extends SlingAdaptable implements Rendition {
    * @return true if file extension matches
    */
   private boolean isMatchingFileExtension() {
-<span class="fc" id="L430">    String[] extensions = MediaFormatSupport.getRequestedFileExtensions(mediaArgs);</span>
-<span class="pc bpc" id="L431" title="1 of 2 branches missed.">    if (extensions == null) {</span>
+<span class="fc" id="L431">    String[] extensions = MediaFormatSupport.getRequestedFileExtensions(mediaArgs);</span>
+<span class="pc bpc" id="L432" title="1 of 2 branches missed.">    if (extensions == null) {</span>
       // constraints for filtering file extensions are not fulfilled - not matching possible
-<span class="nc" id="L433">      return false;</span>
+<span class="nc" id="L434">      return false;</span>
     }
-<span class="fc bfc" id="L435" title="All 2 branches covered.">    if (extensions.length == 0) {</span>
-<span class="fc" id="L436">      return true;</span>
+<span class="fc bfc" id="L436" title="All 2 branches covered.">    if (extensions.length == 0) {</span>
+<span class="fc" id="L437">      return true;</span>
     }
-<span class="pc bpc" id="L438" title="1 of 2 branches missed.">    for (String extension : extensions) {</span>
-<span class="fc bfc" id="L439" title="All 2 branches covered.">      if (StringUtils.equalsIgnoreCase(extension, this.originalFileExtension)) {</span>
-<span class="fc" id="L440">        return true;</span>
+<span class="pc bpc" id="L439" title="1 of 2 branches missed.">    for (String extension : extensions) {</span>
+<span class="fc bfc" id="L440" title="All 2 branches covered.">      if (StringUtils.equalsIgnoreCase(extension, this.originalFileExtension)) {</span>
+<span class="fc" id="L441">        return true;</span>
       }
     }
-<span class="nc" id="L443">    return false;</span>
+<span class="nc" id="L444">    return false;</span>
   }
 
   /**
@@ -450,21 +451,21 @@ class InlineRendition extends SlingAdaptable implements Rendition {
   private @NotNull Dimension getRequestedDimension() {
 
     // check for fixed dimensions from media args
-<span class="fc bfc" id="L453" title="All 4 branches covered.">    if (mediaArgs.getFixedWidth() &gt; 0 || mediaArgs.getFixedHeight() &gt; 0) {</span>
-<span class="fc" id="L454">      return new Dimension(mediaArgs.getFixedWidth(), mediaArgs.getFixedHeight());</span>
+<span class="fc bfc" id="L454" title="All 4 branches covered.">    if (mediaArgs.getFixedWidth() &gt; 0 || mediaArgs.getFixedHeight() &gt; 0) {</span>
+<span class="fc" id="L455">      return new Dimension(mediaArgs.getFixedWidth(), mediaArgs.getFixedHeight());</span>
     }
 
     // check for dimensions from mediaformat (evaluate only first media format)
-<span class="fc" id="L458">    MediaFormat[] mediaFormats = mediaArgs.getMediaFormats();</span>
-<span class="pc bpc" id="L459" title="1 of 4 branches missed.">    if (mediaFormats != null &amp;&amp; mediaFormats.length &gt; 0) {</span>
-<span class="fc" id="L460">      Dimension dimension = mediaFormats[0].getMinDimension();</span>
-<span class="fc bfc" id="L461" title="All 2 branches covered.">      if (dimension != null) {</span>
-<span class="fc" id="L462">        return dimension;</span>
+<span class="fc" id="L459">    MediaFormat[] mediaFormats = mediaArgs.getMediaFormats();</span>
+<span class="pc bpc" id="L460" title="1 of 4 branches missed.">    if (mediaFormats != null &amp;&amp; mediaFormats.length &gt; 0) {</span>
+<span class="fc" id="L461">      Dimension dimension = mediaFormats[0].getMinDimension();</span>
+<span class="fc bfc" id="L462" title="All 2 branches covered.">      if (dimension != null) {</span>
+<span class="fc" id="L463">        return dimension;</span>
       }
     }
 
     // fallback to 0/0 - no specific dimension requested
-<span class="fc" id="L467">    return new Dimension(0, 0);</span>
+<span class="fc" id="L468">    return new Dimension(0, 0);</span>
   }
 
   /**
@@ -474,190 +475,184 @@ class InlineRendition extends SlingAdaptable implements Rendition {
   private double getRequestedRatio() {
 
     // check for fixed dimensions from media args
-<span class="fc bfc" id="L477" title="All 4 branches covered.">    if (mediaArgs.getFixedWidth() &gt; 0 &amp;&amp; mediaArgs.getFixedHeight() &gt; 0) {</span>
-<span class="fc" id="L478">      return Ratio.get(mediaArgs.getFixedWidth(), mediaArgs.getFixedHeight());</span>
+<span class="fc bfc" id="L478" title="All 4 branches covered.">    if (mediaArgs.getFixedWidth() &gt; 0 &amp;&amp; mediaArgs.getFixedHeight() &gt; 0) {</span>
+<span class="fc" id="L479">      return Ratio.get(mediaArgs.getFixedWidth(), mediaArgs.getFixedHeight());</span>
     }
 
     // check for dimensions from mediaformat (evaluate only first media format)
-<span class="fc" id="L482">    MediaFormat[] mediaFormats = mediaArgs.getMediaFormats();</span>
-<span class="pc bpc" id="L483" title="1 of 6 branches missed.">    if (mediaFormats != null &amp;&amp; mediaFormats.length &gt; 0 &amp;&amp; mediaFormats[0].getRatio() &gt; 0) {</span>
-<span class="fc" id="L484">      return mediaFormats[0].getRatio();</span>
+<span class="fc" id="L483">    MediaFormat[] mediaFormats = mediaArgs.getMediaFormats();</span>
+<span class="pc bpc" id="L484" title="1 of 6 branches missed.">    if (mediaFormats != null &amp;&amp; mediaFormats.length &gt; 0 &amp;&amp; mediaFormats[0].getRatio() &gt; 0) {</span>
+<span class="fc" id="L485">      return mediaFormats[0].getRatio();</span>
     }
 
     // no ratio
-<span class="fc" id="L488">    return 0d;</span>
+<span class="fc" id="L489">    return 0d;</span>
   }
 
   @Override
   public String getUrl() {
-<span class="fc" id="L493">    return this.url;</span>
+<span class="fc" id="L494">    return this.url;</span>
   }
 
   @Override
   public String getPath() {
-<span class="fc" id="L498">    return this.resource.getPath();</span>
+<span class="fc" id="L499">    return this.resource.getPath();</span>
   }
 
   @Override
   public String getFileName() {
-<span class="fc bfc" id="L503" title="All 2 branches covered.">    if (this.url != null) {</span>
-<span class="fc" id="L504">      return FilenameUtils.getName(this.url);</span>
+<span class="fc bfc" id="L504" title="All 2 branches covered.">    if (this.url != null) {</span>
+<span class="fc" id="L505">      return FilenameUtils.getName(this.url);</span>
     }
-<span class="fc" id="L506">    return this.fileName;</span>
+<span class="fc" id="L507">    return this.fileName;</span>
   }
 
   @Override
   public String getFileExtension() {
-<span class="fc bfc" id="L511" title="All 2 branches covered.">    if (this.url != null) {</span>
-<span class="fc" id="L512">      return FilenameUtils.getExtension(this.url);</span>
+<span class="fc bfc" id="L512" title="All 2 branches covered.">    if (this.url != null) {</span>
+<span class="fc" id="L513">      return FilenameUtils.getExtension(this.url);</span>
     }
-<span class="fc" id="L514">    return StringUtils.defaultString(this.fileExtension, this.originalFileExtension);</span>
+<span class="fc" id="L515">    return StringUtils.defaultString(this.fileExtension, this.originalFileExtension);</span>
   }
 
   @Override
   public long getFileSize() {
-<span class="fc" id="L519">    Node node = this.resource.adaptTo(Node.class);</span>
-<span class="pc bpc" id="L520" title="1 of 2 branches missed.">    if (node != null) {</span>
+<span class="fc" id="L520">    Node node = this.resource.adaptTo(Node.class);</span>
+<span class="pc bpc" id="L521" title="1 of 2 branches missed.">    if (node != null) {</span>
       try {
-<span class="fc" id="L522">        Property data = node.getProperty(JcrConstants.JCR_DATA);</span>
-<span class="fc" id="L523">        return data.getBinary().getSize();</span>
+<span class="fc" id="L523">        Property data = node.getProperty(JcrConstants.JCR_DATA);</span>
+<span class="fc" id="L524">        return data.getBinary().getSize();</span>
       }
-<span class="nc" id="L525">      catch (RepositoryException ex) {</span>
-<span class="nc" id="L526">        throw new RuntimeException(&quot;Unable to detect binary file size for &quot; + this.resource.getPath(), ex);</span>
+<span class="nc" id="L526">      catch (RepositoryException ex) {</span>
+<span class="nc" id="L527">        throw new RuntimeException(&quot;Unable to detect binary file size for &quot; + this.resource.getPath(), ex);</span>
       }
     }
     else {
       // fallback to Sling API if JCR node is not present (inefficient - but this should happen only in unit tests)
       try {
-<span class="nc" id="L532">        InputStream is = this.resource.getValueMap().get(JcrConstants.JCR_DATA, InputStream.class);</span>
-<span class="nc" id="L533">        return IOUtils.toByteArray(is).length;</span>
+<span class="nc" id="L533">        InputStream is = this.resource.getValueMap().get(JcrConstants.JCR_DATA, InputStream.class);</span>
+<span class="nc" id="L534">        return IOUtils.toByteArray(is).length;</span>
       }
-<span class="nc" id="L535">      catch (IOException ex) {</span>
-<span class="nc" id="L536">        throw new RuntimeException(&quot;Unable to detect binary file size for &quot; + this.resource.getPath(), ex);</span>
+<span class="nc" id="L536">      catch (IOException ex) {</span>
+<span class="nc" id="L537">        throw new RuntimeException(&quot;Unable to detect binary file size for &quot; + this.resource.getPath(), ex);</span>
       }
     }
   }
 
   @Override
   public String getMimeType() {
-<span class="fc" id="L543">    return JcrBinary.getMimeType(this.resource);</span>
+<span class="fc" id="L544">    return JcrBinary.getMimeType(this.resource);</span>
   }
 
   @Override
   public Date getModificationDate() {
-<span class="nc" id="L548">    return ModificationDate.get(this.resource);</span>
+<span class="nc" id="L549">    return ModificationDate.get(this.resource);</span>
   }
 
   @Override
   public MediaFormat getMediaFormat() {
-<span class="fc" id="L553">    return resolvedMediaFormat;</span>
+<span class="fc" id="L554">    return resolvedMediaFormat;</span>
   }
 
   @Override
   @SuppressWarnings(&quot;null&quot;)
   public ValueMap getProperties() {
-<span class="nc" id="L559">    return this.resource.getValueMap();</span>
+<span class="nc" id="L560">    return this.resource.getValueMap();</span>
   }
 
   @Override
   public boolean isImage() {
-<span class="fc" id="L564">    return MediaFileType.isImage(getFileExtension());</span>
+<span class="fc" id="L565">    return MediaFileType.isImage(getFileExtension());</span>
   }
 
   @Override
   public boolean isBrowserImage() {
-<span class="nc" id="L569">    return MediaFileType.isBrowserImage(getFileExtension());</span>
+<span class="nc" id="L570">    return MediaFileType.isBrowserImage(getFileExtension());</span>
   }
 
   @Override
   public boolean isVectorImage() {
-<span class="fc" id="L574">    return MediaFileType.isVectorImage(getFileExtension());</span>
-  }
-
-  @Override
-  @SuppressWarnings(&quot;deprecation&quot;)
-  public boolean isFlash() {
-<span class="fc" id="L580">    return MediaFileType.isFlash(getFileExtension());</span>
+<span class="fc" id="L575">    return MediaFileType.isVectorImage(getFileExtension());</span>
   }
 
   @Override
   public boolean isDownload() {
-<span class="pc bpc" id="L585" title="3 of 4 branches missed.">    return !isImage() &amp;&amp; !isFlash();</span>
+<span class="pc bpc" id="L580" title="1 of 2 branches missed.">    return !isImage();</span>
   }
 
   @Override
   public long getWidth() {
-<span class="fc bfc" id="L590" title="All 2 branches covered.">    if (imageDimension != null) {</span>
-<span class="fc" id="L591">      return ImageTransformation.rotateMapDimension(imageDimension, rotation).getWidth();</span>
+<span class="fc bfc" id="L585" title="All 2 branches covered.">    if (imageDimension != null) {</span>
+<span class="fc" id="L586">      return ImageTransformation.rotateMapDimension(imageDimension, rotation).getWidth();</span>
     }
     else {
-<span class="fc" id="L594">      return 0;</span>
+<span class="fc" id="L589">      return 0;</span>
     }
   }
 
   @Override
   public long getHeight() {
-<span class="fc bfc" id="L600" title="All 2 branches covered.">    if (imageDimension != null) {</span>
-<span class="fc" id="L601">      return ImageTransformation.rotateMapDimension(imageDimension, rotation).getHeight();</span>
+<span class="fc bfc" id="L595" title="All 2 branches covered.">    if (imageDimension != null) {</span>
+<span class="fc" id="L596">      return ImageTransformation.rotateMapDimension(imageDimension, rotation).getHeight();</span>
     }
     else {
-<span class="fc" id="L604">      return 0;</span>
+<span class="fc" id="L599">      return 0;</span>
     }
   }
 
   @Override
   public boolean isFallback() {
-<span class="fc" id="L610">    return fallback;</span>
+<span class="fc" id="L605">    return fallback;</span>
   }
 
   @Override
   public @NotNull UriTemplate getUriTemplate(@NotNull UriTemplateType type) {
-<span class="fc bfc" id="L615" title="All 2 branches covered.">    if (type == UriTemplateType.CROP_CENTER) {</span>
-<span class="fc" id="L616">      throw new IllegalArgumentException(&quot;CROP_CENTER not supported for rendition URI templates.&quot;);</span>
+<span class="fc bfc" id="L610" title="All 2 branches covered.">    if (type == UriTemplateType.CROP_CENTER) {</span>
+<span class="fc" id="L611">      throw new IllegalArgumentException(&quot;CROP_CENTER not supported for rendition URI templates.&quot;);</span>
     }
-<span class="pc bpc" id="L618" title="2 of 4 branches missed.">    if (!isImage() || isVectorImage()) {</span>
-<span class="nc" id="L619">      throw new UnsupportedOperationException(&quot;Unable to build URI template for &quot; + resource.getPath());</span>
+<span class="pc bpc" id="L613" title="2 of 4 branches missed.">    if (!isImage() || isVectorImage()) {</span>
+<span class="nc" id="L614">      throw new UnsupportedOperationException(&quot;Unable to build URI template for &quot; + resource.getPath());</span>
     }
-<span class="pc bpc" id="L621" title="1 of 2 branches missed.">    if (this.maxImageDimension == null) {</span>
-<span class="nc" id="L622">      throw new IllegalStateException(&quot;Unable to detect dimension for inline image: &quot; + resource.getPath());</span>
+<span class="pc bpc" id="L616" title="1 of 2 branches missed.">    if (this.maxImageDimension == null) {</span>
+<span class="nc" id="L617">      throw new IllegalStateException(&quot;Unable to detect dimension for inline image: &quot; + resource.getPath());</span>
     }
 
-<span class="fc" id="L625">    Dimension dimension = ImageTransformation.rotateMapDimension(maxImageDimension, rotation);</span>
-<span class="fc" id="L626">    return new InlineUriTemplate(type, dimension, this.resource, fileName,</span>
+<span class="fc" id="L620">    Dimension dimension = ImageTransformation.rotateMapDimension(maxImageDimension, rotation);</span>
+<span class="fc" id="L621">    return new InlineUriTemplate(type, dimension, this.resource, fileName,</span>
         this.cropDimension, this.rotation, mediaArgs, adaptable);
   }
 
   @Override
   @SuppressWarnings({ &quot;unchecked&quot;, &quot;null&quot; })
   public &lt;AdapterType&gt; AdapterType adaptTo(Class&lt;AdapterType&gt; type) {
-<span class="pc bpc" id="L633" title="1 of 2 branches missed.">    if (type == Resource.class) {</span>
-<span class="nc" id="L634">      return (AdapterType)this.resource;</span>
+<span class="pc bpc" id="L628" title="1 of 2 branches missed.">    if (type == Resource.class) {</span>
+<span class="nc" id="L629">      return (AdapterType)this.resource;</span>
     }
-<span class="pc bpc" id="L636" title="2 of 4 branches missed.">    else if (type == Layer.class &amp;&amp; isImage()) {</span>
-<span class="fc" id="L637">      return (AdapterType)getLayer();</span>
+<span class="pc bpc" id="L631" title="2 of 4 branches missed.">    else if (type == Layer.class &amp;&amp; isImage()) {</span>
+<span class="fc" id="L632">      return (AdapterType)getLayer();</span>
     }
-<span class="nc bnc" id="L639" title="All 2 branches missed.">    else if (type == InputStream.class) {</span>
-<span class="nc" id="L640">      return (AdapterType)this.resource.adaptTo(InputStream.class);</span>
+<span class="nc bnc" id="L634" title="All 2 branches missed.">    else if (type == InputStream.class) {</span>
+<span class="nc" id="L635">      return (AdapterType)this.resource.adaptTo(InputStream.class);</span>
     }
-<span class="nc" id="L642">    return super.adaptTo(type);</span>
+<span class="nc" id="L637">    return super.adaptTo(type);</span>
   }
 
   private Layer getLayer() {
-<span class="fc" id="L646">    Layer layer = this.resource.adaptTo(Layer.class);</span>
-<span class="pc bpc" id="L647" title="1 of 2 branches missed.">    if (layer != null) {</span>
-<span class="fc bfc" id="L648" title="All 2 branches covered.">      if (cropDimension != null) {</span>
-<span class="fc" id="L649">        layer.crop(cropDimension.getRectangle());</span>
+<span class="fc" id="L641">    Layer layer = this.resource.adaptTo(Layer.class);</span>
+<span class="pc bpc" id="L642" title="1 of 2 branches missed.">    if (layer != null) {</span>
+<span class="fc bfc" id="L643" title="All 2 branches covered.">      if (cropDimension != null) {</span>
+<span class="fc" id="L644">        layer.crop(cropDimension.getRectangle());</span>
       }
-<span class="fc bfc" id="L651" title="All 2 branches covered.">      if (rotation != null) {</span>
-<span class="fc" id="L652">        layer.rotate(rotation);</span>
+<span class="fc bfc" id="L646" title="All 2 branches covered.">      if (rotation != null) {</span>
+<span class="fc" id="L647">        layer.rotate(rotation);</span>
       }
-<span class="fc" id="L654">      long width = getWidth();</span>
-<span class="fc" id="L655">      long height = getHeight();</span>
-<span class="pc bpc" id="L656" title="2 of 4 branches missed.">      if (width &lt;= layer.getWidth() &amp;&amp; height &lt;= layer.getHeight()) {</span>
-<span class="fc" id="L657">        layer.resize((int)width, (int)height);</span>
+<span class="fc" id="L649">      long width = getWidth();</span>
+<span class="fc" id="L650">      long height = getHeight();</span>
+<span class="pc bpc" id="L651" title="2 of 4 branches missed.">      if (width &lt;= layer.getWidth() &amp;&amp; height &lt;= layer.getHeight()) {</span>
+<span class="fc" id="L652">        layer.resize((int)width, (int)height);</span>
       }
     }
-<span class="fc" id="L660">    return layer;</span>
+<span class="fc" id="L655">    return layer;</span>
   }
 
 }

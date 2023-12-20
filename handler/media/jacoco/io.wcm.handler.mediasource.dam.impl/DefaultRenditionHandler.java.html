@@ -320,43 +320,44 @@ class DefaultRenditionHandler implements RenditionHandler {
    * @return Rendition or null if none found
    */
   private RenditionMetadata getExactMatchRendition(final Set&lt;RenditionMetadata&gt; candidates, MediaArgs mediaArgs) {
+<span class="fc" id="L323">    MediaFormat[] mediaFormats = mediaArgs.getMediaFormats();</span>
     // check for fixed width and/or height request
-<span class="fc bfc" id="L324" title="All 4 branches covered.">    if (mediaArgs.getFixedWidth() &gt; 0 || mediaArgs.getFixedHeight() &gt; 0) {</span>
-<span class="fc bfc" id="L325" title="All 2 branches covered.">      for (RenditionMetadata candidate : candidates) {</span>
-<span class="fc bfc" id="L326" title="All 2 branches covered.">        if (candidate.matches(mediaArgs.getFixedWidth(), mediaArgs.getFixedHeight())) {</span>
-<span class="fc" id="L327">          return candidate;</span>
+<span class="fc bfc" id="L325" title="All 4 branches covered.">    if (mediaArgs.getFixedWidth() &gt; 0 || mediaArgs.getFixedHeight() &gt; 0) {</span>
+<span class="fc bfc" id="L326" title="All 2 branches covered.">      for (RenditionMetadata candidate : candidates) {</span>
+<span class="fc bfc" id="L327" title="All 2 branches covered.">        if (candidate.matches(mediaArgs.getFixedWidth(), mediaArgs.getFixedHeight())) {</span>
+<span class="fc" id="L328">          return candidate;</span>
         }
-<span class="fc" id="L329">      }</span>
+<span class="fc" id="L330">      }</span>
     }
 
     // otherwise check for media format restriction
-<span class="pc bpc" id="L333" title="2 of 4 branches missed.">    else if (mediaArgs.getMediaFormats() != null &amp;&amp; mediaArgs.getMediaFormats().length &gt; 0) {</span>
-<span class="fc" id="L334">      return visitMediaFormats(mediaArgs, new MediaFormatVisitor&lt;RenditionMetadata&gt;() {</span>
+<span class="pc bpc" id="L334" title="2 of 4 branches missed.">    else if (mediaFormats != null &amp;&amp; mediaFormats.length &gt; 0) {</span>
+<span class="fc" id="L335">      return visitMediaFormats(mediaArgs, new MediaFormatVisitor&lt;RenditionMetadata&gt;() {</span>
         @Override
         public @Nullable RenditionMetadata visit(@NotNull MediaFormat mediaFormat) {
-<span class="fc bfc" id="L337" title="All 2 branches covered.">          for (RenditionMetadata candidate : candidates) {</span>
-<span class="fc bfc" id="L338" title="All 2 branches covered.">            if (candidate.matches(mediaFormat.getEffectiveMinWidth(),</span>
-<span class="fc" id="L339">                mediaFormat.getEffectiveMinHeight(),</span>
-<span class="fc" id="L340">                mediaFormat.getEffectiveMaxWidth(),</span>
-<span class="fc" id="L341">                mediaFormat.getEffectiveMaxHeight(),</span>
-<span class="fc" id="L342">                mediaFormat.getMinWidthHeight(),</span>
-<span class="fc" id="L343">                mediaFormat.getRatio())) {</span>
-<span class="fc" id="L344">              candidate.setMediaFormat(mediaFormat);</span>
-<span class="fc" id="L345">              return candidate;</span>
+<span class="fc bfc" id="L338" title="All 2 branches covered.">          for (RenditionMetadata candidate : candidates) {</span>
+<span class="fc bfc" id="L339" title="All 2 branches covered.">            if (candidate.matches(mediaFormat.getEffectiveMinWidth(),</span>
+<span class="fc" id="L340">                mediaFormat.getEffectiveMinHeight(),</span>
+<span class="fc" id="L341">                mediaFormat.getEffectiveMaxWidth(),</span>
+<span class="fc" id="L342">                mediaFormat.getEffectiveMaxHeight(),</span>
+<span class="fc" id="L343">                mediaFormat.getMinWidthHeight(),</span>
+<span class="fc" id="L344">                mediaFormat.getRatio())) {</span>
+<span class="fc" id="L345">              candidate.setMediaFormat(mediaFormat);</span>
+<span class="fc" id="L346">              return candidate;</span>
             }
-<span class="fc" id="L347">          }</span>
-<span class="fc" id="L348">          return null;</span>
+<span class="fc" id="L348">          }</span>
+<span class="fc" id="L349">          return null;</span>
         }
       });
     }
 
     // no restriction - return original or first rendition
     else {
-<span class="nc" id="L355">      return getOriginalOrFirstRendition(candidates);</span>
+<span class="nc" id="L356">      return getOriginalOrFirstRendition(candidates);</span>
     }
 
     // none found
-<span class="fc" id="L359">    return null;</span>
+<span class="fc" id="L360">    return null;</span>
   }
 
   /**
@@ -366,14 +367,14 @@ class DefaultRenditionHandler implements RenditionHandler {
    * @return Original or first rendition of candidates or null
    */
   private RenditionMetadata getOriginalOrFirstRendition(Set&lt;RenditionMetadata&gt; candidates) {
-<span class="pc bpc" id="L369" title="1 of 4 branches missed.">    if (this.originalRendition != null &amp;&amp; candidates.contains(this.originalRendition)) {</span>
-<span class="fc" id="L370">      return this.originalRendition;</span>
+<span class="pc bpc" id="L370" title="1 of 4 branches missed.">    if (this.originalRendition != null &amp;&amp; candidates.contains(this.originalRendition)) {</span>
+<span class="fc" id="L371">      return this.originalRendition;</span>
     }
-<span class="fc bfc" id="L372" title="All 2 branches covered.">    else if (!candidates.isEmpty()) {</span>
-<span class="fc" id="L373">      return candidates.iterator().next();</span>
+<span class="fc bfc" id="L373" title="All 2 branches covered.">    else if (!candidates.isEmpty()) {</span>
+<span class="fc" id="L374">      return candidates.iterator().next();</span>
     }
     else {
-<span class="fc" id="L376">      return null;</span>
+<span class="fc" id="L377">      return null;</span>
     }
   }
 
@@ -387,32 +388,32 @@ class DefaultRenditionHandler implements RenditionHandler {
   private RenditionMetadata getVirtualRendition(final Set&lt;RenditionMetadata&gt; candidates, MediaArgs mediaArgs) {
 
     // get from fixed width/height
-<span class="fc bfc" id="L390" title="All 4 branches covered.">    if (mediaArgs.getFixedWidth() &gt; 0 || mediaArgs.getFixedHeight() &gt; 0) {</span>
-<span class="fc" id="L391">      long destWidth = mediaArgs.getFixedWidth();</span>
-<span class="fc" id="L392">      long destHeight = mediaArgs.getFixedHeight();</span>
-<span class="fc" id="L393">      double destRatio = 0;</span>
-<span class="fc bfc" id="L394" title="All 4 branches covered.">      if (destWidth &gt; 0 &amp;&amp; destHeight &gt; 0) {</span>
-<span class="fc" id="L395">        destRatio = Ratio.get(destWidth, destHeight);</span>
+<span class="fc bfc" id="L391" title="All 4 branches covered.">    if (mediaArgs.getFixedWidth() &gt; 0 || mediaArgs.getFixedHeight() &gt; 0) {</span>
+<span class="fc" id="L392">      long destWidth = mediaArgs.getFixedWidth();</span>
+<span class="fc" id="L393">      long destHeight = mediaArgs.getFixedHeight();</span>
+<span class="fc" id="L394">      double destRatio = 0;</span>
+<span class="fc bfc" id="L395" title="All 4 branches covered.">      if (destWidth &gt; 0 &amp;&amp; destHeight &gt; 0) {</span>
+<span class="fc" id="L396">        destRatio = Ratio.get(destWidth, destHeight);</span>
       }
-<span class="fc" id="L397">      return getVirtualRendition(candidates, destWidth, destHeight, 0, destRatio,</span>
-<span class="fc" id="L398">          mediaArgs.getEnforceOutputFileExtension());</span>
+<span class="fc" id="L398">      return getVirtualRendition(candidates, destWidth, destHeight, 0, destRatio,</span>
+<span class="fc" id="L399">          mediaArgs.getEnforceOutputFileExtension());</span>
     }
 
     // or from any media format
-<span class="fc" id="L402">    return visitMediaFormats(mediaArgs, new MediaFormatVisitor&lt;RenditionMetadata&gt;() {</span>
+<span class="fc" id="L403">    return visitMediaFormats(mediaArgs, new MediaFormatVisitor&lt;RenditionMetadata&gt;() {</span>
       @Override
       public @Nullable RenditionMetadata visit(@NotNull MediaFormat mediaFormat) {
-<span class="fc" id="L405">        long destWidth = mediaFormat.getEffectiveMinWidth();</span>
-<span class="fc" id="L406">        long destHeight = mediaFormat.getEffectiveMinHeight();</span>
-<span class="fc" id="L407">        long minWidthHeight = mediaFormat.getMinWidthHeight();</span>
-<span class="fc" id="L408">        double destRatio = mediaFormat.getRatio();</span>
+<span class="fc" id="L406">        long destWidth = mediaFormat.getEffectiveMinWidth();</span>
+<span class="fc" id="L407">        long destHeight = mediaFormat.getEffectiveMinHeight();</span>
+<span class="fc" id="L408">        long minWidthHeight = mediaFormat.getMinWidthHeight();</span>
+<span class="fc" id="L409">        double destRatio = mediaFormat.getRatio();</span>
         // try to find matching rendition, otherwise check for next media format
-<span class="fc" id="L410">        RenditionMetadata rendition = getVirtualRendition(candidates, destWidth, destHeight, minWidthHeight, destRatio,</span>
-<span class="fc" id="L411">            mediaArgs.getEnforceOutputFileExtension());</span>
-<span class="fc bfc" id="L412" title="All 2 branches covered.">        if (rendition != null) {</span>
-<span class="fc" id="L413">          rendition.setMediaFormat(mediaFormat);</span>
+<span class="fc" id="L411">        RenditionMetadata rendition = getVirtualRendition(candidates, destWidth, destHeight, minWidthHeight, destRatio,</span>
+<span class="fc" id="L412">            mediaArgs.getEnforceOutputFileExtension());</span>
+<span class="fc bfc" id="L413" title="All 2 branches covered.">        if (rendition != null) {</span>
+<span class="fc" id="L414">          rendition.setMediaFormat(mediaFormat);</span>
         }
-<span class="fc" id="L415">        return rendition;</span>
+<span class="fc" id="L416">        return rendition;</span>
       }
     });
   }
@@ -433,24 +434,24 @@ class DefaultRenditionHandler implements RenditionHandler {
       String enforceOutputFileExtension) {
 
     // if ratio is defined get first rendition with matching ratio and same or bigger size
-<span class="fc bfc" id="L436" title="All 2 branches covered.">    if (destRatio &gt; 0) {</span>
-<span class="fc bfc" id="L437" title="All 2 branches covered.">      for (RenditionMetadata candidate : candidates) {</span>
-<span class="fc bfc" id="L438" title="All 2 branches covered.">        if (candidate.matches(destWidth, destHeight, 0, 0, minWidthHeight, destRatio)) {</span>
-<span class="fc" id="L439">          return getVirtualRendition(candidate, destWidth, destHeight, destRatio, enforceOutputFileExtension);</span>
+<span class="fc bfc" id="L437" title="All 2 branches covered.">    if (destRatio &gt; 0) {</span>
+<span class="fc bfc" id="L438" title="All 2 branches covered.">      for (RenditionMetadata candidate : candidates) {</span>
+<span class="fc bfc" id="L439" title="All 2 branches covered.">        if (candidate.matches(destWidth, destHeight, 0, 0, minWidthHeight, destRatio)) {</span>
+<span class="fc" id="L440">          return getVirtualRendition(candidate, destWidth, destHeight, destRatio, enforceOutputFileExtension);</span>
         }
-<span class="fc" id="L441">      }</span>
+<span class="fc" id="L442">      }</span>
     }
     // otherwise get first rendition which is same or bigger in width and height
     else {
-<span class="fc bfc" id="L445" title="All 2 branches covered.">      for (RenditionMetadata candidate : candidates) {</span>
-<span class="fc bfc" id="L446" title="All 2 branches covered.">        if (candidate.matches(destWidth, destHeight, 0, 0, minWidthHeight, 0d)) {</span>
-<span class="fc" id="L447">          return getVirtualRendition(candidate, destWidth, destHeight, 0d, enforceOutputFileExtension);</span>
+<span class="fc bfc" id="L446" title="All 2 branches covered.">      for (RenditionMetadata candidate : candidates) {</span>
+<span class="fc bfc" id="L447" title="All 2 branches covered.">        if (candidate.matches(destWidth, destHeight, 0, 0, minWidthHeight, 0d)) {</span>
+<span class="fc" id="L448">          return getVirtualRendition(candidate, destWidth, destHeight, 0d, enforceOutputFileExtension);</span>
         }
-<span class="fc" id="L449">      }</span>
+<span class="fc" id="L450">      }</span>
     }
 
     // none found
-<span class="fc" id="L453">    return null;</span>
+<span class="fc" id="L454">    return null;</span>
   }
 
   /**
@@ -465,43 +466,43 @@ class DefaultRenditionHandler implements RenditionHandler {
   private RenditionMetadata getVirtualRendition(RenditionMetadata rendition, long widthValue, long heightValue,
       double ratioValue, String enforceOutputFileExtension) {
 
-<span class="fc" id="L468">    long width = widthValue;</span>
-<span class="fc" id="L469">    long height = heightValue;</span>
-<span class="fc" id="L470">    double ratio = ratioValue;</span>
+<span class="fc" id="L469">    long width = widthValue;</span>
+<span class="fc" id="L470">    long height = heightValue;</span>
+<span class="fc" id="L471">    double ratio = ratioValue;</span>
 
     // if ratio is missing: calculate from given rendition
-<span class="fc bfc" id="L473" title="All 2 branches covered.">    if (ratio &lt; MediaFormatHandler.RATIO_TOLERANCE) {</span>
-<span class="fc" id="L474">      ratio = Ratio.get(rendition.getWidth(), rendition.getHeight());</span>
+<span class="fc bfc" id="L474" title="All 2 branches covered.">    if (ratio &lt; MediaFormatHandler.RATIO_TOLERANCE) {</span>
+<span class="fc" id="L475">      ratio = Ratio.get(rendition.getWidth(), rendition.getHeight());</span>
     }
 
     // if height is missing - calculate from width
-<span class="pc bpc" id="L478" title="1 of 4 branches missed.">    if (height == 0 &amp;&amp; width &gt; 0) {</span>
-<span class="fc" id="L479">      height = Math.round(width / ratio);</span>
+<span class="pc bpc" id="L479" title="1 of 4 branches missed.">    if (height == 0 &amp;&amp; width &gt; 0) {</span>
+<span class="fc" id="L480">      height = Math.round(width / ratio);</span>
     }
 
     // if width is missing - calculate from height
-<span class="pc bpc" id="L483" title="1 of 4 branches missed.">    if (width == 0 &amp;&amp; height &gt; 0) {</span>
-<span class="fc" id="L484">      width = Math.round(height * ratio);</span>
+<span class="pc bpc" id="L484" title="1 of 4 branches missed.">    if (width == 0 &amp;&amp; height &gt; 0) {</span>
+<span class="fc" id="L485">      width = Math.round(height * ratio);</span>
     }
 
     // return virtual rendition
-<span class="pc bpc" id="L488" title="2 of 4 branches missed.">    if (width &gt; 0 &amp;&amp; height &gt; 0) {</span>
-<span class="fc bfc" id="L489" title="All 2 branches covered.">      if (rendition instanceof VirtualTransformedRenditionMetadata) {</span>
-<span class="fc" id="L490">        VirtualTransformedRenditionMetadata cropRendition = (VirtualTransformedRenditionMetadata)rendition;</span>
-<span class="fc" id="L491">        return new VirtualTransformedRenditionMetadata(cropRendition.getRendition(), width, height, enforceOutputFileExtension,</span>
-<span class="fc" id="L492">            cropRendition.getCropDimension(), cropRendition.getRotation());</span>
+<span class="pc bpc" id="L489" title="2 of 4 branches missed.">    if (width &gt; 0 &amp;&amp; height &gt; 0) {</span>
+<span class="fc bfc" id="L490" title="All 2 branches covered.">      if (rendition instanceof VirtualTransformedRenditionMetadata) {</span>
+<span class="fc" id="L491">        VirtualTransformedRenditionMetadata cropRendition = (VirtualTransformedRenditionMetadata)rendition;</span>
+<span class="fc" id="L492">        return new VirtualTransformedRenditionMetadata(cropRendition.getRendition(), width, height, enforceOutputFileExtension,</span>
+<span class="fc" id="L493">            cropRendition.getCropDimension(), cropRendition.getRotation());</span>
       }
       else {
-<span class="fc" id="L495">        return new VirtualRenditionMetadata(rendition.getRendition(), width, height, enforceOutputFileExtension);</span>
+<span class="fc" id="L496">        return new VirtualRenditionMetadata(rendition.getRendition(), width, height, enforceOutputFileExtension);</span>
       }
     }
     else {
-<span class="nc" id="L499">      return null;</span>
+<span class="nc" id="L500">      return null;</span>
     }
   }
 
   protected Asset getAsset() {
-<span class="nc" id="L504">    return damContext.getAsset();</span>
+<span class="nc" id="L505">    return damContext.getAsset();</span>
   }
 
 }
