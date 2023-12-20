@@ -55,7 +55,7 @@ final class LinkBuilderImpl implements LinkBuilder {
 <span class="fc" id="L55">  private static final Logger log = LoggerFactory.getLogger(LinkBuilderImpl.class);</span>
 
   LinkBuilderImpl(@Nullable Resource resource, @NotNull LinkHandlerImpl linkHandler,
-<span class="fc" id="L58">      @Nullable ComponentPropertyResolverFactory componentPropertyResolverFactory) {</span>
+<span class="fc" id="L58">      @NotNull ComponentPropertyResolverFactory componentPropertyResolverFactory) {</span>
 <span class="fc" id="L59">    this.resource = resource;</span>
 <span class="fc" id="L60">    this.page = null;</span>
 <span class="fc" id="L61">    this.reference = null;</span>
@@ -64,7 +64,7 @@ final class LinkBuilderImpl implements LinkBuilder {
 <span class="fc" id="L64">  }</span>
 
   LinkBuilderImpl(@NotNull LinkRequest linkRequest, @NotNull LinkHandlerImpl linkHandler,
-<span class="fc" id="L67">      @Nullable ComponentPropertyResolverFactory componentPropertyResolverFactory) {</span>
+<span class="fc" id="L67">      @NotNull ComponentPropertyResolverFactory componentPropertyResolverFactory) {</span>
 <span class="fc" id="L68">    this.resource = linkRequest.getResource();</span>
 <span class="fc" id="L69">    this.page = linkRequest.getPage();</span>
 <span class="fc" id="L70">    this.reference = linkRequest.getReference();</span>
@@ -88,13 +88,13 @@ final class LinkBuilderImpl implements LinkBuilder {
 <span class="fc" id="L88">    this.linkHandler = linkHandler;</span>
 <span class="fc" id="L89">  }</span>
 
-  private void resolveWindowTargetAndFallbackProperties(@Nullable ComponentPropertyResolverFactory componentPropertyResolverFactory) {
+  private void resolveWindowTargetAndFallbackProperties(@NotNull ComponentPropertyResolverFactory componentPropertyResolverFactory) {
 <span class="pc bpc" id="L92" title="1 of 2 branches missed.">    if (resource == null) {</span>
 <span class="nc" id="L93">      return;</span>
     }
 
     // resolve default settings from content policies and component properties
-<span class="fc" id="L97">    try (LinkComponentPropertyResolver resolver = getLinkComponentPropertyResolver(resource, componentPropertyResolverFactory)) {</span>
+<span class="fc" id="L97">    try (LinkComponentPropertyResolver resolver = new LinkComponentPropertyResolver(resource, componentPropertyResolverFactory)) {</span>
 <span class="fc" id="L98">      linkArgs.linkTargetUrlFallbackProperty(resolver.getLinkTargetUrlFallbackProperty());</span>
 <span class="fc" id="L99">      linkArgs.linkTargetWindowTargetFallbackProperty(resolver.getLinkTargetWindowTargetFallbackProperty());</span>
     }
@@ -106,143 +106,131 @@ final class LinkBuilderImpl implements LinkBuilder {
 <span class="fc" id="L106">    linkArgs.windowTarget(getWindowTargetFromResource(resource, linkArgs));</span>
 <span class="fc" id="L107">  }</span>
 
-  @SuppressWarnings(&quot;deprecation&quot;)
-  private static LinkComponentPropertyResolver getLinkComponentPropertyResolver(@NotNull Resource resource,
-      @Nullable ComponentPropertyResolverFactory componentPropertyResolverFactory) {
-<span class="pc bpc" id="L112" title="1 of 2 branches missed.">    if (componentPropertyResolverFactory != null) {</span>
-<span class="fc" id="L113">      return new LinkComponentPropertyResolver(resource, componentPropertyResolverFactory);</span>
-    }
-    else {
-      // fallback mode if ComponentPropertyResolverFactory is not available
-<span class="nc" id="L117">      return new LinkComponentPropertyResolver(resource);</span>
-    }
-  }
-
   private static String getWindowTargetFromResource(@NotNull Resource resource, @NotNull LinkArgs linkArgs) {
-<span class="fc" id="L122">    ValueMap props = resource.getValueMap();</span>
-<span class="fc" id="L123">    String windowTarget = null;</span>
+<span class="fc" id="L110">    ValueMap props = resource.getValueMap();</span>
+<span class="fc" id="L111">    String windowTarget = null;</span>
 
     // check if a link target URL is set in the fallback property
-<span class="fc" id="L126">    String[] linkTargetWindowTargetFallbackProperty = linkArgs.getLinkTargetWindowTargetFallbackProperty();</span>
-<span class="fc bfc" id="L127" title="All 2 branches covered.">    if (linkTargetWindowTargetFallbackProperty != null) {</span>
-<span class="pc bpc" id="L128" title="1 of 2 branches missed.">      for (String propertyName : linkTargetWindowTargetFallbackProperty) {</span>
-<span class="fc" id="L129">        windowTarget = props.get(propertyName, String.class);</span>
-<span class="pc bpc" id="L130" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(windowTarget)) {</span>
-<span class="fc" id="L131">          break;</span>
+<span class="fc" id="L114">    String[] linkTargetWindowTargetFallbackProperty = linkArgs.getLinkTargetWindowTargetFallbackProperty();</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">    if (linkTargetWindowTargetFallbackProperty != null) {</span>
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">      for (String propertyName : linkTargetWindowTargetFallbackProperty) {</span>
+<span class="fc" id="L117">        windowTarget = props.get(propertyName, String.class);</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(windowTarget)) {</span>
+<span class="fc" id="L119">          break;</span>
         }
       }
     }
 
     // read from resource with default property name
-<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (StringUtils.isBlank(windowTarget)) {</span>
-<span class="fc" id="L138">      windowTarget = props.get(LinkNameConstants.PN_LINK_WINDOW_TARGET, String.class);</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">    if (StringUtils.isBlank(windowTarget)) {</span>
+<span class="fc" id="L126">      windowTarget = props.get(LinkNameConstants.PN_LINK_WINDOW_TARGET, String.class);</span>
     }
-<span class="fc" id="L140">    return windowTarget;</span>
+<span class="fc" id="L128">    return windowTarget;</span>
   }
 
   @Override
   @SuppressWarnings({ &quot;null&quot;, &quot;unused&quot; })
   public @NotNull LinkBuilder args(@NotNull LinkArgs value) {
-<span class="nc bnc" id="L146" title="All 2 branches missed.">    if (value == null) {</span>
-<span class="nc" id="L147">      throw new IllegalArgumentException(&quot;LinkArgs is null.&quot;);</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">    if (value == null) {</span>
+<span class="nc" id="L135">      throw new IllegalArgumentException(&quot;LinkArgs is null.&quot;);</span>
     }
     // clone link args to make sure the original object is not modified
-<span class="nc" id="L150">    this.linkArgs = value.clone();</span>
-<span class="nc" id="L151">    return this;</span>
+<span class="nc" id="L138">    this.linkArgs = value.clone();</span>
+<span class="nc" id="L139">    return this;</span>
   }
 
   @Override
   public @NotNull LinkBuilder urlMode(@Nullable UrlMode value) {
-<span class="fc" id="L156">    this.linkArgs.urlMode(value);</span>
-<span class="fc" id="L157">    return this;</span>
+<span class="fc" id="L144">    this.linkArgs.urlMode(value);</span>
+<span class="fc" id="L145">    return this;</span>
   }
 
   @Override
   public @NotNull LinkBuilder dummyLink(boolean value) {
-<span class="fc" id="L162">    this.linkArgs.dummyLink(value);</span>
-<span class="fc" id="L163">    return this;</span>
+<span class="fc" id="L150">    this.linkArgs.dummyLink(value);</span>
+<span class="fc" id="L151">    return this;</span>
   }
 
   @Override
   public @NotNull LinkBuilder dummyLinkUrl(@Nullable String value) {
-<span class="fc" id="L168">    this.linkArgs.dummyLinkUrl(value);</span>
-<span class="fc" id="L169">    return this;</span>
+<span class="fc" id="L156">    this.linkArgs.dummyLinkUrl(value);</span>
+<span class="fc" id="L157">    return this;</span>
   }
 
   @Override
   public @NotNull LinkBuilder selectors(@Nullable String value) {
-<span class="fc" id="L174">    this.linkArgs.selectors(value);</span>
-<span class="fc" id="L175">    return this;</span>
+<span class="fc" id="L162">    this.linkArgs.selectors(value);</span>
+<span class="fc" id="L163">    return this;</span>
   }
 
   @Override
   public @NotNull LinkBuilder extension(@Nullable String value) {
-<span class="fc" id="L180">    this.linkArgs.extension(value);</span>
-<span class="fc" id="L181">    return this;</span>
+<span class="fc" id="L168">    this.linkArgs.extension(value);</span>
+<span class="fc" id="L169">    return this;</span>
   }
 
   @Override
   public @NotNull LinkBuilder suffix(@Nullable String value) {
-<span class="fc" id="L186">    this.linkArgs.suffix(value);</span>
-<span class="fc" id="L187">    return this;</span>
+<span class="fc" id="L174">    this.linkArgs.suffix(value);</span>
+<span class="fc" id="L175">    return this;</span>
   }
 
   @Override
   public @NotNull LinkBuilder queryString(@Nullable String value) {
-<span class="fc" id="L192">    this.linkArgs.queryString(value);</span>
-<span class="fc" id="L193">    return this;</span>
+<span class="fc" id="L180">    this.linkArgs.queryString(value);</span>
+<span class="fc" id="L181">    return this;</span>
   }
 
   @Override
   public @NotNull LinkBuilder fragment(@Nullable String value) {
-<span class="fc" id="L198">    this.linkArgs.fragment(value);</span>
-<span class="fc" id="L199">    return this;</span>
+<span class="fc" id="L186">    this.linkArgs.fragment(value);</span>
+<span class="fc" id="L187">    return this;</span>
   }
 
   @Override
   public @NotNull LinkBuilder windowTarget(@Nullable String value) {
-<span class="fc" id="L204">    this.linkArgs.windowTarget(value);</span>
-<span class="fc" id="L205">    return this;</span>
+<span class="fc" id="L192">    this.linkArgs.windowTarget(value);</span>
+<span class="fc" id="L193">    return this;</span>
   }
 
   @Override
   public @NotNull LinkBuilder disableSuffixSelector(boolean disableSuffixSelector) {
-<span class="fc" id="L210">    this.linkArgs.disableSuffixSelector(disableSuffixSelector);</span>
-<span class="fc" id="L211">    return this;</span>
+<span class="fc" id="L198">    this.linkArgs.disableSuffixSelector(disableSuffixSelector);</span>
+<span class="fc" id="L199">    return this;</span>
   }
 
   @Override
   @SuppressFBWarnings(&quot;NP_METHOD_PARAMETER_TIGHTENS_ANNOTATION&quot;)
   public @NotNull LinkBuilder linkTargetUrlFallbackProperty(@NotNull String @Nullable... propertyNames) {
-<span class="nc" id="L217">    this.linkArgs.linkTargetUrlFallbackProperty(propertyNames);</span>
-<span class="nc" id="L218">    return this;</span>
+<span class="nc" id="L205">    this.linkArgs.linkTargetUrlFallbackProperty(propertyNames);</span>
+<span class="nc" id="L206">    return this;</span>
   }
 
   @Override
   public @NotNull LinkBuilder property(@NotNull String key, @Nullable Object value) {
-<span class="fc" id="L223">    this.linkArgs.property(key, value);</span>
-<span class="fc" id="L224">    return this;</span>
+<span class="fc" id="L211">    this.linkArgs.property(key, value);</span>
+<span class="fc" id="L212">    return this;</span>
   }
 
   @Override
   public @NotNull Link build() {
-<span class="fc" id="L229">    LinkRequest request = new LinkRequest(this.resource, this.page, this.reference, this.linkArgs);</span>
-<span class="fc" id="L230">    return linkHandler.processRequest(request);</span>
+<span class="fc" id="L217">    LinkRequest request = new LinkRequest(this.resource, this.page, this.reference, this.linkArgs);</span>
+<span class="fc" id="L218">    return linkHandler.processRequest(request);</span>
   }
 
   @Override
   public String buildMarkup() {
-<span class="nc" id="L235">    return build().getMarkup();</span>
+<span class="nc" id="L223">    return build().getMarkup();</span>
   }
 
   @Override
   public Anchor buildAnchor() {
-<span class="nc" id="L240">    return build().getAnchor();</span>
+<span class="nc" id="L228">    return build().getAnchor();</span>
   }
 
   @Override
   public String buildUrl() {
-<span class="fc" id="L245">    return build().getUrl();</span>
+<span class="fc" id="L233">    return build().getUrl();</span>
   }
 
 }
