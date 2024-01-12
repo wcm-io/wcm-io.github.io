@@ -158,23 +158,32 @@ import io.wcm.wcm.commons.contenttype.ContentType;
       // Overwrite MIME type with one suited for downloads
 <span class="fc" id="L159">      response.setContentType(ContentType.DOWNLOAD);</span>
 
-      // Construct disposition header
-<span class="fc" id="L162">      StringBuilder dispositionHeader = new StringBuilder(&quot;attachment;&quot;);</span>
-<span class="fc" id="L163">      String suffix = request.getRequestPathInfo().getSuffix();</span>
-<span class="fc" id="L164">      suffix = StringUtils.stripStart(suffix, &quot;/&quot;);</span>
-<span class="fc bfc" id="L165" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(suffix)) {</span>
-<span class="fc" id="L166">        dispositionHeader.append(&quot;filename=\&quot;&quot;).append(suffix).append('\&quot;');</span>
-      }
+      // set content disposition header to file name from suffix
+<span class="fc" id="L162">      setContentDispositionAttachmentHeader(request, response);</span>
+    }
 
-<span class="fc" id="L169">      response.setHeader(HEADER_CONTENT_DISPOSITION, dispositionHeader.toString());</span>
+    // special handling for SVG images which are not treated as download:
+    // force content disposition header to prevent stored XSS attack with malicious JavaScript in SVG file
+<span class="fc bfc" id="L167" title="All 2 branches covered.">    else if (StringUtils.equals(contentType, ContentType.SVG)) {</span>
+<span class="fc" id="L168">      setContentDispositionAttachmentHeader(request, response);</span>
     }
 
     // write binary data
-<span class="fc" id="L173">    OutputStream out = response.getOutputStream();</span>
-<span class="fc" id="L174">    out.write(binaryData);</span>
-<span class="fc" id="L175">    out.flush();</span>
+<span class="fc" id="L172">    OutputStream out = response.getOutputStream();</span>
+<span class="fc" id="L173">    out.write(binaryData);</span>
+<span class="fc" id="L174">    out.flush();</span>
+<span class="fc" id="L175">  }</span>
 
-<span class="fc" id="L177">  }</span>
+  private void setContentDispositionAttachmentHeader(SlingHttpServletRequest request, SlingHttpServletResponse response) {
+    // Construct disposition header
+<span class="fc" id="L179">    StringBuilder dispositionHeader = new StringBuilder(&quot;attachment;&quot;);</span>
+<span class="fc" id="L180">    String suffix = request.getRequestPathInfo().getSuffix();</span>
+<span class="fc" id="L181">    suffix = StringUtils.stripStart(suffix, &quot;/&quot;);</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(suffix)) {</span>
+<span class="fc" id="L183">      dispositionHeader.append(&quot;filename=\&quot;&quot;).append(suffix).append('\&quot;');</span>
+    }
+<span class="fc" id="L185">    response.setHeader(HEADER_CONTENT_DISPOSITION, dispositionHeader.toString());</span>
+<span class="fc" id="L186">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
