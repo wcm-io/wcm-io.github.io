@@ -66,7 +66,7 @@ import io.wcm.wcm.commons.caching.ModificationDate;
 /**
  * {@link Rendition} implementation for inline media objects stored in a node in a content page.
  */
-class InlineRendition extends SlingAdaptable implements Rendition {
+final class InlineRendition extends SlingAdaptable implements Rendition {
 
   private final Adaptable adaptable;
   private final Resource resource;

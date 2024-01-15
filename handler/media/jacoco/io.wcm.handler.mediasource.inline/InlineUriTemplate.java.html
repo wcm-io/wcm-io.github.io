@@ -39,7 +39,7 @@ import io.wcm.handler.media.impl.MediaFileServlet;
 import io.wcm.handler.url.UrlHandler;
 import io.wcm.sling.commons.adapter.AdaptTo;
 
-class InlineUriTemplate implements UriTemplate {
+final class InlineUriTemplate implements UriTemplate {
 
   private final String uriTemplate;
   private final UriTemplateType type;

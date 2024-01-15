@@ -45,7 +45,7 @@ import io.wcm.sling.commons.adapter.AdaptTo;
 /**
  * Generates URI templates for asset renditions - with or without Dynamic Media.
  */
-class DamUriTemplate implements UriTemplate {
+final class DamUriTemplate implements UriTemplate {
 
   private final UriTemplateType type;
   private final String uriTemplate;
