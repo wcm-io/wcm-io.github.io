@@ -39,6 +39,7 @@ import io.wcm.handler.media.impl.ImageTransformation;
 import io.wcm.handler.media.impl.MediaFileServlet;
 import io.wcm.handler.mediasource.dam.AssetRendition;
 import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaPath;
+import io.wcm.handler.mediasource.dam.impl.ngdm.WebOptimizedImageDeliveryParams;
 
 /**
  * Virtual rendition that is cropping and/or rotating and downscaling from an existing rendition.
@@ -53,134 +54,140 @@ class VirtualTransformedRenditionMetadata extends RenditionMetadata {
 
   VirtualTransformedRenditionMetadata(Rendition rendition, long width, long height, String enforceOutputFileExtension,
       CropDimension cropDimension, Integer rotation) {
-<span class="fc" id="L56">    super(rendition);</span>
-<span class="fc" id="L57">    this.width = width;</span>
-<span class="fc" id="L58">    this.height = height;</span>
-<span class="fc" id="L59">    this.enforceOutputFileExtension = enforceOutputFileExtension;</span>
-<span class="fc" id="L60">    this.cropDimension = cropDimension;</span>
-<span class="fc" id="L61">    this.rotation = rotation;</span>
-<span class="fc" id="L62">  }</span>
+<span class="fc" id="L57">    super(rendition);</span>
+<span class="fc" id="L58">    this.width = width;</span>
+<span class="fc" id="L59">    this.height = height;</span>
+<span class="fc" id="L60">    this.enforceOutputFileExtension = enforceOutputFileExtension;</span>
+<span class="fc" id="L61">    this.cropDimension = cropDimension;</span>
+<span class="fc" id="L62">    this.rotation = rotation;</span>
+<span class="fc" id="L63">  }</span>
 
   @Override
   public String getFileName(boolean contentDispositionAttachment) {
     // replace extension based on the format supported by ImageFileServlet for rendering for this rendition
-<span class="fc" id="L67">    return ImageFileServlet.getImageFileName(super.getFileName(contentDispositionAttachment), enforceOutputFileExtension);</span>
+<span class="fc" id="L68">    return ImageFileServlet.getImageFileName(super.getFileName(contentDispositionAttachment), enforceOutputFileExtension);</span>
   }
 
   @Override
   public long getFileSize() {
     // no size for virutal renditions
-<span class="nc" id="L73">    return 0L;</span>
+<span class="nc" id="L74">    return 0L;</span>
   }
 
   @Override
   public long getWidth() {
-<span class="fc" id="L78">    return this.width;</span>
+<span class="fc" id="L79">    return this.width;</span>
   }
 
   @Override
   public long getHeight() {
-<span class="fc" id="L83">    return this.height;</span>
+<span class="fc" id="L84">    return this.height;</span>
   }
 
   public CropDimension getCropDimension() {
-<span class="fc" id="L87">    return this.cropDimension;</span>
+<span class="fc" id="L88">    return this.cropDimension;</span>
   }
 
   public Integer getRotation() {
-<span class="fc" id="L91">    return this.rotation;</span>
+<span class="fc" id="L92">    return this.rotation;</span>
   }
 
   @Override
   public @NotNull String getMediaPath(boolean contentDispositionAttachment) {
-<span class="fc" id="L96">    return RenditionMetadata.buildMediaPath(getRendition().getPath()</span>
-<span class="fc" id="L97">        + &quot;.&quot; + ImageFileServlet.buildSelectorString(getWidth(), getHeight(),</span>
+<span class="fc" id="L97">    return RenditionMetadata.buildMediaPath(getRendition().getPath()</span>
+<span class="fc" id="L98">        + &quot;.&quot; + ImageFileServlet.buildSelectorString(getWidth(), getHeight(),</span>
             this.cropDimension, this.rotation, contentDispositionAttachment)
-<span class="fc" id="L99">        + &quot;.&quot; + MediaFileServlet.EXTENSION, getFileName(contentDispositionAttachment));</span>
+<span class="fc" id="L100">        + &quot;.&quot; + MediaFileServlet.EXTENSION, getFileName(contentDispositionAttachment));</span>
   }
 
   @Override
   public @Nullable String getDynamicMediaPath(boolean contentDispositionAttachment, DamContext damContext) {
     // render virtual rendition with dynamic media (we ignore contentDispositionAttachment here)
-<span class="fc" id="L105">    return DynamicMediaPath.buildImage(damContext, getWidth(), getHeight(), this.cropDimension, this.rotation);</span>
+<span class="fc" id="L106">    return DynamicMediaPath.buildImage(damContext, getWidth(), getHeight(), this.cropDimension, this.rotation);</span>
+  }
+
+  @Override
+  public @Nullable String getWebOptimizedImageDeliveryPath(DamContext damContext) {
+<span class="fc" id="L111">    return damContext.getWebOptimizedImageDeliveryUrl(new WebOptimizedImageDeliveryParams()</span>
+<span class="fc" id="L112">        .width(getWidth()).cropDimension(this.cropDimension).rotation(this.rotation));</span>
   }
 
   @Override
   protected Layer getLayer() {
-<span class="fc" id="L110">    Layer layer = super.getLayer();</span>
-<span class="pc bpc" id="L111" title="1 of 2 branches missed.">    if (layer != null) {</span>
-<span class="fc bfc" id="L112" title="All 2 branches covered.">      if (cropDimension != null) {</span>
-<span class="fc" id="L113">        layer.crop(cropDimension.getRectangle());</span>
-<span class="pc bpc" id="L114" title="2 of 4 branches missed.">        if (width &lt;= layer.getWidth() &amp;&amp; height &lt;= layer.getHeight()) {</span>
-<span class="fc" id="L115">          layer.resize((int)width, (int)height);</span>
+<span class="fc" id="L117">    Layer layer = super.getLayer();</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">    if (layer != null) {</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">      if (cropDimension != null) {</span>
+<span class="fc" id="L120">        layer.crop(cropDimension.getRectangle());</span>
+<span class="pc bpc" id="L121" title="2 of 4 branches missed.">        if (width &lt;= layer.getWidth() &amp;&amp; height &lt;= layer.getHeight()) {</span>
+<span class="fc" id="L122">          layer.resize((int)width, (int)height);</span>
         }
       }
-<span class="fc bfc" id="L118" title="All 2 branches covered.">      if (rotation != null) {</span>
-<span class="fc" id="L119">        layer.rotate(rotation);</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">      if (rotation != null) {</span>
+<span class="fc" id="L126">        layer.rotate(rotation);</span>
       }
     }
-<span class="fc" id="L122">    return layer;</span>
+<span class="fc" id="L129">    return layer;</span>
   }
 
   @Override
   protected InputStream getInputStream() {
     // currently not supported for virtual renditions
-<span class="fc" id="L128">    return null;</span>
+<span class="fc" id="L135">    return null;</span>
   }
 
   @Override
   public @NotNull UriTemplate getUriTemplate(@NotNull UriTemplateType type, @NotNull DamContext damContext) {
-<span class="pc bpc" id="L133" title="2 of 4 branches missed.">    if (!isImage() || isVectorImage()) {</span>
-<span class="nc" id="L134">      throw new UnsupportedOperationException(&quot;Unable to build URI template for rendition: &quot; + getRendition().getPath());</span>
+<span class="pc bpc" id="L140" title="2 of 4 branches missed.">    if (!isImage() || isVectorImage()) {</span>
+<span class="nc" id="L141">      throw new UnsupportedOperationException(&quot;Unable to build URI template for rendition: &quot; + getRendition().getPath());</span>
     }
-<span class="fc" id="L136">    Dimension dimension = cropDimension;</span>
-<span class="pc bpc" id="L137" title="1 of 2 branches missed.">    if (dimension == null) {</span>
-<span class="nc" id="L138">      dimension = AssetRendition.getDimension(getRendition());</span>
+<span class="fc" id="L143">    Dimension dimension = cropDimension;</span>
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">    if (dimension == null) {</span>
+<span class="nc" id="L145">      dimension = AssetRendition.getDimension(getRendition());</span>
     }
-<span class="pc bpc" id="L140" title="1 of 2 branches missed.">    if (dimension == null) {</span>
-<span class="nc" id="L141">      throw new IllegalArgumentException(&quot;Unable to get dimension for rendition: &quot; + getRendition().getPath());</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">    if (dimension == null) {</span>
+<span class="nc" id="L148">      throw new IllegalArgumentException(&quot;Unable to get dimension for rendition: &quot; + getRendition().getPath());</span>
     }
-<span class="fc" id="L143">    dimension = ImageTransformation.rotateMapDimension(dimension, rotation);</span>
-<span class="fc" id="L144">    return new DamUriTemplate(type, dimension, getRendition(), cropDimension, rotation, Ratio.get(dimension), damContext);</span>
+<span class="fc" id="L150">    dimension = ImageTransformation.rotateMapDimension(dimension, rotation);</span>
+<span class="fc" id="L151">    return new DamUriTemplate(type, dimension, getRendition(), cropDimension, rotation, Ratio.get(dimension), damContext);</span>
   }
 
   @Override
   public int hashCode() {
-<span class="nc" id="L149">    return new HashCodeBuilder()</span>
-<span class="nc" id="L150">        .append(this.getRendition().getPath())</span>
-<span class="nc" id="L151">        .append(width)</span>
-<span class="nc" id="L152">        .append(height)</span>
-<span class="nc" id="L153">        .append(cropDimension)</span>
-<span class="nc" id="L154">        .append(rotation)</span>
-<span class="nc" id="L155">        .hashCode();</span>
+<span class="nc" id="L156">    return new HashCodeBuilder()</span>
+<span class="nc" id="L157">        .append(this.getRendition().getPath())</span>
+<span class="nc" id="L158">        .append(width)</span>
+<span class="nc" id="L159">        .append(height)</span>
+<span class="nc" id="L160">        .append(cropDimension)</span>
+<span class="nc" id="L161">        .append(rotation)</span>
+<span class="nc" id="L162">        .hashCode();</span>
   }
 
   @Override
   public boolean equals(Object obj) {
-<span class="pc bpc" id="L160" title="2 of 4 branches missed.">    if (obj == null || obj.getClass() != this.getClass()) {</span>
-<span class="nc" id="L161">      return false;</span>
+<span class="pc bpc" id="L167" title="2 of 4 branches missed.">    if (obj == null || obj.getClass() != this.getClass()) {</span>
+<span class="nc" id="L168">      return false;</span>
     }
-<span class="fc" id="L163">    VirtualTransformedRenditionMetadata other = (VirtualTransformedRenditionMetadata)obj;</span>
-<span class="fc" id="L164">    return new EqualsBuilder()</span>
-<span class="fc" id="L165">        .append(this.getRendition().getPath(), other.getRendition().getPath())</span>
-<span class="fc" id="L166">        .append(this.width, other.width)</span>
-<span class="fc" id="L167">        .append(this.height, other.height)</span>
-<span class="fc" id="L168">        .append(this.cropDimension, other.cropDimension)</span>
-<span class="fc" id="L169">        .append(this.rotation, other.rotation)</span>
-<span class="fc" id="L170">        .build();</span>
+<span class="fc" id="L170">    VirtualTransformedRenditionMetadata other = (VirtualTransformedRenditionMetadata)obj;</span>
+<span class="fc" id="L171">    return new EqualsBuilder()</span>
+<span class="fc" id="L172">        .append(this.getRendition().getPath(), other.getRendition().getPath())</span>
+<span class="fc" id="L173">        .append(this.width, other.width)</span>
+<span class="fc" id="L174">        .append(this.height, other.height)</span>
+<span class="fc" id="L175">        .append(this.cropDimension, other.cropDimension)</span>
+<span class="fc" id="L176">        .append(this.rotation, other.rotation)</span>
+<span class="fc" id="L177">        .build();</span>
   }
 
   @Override
   public String toString() {
-<span class="nc" id="L175">    StringBuilder sb = new StringBuilder(super.toString());</span>
-<span class="nc" id="L176">    sb.append(&quot; -&gt; &quot;).append(Long.toString(this.width)).append(&quot;x&quot;).append(Long.toString(this.height));</span>
-<span class="nc bnc" id="L177" title="All 2 branches missed.">    if (cropDimension != null) {</span>
-<span class="nc" id="L178">      sb.append(&quot;, &quot;).append(cropDimension.toString());</span>
+<span class="nc" id="L182">    StringBuilder sb = new StringBuilder(super.toString());</span>
+<span class="nc" id="L183">    sb.append(&quot; -&gt; &quot;).append(Long.toString(this.width)).append(&quot;x&quot;).append(Long.toString(this.height));</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">    if (cropDimension != null) {</span>
+<span class="nc" id="L185">      sb.append(&quot;, &quot;).append(cropDimension.toString());</span>
     }
-<span class="nc bnc" id="L180" title="All 2 branches missed.">    if (rotation != null) {</span>
-<span class="nc" id="L181">      sb.append(&quot;, rotation:&quot;).append(Integer.toString(rotation));</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">    if (rotation != null) {</span>
+<span class="nc" id="L188">      sb.append(&quot;, rotation:&quot;).append(Integer.toString(rotation));</span>
     }
-<span class="nc" id="L183">    return sb.toString();</span>
+<span class="nc" id="L190">    return sb.toString();</span>
   }
 
 }
