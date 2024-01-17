@@ -51,7 +51,7 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
  * Caches the results in memory.
  * Clears cache if any observation events occured on client libraries.
  */
-class ClientlibPathCache implements EventListener, AutoCloseable {
+final class ClientlibPathCache implements EventListener, AutoCloseable {
 
   private final ResourceResolverFactory resourceResolverFactory;
   private ResourceResolver listenerServiceResourceResolver;
