@@ -174,25 +174,26 @@ public final class AssetRendition {
       boolean suppressLogWarningNoRenditionsMetadata) {
 <span class="fc" id="L175">    try (InputStream is = rendition.getStream()) {</span>
 <span class="fc bfc" id="L176" title="All 2 branches covered.">      if (is != null) {</span>
-<span class="fc bfc" id="L177" title="All 2 branches covered.">        if (!suppressLogWarningNoRenditionsMetadata) {</span>
-<span class="fc" id="L178">          log.warn(&quot;Unable to detect rendition metadata for {}, &quot;</span>
-              + &quot;fallback to inefficient detection by loading image into in memory. &quot;
+<span class="fc" id="L177">        Layer layer = new Layer(is);</span>
+<span class="fc" id="L178">        long width = layer.getWidth();</span>
+<span class="fc" id="L179">        long height = layer.getHeight();</span>
+<span class="fc" id="L180">        Dimension dimension = toDimension(width, height);</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">        if (!suppressLogWarningNoRenditionsMetadata) {</span>
+<span class="fc" id="L182">          log.warn(&quot;Unable to detect rendition metadata for {}, &quot;</span>
+              + &quot;fallback to inefficient detection by loading image into in memory (detected dimension={}). &quot;
               + &quot;Please check if the service user for the bundle 'io.wcm.handler.media' is configured properly.&quot;,
-<span class="fc" id="L181">              rendition.getPath());</span>
+<span class="fc" id="L185">              rendition.getPath(), dimension);</span>
         }
-<span class="fc" id="L183">        Layer layer = new Layer(is);</span>
-<span class="fc" id="L184">        long width = layer.getWidth();</span>
-<span class="fc" id="L185">        long height = layer.getHeight();</span>
-<span class="fc" id="L186">        return toDimension(width, height);</span>
+<span class="fc" id="L187">        return dimension;</span>
       }
       else {
-<span class="fc" id="L189">        log.warn(&quot;Unable to get binary stream for rendition {}&quot;, rendition.getPath());</span>
+<span class="fc" id="L190">        log.warn(&quot;Unable to get binary stream for rendition {}&quot;, rendition.getPath());</span>
       }
-<span class="pc bpc" id="L191" title="1 of 2 branches missed.">    }</span>
-<span class="nc" id="L192">    catch (IOException ex) {</span>
-<span class="nc" id="L193">      log.warn(&quot;Unable to read binary stream to layer for rendition {}&quot;, rendition.getPath(), ex);</span>
-<span class="fc" id="L194">    }</span>
-<span class="fc" id="L195">    return null;</span>
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">    }</span>
+<span class="nc" id="L193">    catch (IOException ex) {</span>
+<span class="nc" id="L194">      log.warn(&quot;Unable to read binary stream to layer for rendition {}&quot;, rendition.getPath(), ex);</span>
+<span class="fc" id="L195">    }</span>
+<span class="fc" id="L196">    return null;</span>
   }
 
   /**
@@ -202,10 +203,10 @@ public final class AssetRendition {
    * @return Dimension or null if width or height are not valid
    */
   private static @Nullable Dimension toDimension(long width, long height) {
-<span class="pc bpc" id="L205" title="1 of 4 branches missed.">    if (width &gt; 0L &amp;&amp; height &gt; 0L) {</span>
-<span class="fc" id="L206">      return new Dimension(width, height);</span>
+<span class="pc bpc" id="L206" title="1 of 4 branches missed.">    if (width &gt; 0L &amp;&amp; height &gt; 0L) {</span>
+<span class="fc" id="L207">      return new Dimension(width, height);</span>
     }
-<span class="fc" id="L208">    return null;</span>
+<span class="fc" id="L209">    return null;</span>
   }
 
   /**
@@ -214,7 +215,7 @@ public final class AssetRendition {
    * @return true if rendition is the original
    */
   public static boolean isOriginal(@NotNull Rendition rendition) {
-<span class="fc" id="L217">    return StringUtils.equals(rendition.getName(), ORIGINAL_FILE);</span>
+<span class="fc" id="L218">    return StringUtils.equals(rendition.getName(), ORIGINAL_FILE);</span>
   }
 
   /**
@@ -224,7 +225,7 @@ public final class AssetRendition {
    * @return true if rendition is a thumbnail rendition
    */
   public static boolean isThumbnailRendition(@NotNull Rendition rendition) {
-<span class="fc" id="L227">    return AemRenditionType.THUMBNAIL_RENDITION.matches(rendition);</span>
+<span class="fc" id="L228">    return AemRenditionType.THUMBNAIL_RENDITION.matches(rendition);</span>
   }
 
   /**
@@ -234,7 +235,7 @@ public final class AssetRendition {
    * @return true if rendition is a web rendition
    */
   public static boolean isWebRendition(@NotNull Rendition rendition) {
-<span class="fc" id="L237">    return AemRenditionType.WEB_RENDITION.matches(rendition);</span>
+<span class="fc" id="L238">    return AemRenditionType.WEB_RENDITION.matches(rendition);</span>
   }
 
   /**
@@ -243,12 +244,12 @@ public final class AssetRendition {
    * @return File extension or null if it could not be detected
    */
   public static String getFilename(@NotNull Rendition rendition) {
-<span class="fc" id="L246">    boolean isOriginal = isOriginal(rendition);</span>
-<span class="fc bfc" id="L247" title="All 2 branches covered.">    if (isOriginal) {</span>
-<span class="fc" id="L248">      return rendition.getAsset().getName();</span>
+<span class="fc" id="L247">    boolean isOriginal = isOriginal(rendition);</span>
+<span class="fc bfc" id="L248" title="All 2 branches covered.">    if (isOriginal) {</span>
+<span class="fc" id="L249">      return rendition.getAsset().getName();</span>
     }
     else {
-<span class="fc" id="L251">      return rendition.getName();</span>
+<span class="fc" id="L252">      return rendition.getName();</span>
     }
   }
 
