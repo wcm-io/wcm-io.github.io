@@ -30,6 +30,7 @@ import com.day.cq.dam.api.Rendition;
 import com.day.image.Layer;
 
 import io.wcm.handler.media.impl.ImageFileServlet;
+import io.wcm.handler.media.impl.ImageFileServletSelector;
 import io.wcm.handler.media.impl.MediaFileServlet;
 import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaPath;
 import io.wcm.handler.mediasource.dam.impl.ngdm.WebOptimizedImageDeliveryParams;
@@ -42,113 +43,116 @@ class VirtualRenditionMetadata extends RenditionMetadata {
   private final long width;
   private final long height;
   private final String enforceOutputFileExtension;
+  private final Double imageQualityPercentage;
 
-  VirtualRenditionMetadata(Rendition rendition, long width, long height, String enforceOutputFileExtension) {
-<span class="fc" id="L47">    super(rendition);</span>
-<span class="fc" id="L48">    this.width = width;</span>
-<span class="fc" id="L49">    this.height = height;</span>
-<span class="fc" id="L50">    this.enforceOutputFileExtension = enforceOutputFileExtension;</span>
-<span class="fc" id="L51">  }</span>
+  VirtualRenditionMetadata(@NotNull Rendition rendition, long width, long height,
+      @Nullable String enforceOutputFileExtension, @Nullable Double imageQualityPercentage) {
+<span class="fc" id="L50">    super(rendition);</span>
+<span class="fc" id="L51">    this.width = width;</span>
+<span class="fc" id="L52">    this.height = height;</span>
+<span class="fc" id="L53">    this.enforceOutputFileExtension = enforceOutputFileExtension;</span>
+<span class="fc" id="L54">    this.imageQualityPercentage = imageQualityPercentage;</span>
+<span class="fc" id="L55">  }</span>
 
   @Override
   public String getFileName(boolean contentDispositionAttachment) {
-<span class="fc bfc" id="L55" title="All 2 branches covered.">    if (isVectorImage()) {</span>
-<span class="fc" id="L56">      return super.getFileName(contentDispositionAttachment);</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    if (isVectorImage()) {</span>
+<span class="fc" id="L60">      return super.getFileName(contentDispositionAttachment);</span>
     }
     else {
       // replace extension based on the format supported by ImageFileServlet for rendering for this rendition
-<span class="fc" id="L60">      return ImageFileServlet.getImageFileName(super.getFileName(contentDispositionAttachment), enforceOutputFileExtension);</span>
+<span class="fc" id="L64">      return ImageFileServlet.getImageFileName(super.getFileName(contentDispositionAttachment), enforceOutputFileExtension);</span>
     }
   }
 
   @Override
   public long getFileSize() {
     // no size for virtual renditions
-<span class="nc" id="L67">    return 0L;</span>
+<span class="nc" id="L71">    return 0L;</span>
   }
 
   @Override
   public long getWidth() {
-<span class="fc" id="L72">    return this.width;</span>
+<span class="fc" id="L76">    return this.width;</span>
   }
 
   @Override
   public long getHeight() {
-<span class="fc" id="L77">    return this.height;</span>
+<span class="fc" id="L81">    return this.height;</span>
   }
 
   @Override
   public @NotNull String getMediaPath(boolean contentDispositionAttachment) {
-<span class="fc bfc" id="L82" title="All 2 branches covered.">    if (isVectorImage()) {</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">    if (isVectorImage()) {</span>
       // vector images can be scaled in browser without need of ImageFileServlet
-<span class="fc" id="L84">      return super.getMediaPath(contentDispositionAttachment);</span>
+<span class="fc" id="L88">      return super.getMediaPath(contentDispositionAttachment);</span>
     }
-<span class="fc" id="L86">    return RenditionMetadata.buildMediaPath(getRendition().getPath() + &quot;.&quot; + ImageFileServlet.SELECTOR</span>
-<span class="fc" id="L87">        + &quot;.&quot; + getWidth() + &quot;.&quot; + getHeight()</span>
-<span class="fc bfc" id="L88" title="All 2 branches covered.">        + (contentDispositionAttachment ? &quot;.&quot; + MediaFileServlet.SELECTOR_DOWNLOAD : &quot;&quot;)</span>
-<span class="fc" id="L89">        + &quot;.&quot; + MediaFileServlet.EXTENSION, getFileName(contentDispositionAttachment));</span>
+<span class="fc" id="L90">    return RenditionMetadata.buildMediaPath(getRendition().getPath()</span>
+<span class="fc" id="L91">        + &quot;.&quot; + ImageFileServletSelector.build(getWidth(), getHeight(),</span>
+            null, null, this.imageQualityPercentage, contentDispositionAttachment)
+<span class="fc" id="L93">        + &quot;.&quot; + MediaFileServlet.EXTENSION, getFileName(contentDispositionAttachment));</span>
   }
 
   @Override
   public @Nullable String getDynamicMediaPath(boolean contentDispositionAttachment, DamContext damContext) {
-<span class="pc bpc" id="L94" title="1 of 2 branches missed.">    if (contentDispositionAttachment) {</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">    if (contentDispositionAttachment) {</span>
       // serve static content from dynamic media for content disposition attachment
-<span class="nc" id="L96">      return DynamicMediaPath.buildContent(damContext, true);</span>
+<span class="nc" id="L100">      return DynamicMediaPath.buildContent(damContext, true);</span>
     }
-<span class="fc bfc" id="L98" title="All 2 branches covered.">    else if (isVectorImage()) {</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">    else if (isVectorImage()) {</span>
       // vector images can be scaled in browser without need of dynamic media - serve as static content
-<span class="fc" id="L100">      return DynamicMediaPath.buildContent(damContext, false);</span>
+<span class="fc" id="L104">      return DynamicMediaPath.buildContent(damContext, false);</span>
     }
     // render virtual rendition with dynamic media
-<span class="fc" id="L103">    return DynamicMediaPath.buildImage(damContext, getWidth(), getHeight());</span>
+<span class="fc" id="L107">    return DynamicMediaPath.buildImage(damContext, getWidth(), getHeight());</span>
   }
 
   @Override
   public @Nullable String getWebOptimizedImageDeliveryPath(DamContext damContext) {
-<span class="fc" id="L108">    return damContext.getWebOptimizedImageDeliveryUrl(new WebOptimizedImageDeliveryParams()</span>
-<span class="fc" id="L109">        .width(getWidth()));</span>
+<span class="fc" id="L112">    return damContext.getWebOptimizedImageDeliveryUrl(new WebOptimizedImageDeliveryParams()</span>
+<span class="fc" id="L113">        .width(getWidth()));</span>
   }
 
   @Override
   protected Layer getLayer() {
-<span class="fc" id="L114">    Layer layer = super.getLayer();</span>
-<span class="pc bpc" id="L115" title="1 of 2 branches missed.">    if (layer != null) {</span>
-<span class="fc" id="L116">      layer.resize((int)getWidth(), (int)getHeight());</span>
+<span class="fc" id="L118">    Layer layer = super.getLayer();</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">    if (layer != null) {</span>
+<span class="fc" id="L120">      layer.resize((int)getWidth(), (int)getHeight());</span>
     }
-<span class="fc" id="L118">    return layer;</span>
+<span class="fc" id="L122">    return layer;</span>
   }
 
   @Override
   protected InputStream getInputStream() {
     // currently not supported for virtual renditions
-<span class="fc" id="L124">    return null;</span>
+<span class="fc" id="L128">    return null;</span>
   }
 
   @Override
   public int hashCode() {
-<span class="nc" id="L129">    return new HashCodeBuilder()</span>
-<span class="nc" id="L130">        .append(this.getRendition().getPath())</span>
-<span class="nc" id="L131">        .append(width)</span>
-<span class="nc" id="L132">        .append(height)</span>
-<span class="nc" id="L133">        .hashCode();</span>
+<span class="nc" id="L133">    return new HashCodeBuilder()</span>
+<span class="nc" id="L134">        .append(this.getRendition().getPath())</span>
+<span class="nc" id="L135">        .append(width)</span>
+<span class="nc" id="L136">        .append(height)</span>
+<span class="nc" id="L137">        .hashCode();</span>
   }
 
   @Override
   public boolean equals(Object obj) {
-<span class="pc bpc" id="L138" title="2 of 4 branches missed.">    if (obj == null || obj.getClass() != this.getClass()) {</span>
-<span class="nc" id="L139">      return false;</span>
+<span class="pc bpc" id="L142" title="2 of 4 branches missed.">    if (obj == null || obj.getClass() != this.getClass()) {</span>
+<span class="nc" id="L143">      return false;</span>
     }
-<span class="fc" id="L141">    VirtualRenditionMetadata other = (VirtualRenditionMetadata)obj;</span>
-<span class="fc" id="L142">    return new EqualsBuilder()</span>
-<span class="fc" id="L143">        .append(this.getRendition().getPath(), other.getRendition().getPath())</span>
-<span class="fc" id="L144">        .append(this.width, other.width)</span>
-<span class="fc" id="L145">        .append(this.height, other.height)</span>
-<span class="fc" id="L146">        .build();</span>
+<span class="fc" id="L145">    VirtualRenditionMetadata other = (VirtualRenditionMetadata)obj;</span>
+<span class="fc" id="L146">    return new EqualsBuilder()</span>
+<span class="fc" id="L147">        .append(this.getRendition().getPath(), other.getRendition().getPath())</span>
+<span class="fc" id="L148">        .append(this.width, other.width)</span>
+<span class="fc" id="L149">        .append(this.height, other.height)</span>
+<span class="fc" id="L150">        .build();</span>
   }
 
   @Override
   public String toString() {
-<span class="nc" id="L151">    return super.toString() + &quot; -&gt; &quot; + this.width + &quot;x&quot; + this.height;</span>
+<span class="nc" id="L155">    return super.toString() + &quot; -&gt; &quot; + this.width + &quot;x&quot; + this.height;</span>
   }
 
 }

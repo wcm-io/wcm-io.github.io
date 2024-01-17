@@ -35,6 +35,7 @@ import io.wcm.handler.media.MediaArgs;
 import io.wcm.handler.media.UriTemplate;
 import io.wcm.handler.media.UriTemplateType;
 import io.wcm.handler.media.impl.ImageFileServlet;
+import io.wcm.handler.media.impl.ImageFileServletSelector;
 import io.wcm.handler.media.impl.MediaFileServlet;
 import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaPath;
 import io.wcm.handler.mediasource.dam.impl.dynamicmedia.NamedDimension;
@@ -57,175 +58,176 @@ final class DamUriTemplate implements UriTemplate {
 
   DamUriTemplate(@NotNull UriTemplateType type, @NotNull Dimension dimension,
       @NotNull Rendition rendition, @Nullable CropDimension cropDimension, @Nullable Integer rotation,
-<span class="fc" id="L60">      @Nullable Double ratio, @NotNull DamContext damContext) {</span>
-<span class="fc" id="L61">    this.type = type;</span>
+<span class="fc" id="L61">      @Nullable Double ratio, @NotNull DamContext damContext) {</span>
+<span class="fc" id="L62">    this.type = type;</span>
 
-<span class="fc" id="L63">    String url = null;</span>
-<span class="fc" id="L64">    Dimension validatedDimension = null;</span>
-<span class="pc bpc" id="L65" title="1 of 4 branches missed.">    if (damContext.isDynamicMediaEnabled() &amp;&amp; damContext.isDynamicMediaAsset()) {</span>
+<span class="fc" id="L64">    String url = null;</span>
+<span class="fc" id="L65">    Dimension validatedDimension = null;</span>
+<span class="pc bpc" id="L66" title="1 of 4 branches missed.">    if (damContext.isDynamicMediaEnabled() &amp;&amp; damContext.isDynamicMediaAsset()) {</span>
       // if DM is enabled: try to get rendition URL from dynamic media
-<span class="fc" id="L67">      NamedDimension smartCropDef = getDynamicMediaSmartCropDef(cropDimension, rotation, ratio, damContext);</span>
-<span class="fc" id="L68">      url = buildUriTemplateDynamicMedia(type, cropDimension, rotation, smartCropDef, damContext);</span>
+<span class="fc" id="L68">      NamedDimension smartCropDef = getDynamicMediaSmartCropDef(cropDimension, rotation, ratio, damContext);</span>
+<span class="fc" id="L69">      url = buildUriTemplateDynamicMedia(type, cropDimension, rotation, smartCropDef, damContext);</span>
       // get actual max. dimension from smart crop rendition
-<span class="pc bpc" id="L70" title="1 of 4 branches missed.">      if (url != null &amp;&amp; smartCropDef != null) {</span>
-<span class="fc" id="L71">        validatedDimension = SmartCrop.getCropDimensionForAsset(damContext.getAsset(), damContext.getResourceResolver(), smartCropDef);</span>
+<span class="pc bpc" id="L71" title="1 of 4 branches missed.">      if (url != null &amp;&amp; smartCropDef != null) {</span>
+<span class="fc" id="L72">        validatedDimension = SmartCrop.getCropDimensionForAsset(damContext.getAsset(), damContext.getResourceResolver(), smartCropDef);</span>
       }
     }
-<span class="pc bpc" id="L74" title="3 of 6 branches missed.">    if (url == null &amp;&amp; (!damContext.isDynamicMediaEnabled() || !damContext.isDynamicMediaAemFallbackDisabled())) {</span>
-<span class="fc bfc" id="L75" title="All 2 branches covered.">      if (damContext.isWebOptimizedImageDeliveryEnabled()) {</span>
+<span class="pc bpc" id="L75" title="3 of 6 branches missed.">    if (url == null &amp;&amp; (!damContext.isDynamicMediaEnabled() || !damContext.isDynamicMediaAemFallbackDisabled())) {</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">      if (damContext.isWebOptimizedImageDeliveryEnabled()) {</span>
         // Render renditions via web-optimized image delivery: build externalized URL
-<span class="fc" id="L77">        url = buildUriTemplateWebOptimizedImageDelivery(type, cropDimension, rotation, damContext);</span>
+<span class="fc" id="L78">        url = buildUriTemplateWebOptimizedImageDelivery(type, cropDimension, rotation, damContext);</span>
       }
-<span class="fc bfc" id="L79" title="All 2 branches covered.">      if (url == null) {</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">      if (url == null) {</span>
         // Render renditions in AEM: build externalized URL
-<span class="fc" id="L81">        url = buildUriTemplateDam(type, rendition, cropDimension, rotation, damContext);</span>
+<span class="fc" id="L82">        url = buildUriTemplateDam(type, rendition, cropDimension, rotation,</span>
+<span class="fc" id="L83">            damContext.getMediaArgs().getImageQualityPercentage(), damContext);</span>
       }
     }
-<span class="fc" id="L84">    this.uriTemplate = url;</span>
+<span class="fc" id="L86">    this.uriTemplate = url;</span>
 
-<span class="fc bfc" id="L86" title="All 2 branches covered.">    if (validatedDimension == null) {</span>
-<span class="fc" id="L87">      validatedDimension = dimension;</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (validatedDimension == null) {</span>
+<span class="fc" id="L89">      validatedDimension = dimension;</span>
     }
-<span class="fc" id="L89">    this.dimension = validatedDimension;</span>
-<span class="fc" id="L90">  }</span>
+<span class="fc" id="L91">    this.dimension = validatedDimension;</span>
+<span class="fc" id="L92">  }</span>
 
   private static String buildUriTemplateDam(@NotNull UriTemplateType type, @NotNull Rendition rendition,
-      @Nullable CropDimension cropDimension, @Nullable Integer rotation,
+      @Nullable CropDimension cropDimension, @Nullable Integer rotation, @Nullable Double imageQualityPercentage,
       @NotNull DamContext damContext) {
 
     // build rendition URL with dummy width/height parameters (otherwise externalization will fail)
-<span class="fc" id="L97">    MediaArgs mediaArgs = damContext.getMediaArgs();</span>
-<span class="fc" id="L98">    String mediaPath = RenditionMetadata.buildMediaPath(rendition.getPath()</span>
-<span class="fc" id="L99">        + &quot;.&quot; + ImageFileServlet.buildSelectorString(DUMMY_WIDTH, DUMMY_HEIGHT, cropDimension, rotation, false)</span>
+<span class="fc" id="L99">    MediaArgs mediaArgs = damContext.getMediaArgs();</span>
+<span class="fc" id="L100">    String mediaPath = RenditionMetadata.buildMediaPath(rendition.getPath()</span>
+<span class="fc" id="L101">        + &quot;.&quot; + ImageFileServletSelector.build(DUMMY_WIDTH, DUMMY_HEIGHT, cropDimension, rotation, imageQualityPercentage, false)</span>
         + &quot;.&quot; + MediaFileServlet.EXTENSION,
-<span class="fc" id="L101">        ImageFileServlet.getImageFileName(damContext.getAsset().getName(), mediaArgs.getEnforceOutputFileExtension()));</span>
-<span class="fc" id="L102">    UrlHandler urlHandler = AdaptTo.notNull(damContext, UrlHandler.class);</span>
-<span class="fc" id="L103">    String url = urlHandler.get(mediaPath).urlMode(mediaArgs.getUrlMode())</span>
-<span class="fc" id="L104">        .buildExternalResourceUrl(damContext.getAsset().adaptTo(Resource.class));</span>
+<span class="fc" id="L103">        ImageFileServlet.getImageFileName(damContext.getAsset().getName(), mediaArgs.getEnforceOutputFileExtension()));</span>
+<span class="fc" id="L104">    UrlHandler urlHandler = AdaptTo.notNull(damContext, UrlHandler.class);</span>
+<span class="fc" id="L105">    String url = urlHandler.get(mediaPath).urlMode(mediaArgs.getUrlMode())</span>
+<span class="fc" id="L106">        .buildExternalResourceUrl(damContext.getAsset().adaptTo(Resource.class));</span>
 
     // replace dummy width/height parameters with actual placeholders
-<span class="pc bpc" id="L107" title="1 of 4 branches missed.">    switch (type) {</span>
+<span class="pc bpc" id="L109" title="1 of 4 branches missed.">    switch (type) {</span>
       case CROP_CENTER:
-<span class="fc" id="L109">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), URI_TEMPLATE_PLACEHOLDER_WIDTH);</span>
-<span class="fc" id="L110">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), URI_TEMPLATE_PLACEHOLDER_HEIGHT);</span>
-<span class="fc" id="L111">        break;</span>
+<span class="fc" id="L111">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), URI_TEMPLATE_PLACEHOLDER_WIDTH);</span>
+<span class="fc" id="L112">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), URI_TEMPLATE_PLACEHOLDER_HEIGHT);</span>
+<span class="fc" id="L113">        break;</span>
       case SCALE_WIDTH:
-<span class="fc" id="L113">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), URI_TEMPLATE_PLACEHOLDER_WIDTH);</span>
-<span class="fc" id="L114">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), &quot;0&quot;);</span>
-<span class="fc" id="L115">        break;</span>
+<span class="fc" id="L115">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), URI_TEMPLATE_PLACEHOLDER_WIDTH);</span>
+<span class="fc" id="L116">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), &quot;0&quot;);</span>
+<span class="fc" id="L117">        break;</span>
       case SCALE_HEIGHT:
-<span class="fc" id="L117">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), &quot;0&quot;);</span>
-<span class="fc" id="L118">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), URI_TEMPLATE_PLACEHOLDER_HEIGHT);</span>
-<span class="fc" id="L119">        break;</span>
+<span class="fc" id="L119">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), &quot;0&quot;);</span>
+<span class="fc" id="L120">        url = StringUtils.replace(url, Long.toString(DUMMY_HEIGHT), URI_TEMPLATE_PLACEHOLDER_HEIGHT);</span>
+<span class="fc" id="L121">        break;</span>
       default:
-<span class="nc" id="L121">        throw new IllegalArgumentException(&quot;Unsupported type: &quot; + type);</span>
+<span class="nc" id="L123">        throw new IllegalArgumentException(&quot;Unsupported type: &quot; + type);</span>
     }
-<span class="fc" id="L123">    return url;</span>
+<span class="fc" id="L125">    return url;</span>
   }
 
   private static String buildUriTemplateWebOptimizedImageDelivery(@NotNull UriTemplateType type,
       @Nullable CropDimension cropDimension, @Nullable Integer rotation, @NotNull DamContext damContext) {
     // scale by height is not supported by Web-Optimized Image Delivery
-<span class="fc bfc" id="L129" title="All 2 branches covered.">    if (type == UriTemplateType.SCALE_HEIGHT) {</span>
-<span class="fc" id="L130">      return null;</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">    if (type == UriTemplateType.SCALE_HEIGHT) {</span>
+<span class="fc" id="L132">      return null;</span>
     }
 
     // build rendition URL with dummy width/height parameters (otherwise API call will fail)
-<span class="fc" id="L134">    String url = damContext.getWebOptimizedImageDeliveryUrl(new WebOptimizedImageDeliveryParams()</span>
-<span class="fc" id="L135">        .width(DUMMY_WIDTH).cropDimension(cropDimension).rotation(rotation));</span>
-<span class="pc bpc" id="L136" title="1 of 2 branches missed.">    if (url == null) {</span>
-<span class="nc" id="L137">      return null;</span>
+<span class="fc" id="L136">    String url = damContext.getWebOptimizedImageDeliveryUrl(new WebOptimizedImageDeliveryParams()</span>
+<span class="fc" id="L137">        .width(DUMMY_WIDTH).cropDimension(cropDimension).rotation(rotation));</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">    if (url == null) {</span>
+<span class="nc" id="L139">      return null;</span>
     }
 
     // replace dummy width/height parameters with actual placeholders
-<span class="pc bpc" id="L141" title="1 of 3 branches missed.">    switch (type) {</span>
+<span class="pc bpc" id="L143" title="1 of 3 branches missed.">    switch (type) {</span>
       case CROP_CENTER:
-<span class="fc" id="L143">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), URI_TEMPLATE_PLACEHOLDER_WIDTH);</span>
-<span class="fc" id="L144">        break;</span>
+<span class="fc" id="L145">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), URI_TEMPLATE_PLACEHOLDER_WIDTH);</span>
+<span class="fc" id="L146">        break;</span>
       case SCALE_WIDTH:
-<span class="fc" id="L146">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), URI_TEMPLATE_PLACEHOLDER_WIDTH);</span>
-<span class="fc" id="L147">        break;</span>
+<span class="fc" id="L148">        url = StringUtils.replace(url, Long.toString(DUMMY_WIDTH), URI_TEMPLATE_PLACEHOLDER_WIDTH);</span>
+<span class="fc" id="L149">        break;</span>
       default:
-<span class="nc" id="L149">        throw new IllegalArgumentException(&quot;Unsupported type for Web-optimized image delivery: &quot; + type);</span>
+<span class="nc" id="L151">        throw new IllegalArgumentException(&quot;Unsupported type for Web-optimized image delivery: &quot; + type);</span>
     }
-<span class="fc" id="L151">    return url;</span>
+<span class="fc" id="L153">    return url;</span>
   }
 
   private static @Nullable String buildUriTemplateDynamicMedia(@NotNull UriTemplateType type,
       @Nullable CropDimension cropDimension, @Nullable Integer rotation, @Nullable NamedDimension smartCropDef,
       @NotNull DamContext damContext) {
-<span class="fc" id="L157">    String productionAssetUrl = damContext.getDynamicMediaServerUrl();</span>
-<span class="pc bpc" id="L158" title="1 of 2 branches missed.">    if (productionAssetUrl == null) {</span>
-<span class="nc" id="L159">      return null;</span>
+<span class="fc" id="L159">    String productionAssetUrl = damContext.getDynamicMediaServerUrl();</span>
+<span class="pc bpc" id="L160" title="1 of 2 branches missed.">    if (productionAssetUrl == null) {</span>
+<span class="nc" id="L161">      return null;</span>
     }
-<span class="fc" id="L161">    StringBuilder result = new StringBuilder();</span>
-<span class="fc" id="L162">    result.append(productionAssetUrl).append(DynamicMediaPath.buildImage(damContext));</span>
+<span class="fc" id="L163">    StringBuilder result = new StringBuilder();</span>
+<span class="fc" id="L164">    result.append(productionAssetUrl).append(DynamicMediaPath.buildImage(damContext));</span>
 
     // build DM URL with smart cropping
-<span class="fc bfc" id="L165" title="All 2 branches covered.">    if (smartCropDef != null) {</span>
-<span class="fc" id="L166">      result.append(&quot;%3A&quot;).append(smartCropDef.getName()).append(&quot;?&quot;)</span>
-<span class="fc" id="L167">          .append(getDynamicMediaWidthHeightParameters(type))</span>
-<span class="fc" id="L168">          .append(&quot;&amp;fit=constrain&quot;);</span>
-<span class="fc" id="L169">      return result.toString();</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">    if (smartCropDef != null) {</span>
+<span class="fc" id="L168">      result.append(&quot;%3A&quot;).append(smartCropDef.getName()).append(&quot;?&quot;)</span>
+<span class="fc" id="L169">          .append(getDynamicMediaWidthHeightParameters(type))</span>
+<span class="fc" id="L170">          .append(&quot;&amp;fit=constrain&quot;);</span>
+<span class="fc" id="L171">      return result.toString();</span>
     }
 
     // build DM URL without smart cropping
-<span class="fc" id="L173">    result.append(&quot;?&quot;);</span>
-<span class="fc bfc" id="L174" title="All 2 branches covered.">    if (cropDimension != null) {</span>
-<span class="fc" id="L175">      result.append(&quot;crop=&quot;).append(cropDimension.getCropStringWidthHeight()).append(&quot;&amp;&quot;);</span>
+<span class="fc" id="L175">    result.append(&quot;?&quot;);</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">    if (cropDimension != null) {</span>
+<span class="fc" id="L177">      result.append(&quot;crop=&quot;).append(cropDimension.getCropStringWidthHeight()).append(&quot;&amp;&quot;);</span>
     }
-<span class="fc bfc" id="L177" title="All 2 branches covered.">    if (rotation != null) {</span>
-<span class="fc" id="L178">      result.append(&quot;rotate=&quot;).append(rotation).append(&quot;&amp;&quot;);</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (rotation != null) {</span>
+<span class="fc" id="L180">      result.append(&quot;rotate=&quot;).append(rotation).append(&quot;&amp;&quot;);</span>
     }
-<span class="fc" id="L180">    result.append(getDynamicMediaWidthHeightParameters(type));</span>
-<span class="fc" id="L181">    return result.toString();</span>
+<span class="fc" id="L182">    result.append(getDynamicMediaWidthHeightParameters(type));</span>
+<span class="fc" id="L183">    return result.toString();</span>
   }
 
   private static String getDynamicMediaWidthHeightParameters(UriTemplateType type) {
-<span class="pc bpc" id="L185" title="1 of 4 branches missed.">    switch (type) {</span>
+<span class="pc bpc" id="L187" title="1 of 4 branches missed.">    switch (type) {</span>
       case CROP_CENTER:
-<span class="fc" id="L187">        return &quot;wid=&quot; + URI_TEMPLATE_PLACEHOLDER_WIDTH + &quot;&amp;hei=&quot; + URI_TEMPLATE_PLACEHOLDER_HEIGHT + &quot;&amp;fit=crop&quot;;</span>
+<span class="fc" id="L189">        return &quot;wid=&quot; + URI_TEMPLATE_PLACEHOLDER_WIDTH + &quot;&amp;hei=&quot; + URI_TEMPLATE_PLACEHOLDER_HEIGHT + &quot;&amp;fit=crop&quot;;</span>
       case SCALE_WIDTH:
-<span class="fc" id="L189">        return &quot;wid=&quot; + URI_TEMPLATE_PLACEHOLDER_WIDTH;</span>
+<span class="fc" id="L191">        return &quot;wid=&quot; + URI_TEMPLATE_PLACEHOLDER_WIDTH;</span>
       case SCALE_HEIGHT:
-<span class="fc" id="L191">        return &quot;hei=&quot; + URI_TEMPLATE_PLACEHOLDER_HEIGHT;</span>
+<span class="fc" id="L193">        return &quot;hei=&quot; + URI_TEMPLATE_PLACEHOLDER_HEIGHT;</span>
       default:
-<span class="nc" id="L193">        throw new IllegalArgumentException(&quot;Unsupported type for Dynamic Media: &quot; + type);</span>
+<span class="nc" id="L195">        throw new IllegalArgumentException(&quot;Unsupported type for Dynamic Media: &quot; + type);</span>
     }
   }
 
   private static NamedDimension getDynamicMediaSmartCropDef(@Nullable CropDimension cropDimension, @Nullable Integer rotation,
       @Nullable Double ratio, @NotNull DamContext damContext) {
-<span class="fc bfc" id="L199" title="All 4 branches covered.">    if (SmartCrop.canApply(cropDimension, rotation) &amp;&amp; ratio != null) {</span>
+<span class="fc bfc" id="L201" title="All 4 branches covered.">    if (SmartCrop.canApply(cropDimension, rotation) &amp;&amp; ratio != null) {</span>
       // check for matching image profile and use predefined cropping preset if match found
-<span class="fc" id="L201">      return SmartCrop.getDimensionForRatio(damContext.getImageProfile(), ratio);</span>
+<span class="fc" id="L203">      return SmartCrop.getDimensionForRatio(damContext.getImageProfile(), ratio);</span>
     }
-<span class="fc" id="L203">    return null;</span>
+<span class="fc" id="L205">    return null;</span>
   }
 
   @Override
   public @NotNull UriTemplateType getType() {
-<span class="fc" id="L208">    return type;</span>
+<span class="fc" id="L210">    return type;</span>
   }
 
   @Override
   public @NotNull String getUriTemplate() {
-<span class="fc" id="L213">    return uriTemplate;</span>
+<span class="fc" id="L215">    return uriTemplate;</span>
   }
 
   @Override
   public long getMaxWidth() {
-<span class="fc" id="L218">    return dimension.getWidth();</span>
+<span class="fc" id="L220">    return dimension.getWidth();</span>
   }
 
   @Override
   public long getMaxHeight() {
-<span class="fc" id="L223">    return dimension.getHeight();</span>
+<span class="fc" id="L225">    return dimension.getHeight();</span>
   }
 
   @Override
   public String toString() {
-<span class="fc" id="L228">    return uriTemplate;</span>
+<span class="fc" id="L230">    return uriTemplate;</span>
   }
 
 }
