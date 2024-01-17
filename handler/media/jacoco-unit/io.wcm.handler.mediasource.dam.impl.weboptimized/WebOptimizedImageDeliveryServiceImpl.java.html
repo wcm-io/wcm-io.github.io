@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WebOptimizedImageDeliveryServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.dam.impl.weboptimized</a> &gt; <span class="el_source">WebOptimizedImageDeliveryServiceImpl.java</span></div><h1>WebOptimizedImageDeliveryServiceImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2024 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.dam.impl.weboptimized;
+
+import java.util.Map;
+
+import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+
+import com.adobe.cq.wcm.spi.AssetDelivery;
+import com.day.cq.dam.api.Asset;
+
+import io.wcm.sling.commons.adapter.AdaptTo;
+
+/**
+ * Implements {@link WebOptimizedImageDeliveryService}.
+ */
+@Component(service = WebOptimizedImageDeliveryService.class, immediate = true)
+@Designate(ocd = WebOptimizedImageDeliveryServiceImpl.Config.class)
+<span class="fc" id="L46">public class WebOptimizedImageDeliveryServiceImpl implements WebOptimizedImageDeliveryService {</span>
+
+  @ObjectClassDefinition(
+      name = &quot;wcm.io Web-Optimized Image Delivery Support&quot;,
+      description = &quot;Support for Next Generation Dynamic Media Web-Optimized Image Delivery capabilites.&quot;)
+  @interface Config {
+
+    @AttributeDefinition(
+        name = &quot;Enabled&quot;,
+        description = &quot;Enable support for Web-Optimized Image Delivery (if available).&quot;)
+    boolean enabled() default true;
+
+  }
+
+  @Reference(cardinality = ReferenceCardinality.OPTIONAL, policyOption = ReferencePolicyOption.GREEDY)
+  private AssetDelivery assetDelivery;
+
+  private boolean enabled;
+
+  @Activate
+  private void activate(Config config) {
+<span class="fc" id="L67">    this.enabled = config.enabled();</span>
+<span class="fc" id="L68">  }</span>
+
+  @Override
+  public boolean isEnabled() {
+<span class="fc bfc" id="L72" title="All 4 branches covered.">    return enabled &amp;&amp; this.assetDelivery != null;</span>
+  }
+
+  @Override
+  public @Nullable String getDeliveryUrl(@NotNull Asset asset, @NotNull WebOptimizedImageDeliveryParams params) {
+<span class="fc bfc" id="L77" title="All 2 branches covered.">    if (!isEnabled()) {</span>
+<span class="fc" id="L78">      return null;</span>
+    }
+<span class="fc" id="L80">    Resource resource = AdaptTo.notNull(asset, Resource.class);</span>
+<span class="fc" id="L81">    Map&lt;String, Object&gt; parameterMap = ParameterMap.build(asset, params);</span>
+<span class="fc" id="L82">    return assetDelivery.getDeliveryURL(resource, parameterMap);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

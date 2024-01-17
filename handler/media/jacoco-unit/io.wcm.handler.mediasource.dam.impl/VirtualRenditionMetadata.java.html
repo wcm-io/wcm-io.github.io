@@ -33,7 +33,7 @@ import io.wcm.handler.media.impl.ImageFileServlet;
 import io.wcm.handler.media.impl.ImageFileServletSelector;
 import io.wcm.handler.media.impl.MediaFileServlet;
 import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaPath;
-import io.wcm.handler.mediasource.dam.impl.ngdm.WebOptimizedImageDeliveryParams;
+import io.wcm.handler.mediasource.dam.impl.weboptimized.WebOptimizedImageDeliveryParams;
 
 /**
  * Virtual rendition that is downscaling from an existing rendition.

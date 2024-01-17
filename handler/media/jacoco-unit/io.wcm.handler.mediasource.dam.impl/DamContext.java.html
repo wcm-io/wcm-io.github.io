@@ -39,8 +39,8 @@ import io.wcm.handler.media.spi.MediaHandlerConfig;
 import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaSupportService;
 import io.wcm.handler.mediasource.dam.impl.dynamicmedia.ImageProfile;
 import io.wcm.handler.mediasource.dam.impl.dynamicmedia.NamedDimension;
-import io.wcm.handler.mediasource.dam.impl.ngdm.WebOptimizedImageDeliveryParams;
-import io.wcm.handler.mediasource.dam.impl.ngdm.WebOptimizedImageDeliveryService;
+import io.wcm.handler.mediasource.dam.impl.weboptimized.WebOptimizedImageDeliveryParams;
+import io.wcm.handler.mediasource.dam.impl.weboptimized.WebOptimizedImageDeliveryService;
 import io.wcm.wcm.commons.contenttype.ContentType;
 
 /**

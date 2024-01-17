@@ -44,7 +44,7 @@ import io.wcm.handler.media.UriTemplateType;
 import io.wcm.handler.media.spi.MediaHandlerConfig;
 import io.wcm.handler.mediasource.dam.AssetRendition;
 import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaSupportService;
-import io.wcm.handler.mediasource.dam.impl.ngdm.WebOptimizedImageDeliveryService;
+import io.wcm.handler.mediasource.dam.impl.weboptimized.WebOptimizedImageDeliveryService;
 import io.wcm.wcm.commons.util.ToStringStyle;
 
 /**

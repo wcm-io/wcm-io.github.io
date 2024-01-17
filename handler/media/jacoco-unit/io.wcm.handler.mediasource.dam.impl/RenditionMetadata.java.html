@@ -45,7 +45,7 @@ import io.wcm.handler.media.impl.ImageFileServlet;
 import io.wcm.handler.media.impl.MediaFileServlet;
 import io.wcm.handler.mediasource.dam.AssetRendition;
 import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaPath;
-import io.wcm.handler.mediasource.dam.impl.ngdm.WebOptimizedImageDeliveryParams;
+import io.wcm.handler.mediasource.dam.impl.weboptimized.WebOptimizedImageDeliveryParams;
 import io.wcm.wcm.commons.contenttype.FileExtension;
 
 /**
