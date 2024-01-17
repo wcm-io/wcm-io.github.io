@@ -32,7 +32,7 @@ import io.wcm.handler.media.impl.MediaHandlerAdapterFactory;
 import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaSupportServiceImpl;
 import io.wcm.handler.mediasource.dam.impl.metadata.AssetSynchonizationService;
 import io.wcm.handler.mediasource.dam.impl.metadata.RenditionMetadataListenerService;
-import io.wcm.handler.mediasource.dam.impl.ngdm.WebOptimizedImageDeliveryServiceImpl;
+import io.wcm.handler.mediasource.dam.impl.weboptimized.WebOptimizedImageDeliveryServiceImpl;
 import io.wcm.handler.richtext.impl.DefaultRichTextHandlerConfig;
 import io.wcm.handler.url.impl.DefaultUrlHandlerConfig;
 import io.wcm.handler.url.impl.SiteRootDetectorImpl;
