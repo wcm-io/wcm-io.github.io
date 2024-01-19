@@ -286,59 +286,60 @@ public final class SuffixBuilder {
    * Build complete suffix.
    * @return the suffix
    */
+  @SuppressWarnings(&quot;java:S2692&quot;) // 0 index skipped by intention
   public @NotNull String build() {
-<span class="fc" id="L290">    SortedMap&lt;String, Object&gt; sortedParameterMap = new TreeMap&lt;&gt;(parameterMap);</span>
+<span class="fc" id="L291">    SortedMap&lt;String, Object&gt; sortedParameterMap = new TreeMap&lt;&gt;(parameterMap);</span>
 
     // gather resource paths in a treeset (having them in a defined order helps with caching)
-<span class="fc" id="L293">    SortedSet&lt;String&gt; resourcePathsSet = new TreeSet&lt;&gt;();</span>
+<span class="fc" id="L294">    SortedSet&lt;String&gt; resourcePathsSet = new TreeSet&lt;&gt;();</span>
 
     // iterate over all parts that should be kept from the current request
-<span class="fc bfc" id="L296" title="All 2 branches covered.">    for (String nextPart : initialSuffixParts) {</span>
+<span class="fc bfc" id="L297" title="All 2 branches covered.">    for (String nextPart : initialSuffixParts) {</span>
       // if this is a key-value-part:
-<span class="fc bfc" id="L298" title="All 2 branches covered.">      if (nextPart.indexOf(KEY_VALUE_DELIMITER) &gt; 0) {</span>
-<span class="fc" id="L299">        String key = decodeKey(nextPart);</span>
+<span class="fc bfc" id="L299" title="All 2 branches covered.">      if (nextPart.indexOf(KEY_VALUE_DELIMITER) &gt; 0) {</span>
+<span class="fc" id="L300">        String key = decodeKey(nextPart);</span>
         // decode and keep the part if it is not overridden in the given parameter-map
-<span class="fc bfc" id="L301" title="All 2 branches covered.">        if (!sortedParameterMap.containsKey(key)) {</span>
-<span class="fc" id="L302">          String value = decodeValue(nextPart);</span>
-<span class="fc" id="L303">          sortedParameterMap.put(key, value);</span>
+<span class="fc bfc" id="L302" title="All 2 branches covered.">        if (!sortedParameterMap.containsKey(key)) {</span>
+<span class="fc" id="L303">          String value = decodeValue(nextPart);</span>
+<span class="fc" id="L304">          sortedParameterMap.put(key, value);</span>
         }
-<span class="fc" id="L305">      }</span>
+<span class="fc" id="L306">      }</span>
       else {
         // decode and keep the resource paths (unless they are specified again in resourcePaths)
-<span class="fc" id="L308">        String path = decodeResourcePathPart(nextPart);</span>
-<span class="pc bpc" id="L309" title="1 of 2 branches missed.">        if (!resourcePaths.contains(path)) {</span>
-<span class="fc" id="L310">          resourcePathsSet.add(path);</span>
+<span class="fc" id="L309">        String path = decodeResourcePathPart(nextPart);</span>
+<span class="pc bpc" id="L310" title="1 of 2 branches missed.">        if (!resourcePaths.contains(path)) {</span>
+<span class="fc" id="L311">          resourcePathsSet.add(path);</span>
         }
       }
-<span class="fc" id="L313">    }</span>
+<span class="fc" id="L314">    }</span>
 
     // copy the resources specified as parameters to the sorted set of paths
-<span class="pc bpc" id="L316" title="1 of 2 branches missed.">    if (resourcePaths != null) {</span>
-<span class="fc" id="L317">      resourcePathsSet.addAll(List.copyOf(resourcePaths));</span>
+<span class="pc bpc" id="L317" title="1 of 2 branches missed.">    if (resourcePaths != null) {</span>
+<span class="fc" id="L318">      resourcePathsSet.addAll(List.copyOf(resourcePaths));</span>
     }
 
     // gather all suffix parts in this list
-<span class="fc" id="L321">    List&lt;String&gt; suffixParts = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L322">    List&lt;String&gt; suffixParts = new ArrayList&lt;&gt;();</span>
 
     // now encode all resource paths
-<span class="fc bfc" id="L324" title="All 2 branches covered.">    for (String path : resourcePathsSet) {</span>
-<span class="fc" id="L325">      suffixParts.add(encodeResourcePathPart(path));</span>
-<span class="fc" id="L326">    }</span>
+<span class="fc bfc" id="L325" title="All 2 branches covered.">    for (String path : resourcePathsSet) {</span>
+<span class="fc" id="L326">      suffixParts.add(encodeResourcePathPart(path));</span>
+<span class="fc" id="L327">    }</span>
 
     // now encode all entries from the parameter map
-<span class="fc bfc" id="L329" title="All 2 branches covered.">    for (Entry&lt;String, Object&gt; entry : sortedParameterMap.entrySet()) {</span>
-<span class="fc" id="L330">      Object value = entry.getValue();</span>
-<span class="pc bpc" id="L331" title="1 of 2 branches missed.">      if (value == null) {</span>
+<span class="fc bfc" id="L330" title="All 2 branches covered.">    for (Entry&lt;String, Object&gt; entry : sortedParameterMap.entrySet()) {</span>
+<span class="fc" id="L331">      Object value = entry.getValue();</span>
+<span class="pc bpc" id="L332" title="1 of 2 branches missed.">      if (value == null) {</span>
         // don't add suffix part if value is null
-<span class="nc" id="L333">        continue;</span>
+<span class="nc" id="L334">        continue;</span>
       }
-<span class="fc" id="L335">      String encodedKey = encodeKeyValuePart(entry.getKey());</span>
-<span class="fc" id="L336">      String encodedValue = encodeKeyValuePart(value.toString());</span>
-<span class="fc" id="L337">      suffixParts.add(encodedKey + KEY_VALUE_DELIMITER + encodedValue);</span>
-<span class="fc" id="L338">    }</span>
+<span class="fc" id="L336">      String encodedKey = encodeKeyValuePart(entry.getKey());</span>
+<span class="fc" id="L337">      String encodedValue = encodeKeyValuePart(value.toString());</span>
+<span class="fc" id="L338">      suffixParts.add(encodedKey + KEY_VALUE_DELIMITER + encodedValue);</span>
+<span class="fc" id="L339">    }</span>
 
     // finally join these parts to a single string
-<span class="fc" id="L341">    return StringUtils.join(suffixParts, SUFFIX_PART_DELIMITER);</span>
+<span class="fc" id="L342">    return StringUtils.join(suffixParts, SUFFIX_PART_DELIMITER);</span>
   }
 
 }

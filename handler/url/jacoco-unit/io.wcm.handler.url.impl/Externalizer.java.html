@@ -68,18 +68,19 @@ final class Externalizer {
 <span class="fc" id="L68">    return externalizeUrlWithSlingMapping(url, resolver, request, true);</span>
   }
 
+  @SuppressWarnings(&quot;java:S112&quot;) // allow runtime exception
   private static @Nullable String externalizeUrlWithSlingMapping(@NotNull String url, @NotNull ResourceResolver resolver,
       @Nullable SlingHttpServletRequest request, boolean keepHost) {
 
     // apply externalization only path part
-<span class="fc" id="L75">    String path = url;</span>
+<span class="fc" id="L76">    String path = url;</span>
 
     // split off query string or fragment that may be appended to the URL
-<span class="fc" id="L78">    String urlRemainder = null;</span>
-<span class="fc" id="L79">    int urlRemainderPos = StringUtils.indexOfAny(path, '?', '#');</span>
-<span class="fc bfc" id="L80" title="All 2 branches covered.">    if (urlRemainderPos &gt;= 0) {</span>
-<span class="fc" id="L81">      urlRemainder = path.substring(urlRemainderPos);</span>
-<span class="fc" id="L82">      path = path.substring(0, urlRemainderPos);</span>
+<span class="fc" id="L79">    String urlRemainder = null;</span>
+<span class="fc" id="L80">    int urlRemainderPos = StringUtils.indexOfAny(path, '?', '#');</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">    if (urlRemainderPos &gt;= 0) {</span>
+<span class="fc" id="L82">      urlRemainder = path.substring(urlRemainderPos);</span>
+<span class="fc" id="L83">      path = path.substring(0, urlRemainderPos);</span>
     }
 
     // apply reverse mapping based on current sling mapping configuration for current request
@@ -91,30 +92,30 @@ final class Externalizer {
     // 2. applies namespace mangling (e.g. replace jcr: with _jcr_)
     // 3. adds webapp context path if required
     // 4. url-encodes the whole url
-<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (request != null) {</span>
-<span class="fc" id="L95">      path = resolver.map(request, path);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (request != null) {</span>
+<span class="fc" id="L96">      path = resolver.map(request, path);</span>
     }
     else {
-<span class="fc" id="L98">      path = resolver.map(path);</span>
+<span class="fc" id="L99">      path = resolver.map(path);</span>
     }
 
-<span class="fc bfc" id="L101" title="All 2 branches covered.">    if (!keepHost) {</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">    if (!keepHost) {</span>
       // remove scheme and hostname (probably added by sling mapping), but leave path in escaped form
       try {
-<span class="fc" id="L104">        path = new URI(path).getRawPath();</span>
+<span class="fc" id="L105">        path = new URI(path).getRawPath();</span>
         // replace %2F back to / for better readability
-<span class="fc" id="L106">        path = StringUtils.replace(path, &quot;%2F&quot;, &quot;/&quot;);</span>
-<span class="nc" id="L107">      } catch (URISyntaxException ex) {</span>
-<span class="nc" id="L108">        throw new RuntimeException(&quot;Sling map method returned invalid URI: &quot; + path, ex);</span>
-<span class="fc" id="L109">      }</span>
+<span class="fc" id="L107">        path = StringUtils.replace(path, &quot;%2F&quot;, &quot;/&quot;);</span>
+<span class="nc" id="L108">      } catch (URISyntaxException ex) {</span>
+<span class="nc" id="L109">        throw new RuntimeException(&quot;Sling map method returned invalid URI: &quot; + path, ex);</span>
+<span class="fc" id="L110">      }</span>
     }
 
     // build full URL again
-<span class="pc bpc" id="L113" title="1 of 2 branches missed.">    if (path == null) {</span>
-<span class="nc" id="L114">      return null;</span>
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">    if (path == null) {</span>
+<span class="nc" id="L115">      return null;</span>
     }
     else {
-<span class="fc bfc" id="L117" title="All 2 branches covered.">      return path + (urlRemainder != null ? urlRemainder : &quot;&quot;);</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">      return path + (urlRemainder != null ? urlRemainder : &quot;&quot;);</span>
     }
   }
 
@@ -130,32 +131,32 @@ final class Externalizer {
   public static @NotNull String externalizeUrlWithoutMapping(@NotNull String url, @Nullable SlingHttpServletRequest request) {
 
     // apply externalization only path part
-<span class="fc" id="L133">    String path = url;</span>
+<span class="fc" id="L134">    String path = url;</span>
 
     // split off query string or fragment that may be appended to the URL
-<span class="fc" id="L136">    String urlRemainder = null;</span>
-<span class="fc" id="L137">    int urlRemainderPos = StringUtils.indexOfAny(path, '?', '#');</span>
-<span class="fc bfc" id="L138" title="All 2 branches covered.">    if (urlRemainderPos &gt;= 0) {</span>
-<span class="fc" id="L139">      urlRemainder = path.substring(urlRemainderPos);</span>
-<span class="fc" id="L140">      path = path.substring(0, urlRemainderPos);</span>
+<span class="fc" id="L137">    String urlRemainder = null;</span>
+<span class="fc" id="L138">    int urlRemainderPos = StringUtils.indexOfAny(path, '?', '#');</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">    if (urlRemainderPos &gt;= 0) {</span>
+<span class="fc" id="L140">      urlRemainder = path.substring(urlRemainderPos);</span>
+<span class="fc" id="L141">      path = path.substring(0, urlRemainderPos);</span>
     }
 
     // apply namespace mangling (e.g. replace jcr: with _jcr_)
-<span class="fc" id="L144">    path = mangleNamespaces(path);</span>
+<span class="fc" id="L145">    path = mangleNamespaces(path);</span>
 
     // add webapp context path
-<span class="fc bfc" id="L147" title="All 2 branches covered.">    if (request != null) {</span>
-<span class="fc" id="L148">      path = StringUtils.defaultString(request.getContextPath()) + path; //NOPMD</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">    if (request != null) {</span>
+<span class="fc" id="L149">      path = StringUtils.defaultString(request.getContextPath()) + path; //NOPMD</span>
     }
 
     // url-encode path
-<span class="fc" id="L152">    path = Escape.urlEncode(path);</span>
-<span class="fc" id="L153">    path = StringUtils.replace(path, &quot;+&quot;, &quot;%20&quot;);</span>
+<span class="fc" id="L153">    path = Escape.urlEncode(path);</span>
+<span class="fc" id="L154">    path = StringUtils.replace(path, &quot;+&quot;, &quot;%20&quot;);</span>
     // replace %2F back to / for better readability
-<span class="fc" id="L155">    path = StringUtils.replace(path, &quot;%2F&quot;, &quot;/&quot;);</span>
+<span class="fc" id="L156">    path = StringUtils.replace(path, &quot;%2F&quot;, &quot;/&quot;);</span>
 
     // build full URL again
-<span class="fc bfc" id="L158" title="All 2 branches covered.">    return path + (urlRemainder != null ? urlRemainder : &quot;&quot;);</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">    return path + (urlRemainder != null ? urlRemainder : &quot;&quot;);</span>
   }
 
   /*
@@ -164,7 +165,7 @@ final class Externalizer {
    * - everything starting with // or # is handles as exteranlized
    * - all other strings handles as not externalized
    */
-<span class="fc" id="L167">  private static final Pattern EXTERNALIZED_PATTERN = Pattern.compile(&quot;^([^/]+:|//|#).*$&quot;);</span>
+<span class="fc" id="L168">  private static final Pattern EXTERNALIZED_PATTERN = Pattern.compile(&quot;^([^/]+:|//|#).*$&quot;);</span>
 
   /**
    * Checks if the given URL is already externalized.
@@ -173,7 +174,7 @@ final class Externalizer {
    * @return true if path is already externalized.
    */
   public static boolean isExternalized(@NotNull String url) {
-<span class="fc" id="L176">    return EXTERNALIZED_PATTERN.matcher(url).matches();</span>
+<span class="fc" id="L177">    return EXTERNALIZED_PATTERN.matcher(url).matches();</span>
   }
 
   /**
@@ -182,13 +183,13 @@ final class Externalizer {
    * @return true if url seems to be a path than needs externaliziation
    */
   public static boolean isExternalizable(@NotNull String url) {
-<span class="fc" id="L185">    return StringUtils.startsWith(url, &quot;/&quot;);</span>
+<span class="fc" id="L186">    return StringUtils.startsWith(url, &quot;/&quot;);</span>
   }
 
   private static final String MANGLED_NAMESPACE_PREFIX = &quot;/_&quot;;
   private static final String MANGLED_NAMESPACE_SUFFIX = &quot;_&quot;;
   private static final char NAMESPACE_SEPARATOR = ':';
-<span class="fc" id="L191">  private static final Pattern NAMESPACE_PATTERN = Pattern.compile(&quot;/([^:/]+):&quot;);</span>
+<span class="fc" id="L192">  private static final Pattern NAMESPACE_PATTERN = Pattern.compile(&quot;/([^:/]+):&quot;);</span>
 
   /**
    * Mangle the namespaces in the given path for usage in sling-based URLs.
@@ -199,17 +200,17 @@ final class Externalizer {
    * @return Mangled path
    */
   public static @NotNull String mangleNamespaces(@NotNull String path) {
-<span class="fc bfc" id="L202" title="All 2 branches covered.">    if (!StringUtils.contains(path, NAMESPACE_SEPARATOR)) {</span>
-<span class="fc" id="L203">      return path;</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">    if (!StringUtils.contains(path, NAMESPACE_SEPARATOR)) {</span>
+<span class="fc" id="L204">      return path;</span>
     }
-<span class="fc" id="L205">    Matcher matcher = NAMESPACE_PATTERN.matcher(path);</span>
-<span class="fc" id="L206">    StringBuffer sb = new StringBuffer();</span>
-<span class="fc bfc" id="L207" title="All 2 branches covered.">    while (matcher.find()) {</span>
-<span class="fc" id="L208">      String replacement = MANGLED_NAMESPACE_PREFIX + matcher.group(1) + MANGLED_NAMESPACE_SUFFIX;</span>
-<span class="fc" id="L209">      matcher.appendReplacement(sb, replacement);</span>
-<span class="fc" id="L210">    }</span>
-<span class="fc" id="L211">    matcher.appendTail(sb);</span>
-<span class="fc" id="L212">    return sb.toString();</span>
+<span class="fc" id="L206">    Matcher matcher = NAMESPACE_PATTERN.matcher(path);</span>
+<span class="fc" id="L207">    StringBuffer sb = new StringBuffer();</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">    while (matcher.find()) {</span>
+<span class="fc" id="L209">      String replacement = MANGLED_NAMESPACE_PREFIX + matcher.group(1) + MANGLED_NAMESPACE_SUFFIX;</span>
+<span class="fc" id="L210">      matcher.appendReplacement(sb, replacement);</span>
+<span class="fc" id="L211">    }</span>
+<span class="fc" id="L212">    matcher.appendTail(sb);</span>
+<span class="fc" id="L213">    return sb.toString();</span>
   }
 
 }
