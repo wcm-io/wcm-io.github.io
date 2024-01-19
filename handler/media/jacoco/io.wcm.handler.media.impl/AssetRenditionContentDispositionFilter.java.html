@@ -23,7 +23,7 @@ import static com.day.cq.commons.jcr.JcrConstants.JCR_CONTENT;
 import static com.day.cq.commons.jcr.JcrConstants.JCR_MIMETYPE;
 import static com.day.cq.commons.jcr.JcrConstants.JCR_PRIMARYTYPE;
 import static com.day.cq.commons.jcr.JcrConstants.NT_FILE;
-import static io.wcm.handler.media.impl.AbstractMediaFileServlet.HEADER_CONTENT_DISPOSITION;
+import static io.wcm.handler.media.impl.MediaFileServletConstants.HEADER_CONTENT_DISPOSITION;
 import static org.apache.sling.api.servlets.HttpConstants.METHOD_GET;
 
 import java.io.IOException;

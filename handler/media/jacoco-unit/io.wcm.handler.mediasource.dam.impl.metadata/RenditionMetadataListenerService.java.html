@@ -135,31 +135,26 @@ import io.wcm.wcm.commons.util.RunMode;
 <span class="fc" id="L135">  }</span>
 
   @Deactivate
-  private void deactivate() {
+  private void deactivate() throws InterruptedException {
 <span class="fc" id="L139">    this.enabled = false;</span>
 <span class="pc bpc" id="L140" title="1 of 2 branches missed.">    if (executorService != null) {</span>
 <span class="nc" id="L141">      executorService.shutdown();</span>
-      try {
-<span class="nc" id="L143">        executorService.awaitTermination(10, TimeUnit.SECONDS);</span>
-      }
-<span class="nc" id="L145">      catch (InterruptedException ex) {</span>
-        // ignore
-<span class="nc" id="L147">      }</span>
-<span class="nc" id="L148">      executorService = null;</span>
+<span class="nc" id="L142">      executorService.awaitTermination(10, TimeUnit.SECONDS);</span>
+<span class="nc" id="L143">      executorService = null;</span>
     }
-<span class="fc" id="L150">  }</span>
+<span class="fc" id="L145">  }</span>
 
   @Override
   public void handleEvent(Event event) {
-<span class="pc bpc" id="L154" title="1 of 4 branches missed.">    if (!enabled || !StringUtils.equals(event.getTopic(), DamEvent.EVENT_TOPIC)) {</span>
-<span class="fc" id="L155">      return;</span>
+<span class="pc bpc" id="L149" title="1 of 4 branches missed.">    if (!enabled || !StringUtils.equals(event.getTopic(), DamEvent.EVENT_TOPIC)) {</span>
+<span class="fc" id="L150">      return;</span>
     }
-<span class="fc" id="L157">    DamEvent damEvent = DamEvent.fromEvent(event);</span>
+<span class="fc" id="L152">    DamEvent damEvent = DamEvent.fromEvent(event);</span>
     // process only rendition-related events
-<span class="fc bfc" id="L159" title="All 2 branches covered.">    if (SUPPORTED_EVENT_TYPES.contains(damEvent.getType())) {</span>
-<span class="fc" id="L160">      handleDamEvent(damEvent);</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">    if (SUPPORTED_EVENT_TYPES.contains(damEvent.getType())) {</span>
+<span class="fc" id="L155">      handleDamEvent(damEvent);</span>
     }
-<span class="fc" id="L162">  }</span>
+<span class="fc" id="L157">  }</span>
 
   /**
    * Handle dam event if certain conditions are fulfilled.
@@ -167,25 +162,25 @@ import io.wcm.wcm.commons.util.RunMode;
    */
   private void handleDamEvent(DamEvent event) {
     // make sure rendition file extension is an image extensions
-<span class="fc" id="L170">    String renditionPath = event.getAdditionalInfo();</span>
-<span class="fc" id="L171">    String renditionNodeName = Text.getName(renditionPath);</span>
-<span class="fc" id="L172">    boolean isOriginal = StringUtils.equals(renditionNodeName, ORIGINAL_FILE);</span>
-<span class="fc" id="L173">    String fileExtension = FilenameUtils.getExtension(renditionNodeName);</span>
-<span class="fc bfc" id="L174" title="All 4 branches covered.">    if (!(isOriginal || MediaFileType.isImage(fileExtension))) {</span>
-<span class="fc" id="L175">      return;</span>
+<span class="fc" id="L165">    String renditionPath = event.getAdditionalInfo();</span>
+<span class="fc" id="L166">    String renditionNodeName = Text.getName(renditionPath);</span>
+<span class="fc" id="L167">    boolean isOriginal = StringUtils.equals(renditionNodeName, ORIGINAL_FILE);</span>
+<span class="fc" id="L168">    String fileExtension = FilenameUtils.getExtension(renditionNodeName);</span>
+<span class="fc bfc" id="L169" title="All 4 branches covered.">    if (!(isOriginal || MediaFileType.isImage(fileExtension))) {</span>
+<span class="fc" id="L170">      return;</span>
     }
 
-<span class="fc" id="L178">    RenditionMetadataEvent runnable = new RenditionMetadataEvent(event.getAssetPath(),</span>
-<span class="fc" id="L179">        renditionPath, event.getType());</span>
-<span class="pc bpc" id="L180" title="1 of 2 branches missed.">    if (synchronousProcessing) {</span>
+<span class="fc" id="L173">    RenditionMetadataEvent runnable = new RenditionMetadataEvent(event.getAssetPath(),</span>
+<span class="fc" id="L174">        renditionPath, event.getType());</span>
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">    if (synchronousProcessing) {</span>
       // execute directly in synchronous mode (e.g. for unit tests)
-<span class="fc" id="L182">      runnable.run();</span>
+<span class="fc" id="L177">      runnable.run();</span>
     }
     else {
       // decouple event processing from listener to avoid timeouts
-<span class="nc" id="L186">      executorService.schedule(runnable, runnable.getDelaySeconds(), TimeUnit.SECONDS);</span>
+<span class="nc" id="L181">      executorService.schedule(runnable, runnable.getDelaySeconds(), TimeUnit.SECONDS);</span>
     }
-<span class="fc" id="L188">  }</span>
+<span class="fc" id="L183">  }</span>
 
   private final class RenditionMetadataEvent implements Runnable {
 
@@ -195,92 +190,92 @@ import io.wcm.wcm.commons.util.RunMode;
 
     private int retryCount;
 
-<span class="fc" id="L198">    RenditionMetadataEvent(String assetPath, String renditionPath, Type eventType) {</span>
-<span class="fc" id="L199">      this.assetPath = assetPath;</span>
-<span class="fc" id="L200">      this.renditionPath = renditionPath;</span>
-<span class="fc" id="L201">      this.eventType = eventType;</span>
-<span class="fc" id="L202">    }</span>
+<span class="fc" id="L193">    RenditionMetadataEvent(String assetPath, String renditionPath, Type eventType) {</span>
+<span class="fc" id="L194">      this.assetPath = assetPath;</span>
+<span class="fc" id="L195">      this.renditionPath = renditionPath;</span>
+<span class="fc" id="L196">      this.eventType = eventType;</span>
+<span class="fc" id="L197">    }</span>
 
     private int getDelaySeconds() {
-<span class="nc bnc" id="L205" title="All 2 branches missed.">      if (eventType == DamEvent.Type.RENDITION_REMOVED) {</span>
+<span class="nc bnc" id="L200" title="All 2 branches missed.">      if (eventType == DamEvent.Type.RENDITION_REMOVED) {</span>
         // delay event handling in case of removed event for some time to avoid repository conflicts
         // e.g. when new packages with sample content are installed remove and udpate events
         // are quickly fired after another
-<span class="nc" id="L209">        return REMOVE_EVENT_EXECUTION_DELAY_SECONDS;</span>
+<span class="nc" id="L204">        return REMOVE_EVENT_EXECUTION_DELAY_SECONDS;</span>
       }
       else {
-<span class="nc" id="L212">        return 0;</span>
+<span class="nc" id="L207">        return 0;</span>
       }
     }
 
     @Override
     public void run() {
       // process event synchronized per asset path
-<span class="fc" id="L219">      Lock lock = assetSynchronizationService.getLock(assetPath);</span>
-<span class="fc" id="L220">      lock.lock();</span>
+<span class="fc" id="L214">      Lock lock = assetSynchronizationService.getLock(assetPath);</span>
+<span class="fc" id="L215">      lock.lock();</span>
 
-<span class="fc" id="L222">      ResourceResolver serviceResourceResolver = null;</span>
+<span class="fc" id="L217">      ResourceResolver serviceResourceResolver = null;</span>
       try {
         // open service user session for reading/writing rendition metadata
-<span class="fc" id="L225">        serviceResourceResolver = resourceResolverFactory</span>
-<span class="fc" id="L226">            .getServiceResourceResolver(Map.of(ResourceResolverFactory.SUBSERVICE, SERVICEUSER_SUBSERVICE));</span>
+<span class="fc" id="L220">        serviceResourceResolver = resourceResolverFactory</span>
+<span class="fc" id="L221">            .getServiceResourceResolver(Map.of(ResourceResolverFactory.SUBSERVICE, SERVICEUSER_SUBSERVICE));</span>
 
         // make sure asset resource exists
-<span class="fc" id="L229">        Resource assetResource = serviceResourceResolver.getResource(assetPath);</span>
-<span class="fc bfc" id="L230" title="All 2 branches covered.">        if (assetResource == null) {</span>
-<span class="fc" id="L231">          log.debug(&quot;Unable to read asset at {} with user {}&quot;, assetPath, serviceResourceResolver.getUserID());</span>
-<span class="fc" id="L232">          return;</span>
+<span class="fc" id="L224">        Resource assetResource = serviceResourceResolver.getResource(assetPath);</span>
+<span class="fc bfc" id="L225" title="All 2 branches covered.">        if (assetResource == null) {</span>
+<span class="fc" id="L226">          log.debug(&quot;Unable to read asset at {} with user {}&quot;, assetPath, serviceResourceResolver.getUserID());</span>
+<span class="fc" id="L227">          return;</span>
         }
 
-<span class="fc bfc" id="L235" title="All 2 branches covered.">        if (eventType == DamEvent.Type.RENDITION_UPDATED) {</span>
-<span class="fc" id="L236">          renditionAddedOrUpdated(serviceResourceResolver);</span>
+<span class="fc bfc" id="L230" title="All 2 branches covered.">        if (eventType == DamEvent.Type.RENDITION_UPDATED) {</span>
+<span class="fc" id="L231">          renditionAddedOrUpdated(serviceResourceResolver);</span>
         }
-<span class="pc bpc" id="L238" title="1 of 2 branches missed.">        else if (eventType == DamEvent.Type.RENDITION_REMOVED) {</span>
-<span class="fc" id="L239">          renditionRemoved(serviceResourceResolver);</span>
+<span class="pc bpc" id="L233" title="1 of 2 branches missed.">        else if (eventType == DamEvent.Type.RENDITION_REMOVED) {</span>
+<span class="fc" id="L234">          renditionRemoved(serviceResourceResolver);</span>
         }
       }
-<span class="nc" id="L242">      catch (PersistenceException ex) {</span>
+<span class="nc" id="L237">      catch (PersistenceException ex) {</span>
         // in case of persistence exception retry execution some times later
-<span class="nc" id="L244">        this.retryCount++;</span>
-<span class="nc bnc" id="L245" title="All 2 branches missed.">        if (this.retryCount &gt;= MAX_RETRY_COUNT) {</span>
+<span class="nc" id="L239">        this.retryCount++;</span>
+<span class="nc bnc" id="L240" title="All 2 branches missed.">        if (this.retryCount &gt;= MAX_RETRY_COUNT) {</span>
           // retried too often - log as error
-<span class="nc" id="L247">          log.error(&quot;Failed after {} attempts: {}&quot;, this.retryCount, ex.getMessage(), ex);</span>
+<span class="nc" id="L242">          log.error(&quot;Failed after {} attempts: {}&quot;, this.retryCount, ex.getMessage(), ex);</span>
         }
         else {
-<span class="nc" id="L250">          log.debug(&quot;Failed {} attempt(s), retry: {}&quot;, this.retryCount, ex.getMessage(), ex);</span>
-<span class="nc" id="L251">          executorService.schedule(this, RETRY_DELAY_SECONDS, TimeUnit.SECONDS);</span>
+<span class="nc" id="L245">          log.debug(&quot;Failed {} attempt(s), retry: {}&quot;, this.retryCount, ex.getMessage(), ex);</span>
+<span class="nc" id="L246">          executorService.schedule(this, RETRY_DELAY_SECONDS, TimeUnit.SECONDS);</span>
         }
       }
-<span class="nc" id="L254">      catch (LoginException ex) {</span>
-<span class="nc" id="L255">        log.error(&quot;Missing service user mapping for 'io.wcm.handler.media:dam-rendition-metadata' - see https://wcm.io/handler/media/configuration.html&quot;, ex);</span>
+<span class="nc" id="L249">      catch (LoginException ex) {</span>
+<span class="nc" id="L250">        log.error(&quot;Missing service user mapping for 'io.wcm.handler.media:dam-rendition-metadata' - see https://wcm.io/handler/media/configuration.html&quot;, ex);</span>
       }
       finally {
-<span class="fc" id="L258">        lock.unlock();</span>
-<span class="pc bpc" id="L259" title="1 of 2 branches missed.">        if (serviceResourceResolver != null) {</span>
-<span class="fc" id="L260">          serviceResourceResolver.close();</span>
+<span class="fc" id="L253">        lock.unlock();</span>
+<span class="pc bpc" id="L254" title="1 of 2 branches missed.">        if (serviceResourceResolver != null) {</span>
+<span class="fc" id="L255">          serviceResourceResolver.close();</span>
         }
       }
-<span class="fc" id="L263">    }</span>
+<span class="fc" id="L258">    }</span>
 
     /**
      * Create or update rendition metadata if rendition is created or updated.
      * @throws PersistenceException Persistence exception
      */
     private void renditionAddedOrUpdated(ResourceResolver resolver) throws PersistenceException {
-<span class="fc" id="L270">      log.trace(&quot;Process rendition added/updated event: {}&quot;, renditionPath);</span>
-<span class="fc" id="L271">      RenditionMetadataGenerator generator = new RenditionMetadataGenerator(resolver, assetStore);</span>
-<span class="fc" id="L272">      generator.renditionAddedOrUpdated(renditionPath);</span>
-<span class="fc" id="L273">    }</span>
+<span class="fc" id="L265">      log.trace(&quot;Process rendition added/updated event: {}&quot;, renditionPath);</span>
+<span class="fc" id="L266">      RenditionMetadataGenerator generator = new RenditionMetadataGenerator(resolver, assetStore);</span>
+<span class="fc" id="L267">      generator.renditionAddedOrUpdated(renditionPath);</span>
+<span class="fc" id="L268">    }</span>
 
     /**
      * Remove rendition metadata node if rendition is removed.
      * @throws PersistenceException Persistence exception
      */
     private void renditionRemoved(ResourceResolver resolver) throws PersistenceException {
-<span class="fc" id="L280">      log.trace(&quot;Process rendition removed event: {}&quot;, renditionPath);</span>
-<span class="fc" id="L281">      RenditionMetadataGenerator generator = new RenditionMetadataGenerator(resolver, assetStore);</span>
-<span class="fc" id="L282">      generator.renditionRemoved(renditionPath);</span>
-<span class="fc" id="L283">    }</span>
+<span class="fc" id="L275">      log.trace(&quot;Process rendition removed event: {}&quot;, renditionPath);</span>
+<span class="fc" id="L276">      RenditionMetadataGenerator generator = new RenditionMetadataGenerator(resolver, assetStore);</span>
+<span class="fc" id="L277">      generator.renditionRemoved(renditionPath);</span>
+<span class="fc" id="L278">    }</span>
 
   }
 
