@@ -67,98 +67,99 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
   private AssetStore assetStore;
 
   @Override
+  @SuppressWarnings(&quot;java:S3776&quot;) // ignore complexity
   protected byte @Nullable [] getBinaryData(@NotNull Resource resource, @NotNull SlingHttpServletRequest request) throws IOException {
     // get media app config
-<span class="fc" id="L72">    MediaHandlerConfig config = AdaptTo.notNull(request, MediaHandlerConfig.class);</span>
+<span class="fc" id="L73">    MediaHandlerConfig config = AdaptTo.notNull(request, MediaHandlerConfig.class);</span>
 
     // parse selectors
-<span class="fc" id="L75">    ImageFileServletSelector params = new ImageFileServletSelector(request.getRequestPathInfo().getSelectors());</span>
-<span class="fc" id="L76">    int width = params.getWidth();</span>
-<span class="fc" id="L77">    int height = params.getHeight();</span>
-<span class="fc" id="L78">    CropDimension cropDimension = params.getCropDimension();</span>
-<span class="fc" id="L79">    int rotation = params.getRotation();</span>
-<span class="fc" id="L80">    int quality = params.getQuality();</span>
+<span class="fc" id="L76">    ImageFileServletSelector params = new ImageFileServletSelector(request.getRequestPathInfo().getSelectors());</span>
+<span class="fc" id="L77">    int width = params.getWidth();</span>
+<span class="fc" id="L78">    int height = params.getHeight();</span>
+<span class="fc" id="L79">    CropDimension cropDimension = params.getCropDimension();</span>
+<span class="fc" id="L80">    int rotation = params.getRotation();</span>
+<span class="fc" id="L81">    int quality = params.getQuality();</span>
 
     // ensure valid image size
-<span class="pc bpc" id="L83" title="2 of 8 branches missed.">    if (width &lt; 0 || height &lt; 0 || (width == 0 &amp;&amp; height == 0)) {</span>
-<span class="fc" id="L84">      return null;</span>
+<span class="pc bpc" id="L84" title="2 of 8 branches missed.">    if (width &lt; 0 || height &lt; 0 || (width == 0 &amp;&amp; height == 0)) {</span>
+<span class="fc" id="L85">      return null;</span>
     }
 
-<span class="fc" id="L87">    Layer layer = ResourceLayerUtil.toLayer(resource, assetStore);</span>
-<span class="pc bpc" id="L88" title="1 of 2 branches missed.">    if (layer == null) {</span>
-<span class="nc" id="L89">      return null;</span>
+<span class="fc" id="L88">    Layer layer = ResourceLayerUtil.toLayer(resource, assetStore);</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">    if (layer == null) {</span>
+<span class="nc" id="L90">      return null;</span>
     }
 
     // if only width or only height is given - derive other value from ratio
     double originalRatio;
-<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (cropDimension != null) {</span>
-<span class="fc" id="L95">      originalRatio = Ratio.get(cropDimension);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (cropDimension != null) {</span>
+<span class="fc" id="L96">      originalRatio = Ratio.get(cropDimension);</span>
     }
     else {
-<span class="fc" id="L98">      originalRatio = Ratio.get(layer.getWidth(), layer.getHeight());</span>
+<span class="fc" id="L99">      originalRatio = Ratio.get(layer.getWidth(), layer.getHeight());</span>
     }
-<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (width == 0) {</span>
-<span class="fc" id="L101">      width = (int)Math.round(height * originalRatio);</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">    if (width == 0) {</span>
+<span class="fc" id="L102">      width = (int)Math.round(height * originalRatio);</span>
     }
-<span class="fc bfc" id="L103" title="All 2 branches covered.">    else if (height == 0) {</span>
-<span class="fc" id="L104">      height = (int)Math.round(width / originalRatio);</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">    else if (height == 0) {</span>
+<span class="fc" id="L105">      height = (int)Math.round(width / originalRatio);</span>
     }
 
     // if required: crop image
-<span class="fc bfc" id="L108" title="All 2 branches covered.">    if (cropDimension != null) {</span>
-<span class="fc" id="L109">      layer.crop(cropDimension.getRectangle());</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (cropDimension != null) {</span>
+<span class="fc" id="L110">      layer.crop(cropDimension.getRectangle());</span>
     }
     else {
       // if image ratio that is requested does not match with the given ratio apply a center-crop here
-<span class="fc" id="L113">      double requestedRatio = Ratio.get(width, height);</span>
-<span class="fc bfc" id="L114" title="All 2 branches covered.">      if (!Ratio.matches(originalRatio, requestedRatio)) {</span>
-<span class="fc" id="L115">        cropDimension = ImageTransformation.calculateAutoCropDimension(layer.getWidth(), layer.getHeight(), requestedRatio);</span>
-<span class="fc" id="L116">        layer.crop(cropDimension.getRectangle());</span>
+<span class="fc" id="L114">      double requestedRatio = Ratio.get(width, height);</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">      if (!Ratio.matches(originalRatio, requestedRatio)) {</span>
+<span class="fc" id="L116">        cropDimension = ImageTransformation.calculateAutoCropDimension(layer.getWidth(), layer.getHeight(), requestedRatio);</span>
+<span class="fc" id="L117">        layer.crop(cropDimension.getRectangle());</span>
       }
     }
 
     // if required: rotate image
-<span class="fc bfc" id="L121" title="All 2 branches covered.">    if (rotation != 0) {</span>
-<span class="fc" id="L122">      layer.rotate(rotation);</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">    if (rotation != 0) {</span>
+<span class="fc" id="L123">      layer.rotate(rotation);</span>
     }
 
     // resize layer
-<span class="pc bpc" id="L126" title="1 of 4 branches missed.">    if (width &lt;= layer.getWidth() &amp;&amp; height &lt;= layer.getHeight()) {</span>
-<span class="fc" id="L127">      layer.resize(width, height);</span>
+<span class="pc bpc" id="L127" title="1 of 4 branches missed.">    if (width &lt;= layer.getWidth() &amp;&amp; height &lt;= layer.getHeight()) {</span>
+<span class="fc" id="L128">      layer.resize(width, height);</span>
     }
 
     // determine layer quality with fallback to default image quality if not set
-<span class="fc" id="L131">    String contentType = getContentType(resource, request);</span>
+<span class="fc" id="L132">    String contentType = getContentType(resource, request);</span>
     double layerQuality;
-<span class="fc bfc" id="L133" title="All 2 branches covered.">    if (quality &gt; 0) {</span>
-<span class="fc" id="L134">      layerQuality = quality / 100d;</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">    if (quality &gt; 0) {</span>
+<span class="fc" id="L135">      layerQuality = quality / 100d;</span>
     }
     else {
-<span class="fc" id="L137">      layerQuality = config.getDefaultImageQuality(contentType);</span>
+<span class="fc" id="L138">      layerQuality = config.getDefaultImageQuality(contentType);</span>
     }
 
     // stream to byte array
-<span class="fc" id="L141">    ByteArrayOutputStream bos = new ByteArrayOutputStream();</span>
-<span class="fc" id="L142">    layer.write(contentType, layerQuality, bos);</span>
-<span class="fc" id="L143">    bos.flush();</span>
-<span class="fc" id="L144">    return bos.toByteArray();</span>
+<span class="fc" id="L142">    ByteArrayOutputStream bos = new ByteArrayOutputStream();</span>
+<span class="fc" id="L143">    layer.write(contentType, layerQuality, bos);</span>
+<span class="fc" id="L144">    bos.flush();</span>
+<span class="fc" id="L145">    return bos.toByteArray();</span>
   }
 
   @Override
   protected @NotNull String getContentType(@NotNull Resource resource, @NotNull SlingHttpServletRequest request) {
 
     // get filename from suffix to get extension
-<span class="fc" id="L151">    String fileName = request.getRequestPathInfo().getSuffix();</span>
-<span class="fc bfc" id="L152" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(fileName)) {</span>
+<span class="fc" id="L152">    String fileName = request.getRequestPathInfo().getSuffix();</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(fileName)) {</span>
       // if extension is PNG use PNG content type, otherwise fallback to JPEG
-<span class="fc" id="L154">      String fileExtension = StringUtils.substringAfterLast(fileName, &quot;.&quot;);</span>
-<span class="fc bfc" id="L155" title="All 2 branches covered.">      if (StringUtils.equalsIgnoreCase(fileExtension, FileExtension.PNG)) {</span>
-<span class="fc" id="L156">        return ContentType.PNG;</span>
+<span class="fc" id="L155">      String fileExtension = StringUtils.substringAfterLast(fileName, &quot;.&quot;);</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">      if (StringUtils.equalsIgnoreCase(fileExtension, FileExtension.PNG)) {</span>
+<span class="fc" id="L157">        return ContentType.PNG;</span>
       }
     }
 
     // for rendered images use JPEG mime type as default fallback
-<span class="fc" id="L161">    return ContentType.JPEG;</span>
+<span class="fc" id="L162">    return ContentType.JPEG;</span>
   }
 
   /**
@@ -168,7 +169,7 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
    * @return Filename to be used for URL.
    */
   public static String getImageFileName(@NotNull String originalFilename) {
-<span class="fc" id="L171">    return getImageFileName(originalFilename, null);</span>
+<span class="fc" id="L172">    return getImageFileName(originalFilename, null);</span>
   }
 
   /**
@@ -180,20 +181,20 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
    */
   public static String getImageFileName(@NotNull String originalFilename,
       @Nullable String enforceOutputFileExtension) {
-<span class="fc" id="L183">    String namePart = StringUtils.substringBeforeLast(originalFilename, &quot;.&quot;);</span>
-<span class="fc" id="L184">    String extensionPart = StringUtils.substringAfterLast(originalFilename, &quot;.&quot;);</span>
-<span class="fc bfc" id="L185" title="All 2 branches covered.">    if (enforceOutputFileExtension != null) {</span>
-<span class="fc" id="L186">      extensionPart = enforceOutputFileExtension;</span>
+<span class="fc" id="L184">    String namePart = StringUtils.substringBeforeLast(originalFilename, &quot;.&quot;);</span>
+<span class="fc" id="L185">    String extensionPart = StringUtils.substringAfterLast(originalFilename, &quot;.&quot;);</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">    if (enforceOutputFileExtension != null) {</span>
+<span class="fc" id="L187">      extensionPart = enforceOutputFileExtension;</span>
     }
 
     // use PNG format if requested format is PNG, otherwise always use JPEG
-<span class="fc bfc" id="L190" title="All 2 branches covered.">    if (StringUtils.equalsIgnoreCase(extensionPart, FileExtension.PNG)) {</span>
-<span class="fc" id="L191">      extensionPart = FileExtension.PNG;</span>
+<span class="fc bfc" id="L191" title="All 2 branches covered.">    if (StringUtils.equalsIgnoreCase(extensionPart, FileExtension.PNG)) {</span>
+<span class="fc" id="L192">      extensionPart = FileExtension.PNG;</span>
     }
     else {
-<span class="fc" id="L194">      extensionPart = FileExtension.JPEG;</span>
+<span class="fc" id="L195">      extensionPart = FileExtension.JPEG;</span>
     }
-<span class="fc" id="L196">    return namePart + &quot;.&quot; + extensionPart;</span>
+<span class="fc" id="L197">    return namePart + &quot;.&quot; + extensionPart;</span>
   }
 
 }

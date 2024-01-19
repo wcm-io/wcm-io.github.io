@@ -51,66 +51,69 @@ import io.wcm.handler.media.spi.ImageMapLinkResolver;
   private ImageMapLinkResolver linkResolver;
 
   @Override
-  @SuppressWarnings({ &quot;null&quot;, &quot;unchecked&quot; })
+  @SuppressWarnings({
+      &quot;null&quot;, &quot;unchecked&quot;,
+      &quot;java:S3776&quot;, &quot;S135&quot; // ignore complexity
+  })
   public @Nullable List&lt;ImageMapArea&lt;T&gt;&gt; parseMap(@Nullable String mapString) {
-<span class="fc bfc" id="L56" title="All 2 branches covered.">    if (StringUtils.isBlank(mapString)) {</span>
-<span class="fc" id="L57">      return null;</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    if (StringUtils.isBlank(mapString)) {</span>
+<span class="fc" id="L60">      return null;</span>
     }
 
-<span class="fc" id="L60">    List&lt;ImageMapArea&lt;T&gt;&gt; areas = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L63">    List&lt;ImageMapArea&lt;T&gt;&gt; areas = new ArrayList&lt;&gt;();</span>
     // Parse the image map areas as defined at Image.PN_MAP
-<span class="fc" id="L62">    String[] areaStrings = StringUtils.split(mapString, &quot;][&quot;);</span>
-<span class="fc bfc" id="L63" title="All 2 branches covered.">    for (String areaString : areaStrings) {</span>
-<span class="fc" id="L64">      int coordinatesEndIndex = areaString.indexOf(')');</span>
-<span class="fc bfc" id="L65" title="All 2 branches covered.">      if (coordinatesEndIndex &lt; 0) {</span>
-<span class="fc" id="L66">        continue;</span>
+<span class="fc" id="L65">    String[] areaStrings = StringUtils.split(mapString, &quot;][&quot;);</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">    for (String areaString : areaStrings) {</span>
+<span class="fc" id="L67">      int coordinatesEndIndex = areaString.indexOf(')');</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">      if (coordinatesEndIndex &lt; 0) {</span>
+<span class="fc" id="L69">        continue;</span>
       }
-<span class="fc" id="L68">      String shapeAndCoords = StringUtils.substring(areaString, 0, coordinatesEndIndex + 1);</span>
-<span class="fc" id="L69">      String shape = StringUtils.substringBefore(shapeAndCoords, &quot;(&quot;);</span>
-<span class="fc" id="L70">      String coordinates = StringUtils.substringBetween(shapeAndCoords, &quot;(&quot;, &quot;)&quot;);</span>
-<span class="fc" id="L71">      String remaining = StringUtils.substring(areaString, coordinatesEndIndex + 1);</span>
-<span class="fc" id="L72">      String[] remainingTokens = StringUtils.split(remaining, &quot;|&quot;);</span>
-<span class="pc bpc" id="L73" title="2 of 4 branches missed.">      if (StringUtils.isBlank(shape) || StringUtils.isBlank(coordinates)) {</span>
-<span class="nc" id="L74">        continue;</span>
+<span class="fc" id="L71">      String shapeAndCoords = StringUtils.substring(areaString, 0, coordinatesEndIndex + 1);</span>
+<span class="fc" id="L72">      String shape = StringUtils.substringBefore(shapeAndCoords, &quot;(&quot;);</span>
+<span class="fc" id="L73">      String coordinates = StringUtils.substringBetween(shapeAndCoords, &quot;(&quot;, &quot;)&quot;);</span>
+<span class="fc" id="L74">      String remaining = StringUtils.substring(areaString, coordinatesEndIndex + 1);</span>
+<span class="fc" id="L75">      String[] remainingTokens = StringUtils.split(remaining, &quot;|&quot;);</span>
+<span class="pc bpc" id="L76" title="2 of 4 branches missed.">      if (StringUtils.isBlank(shape) || StringUtils.isBlank(coordinates)) {</span>
+<span class="nc" id="L77">        continue;</span>
       }
-<span class="pc bpc" id="L76" title="1 of 2 branches missed.">      if (remainingTokens.length &gt; 0) {</span>
-<span class="fc" id="L77">        String linkUrl = StringUtils.remove(remainingTokens[0], &quot;\&quot;&quot;);</span>
-<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        String linkWindowTarget = remainingTokens.length &gt; 1 ? StringUtils.remove(remainingTokens[1], &quot;\&quot;&quot;) : &quot;&quot;;</span>
-<span class="pc bpc" id="L79" title="1 of 2 branches missed.">        String altText = remainingTokens.length &gt; 2 ? StringUtils.remove(remainingTokens[2], &quot;\&quot;&quot;) : &quot;&quot;;</span>
-<span class="pc bpc" id="L80" title="1 of 2 branches missed.">        String relativeCoordinates = remainingTokens.length &gt; 3 ? remainingTokens[3] : &quot;&quot;;</span>
-<span class="fc" id="L81">        relativeCoordinates = StringUtils.substringBetween(relativeCoordinates, &quot;(&quot;, &quot;)&quot;);</span>
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">      if (remainingTokens.length &gt; 0) {</span>
+<span class="fc" id="L80">        String linkUrl = StringUtils.remove(remainingTokens[0], &quot;\&quot;&quot;);</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">        String linkWindowTarget = remainingTokens.length &gt; 1 ? StringUtils.remove(remainingTokens[1], &quot;\&quot;&quot;) : &quot;&quot;;</span>
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">        String altText = remainingTokens.length &gt; 2 ? StringUtils.remove(remainingTokens[2], &quot;\&quot;&quot;) : &quot;&quot;;</span>
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">        String relativeCoordinates = remainingTokens.length &gt; 3 ? remainingTokens[3] : &quot;&quot;;</span>
+<span class="fc" id="L84">        relativeCoordinates = StringUtils.substringBetween(relativeCoordinates, &quot;(&quot;, &quot;)&quot;);</span>
 
         // resolve and validate via link handler
-<span class="fc" id="L84">        T link = null;</span>
-<span class="fc bfc" id="L85" title="All 2 branches covered.">        if (linkResolver != null) {</span>
-<span class="fc" id="L86">          link = (T)linkResolver.resolveLink(linkUrl, linkWindowTarget, resource);</span>
-<span class="pc bpc" id="L87" title="1 of 2 branches missed.">          if (link != null) {</span>
-<span class="fc" id="L88">            linkUrl = linkResolver.getLinkUrl(link);</span>
+<span class="fc" id="L87">        T link = null;</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (linkResolver != null) {</span>
+<span class="fc" id="L89">          link = (T)linkResolver.resolveLink(linkUrl, linkWindowTarget, resource);</span>
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">          if (link != null) {</span>
+<span class="fc" id="L91">            linkUrl = linkResolver.getLinkUrl(link);</span>
           }
           else {
             // fallback to old signature
-<span class="nc" id="L92">            linkUrl = linkResolver.resolve(linkUrl, resource);</span>
+<span class="nc" id="L95">            linkUrl = linkResolver.resolve(linkUrl, resource);</span>
           }
         }
 
-<span class="pc bpc" id="L96" title="1 of 4 branches missed.">        if (linkUrl == null || StringUtils.isBlank(linkUrl)) {</span>
-<span class="nc" id="L97">          continue;</span>
+<span class="pc bpc" id="L99" title="1 of 4 branches missed.">        if (linkUrl == null || StringUtils.isBlank(linkUrl)) {</span>
+<span class="nc" id="L100">          continue;</span>
         }
 
-<span class="fc" id="L100">        ImageMapArea&lt;T&gt; area = new ImageMapAreaImpl&lt;&gt;(shape, coordinates,</span>
-<span class="fc" id="L101">            StringUtils.trimToNull(relativeCoordinates),</span>
+<span class="fc" id="L103">        ImageMapArea&lt;T&gt; area = new ImageMapAreaImpl&lt;&gt;(shape, coordinates,</span>
+<span class="fc" id="L104">            StringUtils.trimToNull(relativeCoordinates),</span>
             link, linkUrl,
-<span class="fc" id="L103">            StringUtils.trimToNull(linkWindowTarget), StringUtils.trimToNull(altText));</span>
+<span class="fc" id="L106">            StringUtils.trimToNull(linkWindowTarget), StringUtils.trimToNull(altText));</span>
 
-<span class="fc" id="L105">        areas.add(area);</span>
+<span class="fc" id="L108">        areas.add(area);</span>
       }
     }
 
-<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (areas.isEmpty()) {</span>
-<span class="fc" id="L110">      return null;</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (areas.isEmpty()) {</span>
+<span class="fc" id="L113">      return null;</span>
     }
     else {
-<span class="fc" id="L113">      return areas;</span>
+<span class="fc" id="L116">      return areas;</span>
     }
   }
 
