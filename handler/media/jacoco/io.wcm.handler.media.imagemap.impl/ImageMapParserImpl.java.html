@@ -37,30 +37,30 @@ import io.wcm.handler.media.spi.ImageMapLinkResolver;
 
 /**
  * Creates {@link ImageMapArea} from strings.
- * @param &lt;T&gt; Link result type
  */
 @Model(adaptables = {
     SlingHttpServletRequest.class, Resource.class
 }, adapters = ImageMapParser.class)
-<span class="fc" id="L45">public class ImageMapParserImpl&lt;T&gt; implements ImageMapParser&lt;T&gt; {</span>
+<span class="fc" id="L44">public class ImageMapParserImpl implements ImageMapParser {</span>
 
   @SlingObject
   private Resource resource;
 
   @OSGiService(injectionStrategy = InjectionStrategy.OPTIONAL)
+  @SuppressWarnings(&quot;java:S3740&quot;) // don't use generic here
   private ImageMapLinkResolver linkResolver;
 
   @Override
   @SuppressWarnings({
-      &quot;null&quot;, &quot;unchecked&quot;,
+      &quot;unchecked&quot;,
       &quot;java:S3776&quot;, &quot;java:S135&quot; // ignore complexity
   })
-  public @Nullable List&lt;ImageMapArea&lt;T&gt;&gt; parseMap(@Nullable String mapString) {
+  public @Nullable List&lt;ImageMapArea&gt; parseMap(@Nullable String mapString) {
 <span class="fc bfc" id="L59" title="All 2 branches covered.">    if (StringUtils.isBlank(mapString)) {</span>
 <span class="fc" id="L60">      return null;</span>
     }
 
-<span class="fc" id="L63">    List&lt;ImageMapArea&lt;T&gt;&gt; areas = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L63">    List&lt;ImageMapArea&gt; areas = new ArrayList&lt;&gt;();</span>
     // Parse the image map areas as defined at Image.PN_MAP
 <span class="fc" id="L65">    String[] areaStrings = StringUtils.split(mapString, &quot;][&quot;);</span>
 <span class="fc bfc" id="L66" title="All 2 branches covered.">    for (String areaString : areaStrings) {</span>
@@ -84,36 +84,32 @@ import io.wcm.handler.media.spi.ImageMapLinkResolver;
 <span class="fc" id="L84">        relativeCoordinates = StringUtils.substringBetween(relativeCoordinates, &quot;(&quot;, &quot;)&quot;);</span>
 
         // resolve and validate via link handler
-<span class="fc" id="L87">        T link = null;</span>
+<span class="fc" id="L87">        Object link = null;</span>
 <span class="fc bfc" id="L88" title="All 2 branches covered.">        if (linkResolver != null) {</span>
-<span class="fc" id="L89">          link = (T)linkResolver.resolveLink(linkUrl, linkWindowTarget, resource);</span>
+<span class="fc" id="L89">          link = linkResolver.resolveLink(linkUrl, linkWindowTarget, resource);</span>
 <span class="pc bpc" id="L90" title="1 of 2 branches missed.">          if (link != null) {</span>
 <span class="fc" id="L91">            linkUrl = linkResolver.getLinkUrl(link);</span>
           }
-          else {
-            // fallback to old signature
-<span class="nc" id="L95">            linkUrl = linkResolver.resolve(linkUrl, resource);</span>
-          }
         }
 
-<span class="pc bpc" id="L99" title="1 of 4 branches missed.">        if (linkUrl == null || StringUtils.isBlank(linkUrl)) {</span>
-<span class="nc" id="L100">          continue;</span>
+<span class="pc bpc" id="L95" title="1 of 4 branches missed.">        if (linkUrl == null || StringUtils.isBlank(linkUrl)) {</span>
+<span class="nc" id="L96">          continue;</span>
         }
 
-<span class="fc" id="L103">        ImageMapArea&lt;T&gt; area = new ImageMapAreaImpl&lt;&gt;(shape, coordinates,</span>
-<span class="fc" id="L104">            StringUtils.trimToNull(relativeCoordinates),</span>
+<span class="fc" id="L99">        ImageMapArea area = new ImageMapAreaImpl(shape, coordinates,</span>
+<span class="fc" id="L100">            StringUtils.trimToNull(relativeCoordinates),</span>
             link, linkUrl,
-<span class="fc" id="L106">            StringUtils.trimToNull(linkWindowTarget), StringUtils.trimToNull(altText));</span>
+<span class="fc" id="L102">            StringUtils.trimToNull(linkWindowTarget), StringUtils.trimToNull(altText));</span>
 
-<span class="fc" id="L108">        areas.add(area);</span>
+<span class="fc" id="L104">        areas.add(area);</span>
       }
     }
 
-<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (areas.isEmpty()) {</span>
-<span class="fc" id="L113">      return null;</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">    if (areas.isEmpty()) {</span>
+<span class="fc" id="L109">      return null;</span>
     }
     else {
-<span class="fc" id="L116">      return areas;</span>
+<span class="fc" id="L112">      return areas;</span>
     }
   }
 
