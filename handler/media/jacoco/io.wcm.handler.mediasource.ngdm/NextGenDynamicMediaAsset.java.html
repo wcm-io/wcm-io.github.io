@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NextGenDynamicMediaAsset.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.ngdm</a> &gt; <span class="el_source">NextGenDynamicMediaAsset.java</span></div><h1>NextGenDynamicMediaAsset.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2024 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.ngdm;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.ValueMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import io.wcm.handler.media.Asset;
+import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.Rendition;
+import io.wcm.handler.media.UriTemplate;
+import io.wcm.handler.media.UriTemplateType;
+import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaContext;
+
+/**
+ * {@link Asset} implementation for Next Gen. Dynamic Media remote assets.
+ */
+final class NextGenDynamicMediaAsset implements Asset {
+
+  private final NextGenDynamicMediaContext context;
+
+<span class="fc" id="L41">  NextGenDynamicMediaAsset(@NotNull NextGenDynamicMediaContext context) {</span>
+<span class="fc" id="L42">    this.context = context;</span>
+<span class="fc" id="L43">  }</span>
+
+  @Override
+  public @Nullable String getTitle() {
+<span class="fc" id="L47">    return context.getReference().getFileName();</span>
+  }
+
+  @Override
+  public @Nullable String getAltText() {
+<span class="pc bpc" id="L52" title="1 of 2 branches missed.">    if (context.getDefaultMediaArgs().isDecorative()) {</span>
+<span class="nc" id="L53">      return &quot;&quot;;</span>
+    }
+    else {
+<span class="fc" id="L56">      return context.getDefaultMediaArgs().getAltText();</span>
+    }
+  }
+
+  @Override
+  public @Nullable String getDescription() {
+    // not supported
+<span class="fc" id="L63">    return null;</span>
+  }
+
+  @Override
+  public @Nullable String getPath() {
+<span class="fc" id="L68">    return context.getReference().toReference();</span>
+  }
+
+  @Override
+  public @NotNull ValueMap getProperties() {
+<span class="fc" id="L73">    return ValueMap.EMPTY;</span>
+  }
+
+  @Override
+  public @Nullable Rendition getDefaultRendition() {
+<span class="fc" id="L78">    return getRendition(this.context.getDefaultMediaArgs());</span>
+  }
+
+  @Override
+  public @Nullable Rendition getRendition(@NotNull MediaArgs mediaArgs) {
+<span class="fc" id="L83">    Rendition rendition = new NextGenDynamicMediaRendition(context, mediaArgs);</span>
+
+    // check if rendition is valid - otherwise return null
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">    if (StringUtils.isEmpty(rendition.getUrl())) {</span>
+<span class="nc" id="L87">      rendition = null;</span>
+    }
+
+<span class="fc" id="L90">    return rendition;</span>
+  }
+
+  @Override
+  public @Nullable Rendition getImageRendition(@NotNull MediaArgs mediaArgs) {
+<span class="fc" id="L95">    Rendition rendition = getRendition(mediaArgs);</span>
+<span class="pc bpc" id="L96" title="2 of 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isImage()) {</span>
+<span class="fc" id="L97">      return rendition;</span>
+    }
+<span class="nc" id="L99">    return null;</span>
+  }
+
+  @Override
+  public @Nullable Rendition getDownloadRendition(@NotNull MediaArgs mediaArgs) {
+<span class="fc" id="L104">    Rendition rendition = getRendition(mediaArgs);</span>
+<span class="pc bpc" id="L105" title="2 of 4 branches missed.">    if (rendition != null &amp;&amp; rendition.isDownload()) {</span>
+<span class="nc" id="L106">      return rendition;</span>
+    }
+<span class="fc" id="L108">    return null;</span>
+  }
+
+  @Override
+  public @NotNull UriTemplate getUriTemplate(@NotNull UriTemplateType type) {
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">    if (type == UriTemplateType.SCALE_HEIGHT) {</span>
+<span class="nc" id="L114">      throw new IllegalArgumentException(&quot;URI template type not supported: &quot; + type);</span>
+    }
+<span class="fc" id="L116">    return new NextGenDynamicMediaUriTemplate(context, type);</span>
+  }
+
+  @Override
+  public &lt;AdapterType&gt; @Nullable AdapterType adaptTo(@NotNull Class&lt;AdapterType&gt; arg0) {
+    // not adaption supported
+<span class="fc" id="L122">    return null;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

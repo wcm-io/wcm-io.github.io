@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NextGenDynamicMediaRendition.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.ngdm</a> &gt; <span class="el_source">NextGenDynamicMediaRendition.java</span></div><h1>NextGenDynamicMediaRendition.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2024 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.ngdm;
+
+import java.util.Date;
+import java.util.Objects;
+
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.resource.ValueMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import io.wcm.handler.media.Dimension;
+import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.MediaFileType;
+import io.wcm.handler.media.Rendition;
+import io.wcm.handler.media.UriTemplate;
+import io.wcm.handler.media.UriTemplateType;
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.mediasource.ngdm.impl.ImageQualityPercentage;
+import io.wcm.handler.mediasource.ngdm.impl.MediaArgsDimension;
+import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaContext;
+import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaImageDeliveryParams;
+import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaReference;
+import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaUrlBuilder;
+
+/**
+ * {@link Rendition} implementation for Next Gen. Dynamic Media remote assets.
+ */
+final class NextGenDynamicMediaRendition implements Rendition {
+
+  private final NextGenDynamicMediaContext context;
+  private final NextGenDynamicMediaReference reference;
+  private final MediaArgs mediaArgs;
+  private final String url;
+  private MediaFormat resolvedMediaFormat;
+  private long width;
+  private long height;
+
+<span class="fc" id="L58">  NextGenDynamicMediaRendition(@NotNull NextGenDynamicMediaContext context, @NotNull MediaArgs mediaArgs) {</span>
+<span class="fc" id="L59">    this.context = context;</span>
+<span class="fc" id="L60">    this.reference = context.getReference();</span>
+<span class="fc" id="L61">    this.mediaArgs = mediaArgs;</span>
+<span class="fc" id="L62">    this.width = mediaArgs.getFixedWidth();</span>
+<span class="fc" id="L63">    this.height = mediaArgs.getFixedHeight();</span>
+
+    // set first media format as resolved format - because only the first is supported
+<span class="fc" id="L66">    MediaFormat firstMediaFormat = MediaArgsDimension.getFirstMediaFormat(mediaArgs);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">    if (firstMediaFormat != null) {</span>
+<span class="fc" id="L68">      this.resolvedMediaFormat = firstMediaFormat;</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">      if (this.width == 0) {</span>
+<span class="fc" id="L70">        this.width = firstMediaFormat.getEffectiveMinWidth();</span>
+      }
+    }
+
+    // calculate height
+<span class="fc bfc" id="L75" title="All 2 branches covered.">    if (this.width &gt; 0) {</span>
+<span class="fc" id="L76">      double ratio = MediaArgsDimension.getRequestedRatio(mediaArgs);</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">      if (ratio &gt; 0) {</span>
+<span class="fc" id="L78">        this.height = Math.round(this.width / ratio);</span>
+      }
+    }
+
+<span class="fc" id="L82">    NextGenDynamicMediaImageDeliveryParams params = new NextGenDynamicMediaImageDeliveryParams()</span>
+<span class="fc" id="L83">        .rotation(context.getMedia().getRotation())</span>
+<span class="fc" id="L84">        .quality(ImageQualityPercentage.getAsInteger(mediaArgs, context.getMediaHandlerConfig()));</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">    if (this.width &gt; 0) {</span>
+<span class="fc" id="L86">      params.width(this.width);</span>
+    }
+<span class="fc" id="L88">    Dimension ratioDimension = MediaArgsDimension.getRequestedRatioAsWidthHeight(mediaArgs);</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">    if (ratioDimension != null) {</span>
+<span class="fc" id="L90">      params.cropSmartRatio(ratioDimension);</span>
+    }
+
+<span class="fc" id="L93">    this.url = new NextGenDynamicMediaUrlBuilder(context).build(params);</span>
+<span class="fc" id="L94">  }</span>
+
+  @Override
+  public @Nullable String getUrl() {
+<span class="fc" id="L98">    return url;</span>
+  }
+
+  @Override
+  public @Nullable String getPath() {
+    // not supported
+<span class="fc" id="L104">    return null;</span>
+  }
+
+  @Override
+  public @Nullable String getFileName() {
+<span class="fc" id="L109">    return reference.getFileName();</span>
+  }
+
+  @Override
+  public @Nullable String getFileExtension() {
+<span class="fc" id="L114">    String extension = mediaArgs.getEnforceOutputFileExtension();</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">    if (StringUtils.isEmpty(extension)) {</span>
+<span class="fc" id="L116">      extension = FilenameUtils.getExtension(reference.getFileName());</span>
+    }
+<span class="fc" id="L118">    return extension;</span>
+  }
+
+  @Override
+  public long getFileSize() {
+    // file size is unknown
+<span class="fc" id="L124">    return -1;</span>
+  }
+
+  @Override
+  public @Nullable String getMimeType() {
+<span class="fc" id="L129">    return context.getMimeTypeService().getMimeType(getFileExtension());</span>
+  }
+
+  @Override
+  public @Nullable MediaFormat getMediaFormat() {
+<span class="fc" id="L134">    return this.resolvedMediaFormat;</span>
+  }
+
+  @Override
+  public @NotNull ValueMap getProperties() {
+<span class="fc" id="L139">    return ValueMap.EMPTY;</span>
+  }
+
+  @Override
+  public boolean isImage() {
+<span class="fc" id="L144">    return MediaFileType.isImage(getFileExtension());</span>
+  }
+
+  @Override
+  public boolean isBrowserImage() {
+<span class="fc" id="L149">    return MediaFileType.isBrowserImage(getFileExtension());</span>
+  }
+
+  @Override
+  public boolean isVectorImage() {
+<span class="fc" id="L154">    return MediaFileType.isVectorImage(getFileExtension());</span>
+  }
+
+  @Override
+  public boolean isDownload() {
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">    return !isImage();</span>
+  }
+
+  @Override
+  public long getWidth() {
+<span class="fc" id="L164">    return width;</span>
+  }
+
+  @Override
+  public long getHeight() {
+<span class="fc" id="L169">    return height;</span>
+  }
+
+  @Override
+  public @Nullable Date getModificationDate() {
+    // not supported
+<span class="fc" id="L175">    return null;</span>
+  }
+
+  @Override
+  public boolean isFallback() {
+    // not supported
+<span class="fc" id="L181">    return false;</span>
+  }
+
+  @Override
+  public @NotNull UriTemplate getUriTemplate(@NotNull UriTemplateType type) {
+<span class="fc" id="L186">    return new NextGenDynamicMediaUriTemplate(context, type);</span>
+  }
+
+  @Override
+  public &lt;AdapterType&gt; @Nullable AdapterType adaptTo(@NotNull Class&lt;AdapterType&gt; arg0) {
+    // not adaption supported
+<span class="fc" id="L192">    return null;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L197">    return Objects.toString(url, &quot;#invalid&quot;);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

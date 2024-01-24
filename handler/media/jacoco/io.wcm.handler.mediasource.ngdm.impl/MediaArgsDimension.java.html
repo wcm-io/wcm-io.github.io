@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MediaArgsDimension.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.ngdm.impl</a> &gt; <span class="el_source">MediaArgsDimension.java</span></div><h1>MediaArgsDimension.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2024 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.ngdm.impl;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import io.wcm.handler.media.Dimension;
+import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.format.MediaFormat;
+import io.wcm.handler.media.format.Ratio;
+
+/**
+ * Gets requested dimension/ratio from media args (only first media format is inspected).
+ */
+public final class MediaArgsDimension {
+
+  private MediaArgsDimension() {
+    // static methods only
+  }
+
+  /**
+   * Requested dimensions either from media format or fixed dimensions from media args.
+   * @param mediaArgs Media args
+   * @return Requested dimensions
+   */
+  public static @NotNull Dimension getRequestedDimension(@NotNull MediaArgs mediaArgs) {
+
+    // check for fixed dimensions from media args
+<span class="fc bfc" id="L47" title="All 4 branches covered.">    if (mediaArgs.getFixedWidth() &gt; 0 || mediaArgs.getFixedHeight() &gt; 0) {</span>
+<span class="fc" id="L48">      return new Dimension(mediaArgs.getFixedWidth(), mediaArgs.getFixedHeight());</span>
+    }
+
+    // check for dimensions from mediaformat (evaluate only first media format)
+<span class="fc" id="L52">    MediaFormat mediaFormat = getFirstMediaFormat(mediaArgs);</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">    if (mediaFormat != null) {</span>
+<span class="fc" id="L54">      Dimension dimension = mediaFormat.getMinDimension();</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">      if (dimension != null) {</span>
+<span class="fc" id="L56">        return dimension;</span>
+      }
+    }
+
+    // fallback to 0/0 - no specific dimension requested
+<span class="fc" id="L61">    return new Dimension(0, 0);</span>
+  }
+
+  /**
+   * Requested ratio either from media format or fixed dimensions from media args.
+   * @param mediaArgs Media args
+   * @return Requested ratio
+   */
+  public static double getRequestedRatio(@NotNull MediaArgs mediaArgs) {
+
+    // check for fixed dimensions from media args
+<span class="fc bfc" id="L72" title="All 4 branches covered.">    if (mediaArgs.getFixedWidth() &gt; 0 &amp;&amp; mediaArgs.getFixedHeight() &gt; 0) {</span>
+<span class="fc" id="L73">      return Ratio.get(mediaArgs.getFixedWidth(), mediaArgs.getFixedHeight());</span>
+    }
+
+    // check for dimensions from mediaformat (evaluate only first media format)
+<span class="fc" id="L77">    MediaFormat mediaFormat = getFirstMediaFormat(mediaArgs);</span>
+<span class="fc bfc" id="L78" title="All 4 branches covered.">    if (mediaFormat != null &amp;&amp; mediaFormat.getRatio() &gt; 0) {</span>
+<span class="fc" id="L79">      return mediaFormat.getRatio();</span>
+    }
+
+    // no ratio
+<span class="fc" id="L83">    return 0d;</span>
+  }
+
+  /**
+   * Requested ratio either from media format or fixed dimensions from media args as width/height dimension
+   * (as integers, not rounded but extrapolated).
+   * @param mediaArgs Media args
+   * @return Requested ratio or null if no ratio is requested
+   */
+  public static @Nullable Dimension getRequestedRatioAsWidthHeight(@NotNull MediaArgs mediaArgs) {
+
+    // check for fixed dimensions from media args
+<span class="pc bpc" id="L95" title="1 of 4 branches missed.">    if (mediaArgs.getFixedWidth() &gt; 0 &amp;&amp; mediaArgs.getFixedHeight() &gt; 0) {</span>
+<span class="fc" id="L96">      return new Dimension(mediaArgs.getFixedWidth(), mediaArgs.getFixedHeight());</span>
+    }
+
+    // check for dimensions from mediaformat (evaluate only first media format)
+<span class="fc" id="L100">    MediaFormat mediaFormat = getFirstMediaFormat(mediaArgs);</span>
+<span class="fc bfc" id="L101" title="All 4 branches covered.">    if (mediaFormat != null &amp;&amp; mediaFormat.getRatio() &gt; 0) {</span>
+<span class="fc" id="L102">      double ratioWidth = mediaFormat.getRatioWidthAsDouble();</span>
+<span class="fc" id="L103">      double ratioHeight = mediaFormat.getRatioHeightAsDouble();</span>
+<span class="pc bpc" id="L104" title="1 of 4 branches missed.">      if (!(ratioWidth &gt; 0 &amp;&amp; ratioHeight &gt; 0)) {</span>
+<span class="fc" id="L105">        ratioWidth = mediaFormat.getRatio();</span>
+<span class="fc" id="L106">        ratioHeight = 1;</span>
+      }
+<span class="fc bfc" id="L108" title="All 4 branches covered.">      if (ratioWidth % 1 &gt; 0 || ratioHeight % 1 &gt; 0) {</span>
+        // extrapolate to integer values by multiplication with 100,000 so we have at least 5 digits after the comma
+<span class="fc" id="L110">        ratioWidth *= 100000d;</span>
+<span class="fc" id="L111">        ratioHeight *= 100000d;</span>
+      }
+<span class="fc" id="L113">      return new Dimension(Math.round(ratioWidth), Math.round(ratioHeight));</span>
+    }
+
+    // no ratio
+<span class="fc" id="L117">    return null;</span>
+  }
+
+  /**
+   * Gets first media format.
+   * @param mediaArgs Media args
+   * @return First media format or null
+   */
+  public static @Nullable MediaFormat getFirstMediaFormat(@NotNull MediaArgs mediaArgs) {
+<span class="fc" id="L126">    MediaFormat[] mediaFormats = mediaArgs.getMediaFormats();</span>
+<span class="pc bpc" id="L127" title="1 of 4 branches missed.">    if (mediaFormats != null &amp;&amp; mediaFormats.length &gt; 0) {</span>
+<span class="fc" id="L128">      return mediaFormats[0];</span>
+    }
+<span class="fc" id="L130">    return null;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
