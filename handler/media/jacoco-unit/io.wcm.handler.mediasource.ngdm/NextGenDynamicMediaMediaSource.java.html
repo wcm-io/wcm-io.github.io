@@ -34,6 +34,7 @@ import org.osgi.annotation.versioning.ProviderType;
 
 import com.day.cq.wcm.api.WCMMode;
 import com.day.cq.wcm.api.components.ComponentContext;
+import com.day.cq.wcm.api.components.EditConfig;
 
 import io.wcm.handler.commons.dom.HtmlElement;
 import io.wcm.handler.media.Media;
@@ -55,7 +56,7 @@ import io.wcm.sling.models.annotations.AemObject;
     SlingHttpServletRequest.class, Resource.class
 })
 @ProviderType
-<span class="fc" id="L58">public class NextGenDynamicMediaMediaSource extends MediaSource {</span>
+<span class="fc" id="L59">public class NextGenDynamicMediaMediaSource extends MediaSource {</span>
 
   /**
    * Media source ID
@@ -78,78 +79,84 @@ import io.wcm.sling.models.annotations.AemObject;
 
   @Override
   public @NotNull String getId() {
-<span class="fc" id="L81">    return ID;</span>
+<span class="fc" id="L82">    return ID;</span>
   }
 
   @Override
   public boolean accepts(@Nullable String mediaRef) {
-<span class="fc bfc" id="L86" title="All 4 branches covered.">    return isNextGenDynamicMediaEnabled() &amp;&amp; NextGenDynamicMediaReference.isReference(mediaRef);</span>
+<span class="fc bfc" id="L87" title="All 4 branches covered.">    return isNextGenDynamicMediaEnabled() &amp;&amp; NextGenDynamicMediaReference.isReference(mediaRef);</span>
   }
 
   private boolean isNextGenDynamicMediaEnabled() {
-<span class="fc bfc" id="L90" title="All 4 branches covered.">    return nextGenDynamicMediaConfig != null &amp;&amp; nextGenDynamicMediaConfig.enabled();</span>
+<span class="fc bfc" id="L91" title="All 4 branches covered.">    return nextGenDynamicMediaConfig != null &amp;&amp; nextGenDynamicMediaConfig.enabled();</span>
   }
 
   @Override
   public @Nullable String getPrimaryMediaRefProperty() {
-<span class="fc" id="L95">    return mediaHandlerConfig.getMediaRefProperty();</span>
+<span class="fc" id="L96">    return mediaHandlerConfig.getMediaRefProperty();</span>
   }
 
   @Override
   public @NotNull Media resolveMedia(@NotNull Media media) {
-<span class="fc" id="L100">    String mediaRef = getMediaRef(media.getMediaRequest(), mediaHandlerConfig);</span>
-<span class="fc" id="L101">    MediaArgs mediaArgs = media.getMediaRequest().getMediaArgs();</span>
+<span class="fc" id="L101">    String mediaRef = getMediaRef(media.getMediaRequest(), mediaHandlerConfig);</span>
+<span class="fc" id="L102">    MediaArgs mediaArgs = media.getMediaRequest().getMediaArgs();</span>
 
     // check reference and enabled status
-<span class="fc" id="L104">    NextGenDynamicMediaReference reference = NextGenDynamicMediaReference.fromReference(mediaRef);</span>
-<span class="pc bpc" id="L105" title="2 of 4 branches missed.">    if (reference == null || !isNextGenDynamicMediaEnabled()) {</span>
-<span class="nc bnc" id="L106" title="All 2 branches missed.">      if (StringUtils.isEmpty(mediaRef)) {</span>
-<span class="nc" id="L107">        media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_MISSING);</span>
+<span class="fc" id="L105">    NextGenDynamicMediaReference reference = NextGenDynamicMediaReference.fromReference(mediaRef);</span>
+<span class="pc bpc" id="L106" title="2 of 4 branches missed.">    if (reference == null || !isNextGenDynamicMediaEnabled()) {</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">      if (StringUtils.isEmpty(mediaRef)) {</span>
+<span class="nc" id="L108">        media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_MISSING);</span>
       }
       else {
-<span class="nc" id="L110">        media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_INVALID);</span>
+<span class="nc" id="L111">        media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_INVALID);</span>
       }
-<span class="nc" id="L112">      return media;</span>
+<span class="nc" id="L113">      return media;</span>
     }
 
     // Update media args settings from resource (e.g. alt. text setings)
-<span class="fc" id="L116">    Resource referencedResource = media.getMediaRequest().getResource();</span>
-<span class="fc bfc" id="L117" title="All 2 branches covered.">    if (referencedResource != null) {</span>
-<span class="fc" id="L118">      updateMediaArgsFromResource(mediaArgs, referencedResource, mediaHandlerConfig);</span>
+<span class="fc" id="L117">    Resource referencedResource = media.getMediaRequest().getResource();</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (referencedResource != null) {</span>
+<span class="fc" id="L119">      updateMediaArgsFromResource(mediaArgs, referencedResource, mediaHandlerConfig);</span>
     }
 
-<span class="fc" id="L121">    NextGenDynamicMediaContext context = new NextGenDynamicMediaContext(reference, media, mediaArgs,</span>
+<span class="fc" id="L122">    NextGenDynamicMediaContext context = new NextGenDynamicMediaContext(reference, media, mediaArgs,</span>
         nextGenDynamicMediaConfig, mediaHandlerConfig, mimeTypeService);
-<span class="fc" id="L123">    NextGenDynamicMediaAsset asset = new NextGenDynamicMediaAsset(context);</span>
-<span class="fc" id="L124">    media.setAsset(asset);</span>
+<span class="fc" id="L124">    NextGenDynamicMediaAsset asset = new NextGenDynamicMediaAsset(context);</span>
+<span class="fc" id="L125">    media.setAsset(asset);</span>
 
     // resolve rendition
-<span class="fc" id="L127">    boolean renditionsResolved = resolveRenditions(media, asset, mediaArgs);</span>
+<span class="fc" id="L128">    boolean renditionsResolved = resolveRenditions(media, asset, mediaArgs);</span>
 
     // set media invalid reason
-<span class="pc bpc" id="L130" title="1 of 2 branches missed.">    if (!renditionsResolved) {</span>
-<span class="nc bnc" id="L131" title="All 2 branches missed.">      if (media.getRenditions().isEmpty()) {</span>
-<span class="nc" id="L132">        media.setMediaInvalidReason(MediaInvalidReason.NO_MATCHING_RENDITION);</span>
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">    if (!renditionsResolved) {</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">      if (media.getRenditions().isEmpty()) {</span>
+<span class="nc" id="L133">        media.setMediaInvalidReason(MediaInvalidReason.NO_MATCHING_RENDITION);</span>
       }
       else {
-<span class="nc" id="L135">        media.setMediaInvalidReason(MediaInvalidReason.NOT_ENOUGH_MATCHING_RENDITIONS);</span>
+<span class="nc" id="L136">        media.setMediaInvalidReason(MediaInvalidReason.NOT_ENOUGH_MATCHING_RENDITIONS);</span>
       }
     }
 
-<span class="fc" id="L139">    return media;</span>
+<span class="fc" id="L140">    return media;</span>
   }
 
   @Override
   public void enableMediaDrop(@NotNull HtmlElement element, @NotNull MediaRequest mediaRequest) {
-<span class="pc bpc" id="L144" title="1 of 4 branches missed.">    if (wcmMode == WCMMode.DISABLED || wcmMode == null) {</span>
-<span class="fc" id="L145">      return;</span>
+<span class="pc bpc" id="L145" title="1 of 4 branches missed.">    if (wcmMode == WCMMode.DISABLED || wcmMode == null) {</span>
+<span class="fc" id="L146">      return;</span>
     }
-<span class="pc bpc" id="L147" title="2 of 4 branches missed.">    if (componentContext != null &amp;&amp; componentContext.getEditContext() != null</span>
-<span class="pc bpc" id="L148" title="1 of 2 branches missed.">        &amp;&amp; MediaMarkupBuilderUtil.canApplyDragDropSupport(mediaRequest, componentContext)) {</span>
-      // check for this class is hard-coded in smartcropaction.js from core components
-<span class="fc" id="L150">      element.addCssClass(&quot;cq-dd-image&quot;);</span>
+<span class="pc bpc" id="L148" title="2 of 4 branches missed.">    if (componentContext != null &amp;&amp; componentContext.getEditContext() != null) {</span>
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">      if (MediaMarkupBuilderUtil.canApplyDragDropSupport(mediaRequest, componentContext)) {</span>
+        // check for this class is hard-coded in smartcropaction.js from core components
+<span class="fc" id="L151">        element.addCssClass(&quot;cq-dd-image&quot;);</span>
+      }
+<span class="fc" id="L153">      EditConfig editConfig = componentContext.getEditContext().getEditConfig();</span>
+<span class="pc bpc" id="L154" title="1 of 2 branches missed.">      if (editConfig != null) {</span>
+        // inline editing is not supported for NGDM asset references
+<span class="fc" id="L156">        editConfig.setInplaceEditingConfig(null);</span>
+      }
     }
-<span class="fc" id="L152">  }</span>
+<span class="fc" id="L159">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
