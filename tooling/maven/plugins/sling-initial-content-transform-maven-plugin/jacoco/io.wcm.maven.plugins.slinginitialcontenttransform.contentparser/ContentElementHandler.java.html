@@ -35,39 +35,41 @@ import io.wcm.tooling.commons.contentpackagebuilder.element.ContentElementImpl;
 <span class="fc" id="L35">final class ContentElementHandler implements ContentHandler {</span>
 
   private ContentElement root;
-<span class="fc" id="L38">  private static final Pattern PATH_PATTERN = Pattern.compile(&quot;^((/[^/]+)*)(/([^/]+))$&quot;);</span>
+
+  @SuppressWarnings(&quot;java:S5998&quot;) // paths are assumed to be safe
+<span class="fc" id="L40">  private static final Pattern PATH_PATTERN = Pattern.compile(&quot;^((/[^/]+)*)(/([^/]+))$&quot;);</span>
 
   @Override
   public void resource(String path, Map&lt;String, Object&gt; properties) {
-<span class="fc bfc" id="L42" title="All 2 branches covered.">    if (StringUtils.equals(path, &quot;/&quot;)) {</span>
-<span class="fc" id="L43">      root = new ContentElementImpl(null, properties);</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">    if (StringUtils.equals(path, &quot;/&quot;)) {</span>
+<span class="fc" id="L45">      root = new ContentElementImpl(null, properties);</span>
     }
     else {
-<span class="pc bpc" id="L46" title="1 of 2 branches missed.">      if (root == null) {</span>
-<span class="nc" id="L47">        throw new RuntimeException(&quot;Root resource not set.&quot;);</span>
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">      if (root == null) {</span>
+<span class="nc" id="L49">        throw new IllegalStateException(&quot;Root resource not set.&quot;);</span>
       }
-<span class="fc" id="L49">      Matcher matcher = PATH_PATTERN.matcher(path);</span>
-<span class="pc bpc" id="L50" title="1 of 2 branches missed.">      if (!matcher.matches()) {</span>
-<span class="nc" id="L51">        throw new RuntimeException(&quot;Unexpected path:&quot; + path);</span>
+<span class="fc" id="L51">      Matcher matcher = PATH_PATTERN.matcher(path);</span>
+<span class="pc bpc" id="L52" title="1 of 2 branches missed.">      if (!matcher.matches()) {</span>
+<span class="nc" id="L53">        throw new IllegalStateException(&quot;Unexpected path:&quot; + path);</span>
       }
-<span class="fc" id="L53">      String relativeParentPath = StringUtils.stripStart(matcher.group(1), &quot;/&quot;);</span>
-<span class="fc" id="L54">      String name = matcher.group(4);</span>
+<span class="fc" id="L55">      String relativeParentPath = StringUtils.stripStart(matcher.group(1), &quot;/&quot;);</span>
+<span class="fc" id="L56">      String name = matcher.group(4);</span>
       ContentElement parent;
-<span class="fc bfc" id="L56" title="All 2 branches covered.">      if (StringUtils.isEmpty(relativeParentPath)) {</span>
-<span class="fc" id="L57">        parent = root;</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">      if (StringUtils.isEmpty(relativeParentPath)) {</span>
+<span class="fc" id="L59">        parent = root;</span>
       }
       else {
-<span class="fc" id="L60">        parent = root.getChild(relativeParentPath);</span>
+<span class="fc" id="L62">        parent = root.getChild(relativeParentPath);</span>
       }
-<span class="pc bpc" id="L62" title="1 of 2 branches missed.">      if (parent == null) {</span>
-<span class="nc" id="L63">        throw new RuntimeException(&quot;Parent '&quot; + relativeParentPath + &quot;' does not exist.&quot;);</span>
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">      if (parent == null) {</span>
+<span class="nc" id="L65">        throw new IllegalStateException(&quot;Parent '&quot; + relativeParentPath + &quot;' does not exist.&quot;);</span>
       }
-<span class="fc" id="L65">      parent.getChildren().put(name, new ContentElementImpl(name, properties));</span>
+<span class="fc" id="L67">      parent.getChildren().put(name, new ContentElementImpl(name, properties));</span>
     }
-<span class="fc" id="L67">  }</span>
+<span class="fc" id="L69">  }</span>
 
   public ContentElement getRoot() {
-<span class="fc" id="L70">    return root;</span>
+<span class="fc" id="L72">    return root;</span>
   }
 
 }
