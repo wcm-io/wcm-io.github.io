@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NextGenDynamicMediaBinaryUrlBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.ngdm.impl</a> &gt; <span class="el_source">NextGenDynamicMediaBinaryUrlBuilder.java</span></div><h1>NextGenDynamicMediaBinaryUrlBuilder.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2024 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.ngdm.impl;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Builds URL to reference a binary file via NextGen Dynamic Media.
+ * &lt;p&gt;
+ * Example URL that might be build:
+ * https://host/adobe/assets/deliver/urn:aaid:aem:12345678-abcd-abcd-abcd-abcd12345678/my-file.pdf
+ * &lt;/p&gt;
+ */
+public final class NextGenDynamicMediaBinaryUrlBuilder {
+
+  static final String PLACEHOLDER_ASSET_ID = &quot;{asset-id}&quot;;
+  static final String PLACEHOLDER_SEO_NAME = &quot;{seo-name}&quot;;
+
+  private final NextGenDynamicMediaContext context;
+
+  /**
+   * @param context Context
+   */
+<span class="fc" id="L43">  public NextGenDynamicMediaBinaryUrlBuilder(@NotNull NextGenDynamicMediaContext context) {</span>
+<span class="fc" id="L44">    this.context = context;</span>
+<span class="fc" id="L45">  }</span>
+
+  /**
+   * Builds the URL for a rendition.
+   * @return URL or null if invalid/not possible
+   */
+  public @Nullable String build() {
+
+    // get parameters from nextgen dynamic media config for URL parameters
+<span class="fc" id="L54">    String repositoryId = context.getNextGenDynamicMediaConfig().getRepositoryId();</span>
+<span class="fc" id="L55">    String binaryDeliveryPath = context.getNextGenDynamicMediaConfig().getAssetOriginalBinaryDeliveryPath();</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">    if (StringUtils.isAnyEmpty(repositoryId, binaryDeliveryPath)) {</span>
+<span class="nc" id="L57">      return null;</span>
+    }
+
+    // replace placeholders in image delivery path
+<span class="fc" id="L61">    String seoName = context.getReference().getFileName();</span>
+<span class="fc" id="L62">    binaryDeliveryPath = StringUtils.replace(binaryDeliveryPath, PLACEHOLDER_ASSET_ID, context.getReference().getAssetId());</span>
+<span class="fc" id="L63">    binaryDeliveryPath = StringUtils.replace(binaryDeliveryPath, PLACEHOLDER_SEO_NAME, seoName);</span>
+
+    // build URL
+<span class="fc" id="L66">    StringBuilder url = new StringBuilder();</span>
+<span class="fc" id="L67">    url.append(&quot;https://&quot;)</span>
+<span class="fc" id="L68">        .append(repositoryId)</span>
+<span class="fc" id="L69">        .append(binaryDeliveryPath);</span>
+<span class="fc" id="L70">    return url.toString();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

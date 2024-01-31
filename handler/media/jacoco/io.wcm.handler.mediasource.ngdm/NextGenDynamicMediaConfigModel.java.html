@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NextGenDynamicMediaConfigModel.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.ngdm</a> &gt; <span class="el_source">NextGenDynamicMediaConfigModel.java</span></div><h1>NextGenDynamicMediaConfigModel.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2024 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.ngdm;
+
+import java.util.Map;
+import java.util.TreeMap;
+
+import javax.annotation.PostConstruct;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
+import org.apache.sling.models.annotations.injectorspecific.OSGiService;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+
+import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaConfigService;
+
+/**
+ * Prepares Next Generation Dynamic Media configuration for GraniteUI components (fileupload, pathfield).
+ */
+@Model(adaptables = SlingHttpServletRequest.class)
+@ProviderType
+<span class="fc" id="L47">public final class NextGenDynamicMediaConfigModel {</span>
+
+<span class="fc" id="L49">  private static final JsonMapper MAPPER = JsonMapper.builder().build();</span>
+<span class="fc" id="L50">  private static final Logger log = LoggerFactory.getLogger(NextGenDynamicMediaConfigModel.class);</span>
+
+  @OSGiService(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private NextGenDynamicMediaConfigService config;
+
+  private boolean enabled;
+  private String assetSelectorsJsUrl;
+  private String configJson;
+
+  @PostConstruct
+  private void activate() {
+<span class="fc bfc" id="L61" title="All 2 branches covered.">    if (config != null) {</span>
+<span class="fc" id="L62">      enabled = config.enabled();</span>
+<span class="fc" id="L63">      assetSelectorsJsUrl = config.getAssetSelectorsJsUrl();</span>
+<span class="fc" id="L64">      configJson = buildConfigJsonString(config);</span>
+    }
+<span class="fc" id="L66">  }</span>
+
+  private static String buildConfigJsonString(@NotNull NextGenDynamicMediaConfigService config) {
+<span class="fc" id="L69">    Map&lt;String, Object&gt; map = new TreeMap&lt;&gt;();</span>
+<span class="fc" id="L70">    map.put(&quot;repositoryId&quot;, config.getRepositoryId());</span>
+<span class="fc" id="L71">    map.put(&quot;apiKey&quot;, config.getApiKey());</span>
+<span class="fc" id="L72">    map.put(&quot;env&quot;, config.getEnv());</span>
+<span class="fc" id="L73">    map.put(&quot;imsClient&quot;, config.getImsClient());</span>
+    try {
+<span class="fc" id="L75">      return MAPPER.writeValueAsString(map);</span>
+    }
+<span class="nc" id="L77">    catch (JsonProcessingException ex) {</span>
+<span class="nc" id="L78">      log.warn(&quot;Unable to serialize Next Generation Dynamic Media config to JSON.&quot;, ex);</span>
+<span class="nc" id="L79">      return &quot;{}&quot;;</span>
+    }
+  }
+
+  /**
+   * @return true if Next Generation Dynamic Media is available and enabled.
+   */
+  public boolean isEnabled() {
+<span class="fc" id="L87">    return this.enabled;</span>
+  }
+
+  /**
+   * @return Asset Selectors URL
+   */
+  public @Nullable String getAssetSelectorsJsUrl() {
+<span class="fc" id="L94">    return this.assetSelectorsJsUrl;</span>
+  }
+
+  /**
+   * @return JSON string with configuration data required on the client-side.
+   */
+  public @Nullable String getConfigJson() {
+<span class="fc" id="L101">    return this.configJson;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
