@@ -19,11 +19,19 @@
  */
 package io.wcm.handler.mediasource.ngdm.impl;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.component.annotations.ReferencePolicyOption;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,67 +41,135 @@ import com.adobe.cq.ui.wcm.commons.config.NextGenDynamicMediaConfig;
  * Wraps access to NextGenDynamicMediaConfig - which is deployed but not accessible on AEM 6.5.
  */
 @Component(service = NextGenDynamicMediaConfigService.class, immediate = true)
-<span class="fc" id="L36">public class NextGenDynamicMediaConfigServiceImpl implements NextGenDynamicMediaConfigService {</span>
+@Designate(ocd = NextGenDynamicMediaConfigServiceImpl.Config.class)
+<span class="fc" id="L45">public class NextGenDynamicMediaConfigServiceImpl implements NextGenDynamicMediaConfigService {</span>
 
-<span class="fc" id="L38">  private static final Logger log = LoggerFactory.getLogger(NextGenDynamicMediaConfigServiceImpl.class);</span>
+  @ObjectClassDefinition(
+      name = &quot;wcm.io Next Generation Dynamic Media Support&quot;,
+      description = &quot;Support for Next Generation Dynamic Media.&quot;)
+  @interface Config {
+
+    @AttributeDefinition(
+        name = &quot;Image Delivery Base Path&quot;,
+        description = &quot;Base path with placeholders to deliver image renditions. &quot;
+            + &quot;Placeholders: &quot; + PLACEHOLDER_ASSET_ID + &quot;, &quot; + PLACEHOLDER_SEO_NAME + &quot;, &quot; + PLACEHOLDER_FORMAT + &quot;. &quot;
+            + &quot;If not set, the default value from the NextGenDynamicMediaConfig service will be used.&quot;)
+    String imageDeliveryBasePath() default ADOBE_ASSETS_PREFIX + PLACEHOLDER_ASSET_ID + &quot;/as/&quot;
+        + PLACEHOLDER_SEO_NAME + &quot;.&quot; + PLACEHOLDER_FORMAT + &quot;?accept-experimental=1&quot;;
+
+    @AttributeDefinition(
+        name = &quot;Asset Original Binary Delivery Path&quot;,
+        description = &quot;Base path with placeholders to deliver asset original binaries. &quot;
+            + &quot;Placeholders: &quot; + PLACEHOLDER_ASSET_ID + &quot;, &quot; + PLACEHOLDER_SEO_NAME + &quot;. &quot;
+            + &quot;If not set, the default value from the NextGenDynamicMediaConfig service will be used.&quot;)
+    String assetOriginalBinaryDeliveryPath() default ADOBE_ASSETS_PREFIX + PLACEHOLDER_ASSET_ID + &quot;/original/as/&quot;
+        + PLACEHOLDER_SEO_NAME + &quot;?accept-experimental=1&quot;;
+
+    @AttributeDefinition(
+        name = &quot;Asset Metadata Path&quot;,
+        description = &quot;Base path to get asset metadata. &quot;
+            + &quot;Placeholder: &quot; + PLACEHOLDER_ASSET_ID + &quot;. &quot;
+            + &quot;If not set, the default value from the NextGenDynamicMediaConfig service will be used.&quot;)
+    String assetMetadataPath() default ADOBE_ASSETS_PREFIX + PLACEHOLDER_ASSET_ID + &quot;/metadata&quot;;
+
+    @AttributeDefinition(
+        name = &quot;Asset Metadata Headers&quot;,
+        description = &quot;HTTP headers to be send with the asset metadata request. &quot;
+            + &quot;Format: 'header1:value1'.&quot;)
+    String[] assetMetadataHeaders() default { &quot;X-Adobe-Accept-Experimental:1&quot; };
+
+  }
+
+  private static final String ADOBE_ASSETS_PREFIX = &quot;/adobe/assets/&quot;;
+<span class="fc" id="L84">  private static final Logger log = LoggerFactory.getLogger(NextGenDynamicMediaConfigServiceImpl.class);</span>
+
+  private String imageDeliveryBasePath;
+  private String assetOriginalBinaryDeliveryPath;
+  private String assetMetadataPath;
+  private Map&lt;String, String&gt; assetMetadataHeaders;
 
   @Reference(policy = ReferencePolicy.STATIC, policyOption = ReferencePolicyOption.GREEDY)
   private NextGenDynamicMediaConfig nextGenDynamicMediaConfig;
 
   @Activate
-  private void activate() {
-<span class="fc" id="L45">    log.debug(&quot;NGDM config: enabled={}, repositoryId={}, apiKey={}, env={}, imsClient={}&quot;,</span>
-<span class="fc" id="L46">        enabled(), getRepositoryId(), getApiKey(), getEnv(), getImsClient());</span>
-<span class="fc" id="L47">  }</span>
+  private void activate(Config config) {
+<span class="fc" id="L96">    log.debug(&quot;NGDM config: enabled={}, repositoryId={}, apiKey={}, env={}, imsClient={}&quot;,</span>
+<span class="fc" id="L97">        enabled(), getRepositoryId(), getApiKey(), getEnv(), getImsClient());</span>
+
+<span class="fc" id="L99">    this.imageDeliveryBasePath = StringUtils.defaultIfBlank(config.imageDeliveryBasePath(),</span>
+<span class="fc" id="L100">        this.nextGenDynamicMediaConfig.getImageDeliveryBasePath());</span>
+<span class="fc" id="L101">    this.assetOriginalBinaryDeliveryPath = StringUtils.defaultIfBlank(config.assetOriginalBinaryDeliveryPath(),</span>
+<span class="fc" id="L102">        this.nextGenDynamicMediaConfig.getAssetOriginalBinaryDeliveryPath());</span>
+<span class="fc" id="L103">    this.assetMetadataPath = StringUtils.defaultIfBlank(config.assetMetadataPath(),</span>
+<span class="fc" id="L104">        this.nextGenDynamicMediaConfig.getAssetMetadataPath());</span>
+<span class="fc" id="L105">    this.assetMetadataHeaders = headersToMap(config.assetMetadataHeaders());</span>
+
+<span class="fc" id="L107">  }</span>
+
+  private static Map&lt;String, String&gt; headersToMap(String[] headers) {
+<span class="fc" id="L110">    Map&lt;String, String&gt; map = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">    for (String header : headers) {</span>
+<span class="fc" id="L112">      String[] parts = header.split(&quot;:&quot;, 2);</span>
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">      if (parts.length == 2) {</span>
+<span class="fc" id="L114">        map.put(parts[0], parts[1]);</span>
+      }
+    }
+<span class="fc" id="L117">    return map;</span>
+  }
 
   @Override
   public boolean enabled() {
-<span class="fc" id="L51">    return this.nextGenDynamicMediaConfig.enabled();</span>
+<span class="fc" id="L122">    return this.nextGenDynamicMediaConfig.enabled();</span>
   }
 
   @Override
   public String getAssetSelectorsJsUrl() {
-<span class="fc" id="L56">    return this.nextGenDynamicMediaConfig.getAssetSelectorsJsUrl();</span>
+<span class="fc" id="L127">    return this.nextGenDynamicMediaConfig.getAssetSelectorsJsUrl();</span>
   }
 
   @Override
   public String getImageDeliveryBasePath() {
-<span class="fc" id="L61">    return this.nextGenDynamicMediaConfig.getImageDeliveryBasePath();</span>
+<span class="fc" id="L132">    return imageDeliveryBasePath;</span>
   }
 
   @Override
   public String getVideoDeliveryPath() {
-<span class="fc" id="L66">    return this.nextGenDynamicMediaConfig.getVideoDeliveryPath();</span>
+<span class="fc" id="L137">    return this.nextGenDynamicMediaConfig.getVideoDeliveryPath();</span>
   }
 
   @Override
   public String getAssetOriginalBinaryDeliveryPath() {
-<span class="fc" id="L71">    return this.nextGenDynamicMediaConfig.getAssetOriginalBinaryDeliveryPath();</span>
+<span class="fc" id="L142">    return assetOriginalBinaryDeliveryPath;</span>
   }
 
   @Override
   public String getAssetMetadataPath() {
-<span class="fc" id="L76">    return this.nextGenDynamicMediaConfig.getAssetMetadataPath();</span>
+<span class="fc" id="L147">    return assetMetadataPath;</span>
+  }
+
+  @Override
+  public @NotNull Map&lt;String, String&gt; getAssetMetadataHeaders() {
+<span class="fc" id="L152">    return assetMetadataHeaders;</span>
   }
 
   @Override
   public String getRepositoryId() {
-<span class="fc" id="L81">    return this.nextGenDynamicMediaConfig.getRepositoryId();</span>
+<span class="fc" id="L157">    return this.nextGenDynamicMediaConfig.getRepositoryId();</span>
   }
 
   @Override
   public String getApiKey() {
-<span class="fc" id="L86">    return this.nextGenDynamicMediaConfig.getApiKey();</span>
+<span class="fc" id="L162">    return this.nextGenDynamicMediaConfig.getApiKey();</span>
   }
 
   @Override
   public String getEnv() {
-<span class="fc" id="L91">    return this.nextGenDynamicMediaConfig.getEnv();</span>
+<span class="fc" id="L167">    return this.nextGenDynamicMediaConfig.getEnv();</span>
   }
 
   @Override
   public String getImsClient() {
-<span class="fc" id="L96">    return this.nextGenDynamicMediaConfig.getImsClient();</span>
+<span class="fc" id="L172">    return this.nextGenDynamicMediaConfig.getImsClient();</span>
   }
 
 }
