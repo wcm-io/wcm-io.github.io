@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NextGenDynamicMediaMetadata.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.ngdm.impl.metadata</a> &gt; <span class="el_source">NextGenDynamicMediaMetadata.java</span></div><h1>NextGenDynamicMediaMetadata.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2024 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.ngdm.impl.metadata;
+
+import java.util.Objects;
+
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+
+import io.wcm.handler.media.Dimension;
+import io.wcm.wcm.commons.contenttype.ContentType;
+
+/**
+ * Metadata for Next Gen Dynamic Media asset fetched from the HTTP API.
+ */
+public final class NextGenDynamicMediaMetadata {
+
+  private final String mimeType;
+  private final Dimension dimension;
+
+<span class="fc" id="L43">  private static final JsonMapper OBJECT_MAPPER = new JsonMapper();</span>
+
+<span class="fc" id="L45">  NextGenDynamicMediaMetadata(@Nullable String mimeType, long width, long height) {</span>
+<span class="fc" id="L46">    this.mimeType = mimeType;</span>
+<span class="pc bpc" id="L47" title="1 of 4 branches missed.">    if (width &gt; 0 &amp;&amp; height &gt; 0) {</span>
+<span class="fc" id="L48">      this.dimension = new Dimension(width, height);</span>
+    }
+    else {
+<span class="fc" id="L51">      this.dimension = null;</span>
+    }
+<span class="fc" id="L53">  }</span>
+
+  /**
+   * @return Mime type
+   */
+  public @NotNull String getMimeType() {
+<span class="fc" id="L59">    return Objects.toString(mimeType, ContentType.OCTET_STREAM);</span>
+  }
+
+  /**
+   * @return Image Dimension or null if no image or dimension not available
+   */
+  public @Nullable Dimension getDimension() {
+<span class="fc" id="L66">    return dimension;</span>
+  }
+
+  boolean isValid() {
+<span class="fc bfc" id="L70" title="All 2 branches covered.">    return mimeType != null;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="fc" id="L75">    return ToStringBuilder.reflectionToString(this, ToStringStyle.NO_CLASS_NAME_STYLE);</span>
+  }
+
+  /**
+   * Converts JSON response from NGDM API to metadata object.
+   * @param jsonResponse JSON response
+   * @return Metadata object
+   * @throws JsonProcessingException If JSON parsing fails
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  public static @NotNull NextGenDynamicMediaMetadata fromJson(@NotNull String jsonResponse) throws JsonProcessingException {
+<span class="fc" id="L86">    MetadataResponse response = OBJECT_MAPPER.readValue(jsonResponse, MetadataResponse.class);</span>
+
+<span class="fc" id="L88">    String mimeType = null;</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">    if (response.repositoryMetadata != null) {</span>
+<span class="fc" id="L90">      mimeType = response.repositoryMetadata.dcFormat;</span>
+    }
+
+<span class="fc" id="L93">    long width = 0;</span>
+<span class="fc" id="L94">    long height = 0;</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (response.assetMetadata != null) {</span>
+<span class="fc" id="L96">      width = response.assetMetadata.tiffImageWidth;</span>
+<span class="fc" id="L97">      height = response.assetMetadata.tiffImageLength;</span>
+    }
+
+<span class="fc" id="L100">    return new NextGenDynamicMediaMetadata(mimeType, width, height);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
