@@ -8,7 +8,7 @@
 
   <head>
     <meta charset="UTF-8" />
-    <title>Dynamic Media | wcm.io</title>
+    <title>Next-Generation Dynamic Media | wcm.io</title>
 
     <link rel="shortcut icon" href="https://wcm.io/images/favicon.ico">
     <link rel="apple-touch-icon" href="https://wcm.io/images/favicon-152.png">
@@ -30,7 +30,7 @@
 
   </head>
 
-  <body class="page-dynamic-media project-io.wcm.handler.media" data-spy="scroll" data-offset="60" data-target="#toc-scroll-target">
+  <body class="page-nextgen-dynamic-media project-io.wcm.handler.media" data-spy="scroll" data-offset="60" data-target="#toc-scroll-target">
 
     <div class="navbar navbar-fixed-top">
       <div class="navbar-inner">
@@ -99,7 +99,7 @@
         <li class="divider">/</li>
         <li><a href="./" title="Media Handler">Media Handler</a></li>
         <li class="divider">/</li>
-        <li>Dynamic Media</li>
+        <li>Next-Generation Dynamic Media</li>
       </ul>
     </div>
   </header>
@@ -110,51 +110,53 @@
       <div class="body-content">
 <section> 
  <div class="page-header">
-  <h2 id="Dynamic_Media">Dynamic Media</h2>
+  <h2 id="Next-Generation_Dynamic_Media">Next-Generation Dynamic Media</h2>
  </div> 
- <p>wcm.io Media Handler optionally supports the <a class="externalLink" href="https://experienceleague.adobe.com/docs/experience-manager-65/assets/dynamic/dynamic-media.html">Dynamic Media</a> feature of AEM for:</p> 
+ <p>wcm.io Media Handler optionally supports the <a class="externalLink" href="https://experienceleague.adobe.com/docs/experience-manager-core-components/using/developing/next-gen-dm.html?lang=en">Next Generation Dynamic Media</a> feature of AEM as a Cloud Service for:</p> 
  <ul> 
   <li>Rendering renditions including resizing and cropping</li> 
-  <li>Delivery via Dynamic Media CDN</li> 
+  <li>Delivery via Next Generation Dynamic Media CDN</li> 
   <li>AI-based Smart Cropping</li> 
  </ul> 
- <p>Only the “Scene7” mode is supported (see <a class="externalLink" href="https://experienceleague.adobe.com/docs/experience-manager-65/assets/dynamic/administering-dynamic-media.html">Setting Up Dynamic Media</a>). The old and deprecated “hybrid” mode is not supported.</p> 
- <p>The Dynamic Media support automatically gets active when the instance was set up with the additional <code>dynamicmedia_scene7</code> run mode, and the assets are replicated to the Dynamic Media servers.</p> 
+ <p>Next Generation Dynamic Media support is never applied to assets stored in the AEMaaCS instance itself, but only for remote assets referenced via the Next Generation Dynamic Media asset picker. Those remote asset references typically start with <code>/urn:aaid:aem:...</code>. When Next Generation Dynamic Media is enabled for an AEMaaCS instance, the asset picker is shown automatically for Media Handler Granite UI widgets.</p> 
+ <p>Remote assets are only shown in the asset picker, if they have “approval” state. The publish state of the asset inside AEM is not relevant.</p> 
  <section> 
   <h3 id="Dynamic_Media_concept">Dynamic Media concept</h3> 
-  <p>The integration with Dynamic Media builds on the <a href="general-concepts.html">general concepts</a> of the Media Handler using media formats and a unified media handling API to resolve the renditions for each use case.</p> 
-  <p>If Dynamic Media is active, the media handler returns rendition URLs pointing to the Dynamic Media delivery servers instead of the Servlet the renders the renditions inside the publish instance without Dynamic Media. From the <a href="file-format-support.html">supported file formats</a> Dynamic Media supports dynamic renditions for JPEG, PNG and TIFF images. All other file formats including GIF and SVG images are delivered as original binary via the Dynamic Media CDN.</p> 
-  <p>It is not required to create image profiles or image presets in AEM for the basic functionality. It's also not required to configure anything in the component instance edit dialogs or content policies.</p> 
+  <p>The integration with Next Generation Dynamic Media builds on the <a href="general-concepts.html">general concepts</a> of the Media Handler using media formats and a unified media handling API to resolve the renditions for each use case.</p> 
+  <p>If a Next Generation Dynamic Media remote asset is used, the media handler returns rendition URLs pointing to the remote asset instance using the <a class="externalLink" href="https://adobe-aem-assets-delivery-experimental.redoc.ly/">Assets Delivery API (DM API)</a>. From the <a href="file-format-support.html">supported file formats</a> Next Generation Dynamic Media supports scaling and smart cropping for JPEG, PNG, GIF and TIFF images. All other file formats including SVG images are delivered as original binary via the Next Generation Dynamic Media CDN.</p> 
+  <p>It's not required to configure anything in the component instance edit dialogs or content policies.</p> 
  </section> 
  <section> 
   <h3 id="Smart_Cropping">Smart Cropping</h3> 
-  <p>To enable smart cropping you need to create an <a class="externalLink" href="https://experienceleague.adobe.com/docs/experience-manager-65/assets/dynamic/image-profiles.html">image profile</a> in AEM, enable “Smart Crop” an assign this profile to the asset folders with the assets you want to use (the profile association is inherited to sub folders). Within the image profile, create a cropping entry with a unique name for each rendition you have defined in the media formats, or you are using dynamically for the different breakpoints when using responsive images. If you have already uploaded the assets to the folder before assigning the profile, or change the profile later, you may need to re-run the “DAM Update Asset” workflow on them.</p> 
-  <p>During the media resolution process when the media handler has detected the required renditions with their sizes and cropping to fit the output media format/ratio, it checks if the asset has an image profile assigned, and if this profile contains and named cropping preset for the target resolution. If this is the case, the cropping preset is used displaying the pre-rendered smart cropping cutout of the original image.</p> 
-  <p>See also <a class="externalLink" href="https://experienceleague.adobe.com/docs/experience-manager-learn/assets/dynamic-media/smart-crop-feature-video-use.html">this video</a> for general information about smart cropping.</p> 
+  <p>Smart Cropping is used automatically if a media format with a specific ratio (e.g. 16:9) is used.</p> 
+  <p>Media formats without any size restrictions, or e.g. only with a width restrictions, can be rendered, but are not cropped.</p> 
+ </section> 
+ <section> 
+  <h3 id="Validating_Remote_Asset_Metadata">Validating Remote Asset Metadata</h3> 
+  <p>By default, the Media Handler assumes that a given remote asset reference is always valid, and supports all requested resolutions.</p> 
+  <p>Optionally, you can enable the metadata service. If enabled, each time a remote asset reference is resolved, the following checks are executed:</p> 
+  <ul> 
+   <li>If the remote asset does not exist, or is not approved, the reference is handled as invalid and the component can react to it (e.g. hide the image component)</li> 
+   <li>If the requested resolution of a rendition is larger than the original resolution of the binary asset, the rendition is handled as invalid. This avoid upscaling, and avoids using an asset in a context which would result in bad image quality for the user.</li> 
+  </ul> 
+  <p>See system configuration how to enable the metadata service.</p> 
  </section> 
  <section> 
   <h3 id="System_configuration">System configuration</h3> 
-  <p>Make sure to configure the service user mapping for Dynamic Media as described in the <a href="configuration.html">system configuration</a>.</p> 
-  <p>The “wcm.io Media Handler Dynamic Media Support” OSGi configuration supports additional options:</p> 
+  <p>If Next Generation Dynamic Media is enabled for a AEMaaCS instance, it will work out-of-the-box with the Media Handler.</p> 
+  <p>The “wcm.io Next Generation Dynamic Media Support” OSGi configuration allows to reconfigure the actual URLs used for the <a class="externalLink" href="https://adobe-aem-assets-delivery-experimental.redoc.ly/">Assets Delivery API (DM API)</a>. Usually you can stick with the default values which reflect the latest version of the DM API.</p> 
+  <p>The “wcm.io Next Generation Dynamic Media Metadata Service” allows to enable the Asset Metadata support (see above). When this is enabled, for each resolved remote asset, a HTTP request is send from the server to the DM API, so make sure this is allowed in the network infrastructure. Optionally, you can configure an proxy server and timeouts.</p> 
+ </section> 
+ <section> 
+  <h3 id="Known_Limitations_.28as_of_March_2024.29">Known Limitations (as of March 2024)</h3> 
   <ul> 
-   <li>Enabled: Dynamic media support is enabled by default, if Dynamic Media is configured for the AEM instance. With this flag it is possible to disable it in the media handler.</li> 
-   <li>Author Preview Mode: If activated, Dynamic Media requests are routed through the AEM instance. Ths is useful when the “Publish Assets” configuration is not set to “Immediately”, and thus images that are not yet accessible live via Dynamic Media can be previewed on author instances. Must not be activated on publish instances.</li> 
-   <li>Disable AEM Fallback: Disable the automatic fallback to AEM-based rendering of renditions (via Media Handler) if Dynamic Media is enabled, but the asset has not the appropriate Dynamic Media metadata. The asset is then handled as invalid.</li> 
-   <li>Image width/height limit: Has to be configured to the same values as the image server “Reply Image Size Limit” in Dynamic Media.</li> 
+   <li>The DM API URLs still have to contain an <code>accept-experimental</code> URL parameter, and the metadata services has to use an <code>X-Adobe-Accept-Experimental</code> HTTP header. Both will fade out once Next Generation Dynamic Media reaches full general availability (expected later in 2024).</li> 
+   <li>Next Generation Dynamic Media is not supported in Media Handler for AEM 6.x, only for AEMaaCS</li> 
+   <li>Same as the Adobe Core Components, currently only a single remote AEM Asset instance is supported, which is configured centrally as described in <a class="externalLink" href="https://experienceleague.adobe.com/docs/experience-manager-core-components/using/developing/next-gen-dm.html?lang=en">Next Generation Dynamic Media</a>. The media handler is used the same convention for referencing remote assets (using strings starting with <code>/urn:aaid:aem:...</code>). This convention also does not support multiple remote AEM Asset instances, as it does not include a pointer to the Repository ID.</li> 
+   <li>If a component dialog is re-opened with a remote asset references and one of the Media Handler Granite UI widgets (e.g. pathfield), no thumbnail is displayed for the remote asset. But the reference is valid and works. The root cause is a bug/limitation in the underlying AEM pathfield component, which hopefully will be fixed soon by Adobe (SITES-19894).</li> 
+   <li>The Next Generation Dynamic Media remote asset picker currently ignored any folder structures for assets on the remote AEM Asset instance.</li> 
+   <li>The DM API currently does not support sending a “Content-Disposition: attachment” HTTP header for downloads. So even, if this is enforced by the Media Handler, it currently does not work for remote assets.</li> 
   </ul> 
-  <p>To support serving static content for “download” (with <code>Content-Disposition: attachment</code> header) please activate this ruleset in Dynamic Media for the image servers:</p> 
-  <div class="source"> 
-   <pre><code class="language-xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
-&lt;ruleset&gt;
-  &lt;!-- Send header for static content suffixed with '?cdh=attachment' --&gt;
-  &lt;rule RequestType="static"&gt;
-    &lt;expression&gt;\?cdh=attachment$&lt;/expression&gt;
-    &lt;substitution&gt;&lt;/substitution&gt;
-    &lt;header Name="Content-Disposition"&gt;attachment&lt;/header&gt;
-  &lt;/rule&gt;
-&lt;/ruleset&gt;
-</code></pre> 
-  </div> 
  </section> 
 </section>
       </div>
@@ -164,11 +166,13 @@
         <div class="well">
           <ul class="nav nav-list">
             <li class="nav-header">Table of Contents</li>
-    <li class="dropdown"><a href="#Dynamic_Media" title="Dynamic Media">Dynamic Media <b class="caret"></b></a>
+    <li class="dropdown"><a href="#Next-Generation_Dynamic_Media" title="Next-Generation Dynamic Media">Next-Generation Dynamic Media <b class="caret"></b></a>
       <ul class="nav nav-list">
     <li><a href="#Dynamic_Media_concept" title="Dynamic Media concept">Dynamic Media concept</a>
     <li><a href="#Smart_Cropping" title="Smart Cropping">Smart Cropping</a>
+    <li><a href="#Validating_Remote_Asset_Metadata" title="Validating Remote Asset Metadata">Validating Remote Asset Metadata</a>
     <li><a href="#System_configuration" title="System configuration">System configuration</a>
+    <li><a href="#Known_Limitations_.28as_of_March_2024.29" title="Known Limitations (as of March 2024)">Known Limitations (as of March 2024)</a>
         <li class="divider"></li>
       </ul>
     </li>
