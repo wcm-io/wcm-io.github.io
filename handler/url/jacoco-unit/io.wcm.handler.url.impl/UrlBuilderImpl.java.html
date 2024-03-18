@@ -21,6 +21,7 @@ package io.wcm.handler.url.impl;
 
 import java.util.Set;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.Resource;
 import org.jetbrains.annotations.NotNull;
@@ -30,6 +31,7 @@ import com.day.cq.wcm.api.Page;
 
 import io.wcm.handler.url.UrlBuilder;
 import io.wcm.handler.url.UrlMode;
+import io.wcm.handler.url.VanityMode;
 
 /**
  * Default implementation or {@link UrlBuilder}.
@@ -48,138 +50,155 @@ final class UrlBuilderImpl implements UrlBuilder {
   private Set&lt;String&gt; inheritableParameterNames;
   private String fragment;
   private UrlMode urlMode;
+  private VanityMode vanityMode;
   private boolean disableSuffixSelector;
 
   /**
    * @param path Path for URL (without any hostname, scheme, extension, suffix etc.)
    * @param urlHandler Url handler instance
    */
-<span class="fc" id="L57">  UrlBuilderImpl(String path, UrlHandlerImpl urlHandler) {</span>
-<span class="fc" id="L58">    this.path = path;</span>
-<span class="fc" id="L59">    this.resource = null;</span>
-<span class="fc" id="L60">    this.page = null;</span>
-<span class="fc" id="L61">    this.urlHandler = urlHandler;</span>
-<span class="fc" id="L62">  }</span>
+<span class="fc" id="L60">  UrlBuilderImpl(String path, UrlHandlerImpl urlHandler) {</span>
+<span class="fc" id="L61">    this.path = path;</span>
+<span class="fc" id="L62">    this.resource = null;</span>
+<span class="fc" id="L63">    this.page = null;</span>
+<span class="fc" id="L64">    this.urlHandler = urlHandler;</span>
+<span class="fc" id="L65">  }</span>
 
   /**
    * @param resource Resource
    * @param urlHandler Url handler instance
    */
-<span class="fc" id="L68">  UrlBuilderImpl(Resource resource, UrlHandlerImpl urlHandler) {</span>
-<span class="fc bfc" id="L69" title="All 2 branches covered.">    this.path = resource != null ? resource.getPath() : null;</span>
-<span class="fc" id="L70">    this.resource = resource;</span>
-<span class="fc" id="L71">    this.page = null;</span>
-<span class="fc" id="L72">    this.urlHandler = urlHandler;</span>
-<span class="fc" id="L73">  }</span>
+<span class="fc" id="L71">  UrlBuilderImpl(Resource resource, UrlHandlerImpl urlHandler) {</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">    this.path = resource != null ? resource.getPath() : null;</span>
+<span class="fc" id="L73">    this.resource = resource;</span>
+<span class="fc" id="L74">    this.page = null;</span>
+<span class="fc" id="L75">    this.urlHandler = urlHandler;</span>
+<span class="fc" id="L76">  }</span>
 
   /**
    * @param page Page
    * @param urlHandler Url handler instance
    */
-<span class="fc" id="L79">  UrlBuilderImpl(Page page, UrlHandlerImpl urlHandler) {</span>
-<span class="fc bfc" id="L80" title="All 2 branches covered.">    this.path = page != null ? page.getPath() : null;</span>
-<span class="fc" id="L81">    this.resource = null;</span>
-<span class="fc" id="L82">    this.page = page;</span>
-<span class="fc" id="L83">    this.urlHandler = urlHandler;</span>
-<span class="fc" id="L84">  }</span>
+<span class="fc" id="L82">  UrlBuilderImpl(Page page, UrlHandlerImpl urlHandler) {</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">    this.path = page != null ? page.getPath() : null;</span>
+<span class="fc" id="L84">    this.resource = null;</span>
+<span class="fc" id="L85">    this.page = page;</span>
+<span class="fc" id="L86">    this.urlHandler = urlHandler;</span>
+<span class="fc" id="L87">  }</span>
 
   @Override
   public @NotNull UrlBuilder selectors(@Nullable String value) {
-<span class="fc" id="L88">    this.selectors = value;</span>
-<span class="fc" id="L89">    return this;</span>
+<span class="fc" id="L91">    this.selectors = value;</span>
+<span class="fc" id="L92">    return this;</span>
   }
 
   @Override
   public @NotNull UrlBuilder extension(@Nullable String value) {
-<span class="fc" id="L94">    this.extension = value;</span>
-<span class="fc" id="L95">    return this;</span>
+<span class="fc" id="L97">    this.extension = value;</span>
+<span class="fc" id="L98">    return this;</span>
   }
 
   @Override
   public @NotNull UrlBuilder suffix(@Nullable String value) {
-<span class="fc" id="L100">    this.suffix = value;</span>
-<span class="fc" id="L101">    return this;</span>
+<span class="fc" id="L103">    this.suffix = value;</span>
+<span class="fc" id="L104">    return this;</span>
   }
 
   @Override
   public @NotNull UrlBuilder queryString(@Nullable String value) {
-<span class="fc" id="L106">    this.queryString = value;</span>
-<span class="fc" id="L107">    this.inheritableParameterNames = null;</span>
-<span class="fc" id="L108">    return this;</span>
+<span class="fc" id="L109">    this.queryString = value;</span>
+<span class="fc" id="L110">    this.inheritableParameterNames = null;</span>
+<span class="fc" id="L111">    return this;</span>
   }
 
   @Override
   public @NotNull UrlBuilder queryString(@Nullable String value, @NotNull Set&lt;String&gt; inheritableParamNames) {
-<span class="fc" id="L113">    this.queryString = value;</span>
-<span class="fc" id="L114">    this.inheritableParameterNames = inheritableParamNames;</span>
-<span class="fc" id="L115">    return this;</span>
+<span class="fc" id="L116">    this.queryString = value;</span>
+<span class="fc" id="L117">    this.inheritableParameterNames = inheritableParamNames;</span>
+<span class="fc" id="L118">    return this;</span>
   }
 
   @Override
   public @NotNull UrlBuilder fragment(@Nullable String value) {
-<span class="fc" id="L120">    this.fragment = value;</span>
-<span class="fc" id="L121">    return this;</span>
+<span class="fc" id="L123">    this.fragment = value;</span>
+<span class="fc" id="L124">    return this;</span>
   }
 
   @Override
   public @NotNull UrlBuilder urlMode(@Nullable UrlMode value) {
-<span class="fc" id="L126">    this.urlMode = value;</span>
-<span class="fc" id="L127">    return this;</span>
+<span class="fc" id="L129">    this.urlMode = value;</span>
+<span class="fc" id="L130">    return this;</span>
+  }
+
+  @Override
+  public @NotNull UrlBuilder vanityMode(@Nullable VanityMode value) {
+<span class="fc" id="L135">    this.vanityMode = value;</span>
+<span class="fc" id="L136">    return this;</span>
   }
 
 
   @Override
   public @NotNull UrlBuilder disableSuffixSelector(boolean value) {
-<span class="fc" id="L133">    this.disableSuffixSelector = value;</span>
-<span class="fc" id="L134">    return this;</span>
+<span class="fc" id="L142">    this.disableSuffixSelector = value;</span>
+<span class="fc" id="L143">    return this;</span>
+  }
+
+  private String build(boolean externalize) {
+<span class="fc" id="L147">    String pathToUse = path;</span>
+<span class="fc" id="L148">    VanityMode vanityModeToUse = ObjectUtils.defaultIfNull(vanityMode, urlHandler.getDefaultVanityMode());</span>
+<span class="fc bfc" id="L149" title="All 8 branches covered.">    if (page != null &amp;&amp; (vanityModeToUse == VanityMode.ALWAYS || (externalize &amp;&amp; vanityModeToUse == VanityMode.EXTERNALIZE))) {</span>
+<span class="fc" id="L150">      pathToUse = StringUtils.defaultString(page.getVanityUrl(), path);</span>
+    }
+
+<span class="fc" id="L153">    String url = urlHandler.buildUrl(pathToUse, selectors, extension, suffix, disableSuffixSelector);</span>
+<span class="fc bfc" id="L154" title="All 4 branches covered.">    if (StringUtils.isNotEmpty(queryString) || inheritableParameterNames != null) {</span>
+<span class="fc" id="L155">      url = urlHandler.appendQueryString(url, queryString, inheritableParameterNames);</span>
+    }
+<span class="fc bfc" id="L157" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(fragment)) {</span>
+<span class="fc" id="L158">      url = urlHandler.setFragment(url, fragment);</span>
+    }
+<span class="fc" id="L160">    return url;</span>
   }
 
   @Override
   public String build() {
-<span class="fc" id="L139">    String url = urlHandler.buildUrl(path, selectors, extension, suffix, disableSuffixSelector);</span>
-<span class="fc bfc" id="L140" title="All 4 branches covered.">    if (StringUtils.isNotEmpty(queryString) || inheritableParameterNames != null) {</span>
-<span class="fc" id="L141">      url = urlHandler.appendQueryString(url, queryString, inheritableParameterNames);</span>
-    }
-<span class="fc bfc" id="L143" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(fragment)) {</span>
-<span class="fc" id="L144">      url = urlHandler.setFragment(url, fragment);</span>
-    }
-<span class="fc" id="L146">    return url;</span>
+<span class="fc" id="L165">    return build(false);</span>
   }
 
   @Override
   public String buildExternalLinkUrl() {
-<span class="fc" id="L151">    return buildExternalLinkUrl(null);</span>
+<span class="fc" id="L170">    return buildExternalLinkUrl(null);</span>
   }
 
   @Override
   public String buildExternalLinkUrl(@Nullable Page targetPage) {
-<span class="fc" id="L156">    Page targetPageToUse = targetPage;</span>
-<span class="fc bfc" id="L157" title="All 2 branches covered.">    if (targetPageToUse == null) {</span>
-<span class="fc" id="L158">      targetPageToUse = page;</span>
+<span class="fc" id="L175">    Page targetPageToUse = targetPage;</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">    if (targetPageToUse == null) {</span>
+<span class="fc" id="L177">      targetPageToUse = page;</span>
     }
-<span class="pc bpc" id="L160" title="1 of 4 branches missed.">    if (targetPageToUse == null &amp;&amp; resource != null) {</span>
-<span class="nc" id="L161">      targetPageToUse = resource.adaptTo(Page.class);</span>
+<span class="pc bpc" id="L179" title="1 of 4 branches missed.">    if (targetPageToUse == null &amp;&amp; resource != null) {</span>
+<span class="nc" id="L180">      targetPageToUse = resource.adaptTo(Page.class);</span>
     }
-<span class="fc" id="L163">    String url = build();</span>
-<span class="fc" id="L164">    return urlHandler.externalizeLinkUrl(url, targetPageToUse, urlMode);</span>
+<span class="fc" id="L182">    String url = build(true);</span>
+<span class="fc" id="L183">    return urlHandler.externalizeLinkUrl(url, targetPageToUse, urlMode);</span>
   }
 
   @Override
   public String buildExternalResourceUrl() {
-<span class="fc" id="L169">    return buildExternalResourceUrl(null);</span>
+<span class="fc" id="L188">    return buildExternalResourceUrl(null);</span>
   }
 
   @Override
   public String buildExternalResourceUrl(@Nullable Resource targetResource) {
-<span class="fc" id="L174">    Resource targetResourceToUse = targetResource;</span>
-<span class="pc bpc" id="L175" title="1 of 2 branches missed.">    if (targetResourceToUse == null) {</span>
-<span class="fc" id="L176">      targetResourceToUse = resource;</span>
+<span class="fc" id="L193">    Resource targetResourceToUse = targetResource;</span>
+<span class="pc bpc" id="L194" title="1 of 2 branches missed.">    if (targetResourceToUse == null) {</span>
+<span class="fc" id="L195">      targetResourceToUse = resource;</span>
     }
-<span class="pc bpc" id="L178" title="1 of 4 branches missed.">    if (targetResourceToUse == null &amp;&amp; page != null) {</span>
-<span class="nc" id="L179">      targetResourceToUse = page.adaptTo(Resource.class);</span>
+<span class="pc bpc" id="L197" title="1 of 4 branches missed.">    if (targetResourceToUse == null &amp;&amp; page != null) {</span>
+<span class="nc" id="L198">      targetResourceToUse = page.adaptTo(Resource.class);</span>
     }
-<span class="fc" id="L181">    String url = build();</span>
-<span class="fc" id="L182">    return urlHandler.externalizeResourceUrl(url, targetResourceToUse, urlMode);</span>
+<span class="fc" id="L200">    String url = build(true);</span>
+<span class="fc" id="L201">    return urlHandler.externalizeResourceUrl(url, targetResourceToUse, urlMode);</span>
   }
 
 }

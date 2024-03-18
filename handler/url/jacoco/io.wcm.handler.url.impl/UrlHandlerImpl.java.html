@@ -41,6 +41,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.wcm.handler.url.UrlBuilder;
 import io.wcm.handler.url.UrlHandler;
 import io.wcm.handler.url.UrlMode;
+import io.wcm.handler.url.VanityMode;
 import io.wcm.handler.url.impl.clientlib.ClientlibProxyRewriter;
 import io.wcm.handler.url.spi.UrlHandlerConfig;
 import io.wcm.sling.commons.request.RequestParam;
@@ -54,7 +55,7 @@ import io.wcm.wcm.commons.util.Path;
 @Model(adaptables = {
     SlingHttpServletRequest.class, Resource.class
 }, adapters = UrlHandler.class)
-<span class="fc" id="L57">public final class UrlHandlerImpl implements UrlHandler {</span>
+<span class="fc" id="L58">public final class UrlHandlerImpl implements UrlHandler {</span>
 
   @Self
   private Adaptable self;
@@ -75,284 +76,288 @@ import io.wcm.wcm.commons.util.Path;
 
   @Override
   public @NotNull UrlBuilder get(@NotNull String path) {
-<span class="fc" id="L78">    return new UrlBuilderImpl(path, this);</span>
+<span class="fc" id="L79">    return new UrlBuilderImpl(path, this);</span>
   }
 
   @Override
   public @NotNull UrlBuilder get(@NotNull Resource resource) {
-<span class="fc" id="L83">    return new UrlBuilderImpl(resource, this);</span>
+<span class="fc" id="L84">    return new UrlBuilderImpl(resource, this);</span>
   }
 
   @Override
   public @NotNull UrlBuilder get(@NotNull Page page) {
-<span class="fc" id="L88">    return new UrlBuilderImpl(page, this);</span>
+<span class="fc" id="L89">    return new UrlBuilderImpl(page, this);</span>
   }
 
   @Override
   @SuppressWarnings({ &quot;null&quot;, &quot;unused&quot; })
   @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
   public String rewritePathToContext(@NotNull final Resource resource) {
-<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (resource == null) {</span>
-<span class="fc" id="L96">      return null;</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">    if (resource == null) {</span>
+<span class="fc" id="L97">      return null;</span>
     }
-<span class="pc bpc" id="L98" title="1 of 2 branches missed.">    if (currentPage != null) {</span>
-<span class="fc" id="L99">      return rewritePathToContext(resource, currentPage.adaptTo(Resource.class));</span>
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">    if (currentPage != null) {</span>
+<span class="fc" id="L100">      return rewritePathToContext(resource, currentPage.adaptTo(Resource.class));</span>
     }
     else {
-<span class="nc" id="L102">      return resource.getPath();</span>
+<span class="nc" id="L103">      return resource.getPath();</span>
     }
   }
 
   @Override
   @SuppressWarnings({ &quot;null&quot;, &quot;unused&quot; })
   public String rewritePathToContext(@NotNull final Resource resource, @NotNull final Resource contextResource) {
-<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (resource == null) {</span>
-<span class="fc" id="L110">      return null;</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">    if (resource == null) {</span>
+<span class="fc" id="L111">      return null;</span>
     }
-<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (contextResource == null) {</span>
-<span class="fc" id="L113">      return resource.getPath();</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">    if (contextResource == null) {</span>
+<span class="fc" id="L114">      return resource.getPath();</span>
     }
 
     // split up paths
-<span class="fc" id="L117">    String[] contextPathParts = StringUtils.split(Path.getOriginalPath(contextResource.getPath(), resolver), &quot;/&quot;);</span>
-<span class="fc" id="L118">    String[] pathParts = StringUtils.split(Path.getOriginalPath(resource.getPath(), resolver), &quot;/&quot;);</span>
+<span class="fc" id="L118">    String[] contextPathParts = StringUtils.split(Path.getOriginalPath(contextResource.getPath(), resolver), &quot;/&quot;);</span>
+<span class="fc" id="L119">    String[] pathParts = StringUtils.split(Path.getOriginalPath(resource.getPath(), resolver), &quot;/&quot;);</span>
 
     // check if both paths are valid - return unchanged path if not
-<span class="fc" id="L121">    int siteRootLevelContextPath = urlHandlerConfig.getSiteRootLevel(contextResource);</span>
-<span class="fc" id="L122">    int siteRootLevelPath = urlHandlerConfig.getSiteRootLevel(resource);</span>
-<span class="fc bfc" id="L123" title="All 4 branches covered.">    if ((contextPathParts.length &lt;= siteRootLevelContextPath)</span>
+<span class="fc" id="L122">    int siteRootLevelContextPath = urlHandlerConfig.getSiteRootLevel(contextResource);</span>
+<span class="fc" id="L123">    int siteRootLevelPath = urlHandlerConfig.getSiteRootLevel(resource);</span>
+<span class="fc bfc" id="L124" title="All 4 branches covered.">    if ((contextPathParts.length &lt;= siteRootLevelContextPath)</span>
         || (pathParts.length &lt;= siteRootLevelPath)
-<span class="pc bpc" id="L125" title="1 of 2 branches missed.">        || !StringUtils.equals(contextPathParts[0], &quot;content&quot;)</span>
-<span class="fc bfc" id="L126" title="All 2 branches covered.">        || !StringUtils.equals(pathParts[0], &quot;content&quot;)) {</span>
-<span class="fc" id="L127">      return resource.getPath();</span>
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">        || !StringUtils.equals(contextPathParts[0], &quot;content&quot;)</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        || !StringUtils.equals(pathParts[0], &quot;content&quot;)) {</span>
+<span class="fc" id="L128">      return resource.getPath();</span>
     }
 
     // rewrite path to current context
-<span class="fc" id="L131">    StringBuilder rewrittenPath = new StringBuilder();</span>
-<span class="fc bfc" id="L132" title="All 2 branches covered.">    for (int i = 0; i &lt;= siteRootLevelContextPath; i++) {</span>
-<span class="fc" id="L133">      rewrittenPath.append('/').append(contextPathParts[i]);</span>
+<span class="fc" id="L132">    StringBuilder rewrittenPath = new StringBuilder();</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">    for (int i = 0; i &lt;= siteRootLevelContextPath; i++) {</span>
+<span class="fc" id="L134">      rewrittenPath.append('/').append(contextPathParts[i]);</span>
     }
-<span class="fc bfc" id="L135" title="All 2 branches covered.">    for (int i = siteRootLevelPath + 1; i &lt; pathParts.length; i++) {</span>
-<span class="fc" id="L136">      rewrittenPath.append('/').append(pathParts[i]);</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">    for (int i = siteRootLevelPath + 1; i &lt; pathParts.length; i++) {</span>
+<span class="fc" id="L137">      rewrittenPath.append('/').append(pathParts[i]);</span>
     }
-<span class="fc" id="L138">    return rewrittenPath.toString();</span>
+<span class="fc" id="L139">    return rewrittenPath.toString();</span>
   }
 
   @Override
   public boolean isExternalized(@NotNull String url) {
-<span class="fc" id="L143">    return Externalizer.isExternalized(url);</span>
+<span class="fc" id="L144">    return Externalizer.isExternalized(url);</span>
   }
 
   String externalizeLinkUrl(final String url, final Page targetPage, final UrlMode urlMode) {
 
     // check for empty url
-<span class="fc bfc" id="L149" title="All 2 branches covered.">    if (StringUtils.isEmpty(url)) {</span>
-<span class="fc" id="L150">      return null;</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">    if (StringUtils.isEmpty(url)) {</span>
+<span class="fc" id="L151">      return null;</span>
     }
 
     // do not externalize urls again that are already externalized
-<span class="fc bfc" id="L154" title="All 2 branches covered.">    if (Externalizer.isExternalized(url)) {</span>
-<span class="fc" id="L155">      return url;</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">    if (Externalizer.isExternalized(url)) {</span>
+<span class="fc" id="L156">      return url;</span>
     }
 
     String externalizedUrl;
-<span class="fc bfc" id="L159" title="All 2 branches covered.">    if (urlHandlerConfig.isHostProvidedBySlingMapping()) {</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">    if (urlHandlerConfig.isHostProvidedBySlingMapping()) {</span>
       // apply sling mapping with host
-<span class="fc" id="L161">      externalizedUrl = Externalizer.externalizeUrlWithHost(url, resolver, request);</span>
+<span class="fc" id="L162">      externalizedUrl = Externalizer.externalizeUrlWithHost(url, resolver, request);</span>
     }
     else {
       // apply sling mapping, namespace mangling and add webapp context path if required
-<span class="fc" id="L165">      externalizedUrl = Externalizer.externalizeUrl(url, resolver, request);</span>
+<span class="fc" id="L166">      externalizedUrl = Externalizer.externalizeUrl(url, resolver, request);</span>
     }
-<span class="pc bpc" id="L167" title="1 of 4 branches missed.">    if (externalizedUrl != null &amp;&amp; !Externalizer.isExternalized(externalizedUrl)) {</span>
+<span class="pc bpc" id="L168" title="1 of 4 branches missed.">    if (externalizedUrl != null &amp;&amp; !Externalizer.isExternalized(externalizedUrl)) {</span>
       // add link URL prefix (scheme/hostname or integrator placeholder) if required
-<span class="fc" id="L169">      String linkUrlPrefix = getLinkUrlPrefix(urlMode, targetPage);</span>
-<span class="fc" id="L170">      externalizedUrl = StringUtils.defaultString(linkUrlPrefix) + externalizedUrl; //NOPMD</span>
+<span class="fc" id="L170">      String linkUrlPrefix = getLinkUrlPrefix(urlMode, targetPage);</span>
+<span class="fc" id="L171">      externalizedUrl = StringUtils.defaultString(linkUrlPrefix) + externalizedUrl; //NOPMD</span>
     }
-<span class="fc" id="L172">    return externalizedUrl;</span>
+<span class="fc" id="L173">    return externalizedUrl;</span>
   }
 
   @SuppressWarnings(&quot;null&quot;)
   private String getLinkUrlPrefix(UrlMode urlMode, Page targetPage) {
-<span class="fc" id="L177">    UrlMode mode = ObjectUtils.defaultIfNull(urlMode, urlHandlerConfig.getDefaultUrlMode());</span>
-<span class="fc" id="L178">    String configuredUrlPrefix = mode.getLinkUrlPrefix(self, instanceTypeService.getRunModes(), currentPage, targetPage);</span>
-<span class="fc" id="L179">    return UrlPrefix.applyAutoDetection(configuredUrlPrefix, self);</span>
+<span class="fc" id="L178">    UrlMode mode = ObjectUtils.defaultIfNull(urlMode, urlHandlerConfig.getDefaultUrlMode());</span>
+<span class="fc" id="L179">    String configuredUrlPrefix = mode.getLinkUrlPrefix(self, instanceTypeService.getRunModes(), currentPage, targetPage);</span>
+<span class="fc" id="L180">    return UrlPrefix.applyAutoDetection(configuredUrlPrefix, self);</span>
   }
 
   String externalizeResourceUrl(final String url, final Resource targetResource, final UrlMode urlMode) {
 
     // check for empty path
-<span class="fc bfc" id="L185" title="All 2 branches covered.">    if (StringUtils.isEmpty(url)) {</span>
-<span class="fc" id="L186">      return null;</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">    if (StringUtils.isEmpty(url)) {</span>
+<span class="fc" id="L187">      return null;</span>
     }
 
     // do not externalize URLs again that are already externalized
     // do not externalize URLs that do not start with &quot;/&quot; (they are no content paths in that case)
-<span class="fc bfc" id="L191" title="All 4 branches covered.">    if (Externalizer.isExternalized(url) || !Externalizer.isExternalizable(url)) {</span>
-<span class="fc" id="L192">      return url;</span>
+<span class="fc bfc" id="L192" title="All 4 branches covered.">    if (Externalizer.isExternalized(url) || !Externalizer.isExternalizable(url)) {</span>
+<span class="fc" id="L193">      return url;</span>
     }
 
     // try to resolve the target resource from url/path if it was not given initially (only below /content)
-<span class="fc" id="L196">    Resource resource = targetResource;</span>
-<span class="fc bfc" id="L197" title="All 4 branches covered.">    if (resource == null &amp;&amp; StringUtils.startsWith(url, &quot;/content/&quot;)) {</span>
-<span class="fc" id="L198">      resource = resolver.resolve(url); // accept NonExistingResource as well</span>
+<span class="fc" id="L197">    Resource resource = targetResource;</span>
+<span class="fc bfc" id="L198" title="All 4 branches covered.">    if (resource == null &amp;&amp; StringUtils.startsWith(url, &quot;/content/&quot;)) {</span>
+<span class="fc" id="L199">      resource = resolver.resolve(url); // accept NonExistingResource as well</span>
     }
 
     // check for reference to static resource from proxied client library
-<span class="fc" id="L202">    String externalizedUrl = clientlibProxyRewriter.rewriteStaticResourcePath(url);</span>
+<span class="fc" id="L203">    String externalizedUrl = clientlibProxyRewriter.rewriteStaticResourcePath(url);</span>
 
-<span class="fc bfc" id="L204" title="All 2 branches covered.">    if (urlHandlerConfig.isHostProvidedBySlingMapping()) {</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">    if (urlHandlerConfig.isHostProvidedBySlingMapping()) {</span>
       // apply sling mapping with host
-<span class="fc" id="L206">      externalizedUrl = Externalizer.externalizeUrlWithHost(externalizedUrl, resolver, request);</span>
+<span class="fc" id="L207">      externalizedUrl = Externalizer.externalizeUrlWithHost(externalizedUrl, resolver, request);</span>
     }
     else {
       // apply sling mapping when externalizing URLs
-<span class="fc" id="L210">      externalizedUrl = Externalizer.externalizeUrl(externalizedUrl, resolver, request);</span>
+<span class="fc" id="L211">      externalizedUrl = Externalizer.externalizeUrl(externalizedUrl, resolver, request);</span>
     }
-<span class="pc bpc" id="L212" title="1 of 4 branches missed.">    if (externalizedUrl != null &amp;&amp; !Externalizer.isExternalized(externalizedUrl)) {</span>
+<span class="pc bpc" id="L213" title="1 of 4 branches missed.">    if (externalizedUrl != null &amp;&amp; !Externalizer.isExternalized(externalizedUrl)) {</span>
       // add resource URL prefix (scheme/hostname or integrator placeholder) if required
-<span class="fc" id="L214">      String resourceUrlPrefix = getResourceUrlPrefix(urlMode, resource);</span>
-<span class="fc" id="L215">      externalizedUrl = StringUtils.defaultString(resourceUrlPrefix) + externalizedUrl; //NOPMD</span>
+<span class="fc" id="L215">      String resourceUrlPrefix = getResourceUrlPrefix(urlMode, resource);</span>
+<span class="fc" id="L216">      externalizedUrl = StringUtils.defaultString(resourceUrlPrefix) + externalizedUrl; //NOPMD</span>
     }
-<span class="fc" id="L217">    return externalizedUrl;</span>
+<span class="fc" id="L218">    return externalizedUrl;</span>
   }
 
   @SuppressWarnings(&quot;null&quot;)
   private String getResourceUrlPrefix(UrlMode urlMode, Resource targetResource) {
-<span class="fc" id="L222">    UrlMode mode = ObjectUtils.defaultIfNull(urlMode, urlHandlerConfig.getDefaultUrlMode());</span>
-<span class="fc" id="L223">    String configuredUrlPrefix = mode.getResourceUrlPrefix(self, instanceTypeService.getRunModes(), currentPage, targetResource);</span>
-<span class="fc" id="L224">    return UrlPrefix.applyAutoDetection(configuredUrlPrefix, self);</span>
+<span class="fc" id="L223">    UrlMode mode = ObjectUtils.defaultIfNull(urlMode, urlHandlerConfig.getDefaultUrlMode());</span>
+<span class="fc" id="L224">    String configuredUrlPrefix = mode.getResourceUrlPrefix(self, instanceTypeService.getRunModes(), currentPage, targetResource);</span>
+<span class="fc" id="L225">    return UrlPrefix.applyAutoDetection(configuredUrlPrefix, self);</span>
   }
 
   String buildUrl(String path, String selector, String extension, String suffix, boolean disableSuffixSelector) { //NOPMD
-<span class="fc bfc" id="L228" title="All 2 branches covered.">    if (StringUtils.isBlank(path)) {</span>
-<span class="fc" id="L229">      return null;</span>
+<span class="fc bfc" id="L229" title="All 2 branches covered.">    if (StringUtils.isBlank(path)) {</span>
+<span class="fc" id="L230">      return null;</span>
     }
 
     // Extension url part
-<span class="fc" id="L233">    StringBuilder extensionPart = new StringBuilder();</span>
-<span class="fc bfc" id="L234" title="All 2 branches covered.">    if (StringUtils.isNotBlank(extension)) {</span>
-<span class="fc" id="L235">      extensionPart.append('.').append(extension);</span>
+<span class="fc" id="L234">    StringBuilder extensionPart = new StringBuilder();</span>
+<span class="fc bfc" id="L235" title="All 2 branches covered.">    if (StringUtils.isNotBlank(extension)) {</span>
+<span class="fc" id="L236">      extensionPart.append('.').append(extension);</span>
     }
 
     // Selector url part
-<span class="fc" id="L239">    StringBuilder selectorPart = new StringBuilder();</span>
-<span class="fc bfc" id="L240" title="All 2 branches covered.">    if (StringUtils.isNotBlank(selector)) {</span>
+<span class="fc" id="L240">    StringBuilder selectorPart = new StringBuilder();</span>
+<span class="fc bfc" id="L241" title="All 2 branches covered.">    if (StringUtils.isNotBlank(selector)) {</span>
       // prepend delimiter to selector if required
-<span class="fc bfc" id="L242" title="All 2 branches covered.">      if (!StringUtils.startsWith(selector, &quot;.&quot;)) {</span>
-<span class="fc" id="L243">        selectorPart.append('.');</span>
+<span class="fc bfc" id="L243" title="All 2 branches covered.">      if (!StringUtils.startsWith(selector, &quot;.&quot;)) {</span>
+<span class="fc" id="L244">        selectorPart.append('.');</span>
       }
-<span class="fc" id="L245">      selectorPart.append(selector);</span>
+<span class="fc" id="L246">      selectorPart.append(selector);</span>
     }
 
     // Suffix part
-<span class="fc" id="L249">    StringBuilder suffixPart = new StringBuilder();</span>
-<span class="fc bfc" id="L250" title="All 2 branches covered.">    if (StringUtils.isNotBlank(suffix)) {</span>
+<span class="fc" id="L250">    StringBuilder suffixPart = new StringBuilder();</span>
+<span class="fc bfc" id="L251" title="All 2 branches covered.">    if (StringUtils.isNotBlank(suffix)) {</span>
       // prepend delimiter to suffix if required and add extension
-<span class="fc bfc" id="L252" title="All 2 branches covered.">      if (!StringUtils.startsWith(suffix, &quot;/&quot;)) {</span>
-<span class="fc" id="L253">        suffixPart = suffixPart.append(&quot;/&quot;);</span>
+<span class="fc bfc" id="L253" title="All 2 branches covered.">      if (!StringUtils.startsWith(suffix, &quot;/&quot;)) {</span>
+<span class="fc" id="L254">        suffixPart = suffixPart.append(&quot;/&quot;);</span>
       }
-<span class="fc" id="L255">      suffixPart.append(suffix);</span>
+<span class="fc" id="L256">      suffixPart.append(suffix);</span>
 
       // if suffix does not contain a file extension add main file extension
-<span class="fc bfc" id="L258" title="All 2 branches covered.">      if (!StringUtils.contains(suffix, &quot;.&quot;)) {</span>
-<span class="fc" id="L259">        suffixPart.append(extensionPart);</span>
+<span class="fc bfc" id="L259" title="All 2 branches covered.">      if (!StringUtils.contains(suffix, &quot;.&quot;)) {</span>
+<span class="fc" id="L260">        suffixPart.append(extensionPart);</span>
       }
 
       // add a &quot;.suffix&quot; selector to avoid overlapping of filenames between suffixed and non-suffixed versions of the same page in the dispatcher cache
-<span class="fc bfc" id="L263" title="All 2 branches covered.">      if (!disableSuffixSelector) {</span>
-<span class="fc" id="L264">        selectorPart.append('.').append(UrlHandler.SELECTOR_SUFFIX);</span>
+<span class="fc bfc" id="L264" title="All 2 branches covered.">      if (!disableSuffixSelector) {</span>
+<span class="fc" id="L265">        selectorPart.append('.').append(UrlHandler.SELECTOR_SUFFIX);</span>
       }
     }
 
     // build externalized url
-<span class="fc" id="L269">    return path + selectorPart.toString() + extensionPart.toString() + suffixPart.toString();</span>
+<span class="fc" id="L270">    return path + selectorPart.toString() + extensionPart.toString() + suffixPart.toString();</span>
   }
 
   @SuppressWarnings(&quot;java:S3776&quot;) // ignore complexity
   String appendQueryString(String url, String queryString, Set&lt;String&gt; inheritableParameterNames) {
-<span class="fc bfc" id="L274" title="All 2 branches covered.">    if (StringUtils.isEmpty(url)) {</span>
-<span class="fc" id="L275">      return url;</span>
+<span class="fc bfc" id="L275" title="All 2 branches covered.">    if (StringUtils.isEmpty(url)) {</span>
+<span class="fc" id="L276">      return url;</span>
     }
 
     // split url from existing query parameters
-<span class="fc" id="L279">    StringBuilder urlBuilder = new StringBuilder();</span>
-<span class="fc" id="L280">    StringBuilder queryParams = new StringBuilder();</span>
-<span class="fc" id="L281">    int separatorPos = url.indexOf('?');</span>
-<span class="fc bfc" id="L282" title="All 2 branches covered.">    if (separatorPos &gt;= 0) {</span>
-<span class="fc" id="L283">      queryParams.append(url.substring(separatorPos + 1));</span>
-<span class="fc" id="L284">      urlBuilder.append(url.substring(0, separatorPos));</span>
+<span class="fc" id="L280">    StringBuilder urlBuilder = new StringBuilder();</span>
+<span class="fc" id="L281">    StringBuilder queryParams = new StringBuilder();</span>
+<span class="fc" id="L282">    int separatorPos = url.indexOf('?');</span>
+<span class="fc bfc" id="L283" title="All 2 branches covered.">    if (separatorPos &gt;= 0) {</span>
+<span class="fc" id="L284">      queryParams.append(url.substring(separatorPos + 1));</span>
+<span class="fc" id="L285">      urlBuilder.append(url.substring(0, separatorPos));</span>
     }
     else {
-<span class="fc" id="L287">      urlBuilder.append(url);</span>
+<span class="fc" id="L288">      urlBuilder.append(url);</span>
     }
 
     // append new query parameters
-<span class="fc bfc" id="L291" title="All 2 branches covered.">    if (StringUtils.isNotBlank(queryString)) {</span>
-<span class="fc bfc" id="L292" title="All 2 branches covered.">      if (queryParams.length() &gt; 0) {</span>
-<span class="fc" id="L293">        queryParams.append('&amp;');</span>
+<span class="fc bfc" id="L292" title="All 2 branches covered.">    if (StringUtils.isNotBlank(queryString)) {</span>
+<span class="fc bfc" id="L293" title="All 2 branches covered.">      if (queryParams.length() &gt; 0) {</span>
+<span class="fc" id="L294">        queryParams.append('&amp;');</span>
       }
-<span class="fc" id="L295">      queryParams.append(queryString);</span>
+<span class="fc" id="L296">      queryParams.append(queryString);</span>
     }
 
     // inherit query parameters from current request (only if the parameter is not already included in the params list)
-<span class="fc bfc" id="L299" title="All 4 branches covered.">    if (inheritableParameterNames != null &amp;&amp; request != null) {</span>
-<span class="fc bfc" id="L300" title="All 2 branches covered.">      for (String parameterName : inheritableParameterNames) {</span>
-<span class="fc bfc" id="L301" title="All 2 branches covered.">        if (queryParams.indexOf(parameterName + &quot;=&quot;) == -1) {</span>
-<span class="fc" id="L302">          String[] values = RequestParam.getMultiple(request, parameterName);</span>
-<span class="fc bfc" id="L303" title="All 2 branches covered.">          if (values != null) {</span>
-<span class="fc bfc" id="L304" title="All 2 branches covered.">            for (String value : values) {</span>
-<span class="pc bpc" id="L305" title="1 of 2 branches missed.">              if (StringUtils.isNotEmpty(value)) {</span>
-<span class="fc bfc" id="L306" title="All 2 branches covered.">                if (queryParams.length() &gt; 0) {</span>
-<span class="fc" id="L307">                  queryParams.append('&amp;');</span>
+<span class="fc bfc" id="L300" title="All 4 branches covered.">    if (inheritableParameterNames != null &amp;&amp; request != null) {</span>
+<span class="fc bfc" id="L301" title="All 2 branches covered.">      for (String parameterName : inheritableParameterNames) {</span>
+<span class="fc bfc" id="L302" title="All 2 branches covered.">        if (queryParams.indexOf(parameterName + &quot;=&quot;) == -1) {</span>
+<span class="fc" id="L303">          String[] values = RequestParam.getMultiple(request, parameterName);</span>
+<span class="fc bfc" id="L304" title="All 2 branches covered.">          if (values != null) {</span>
+<span class="fc bfc" id="L305" title="All 2 branches covered.">            for (String value : values) {</span>
+<span class="pc bpc" id="L306" title="1 of 2 branches missed.">              if (StringUtils.isNotEmpty(value)) {</span>
+<span class="fc bfc" id="L307" title="All 2 branches covered.">                if (queryParams.length() &gt; 0) {</span>
+<span class="fc" id="L308">                  queryParams.append('&amp;');</span>
                 }
-<span class="fc" id="L309">                queryParams.append(parameterName);</span>
-<span class="fc" id="L310">                queryParams.append('=');</span>
-<span class="fc" id="L311">                queryParams.append(value);</span>
+<span class="fc" id="L310">                queryParams.append(parameterName);</span>
+<span class="fc" id="L311">                queryParams.append('=');</span>
+<span class="fc" id="L312">                queryParams.append(value);</span>
               }
             }
           }
         }
-<span class="fc" id="L316">      }</span>
+<span class="fc" id="L317">      }</span>
     }
 
     // build complete url
-<span class="fc bfc" id="L320" title="All 2 branches covered.">    if (queryParams.length() &gt; 0) {</span>
-<span class="fc" id="L321">      urlBuilder.append('?');</span>
-<span class="fc" id="L322">      urlBuilder.append(queryParams);</span>
+<span class="fc bfc" id="L321" title="All 2 branches covered.">    if (queryParams.length() &gt; 0) {</span>
+<span class="fc" id="L322">      urlBuilder.append('?');</span>
+<span class="fc" id="L323">      urlBuilder.append(queryParams);</span>
     }
-<span class="fc" id="L324">    return urlBuilder.toString();</span>
+<span class="fc" id="L325">    return urlBuilder.toString();</span>
   }
 
   String setFragment(String url, String fragment) {
-<span class="pc bpc" id="L328" title="1 of 2 branches missed.">    if (StringUtils.isEmpty(url)) {</span>
-<span class="nc" id="L329">      return url;</span>
+<span class="pc bpc" id="L329" title="1 of 2 branches missed.">    if (StringUtils.isEmpty(url)) {</span>
+<span class="nc" id="L330">      return url;</span>
     }
 
     // strip off anchor if already present
     StringBuilder urlBuilder;
-<span class="fc" id="L334">    int index = url.indexOf('#');</span>
-<span class="fc bfc" id="L335" title="All 2 branches covered.">    if (index &gt;= 0) {</span>
-<span class="fc" id="L336">      urlBuilder = new StringBuilder(url.substring(0, index));</span>
+<span class="fc" id="L335">    int index = url.indexOf('#');</span>
+<span class="fc bfc" id="L336" title="All 2 branches covered.">    if (index &gt;= 0) {</span>
+<span class="fc" id="L337">      urlBuilder = new StringBuilder(url.substring(0, index));</span>
     }
     else {
-<span class="fc" id="L339">      urlBuilder = new StringBuilder(url);</span>
+<span class="fc" id="L340">      urlBuilder = new StringBuilder(url);</span>
     }
 
     // prepend &quot;#&quot; for anchor if not present
-<span class="pc bpc" id="L343" title="1 of 2 branches missed.">    if (StringUtils.isNotBlank(fragment)) {</span>
-<span class="fc bfc" id="L344" title="All 2 branches covered.">      if (!StringUtils.startsWith(fragment, &quot;#&quot;)) {</span>
-<span class="fc" id="L345">        urlBuilder.append('#');</span>
+<span class="pc bpc" id="L344" title="1 of 2 branches missed.">    if (StringUtils.isNotBlank(fragment)) {</span>
+<span class="fc bfc" id="L345" title="All 2 branches covered.">      if (!StringUtils.startsWith(fragment, &quot;#&quot;)) {</span>
+<span class="fc" id="L346">        urlBuilder.append('#');</span>
       }
-<span class="fc" id="L347">      urlBuilder.append(fragment);</span>
+<span class="fc" id="L348">      urlBuilder.append(fragment);</span>
     }
 
-<span class="fc" id="L350">    return urlBuilder.toString();</span>
+<span class="fc" id="L351">    return urlBuilder.toString();</span>
   }
 
   @Override
   public String applySiteUrlAutoDetection(@Nullable String siteUrl) {
-<span class="fc" id="L355">    return UrlPrefix.applyAutoDetection(siteUrl, self);</span>
+<span class="fc" id="L356">    return UrlPrefix.applyAutoDetection(siteUrl, self);</span>
+  }
+
+  VanityMode getDefaultVanityMode() {
+<span class="fc" id="L360">    return urlHandlerConfig.getDefaultVanityMode();</span>
   }
 
 }
