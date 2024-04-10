@@ -40,8 +40,14 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.Privilege;
+
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.caconfig.management.ConfigurationCollectionData;
 import org.apache.sling.caconfig.management.ConfigurationData;
@@ -65,8 +71,8 @@ import io.wcm.caconfig.editor.impl.data.configdata.PropertyItemMetadata;
  */
 class ConfigDataResponseGenerator {
 
-<span class="fc" id="L68">  private static final Pattern JSON_STRING_ARRAY_PATTERN = Pattern.compile(&quot;^\\[.*\\]$&quot;);</span>
-<span class="fc" id="L69">  private static final Pattern JSON_STRING_OBJECT_PATTERN = Pattern.compile(&quot;^\\{.*\\}$&quot;);</span>
+<span class="fc" id="L74">  private static final Pattern JSON_STRING_ARRAY_PATTERN = Pattern.compile(&quot;^\\[.*\\]$&quot;);</span>
+<span class="fc" id="L75">  private static final Pattern JSON_STRING_OBJECT_PATTERN = Pattern.compile(&quot;^\\{.*\\}$&quot;);</span>
 
   private final ConfigurationManager configManager;
   private final ConfigurationPersistenceStrategyMultiplexer configurationPersistenceStrategy;
@@ -74,155 +80,175 @@ class ConfigDataResponseGenerator {
   private final PathBrowserRootPathProviderService pathBrowserRootPathProviderService;
   private final TagBrowserRootPathProviderService tagBrowserRootPathProviderService;
 
-<span class="fc" id="L77">  private static Logger log = LoggerFactory.getLogger(ConfigDataResponseGenerator.class);</span>
+  private AccessControlManager accessControlManager;
+  private Privilege jcrWritePrivilege;
 
-  ConfigDataResponseGenerator(@NotNull ConfigurationManager configManager,
+<span class="fc" id="L86">  private static Logger log = LoggerFactory.getLogger(ConfigDataResponseGenerator.class);</span>
+
+  ConfigDataResponseGenerator(@NotNull SlingHttpServletRequest request,
+      @NotNull ConfigurationManager configManager,
       @NotNull ConfigurationPersistenceStrategyMultiplexer configurationPersistenceStrategy,
       @NotNull DropdownOptionProviderService dropdownOptionProviderService,
       @NotNull PathBrowserRootPathProviderService pathBrowserRootPathProviderService,
-<span class="fc" id="L83">      @NotNull TagBrowserRootPathProviderService tagBrowserRootPathProviderService) {</span>
-<span class="fc" id="L84">    this.configManager = configManager;</span>
-<span class="fc" id="L85">    this.configurationPersistenceStrategy = configurationPersistenceStrategy;</span>
-<span class="fc" id="L86">    this.dropdownOptionProviderService = dropdownOptionProviderService;</span>
-<span class="fc" id="L87">    this.pathBrowserRootPathProviderService = pathBrowserRootPathProviderService;</span>
-<span class="fc" id="L88">    this.tagBrowserRootPathProviderService = tagBrowserRootPathProviderService;</span>
-<span class="fc" id="L89">  }</span>
+<span class="fc" id="L93">      @NotNull TagBrowserRootPathProviderService tagBrowserRootPathProviderService) {</span>
+<span class="fc" id="L94">    this.configManager = configManager;</span>
+<span class="fc" id="L95">    this.configurationPersistenceStrategy = configurationPersistenceStrategy;</span>
+<span class="fc" id="L96">    this.dropdownOptionProviderService = dropdownOptionProviderService;</span>
+<span class="fc" id="L97">    this.pathBrowserRootPathProviderService = pathBrowserRootPathProviderService;</span>
+<span class="fc" id="L98">    this.tagBrowserRootPathProviderService = tagBrowserRootPathProviderService;</span>
+
+<span class="fc" id="L100">    Session session = request.getResourceResolver().adaptTo(Session.class);</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">    if (session != null) {</span>
+      try {
+<span class="fc" id="L103">        this.accessControlManager = session.getAccessControlManager();</span>
+<span class="fc" id="L104">        this.jcrWritePrivilege = accessControlManager.privilegeFromName(Privilege.JCR_WRITE);</span>
+      }
+<span class="nc" id="L106">      catch (RepositoryException ex) {</span>
+<span class="nc" id="L107">        log.warn(&quot;Unable to prepare JCR AccessControlManager.&quot;, ex);</span>
+<span class="fc" id="L108">      }</span>
+    }
+<span class="fc" id="L110">  }</span>
 
   Object getConfiguration(@NotNull Resource contextResource, String configName, boolean collection) {
     Object result;
-<span class="fc bfc" id="L93" title="All 2 branches covered.">    if (collection) {</span>
-<span class="fc" id="L94">      ConfigurationData newItem = configManager.newCollectionItem(contextResource, configName);</span>
-<span class="pc bpc" id="L95" title="1 of 2 branches missed.">      if (newItem == null) {</span>
-<span class="nc" id="L96">        throw new ConfigurationPersistenceException(&quot;Invalid configuration name: &quot; + configName);</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">    if (collection) {</span>
+<span class="fc" id="L115">      ConfigurationData newItem = configManager.newCollectionItem(contextResource, configName);</span>
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">      if (newItem == null) {</span>
+<span class="nc" id="L117">        throw new ConfigurationPersistenceException(&quot;Invalid configuration name: &quot; + configName);</span>
       }
-<span class="fc" id="L98">      result = fromConfigCollection(contextResource,</span>
-<span class="fc" id="L99">          configManager.getConfigurationCollection(contextResource, configName), newItem, configName);</span>
-<span class="fc" id="L100">    }</span>
+<span class="fc" id="L119">      result = fromConfigCollection(contextResource,</span>
+<span class="fc" id="L120">          configManager.getConfigurationCollection(contextResource, configName), newItem, configName);</span>
+<span class="fc" id="L121">    }</span>
     else {
-<span class="fc" id="L102">      ConfigurationData configData = configManager.getConfiguration(contextResource, configName);</span>
-<span class="pc bpc" id="L103" title="1 of 2 branches missed.">      if (configData != null) {</span>
-<span class="fc" id="L104">        result = fromConfig(contextResource, configData, configData.isInherited(), configName);</span>
+<span class="fc" id="L123">      ConfigurationData configData = configManager.getConfiguration(contextResource, configName);</span>
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">      if (configData != null) {</span>
+<span class="fc" id="L125">        result = fromConfig(contextResource, configData, configData.isInherited(), configName);</span>
       }
       else {
-<span class="nc" id="L107">        result = null;</span>
+<span class="nc" id="L128">        result = null;</span>
       }
     }
-<span class="fc" id="L110">    return result;</span>
+<span class="fc" id="L131">    return result;</span>
   }
 
   private ConfigCollectionItem fromConfigCollection(@NotNull Resource contextResource,
       ConfigurationCollectionData configCollection, ConfigurationData newItem, String fullConfigName) {
-<span class="fc" id="L115">    ConfigCollectionItem result = new ConfigCollectionItem();</span>
-<span class="fc" id="L116">    result.setConfigName(configCollection.getConfigName());</span>
+<span class="fc" id="L136">    ConfigCollectionItem result = new ConfigCollectionItem();</span>
+<span class="fc" id="L137">    result.setConfigName(configCollection.getConfigName());</span>
+<span class="fc" id="L138">    result.setConfigSourcePath(configCollection.getResourcePath());</span>
+<span class="fc" id="L139">    result.setReadOnly(isReadOnly(configCollection.getResourcePath(), false));</span>
 
-<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (!configCollection.getProperties().isEmpty()) {</span>
-<span class="fc" id="L119">      Map&lt;String, Object&gt; properties = new TreeMap&lt;&gt;();</span>
-<span class="fc bfc" id="L120" title="All 2 branches covered.">      for (Map.Entry&lt;String, Object&gt; entry : configCollection.getProperties().entrySet()) {</span>
-<span class="fc" id="L121">        properties.put(entry.getKey(), entry.getValue());</span>
-<span class="fc" id="L122">      }</span>
-<span class="fc" id="L123">      result.setProperties(properties);</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">    if (!configCollection.getProperties().isEmpty()) {</span>
+<span class="fc" id="L142">      Map&lt;String, Object&gt; properties = new TreeMap&lt;&gt;();</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">      for (Map.Entry&lt;String, Object&gt; entry : configCollection.getProperties().entrySet()) {</span>
+<span class="fc" id="L144">        properties.put(entry.getKey(), entry.getValue());</span>
+<span class="fc" id="L145">      }</span>
+<span class="fc" id="L146">      result.setProperties(properties);</span>
     }
 
-<span class="fc" id="L126">    List&lt;ConfigItem&gt; items = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L127" title="All 2 branches covered.">    for (ConfigurationData configData : configCollection.getItems()) {</span>
-<span class="fc" id="L128">      items.add(fromConfig(contextResource, configData, configData.isInherited(), fullConfigName));</span>
-<span class="fc" id="L129">    }</span>
-<span class="fc" id="L130">    result.setItems(items);</span>
+<span class="fc" id="L149">    List&lt;ConfigItem&gt; items = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">    for (ConfigurationData configData : configCollection.getItems()) {</span>
+<span class="fc" id="L151">      items.add(fromConfig(contextResource, configData, configData.isInherited(), fullConfigName));</span>
+<span class="fc" id="L152">    }</span>
+<span class="fc" id="L153">    result.setItems(items);</span>
 
-<span class="fc" id="L132">    result.setNewItem(fromConfig(contextResource, newItem, null, fullConfigName));</span>
+<span class="fc" id="L155">    result.setNewItem(fromConfig(contextResource, newItem, null, fullConfigName));</span>
 
-<span class="fc" id="L134">    return result;</span>
+<span class="fc" id="L157">    return result;</span>
   }
 
   @SuppressWarnings(&quot;java:S3776&quot;)
   private ConfigItem fromConfig(@NotNull Resource contextResource, ConfigurationData config, Boolean inherited, String fullConfigName) {
-<span class="fc" id="L139">    ConfigItem result = new ConfigItem();</span>
+<span class="fc" id="L162">    ConfigItem result = new ConfigItem();</span>
 
-<span class="fc" id="L141">    result.setConfigName(config.getConfigName());</span>
-<span class="fc" id="L142">    result.setCollectionItemName(config.getCollectionItemName());</span>
-<span class="fc" id="L143">    result.setOverridden(config.isOverridden());</span>
-<span class="fc" id="L144">    result.setInherited(inherited);</span>
+<span class="fc" id="L164">    result.setConfigName(config.getConfigName());</span>
+<span class="fc" id="L165">    result.setCollectionItemName(config.getCollectionItemName());</span>
+<span class="fc" id="L166">    result.setOverridden(config.isOverridden());</span>
+<span class="fc" id="L167">    result.setInherited(inherited);</span>
+<span class="fc" id="L168">    result.setConfigSourcePath(config.getResourcePath());</span>
+<span class="fc" id="L169">    result.setReadOnly(isReadOnly(config.getResourcePath(), config.isOverridden()));</span>
 
-<span class="fc" id="L146">    List&lt;PropertyItem&gt; props = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L147" title="All 2 branches covered.">    for (String propertyName : config.getPropertyNames()) {</span>
-<span class="fc" id="L148">      ValueInfo&lt;?&gt; item = config.getValueInfo(propertyName);</span>
-<span class="pc bpc" id="L149" title="1 of 2 branches missed.">      if (item == null) {</span>
-<span class="nc" id="L150">        continue;</span>
+<span class="fc" id="L171">    List&lt;PropertyItem&gt; props = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">    for (String propertyName : config.getPropertyNames()) {</span>
+<span class="fc" id="L173">      ValueInfo&lt;?&gt; item = config.getValueInfo(propertyName);</span>
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">      if (item == null) {</span>
+<span class="nc" id="L175">        continue;</span>
       }
-<span class="fc" id="L152">      PropertyMetadata&lt;?&gt; itemMetadata = item.getPropertyMetadata();</span>
+<span class="fc" id="L177">      PropertyMetadata&lt;?&gt; itemMetadata = item.getPropertyMetadata();</span>
 
-<span class="fc" id="L154">      PropertyItem prop = new PropertyItem();</span>
-<span class="fc" id="L155">      prop.setName(item.getName());</span>
+<span class="fc" id="L179">      PropertyItem prop = new PropertyItem();</span>
+<span class="fc" id="L180">      prop.setName(item.getName());</span>
 
       // special handling for nested configs and nested config collections
-<span class="fc bfc" id="L158" title="All 4 branches covered.">      if (itemMetadata != null &amp;&amp; itemMetadata.isNestedConfiguration()) {</span>
-<span class="fc" id="L159">        PropertyItemMetadata metadata = new PropertyItemMetadata();</span>
-<span class="fc" id="L160">        metadata.setLabel(itemMetadata.getLabel());</span>
-<span class="fc" id="L161">        metadata.setDescription(itemMetadata.getDescription());</span>
-<span class="fc" id="L162">        metadata.setProperties(toJsonWithValueConversion(itemMetadata.getProperties(), contextResource));</span>
-<span class="fc" id="L163">        prop.setMetadata(metadata);</span>
+<span class="fc bfc" id="L183" title="All 4 branches covered.">      if (itemMetadata != null &amp;&amp; itemMetadata.isNestedConfiguration()) {</span>
+<span class="fc" id="L184">        PropertyItemMetadata metadata = new PropertyItemMetadata();</span>
+<span class="fc" id="L185">        metadata.setLabel(itemMetadata.getLabel());</span>
+<span class="fc" id="L186">        metadata.setDescription(itemMetadata.getDescription());</span>
+<span class="fc" id="L187">        metadata.setProperties(toJsonWithValueConversion(itemMetadata.getProperties(), contextResource));</span>
+<span class="fc" id="L188">        prop.setMetadata(metadata);</span>
 
-<span class="fc bfc" id="L165" title="All 2 branches covered.">        if (itemMetadata.getType().isArray()) {</span>
-<span class="fc" id="L166">          ConfigurationData[] configDatas = (ConfigurationData[])item.getValue();</span>
-<span class="pc bpc" id="L167" title="1 of 2 branches missed.">          if (configDatas != null) {</span>
-<span class="fc" id="L168">            ConfigCollectionItem nestedConfigCollection = new ConfigCollectionItem();</span>
-<span class="fc" id="L169">            StringBuilder collectionConfigName = new StringBuilder();</span>
-<span class="fc bfc" id="L170" title="All 2 branches covered.">            if (config.getCollectionItemName() != null) {</span>
-<span class="fc" id="L171">              collectionConfigName.append(configurationPersistenceStrategy.getCollectionItemConfigName(fullConfigName</span>
-<span class="fc" id="L172">                  + &quot;/&quot; + config.getCollectionItemName(), config.getResourcePath()));</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">        if (itemMetadata.getType().isArray()) {</span>
+<span class="fc" id="L191">          ConfigurationData[] configDatas = (ConfigurationData[])item.getValue();</span>
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">          if (configDatas != null) {</span>
+<span class="fc" id="L193">            ConfigCollectionItem nestedConfigCollection = new ConfigCollectionItem();</span>
+<span class="fc" id="L194">            StringBuilder collectionConfigName = new StringBuilder();</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">            if (config.getCollectionItemName() != null) {</span>
+<span class="fc" id="L196">              collectionConfigName.append(configurationPersistenceStrategy.getCollectionItemConfigName(fullConfigName</span>
+<span class="fc" id="L197">                  + &quot;/&quot; + config.getCollectionItemName(), config.getResourcePath()));</span>
             }
             else {
-<span class="fc" id="L175">              collectionConfigName.append(configurationPersistenceStrategy.getConfigName(fullConfigName, config.getResourcePath()));</span>
+<span class="fc" id="L200">              collectionConfigName.append(configurationPersistenceStrategy.getConfigName(fullConfigName, config.getResourcePath()));</span>
             }
-<span class="fc" id="L177">            collectionConfigName.append(&quot;/&quot;).append(itemMetadata.getConfigurationMetadata().getName());</span>
-<span class="fc" id="L178">            nestedConfigCollection.setConfigName(collectionConfigName.toString());</span>
-<span class="fc" id="L179">            List&lt;ConfigItem&gt; items = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L180" title="All 2 branches covered.">            for (ConfigurationData configData : configDatas) {</span>
-<span class="fc" id="L181">              items.add(fromConfig(contextResource, configData, false, collectionConfigName.toString()));</span>
+<span class="fc" id="L202">            collectionConfigName.append(&quot;/&quot;).append(itemMetadata.getConfigurationMetadata().getName());</span>
+<span class="fc" id="L203">            nestedConfigCollection.setConfigName(collectionConfigName.toString());</span>
+<span class="fc" id="L204">            List&lt;ConfigItem&gt; items = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">            for (ConfigurationData configData : configDatas) {</span>
+<span class="fc" id="L206">              items.add(fromConfig(contextResource, configData, false, collectionConfigName.toString()));</span>
             }
-<span class="fc" id="L183">            nestedConfigCollection.setItems(items);</span>
-<span class="fc" id="L184">            prop.setNestedConfigCollection(nestedConfigCollection);</span>
+<span class="fc" id="L208">            nestedConfigCollection.setItems(items);</span>
+<span class="fc" id="L209">            prop.setNestedConfigCollection(nestedConfigCollection);</span>
           }
-<span class="fc" id="L186">        }</span>
+<span class="fc" id="L211">        }</span>
         else {
-<span class="fc" id="L188">          ConfigurationData configData = (ConfigurationData)item.getValue();</span>
-<span class="pc bpc" id="L189" title="1 of 2 branches missed.">          if (configData != null) {</span>
-<span class="fc" id="L190">            prop.setNestedConfig(fromConfig(contextResource, configData, null, fullConfigName</span>
-<span class="fc" id="L191">                + &quot;/&quot; + itemMetadata.getConfigurationMetadata().getName()));</span>
+<span class="fc" id="L213">          ConfigurationData configData = (ConfigurationData)item.getValue();</span>
+<span class="pc bpc" id="L214" title="1 of 2 branches missed.">          if (configData != null) {</span>
+<span class="fc" id="L215">            prop.setNestedConfig(fromConfig(contextResource, configData, null, fullConfigName</span>
+<span class="fc" id="L216">                + &quot;/&quot; + itemMetadata.getConfigurationMetadata().getName()));</span>
           }
         }
-<span class="fc" id="L194">      }</span>
+<span class="fc" id="L219">      }</span>
 
       // property data and metadata
       else {
-<span class="fc" id="L198">        prop.setValue(item.getValue());</span>
-<span class="fc" id="L199">        prop.setEffectiveValue(item.getEffectiveValue());</span>
-<span class="fc" id="L200">        prop.setConfigSourcePath(item.getConfigSourcePath());</span>
-<span class="fc" id="L201">        prop.setIsDefault(item.isDefault());</span>
-<span class="fc" id="L202">        prop.setInherited(item.isInherited());</span>
-<span class="fc" id="L203">        prop.setOverridden(item.isOverridden());</span>
+<span class="fc" id="L223">        prop.setValue(item.getValue());</span>
+<span class="fc" id="L224">        prop.setEffectiveValue(item.getEffectiveValue());</span>
+<span class="fc" id="L225">        prop.setConfigSourcePath(item.getConfigSourcePath());</span>
+<span class="fc" id="L226">        prop.setIsDefault(item.isDefault());</span>
+<span class="fc" id="L227">        prop.setInherited(item.isInherited());</span>
+<span class="fc" id="L228">        prop.setOverridden(item.isOverridden());</span>
+<span class="fc" id="L229">        prop.setReadOnly(result.getReadOnly());</span>
 
-<span class="fc bfc" id="L205" title="All 2 branches covered.">        if (itemMetadata != null) {</span>
-<span class="fc" id="L206">          PropertyItemMetadata metadata = new PropertyItemMetadata();</span>
-<span class="fc bfc" id="L207" title="All 2 branches covered.">          if (itemMetadata.getType().isArray()) {</span>
-<span class="fc" id="L208">            metadata.setType(ClassUtils.primitiveToWrapper(itemMetadata.getType().getComponentType()).getSimpleName());</span>
-<span class="fc" id="L209">            metadata.setMultivalue(true);</span>
+<span class="fc bfc" id="L231" title="All 2 branches covered.">        if (itemMetadata != null) {</span>
+<span class="fc" id="L232">          PropertyItemMetadata metadata = new PropertyItemMetadata();</span>
+<span class="fc bfc" id="L233" title="All 2 branches covered.">          if (itemMetadata.getType().isArray()) {</span>
+<span class="fc" id="L234">            metadata.setType(ClassUtils.primitiveToWrapper(itemMetadata.getType().getComponentType()).getSimpleName());</span>
+<span class="fc" id="L235">            metadata.setMultivalue(true);</span>
           }
           else {
-<span class="fc" id="L212">            metadata.setType(ClassUtils.primitiveToWrapper(itemMetadata.getType()).getSimpleName());</span>
+<span class="fc" id="L238">            metadata.setType(ClassUtils.primitiveToWrapper(itemMetadata.getType()).getSimpleName());</span>
           }
-<span class="fc" id="L214">          metadata.setDefaultValue(itemMetadata.getDefaultValue());</span>
-<span class="fc" id="L215">          metadata.setLabel(itemMetadata.getLabel());</span>
-<span class="fc" id="L216">          metadata.setDescription(itemMetadata.getDescription());</span>
-<span class="fc" id="L217">          metadata.setProperties(toJsonWithValueConversion(itemMetadata.getProperties(), contextResource));</span>
-<span class="fc" id="L218">          prop.setMetadata(metadata);</span>
+<span class="fc" id="L240">          metadata.setDefaultValue(itemMetadata.getDefaultValue());</span>
+<span class="fc" id="L241">          metadata.setLabel(itemMetadata.getLabel());</span>
+<span class="fc" id="L242">          metadata.setDescription(itemMetadata.getDescription());</span>
+<span class="fc" id="L243">          metadata.setProperties(toJsonWithValueConversion(itemMetadata.getProperties(), contextResource));</span>
+<span class="fc" id="L244">          prop.setMetadata(metadata);</span>
         }
       }
-<span class="fc" id="L221">      props.add(prop);</span>
-<span class="fc" id="L222">    }</span>
-<span class="fc" id="L223">    result.setProperties(props);</span>
+<span class="fc" id="L247">      props.add(prop);</span>
+<span class="fc" id="L248">    }</span>
+<span class="fc" id="L249">    result.setProperties(props);</span>
 
-<span class="fc" id="L225">    return result;</span>
+<span class="fc" id="L251">    return result;</span>
   }
 
   /**
@@ -235,88 +261,105 @@ class ConfigDataResponseGenerator {
   @SuppressWarnings({ &quot;PMD.ReturnEmptyCollectionRatherThanNull&quot;, &quot;java:S3776&quot; })
   private @Nullable Map&lt;String, Object&gt; toJsonWithValueConversion(@Nullable Map&lt;String, String&gt; properties,
       @NotNull Resource contextResource) {
-<span class="fc bfc" id="L238" title="All 4 branches covered.">    if (properties == null || properties.isEmpty()) {</span>
-<span class="fc" id="L239">      return null;</span>
+<span class="fc bfc" id="L264" title="All 4 branches covered.">    if (properties == null || properties.isEmpty()) {</span>
+<span class="fc" id="L265">      return null;</span>
     }
 
-<span class="fc" id="L242">    Map&lt;String, Object&gt; metadataProps = new TreeMap&lt;&gt;();</span>
-<span class="fc bfc" id="L243" title="All 2 branches covered.">    for (Map.Entry&lt;String, String&gt; entry : properties.entrySet()) {</span>
-<span class="fc" id="L244">      metadataProps.put(entry.getKey(), tryConvertJsonString(entry.getValue()));</span>
-<span class="fc" id="L245">    }</span>
+<span class="fc" id="L268">    Map&lt;String, Object&gt; metadataProps = new TreeMap&lt;&gt;();</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">    for (Map.Entry&lt;String, String&gt; entry : properties.entrySet()) {</span>
+<span class="fc" id="L270">      metadataProps.put(entry.getKey(), tryConvertJsonString(entry.getValue()));</span>
+<span class="fc" id="L271">    }</span>
 
     // check for dynamic dropdown option injection
-<span class="fc" id="L248">    boolean isDropdown = WIDGET_TYPE_DROPDOWN.equals(metadataProps.get(PROPERTY_WIDGET_TYPE));</span>
-<span class="fc bfc" id="L249" title="All 2 branches covered.">    if (isDropdown) {</span>
-<span class="fc" id="L250">      Optional&lt;String&gt; dynamicProvider = Optional.ofNullable(metadataProps.get(PROPERTY_DROPDOWN_OPTIONS_PROVIDER))</span>
-<span class="fc" id="L251">          .filter(Objects::nonNull)</span>
-<span class="fc" id="L252">          .map(String::valueOf)</span>
-<span class="fc" id="L253">          .filter(StringUtils::isNotBlank);</span>
-<span class="fc bfc" id="L254" title="All 2 branches covered.">      if (dynamicProvider.isPresent()) {</span>
-<span class="fc" id="L255">        List&lt;Map&lt;String, Object&gt;&gt; items = dropdownOptionProviderService.getDropdownOptions(dynamicProvider.get(), contextResource);</span>
-<span class="pc bpc" id="L256" title="1 of 2 branches missed.">        if (!items.isEmpty()) {</span>
-<span class="fc" id="L257">          metadataProps.put(PROPERTY_DROPDOWN_OPTIONS, items);</span>
+<span class="fc" id="L274">    boolean isDropdown = WIDGET_TYPE_DROPDOWN.equals(metadataProps.get(PROPERTY_WIDGET_TYPE));</span>
+<span class="fc bfc" id="L275" title="All 2 branches covered.">    if (isDropdown) {</span>
+<span class="fc" id="L276">      Optional&lt;String&gt; dynamicProvider = Optional.ofNullable(metadataProps.get(PROPERTY_DROPDOWN_OPTIONS_PROVIDER))</span>
+<span class="fc" id="L277">          .filter(Objects::nonNull)</span>
+<span class="fc" id="L278">          .map(String::valueOf)</span>
+<span class="fc" id="L279">          .filter(StringUtils::isNotBlank);</span>
+<span class="fc bfc" id="L280" title="All 2 branches covered.">      if (dynamicProvider.isPresent()) {</span>
+<span class="fc" id="L281">        List&lt;Map&lt;String, Object&gt;&gt; items = dropdownOptionProviderService.getDropdownOptions(dynamicProvider.get(), contextResource);</span>
+<span class="pc bpc" id="L282" title="1 of 2 branches missed.">        if (!items.isEmpty()) {</span>
+<span class="fc" id="L283">          metadataProps.put(PROPERTY_DROPDOWN_OPTIONS, items);</span>
         }
-<span class="fc" id="L259">        metadataProps.remove(PROPERTY_DROPDOWN_OPTIONS_PROVIDER);</span>
+<span class="fc" id="L285">        metadataProps.remove(PROPERTY_DROPDOWN_OPTIONS_PROVIDER);</span>
       }
     }
 
     // check for dynamic root path injection
-<span class="fc" id="L264">    boolean isPathBrowser = WIDGET_TYPE_PATHBROWSER.equals(metadataProps.get(PROPERTY_WIDGET_TYPE));</span>
-<span class="fc bfc" id="L265" title="All 2 branches covered.">    if (isPathBrowser) {</span>
-<span class="fc" id="L266">      Optional&lt;String&gt; dynamicProvider = Optional.ofNullable(metadataProps.get(PROPERTY_PATHBROWSER_ROOT_PATH_PROVIDER))</span>
-<span class="fc" id="L267">          .filter(Objects::nonNull)</span>
-<span class="fc" id="L268">          .map(String::valueOf)</span>
-<span class="fc" id="L269">          .filter(StringUtils::isNotBlank);</span>
-<span class="pc bpc" id="L270" title="1 of 2 branches missed.">      if (dynamicProvider.isPresent()) {</span>
-<span class="fc" id="L271">        String rootPath = pathBrowserRootPathProviderService.getRootPath(dynamicProvider.get(), contextResource);</span>
-<span class="pc bpc" id="L272" title="1 of 2 branches missed.">        if (rootPath != null) {</span>
-<span class="fc" id="L273">          metadataProps.put(PROPERTY_PATHBROWSER_ROOT_PATH, rootPath);</span>
+<span class="fc" id="L290">    boolean isPathBrowser = WIDGET_TYPE_PATHBROWSER.equals(metadataProps.get(PROPERTY_WIDGET_TYPE));</span>
+<span class="fc bfc" id="L291" title="All 2 branches covered.">    if (isPathBrowser) {</span>
+<span class="fc" id="L292">      Optional&lt;String&gt; dynamicProvider = Optional.ofNullable(metadataProps.get(PROPERTY_PATHBROWSER_ROOT_PATH_PROVIDER))</span>
+<span class="fc" id="L293">          .filter(Objects::nonNull)</span>
+<span class="fc" id="L294">          .map(String::valueOf)</span>
+<span class="fc" id="L295">          .filter(StringUtils::isNotBlank);</span>
+<span class="pc bpc" id="L296" title="1 of 2 branches missed.">      if (dynamicProvider.isPresent()) {</span>
+<span class="fc" id="L297">        String rootPath = pathBrowserRootPathProviderService.getRootPath(dynamicProvider.get(), contextResource);</span>
+<span class="pc bpc" id="L298" title="1 of 2 branches missed.">        if (rootPath != null) {</span>
+<span class="fc" id="L299">          metadataProps.put(PROPERTY_PATHBROWSER_ROOT_PATH, rootPath);</span>
         }
-<span class="fc" id="L275">        metadataProps.remove(PROPERTY_PATHBROWSER_ROOT_PATH_PROVIDER);</span>
+<span class="fc" id="L301">        metadataProps.remove(PROPERTY_PATHBROWSER_ROOT_PATH_PROVIDER);</span>
       }
     }
 
-<span class="fc" id="L279">    boolean isTagBrowser = WIDGET_TYPE_TAGBROWSER.equals(metadataProps.get(PROPERTY_WIDGET_TYPE));</span>
-<span class="fc bfc" id="L280" title="All 2 branches covered.">    if (isTagBrowser) {</span>
-<span class="fc" id="L281">      Optional&lt;String&gt; dynamicProvider = Optional.ofNullable(metadataProps.get(PROPERTY_TAGBROWSER_ROOT_PATH_PROVIDER))</span>
-<span class="fc" id="L282">          .filter(Objects::nonNull)</span>
-<span class="fc" id="L283">          .map(String::valueOf)</span>
-<span class="fc" id="L284">          .filter(StringUtils::isNotBlank);</span>
-<span class="pc bpc" id="L285" title="1 of 2 branches missed.">      if (dynamicProvider.isPresent()) {</span>
-<span class="fc" id="L286">        String rootPath = tagBrowserRootPathProviderService.getRootPath(dynamicProvider.get(), contextResource);</span>
-<span class="pc bpc" id="L287" title="1 of 2 branches missed.">        if (rootPath != null) {</span>
-<span class="fc" id="L288">          metadataProps.put(PROPERTY_TAGBROWSER_ROOT_PATH, rootPath);</span>
+<span class="fc" id="L305">    boolean isTagBrowser = WIDGET_TYPE_TAGBROWSER.equals(metadataProps.get(PROPERTY_WIDGET_TYPE));</span>
+<span class="fc bfc" id="L306" title="All 2 branches covered.">    if (isTagBrowser) {</span>
+<span class="fc" id="L307">      Optional&lt;String&gt; dynamicProvider = Optional.ofNullable(metadataProps.get(PROPERTY_TAGBROWSER_ROOT_PATH_PROVIDER))</span>
+<span class="fc" id="L308">          .filter(Objects::nonNull)</span>
+<span class="fc" id="L309">          .map(String::valueOf)</span>
+<span class="fc" id="L310">          .filter(StringUtils::isNotBlank);</span>
+<span class="pc bpc" id="L311" title="1 of 2 branches missed.">      if (dynamicProvider.isPresent()) {</span>
+<span class="fc" id="L312">        String rootPath = tagBrowserRootPathProviderService.getRootPath(dynamicProvider.get(), contextResource);</span>
+<span class="pc bpc" id="L313" title="1 of 2 branches missed.">        if (rootPath != null) {</span>
+<span class="fc" id="L314">          metadataProps.put(PROPERTY_TAGBROWSER_ROOT_PATH, rootPath);</span>
         }
-<span class="fc" id="L290">        metadataProps.remove(PROPERTY_TAGBROWSER_ROOT_PATH_PROVIDER);</span>
+<span class="fc" id="L316">        metadataProps.remove(PROPERTY_TAGBROWSER_ROOT_PATH_PROVIDER);</span>
       }
     }
 
-<span class="fc" id="L294">    return metadataProps;</span>
+<span class="fc" id="L320">    return metadataProps;</span>
   }
 
   private @Nullable Object tryConvertJsonString(@Nullable String value) {
-<span class="pc bpc" id="L298" title="1 of 2 branches missed.">    if (value == null) {</span>
-<span class="nc" id="L299">      return null;</span>
+<span class="pc bpc" id="L324" title="1 of 2 branches missed.">    if (value == null) {</span>
+<span class="nc" id="L325">      return null;</span>
     }
-<span class="fc bfc" id="L301" title="All 2 branches covered.">    if (JSON_STRING_ARRAY_PATTERN.matcher(value).matches()) {</span>
+<span class="fc bfc" id="L327" title="All 2 branches covered.">    if (JSON_STRING_ARRAY_PATTERN.matcher(value).matches()) {</span>
       try {
-<span class="fc" id="L303">        return OBJECT_MAPPER.readValue(value, List.class);</span>
+<span class="fc" id="L329">        return OBJECT_MAPPER.readValue(value, List.class);</span>
       }
-<span class="nc" id="L305">      catch (IOException ex) {</span>
+<span class="nc" id="L331">      catch (IOException ex) {</span>
         // no valid json - ignore
-<span class="nc" id="L307">        log.trace(&quot;Conversion to JSON array value failed for: {}&quot;, value, ex);</span>
+<span class="nc" id="L333">        log.trace(&quot;Conversion to JSON array value failed for: {}&quot;, value, ex);</span>
       }
     }
-<span class="pc bpc" id="L310" title="1 of 2 branches missed.">    if (JSON_STRING_OBJECT_PATTERN.matcher(value).matches()) {</span>
+<span class="pc bpc" id="L336" title="1 of 2 branches missed.">    if (JSON_STRING_OBJECT_PATTERN.matcher(value).matches()) {</span>
       try {
-<span class="nc" id="L312">        return OBJECT_MAPPER.readValue(value, Map.class);</span>
+<span class="nc" id="L338">        return OBJECT_MAPPER.readValue(value, Map.class);</span>
       }
-<span class="nc" id="L314">      catch (IOException ex) {</span>
+<span class="nc" id="L340">      catch (IOException ex) {</span>
         // no valid json - ignore
-<span class="nc" id="L316">        log.trace(&quot;Conversion to JSON object value failed for: {}&quot;, value, ex);</span>
+<span class="nc" id="L342">        log.trace(&quot;Conversion to JSON object value failed for: {}&quot;, value, ex);</span>
       }
     }
-<span class="fc" id="L319">    return value;</span>
+<span class="fc" id="L345">    return value;</span>
+  }
+
+  private @Nullable Boolean isReadOnly(@Nullable String resourcePath, boolean isOverridden) {
+<span class="pc bpc" id="L349" title="1 of 4 branches missed.">    if (accessControlManager != null &amp;&amp; jcrWritePrivilege != null) {</span>
+      try {
+<span class="fc bfc" id="L351" title="All 2 branches covered.">        if (isOverridden) {</span>
+<span class="fc" id="L352">          return true;</span>
+        }
+<span class="fc bfc" id="L354" title="All 2 branches covered.">        else if (resourcePath != null) {</span>
+<span class="pc bpc" id="L355" title="1 of 2 branches missed.">          return !accessControlManager.hasPrivileges(resourcePath, new Privilege[] { jcrWritePrivilege });</span>
+        }
+      }
+<span class="nc" id="L358">      catch (RepositoryException ex) {</span>
+<span class="nc" id="L359">        log.warn(&quot;Unable to check JCR write privilege for resource: {}&quot;, resourcePath, ex);</span>
+<span class="fc" id="L360">      }</span>
+    }
+<span class="fc" id="L362">    return null;</span>
   }
 
 }
