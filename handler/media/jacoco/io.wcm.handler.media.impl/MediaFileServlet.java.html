@@ -21,8 +21,14 @@ package io.wcm.handler.media.impl;
 
 import javax.servlet.Servlet;
 
+import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.servlets.HttpConstants;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 import com.day.cq.commons.jcr.JcrConstants;
 
@@ -37,10 +43,35 @@ import com.day.cq.commons.jcr.JcrConstants;
     &quot;sling.servlet.resourceTypes=&quot; + JcrConstants.NT_RESOURCE,
     &quot;sling.servlet.methods=&quot; + HttpConstants.METHOD_GET
 })
-<span class="fc" id="L40">public final class MediaFileServlet extends AbstractMediaFileServlet {</span>
+@Designate(ocd = MediaFileServlet.Config.class)
+<span class="fc" id="L47">public final class MediaFileServlet extends AbstractMediaFileServlet {</span>
   private static final long serialVersionUID = 1L;
 
-  // inherits all functionality
+  private boolean svgContentSecurityPolicy;
+
+  @ObjectClassDefinition(
+      name = &quot;wcm.io Media Handler Media File Servlet&quot;,
+      description = &quot;Configures delivery of media file binaries.&quot;)
+  @interface Config {
+
+    @AttributeDefinition(
+        name = &quot;SVG Content Security Policy&quot;,
+        description = &quot;Apply XSS protection when serving SVG files by setting Content-Security-Policy to 'sandbox'.&quot;)
+    boolean svgContentSecurityPolicy() default true;
+
+  }
+
+  @Activate
+  private void activate(Config config) {
+<span class="fc" id="L66">    this.svgContentSecurityPolicy = config.svgContentSecurityPolicy();</span>
+<span class="fc" id="L67">  }</span>
+
+  @Override
+  protected void setSVGContentSecurityPolicy(@NotNull SlingHttpServletResponse response) {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">    if (this.svgContentSecurityPolicy) {</span>
+<span class="fc" id="L72">      super.setSVGContentSecurityPolicy(response);</span>
+    }
+<span class="fc" id="L74">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
