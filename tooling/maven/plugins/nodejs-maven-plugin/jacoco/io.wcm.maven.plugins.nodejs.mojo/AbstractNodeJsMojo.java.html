@@ -50,7 +50,7 @@ import io.wcm.maven.plugins.nodejs.installation.NodeUnarchiveTask;
 <span class="fc" id="L50">public abstract class AbstractNodeJsMojo extends AbstractMojo {</span>
 
   /**
-   * Node.js version (minimum version: 6.3.0).
+   * Node.js version (minimum version: 6.3.0). Can be specified with or without &quot;v&quot; prefix.
    */
   @Parameter(property = &quot;nodejs.version&quot;, defaultValue = &quot;10.15.3&quot;, required = true)
   protected String nodeJsVersion;
@@ -152,7 +152,7 @@ import io.wcm.maven.plugins.nodejs.installation.NodeUnarchiveTask;
     }
 
     // validate nodejs version
-<span class="fc" id="L155">    ComparableVersion nodeJsVersionComparable = new ComparableVersion(nodeJsVersion);</span>
+<span class="fc" id="L155">    ComparableVersion nodeJsVersionComparable = new ComparableVersion(cleanupVersion(nodeJsVersion));</span>
 <span class="pc bpc" id="L156" title="1 of 2 branches missed.">    if (nodeJsVersionComparable.compareTo(NODEJS_MIN_VERSION) &lt; 0) {</span>
 <span class="nc" id="L157">      throw new MojoExecutionException(&quot;This plugin supports Node.js &quot; + NODEJS_MIN_VERSION + &quot; and up.&quot;);</span>
     }
@@ -168,7 +168,7 @@ import io.wcm.maven.plugins.nodejs.installation.NodeUnarchiveTask;
 <span class="fc" id="L168">  }</span>
 
   private NodeInstallationInformation getOrInstallNodeJS() throws MojoExecutionException {
-<span class="fc" id="L171">    NodeInstallationInformation information = NodeInstallationInformation.forVersion(nodeJsVersion, npmVersion, nodeJsDirectory);</span>
+<span class="fc" id="L171">    NodeInstallationInformation information = NodeInstallationInformation.forVersion(cleanupVersion(nodeJsVersion), npmVersion, nodeJsDirectory);</span>
     try {
 <span class="pc bpc" id="L173" title="1 of 4 branches missed.">      if (!information.getNodeExecutable().exists() || !information.getNpmExecutableBundledWithNodeJs().exists()) {</span>
 <span class="fc" id="L174">        getLog().info(&quot;Install Node.js to &quot; + information.getNodeJsInstallPath());</span>
@@ -257,6 +257,15 @@ import io.wcm.maven.plugins.nodejs.installation.NodeUnarchiveTask;
 <span class="nc" id="L257">      throw new MojoExecutionException(&quot;Unable to get artifact for &quot; + dependency, ex);</span>
 <span class="fc" id="L258">    }</span>
 <span class="fc" id="L259">    return artifact.getFile();</span>
+  }
+
+  /**
+   * Removes &quot;v&quot; prefix from version, if present.
+   * @param version Version number
+   * @return Version number
+   */
+  private static String cleanupVersion(String version) {
+<span class="fc" id="L268">    return StringUtils.removeStart(version, &quot;v&quot;);</span>
   }
 
 }
