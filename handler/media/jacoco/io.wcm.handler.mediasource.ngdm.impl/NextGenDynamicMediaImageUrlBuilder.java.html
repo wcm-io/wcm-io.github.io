@@ -76,21 +76,21 @@ public final class NextGenDynamicMediaImageUrlBuilder {
   public @Nullable String build(@NotNull NextGenDynamicMediaImageDeliveryParams params) {
 
     // get parameters from nextgen dynamic media config for URL parameters
-<span class="fc" id="L79">    String repositoryId = context.getNextGenDynamicMediaConfig().getRepositoryId();</span>
-<span class="fc" id="L80">    String imageDeliveryPath = context.getNextGenDynamicMediaConfig().getImageDeliveryBasePath();</span>
-<span class="pc bpc" id="L81" title="1 of 2 branches missed.">    if (StringUtils.isAnyEmpty(repositoryId, imageDeliveryPath)) {</span>
-<span class="nc" id="L82">      return null;</span>
+    String repositoryId;
+<span class="fc bfc" id="L80" title="All 2 branches covered.">    if (context.getReference().getAsset() != null) {</span>
+<span class="fc" id="L81">      repositoryId = context.getNextGenDynamicMediaConfig().getLocalAssetsRepositoryId();</span>
+    }
+    else {
+<span class="fc" id="L84">      repositoryId = context.getNextGenDynamicMediaConfig().getRemoteAssetsRepositoryId();</span>
+    }
+<span class="fc" id="L86">    String imageDeliveryPath = context.getNextGenDynamicMediaConfig().getImageDeliveryBasePath();</span>
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">    if (StringUtils.isAnyBlank(repositoryId, imageDeliveryPath)) {</span>
+<span class="nc" id="L88">      return null;</span>
     }
 
     // replace placeholders in delivery path
-<span class="fc" id="L86">    String seoName = FilenameUtils.getBaseName(context.getReference().getFileName());</span>
-<span class="fc" id="L87">    String format = context.getDefaultMediaArgs().getEnforceOutputFileExtension();</span>
-<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (StringUtils.isEmpty(format)) {</span>
-<span class="fc" id="L89">      format = StringUtils.toRootLowerCase(FilenameUtils.getExtension(context.getReference().getFileName()));</span>
-    }
-<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (!SUPPORTED_FORMATS.contains(format)) {</span>
-<span class="fc" id="L92">      format = FileExtension.JPEG;</span>
-    }
+<span class="fc" id="L92">    String seoName = FilenameUtils.getBaseName(context.getReference().getFileName());</span>
+<span class="fc" id="L93">    String format = getFileExtension();</span>
 <span class="fc" id="L94">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_ASSET_ID, context.getReference().getAssetId());</span>
 <span class="fc" id="L95">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_SEO_NAME, seoName);</span>
 <span class="fc" id="L96">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_FORMAT, format);</span>
@@ -151,6 +151,20 @@ public final class NextGenDynamicMediaImageUrlBuilder {
 <span class="fc" id="L151">      sb.append(value);</span>
     }
 <span class="fc" id="L153">    return sb.toString();</span>
+  }
+
+  /**
+   * @return Get file extension used for rendering via DM API.
+   */
+  public @NotNull String getFileExtension() {
+<span class="fc" id="L160">    String format = context.getDefaultMediaArgs().getEnforceOutputFileExtension();</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">    if (StringUtils.isEmpty(format)) {</span>
+<span class="fc" id="L162">      format = StringUtils.toRootLowerCase(FilenameUtils.getExtension(context.getReference().getFileName()));</span>
+    }
+<span class="pc bpc" id="L164" title="1 of 4 branches missed.">    if (format == null || !SUPPORTED_FORMATS.contains(format)) {</span>
+<span class="fc" id="L165">      format = FileExtension.JPEG;</span>
+    }
+<span class="fc" id="L167">    return format;</span>
   }
 
 }

@@ -26,10 +26,12 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import com.day.cq.dam.api.Asset;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import io.wcm.handler.media.Dimension;
+import io.wcm.handler.mediasource.dam.AssetRendition;
 import io.wcm.wcm.commons.contenttype.ContentType;
 
 /**
@@ -40,39 +42,42 @@ public final class NextGenDynamicMediaMetadata {
   private final String mimeType;
   private final Dimension dimension;
 
-<span class="fc" id="L43">  private static final JsonMapper OBJECT_MAPPER = new JsonMapper();</span>
+<span class="fc" id="L45">  private static final JsonMapper OBJECT_MAPPER = new JsonMapper();</span>
 
-<span class="fc" id="L45">  NextGenDynamicMediaMetadata(@Nullable String mimeType, long width, long height) {</span>
-<span class="fc" id="L46">    this.mimeType = mimeType;</span>
-<span class="pc bpc" id="L47" title="1 of 4 branches missed.">    if (width &gt; 0 &amp;&amp; height &gt; 0) {</span>
-<span class="fc" id="L48">      this.dimension = new Dimension(width, height);</span>
+<span class="fc" id="L47">  NextGenDynamicMediaMetadata(@Nullable String mimeType, long width, long height) {</span>
+<span class="fc" id="L48">    this.mimeType = mimeType;</span>
+<span class="pc bpc" id="L49" title="1 of 4 branches missed.">    if (width &gt; 0 &amp;&amp; height &gt; 0) {</span>
+<span class="fc" id="L50">      this.dimension = new Dimension(width, height);</span>
     }
     else {
-<span class="fc" id="L51">      this.dimension = null;</span>
+<span class="fc" id="L53">      this.dimension = null;</span>
     }
-<span class="fc" id="L53">  }</span>
+<span class="fc" id="L55">  }</span>
 
   /**
    * @return Mime type
    */
   public @NotNull String getMimeType() {
-<span class="fc" id="L59">    return Objects.toString(mimeType, ContentType.OCTET_STREAM);</span>
+<span class="fc" id="L61">    return Objects.toString(mimeType, ContentType.OCTET_STREAM);</span>
   }
 
   /**
    * @return Image Dimension or null if no image or dimension not available
    */
   public @Nullable Dimension getDimension() {
-<span class="fc" id="L66">    return dimension;</span>
+<span class="fc" id="L68">    return dimension;</span>
   }
 
-  boolean isValid() {
-<span class="fc bfc" id="L70" title="All 2 branches covered.">    return mimeType != null;</span>
+  /**
+   * @return true if metadata is valid (has mime type)
+   */
+  public boolean isValid() {
+<span class="fc bfc" id="L75" title="All 2 branches covered.">    return mimeType != null;</span>
   }
 
   @Override
   public String toString() {
-<span class="fc" id="L75">    return ToStringBuilder.reflectionToString(this, ToStringStyle.NO_CLASS_NAME_STYLE);</span>
+<span class="fc" id="L80">    return ToStringBuilder.reflectionToString(this, ToStringStyle.NO_CLASS_NAME_STYLE);</span>
   }
 
   /**
@@ -83,21 +88,40 @@ public final class NextGenDynamicMediaMetadata {
    */
   @SuppressWarnings(&quot;null&quot;)
   public static @NotNull NextGenDynamicMediaMetadata fromJson(@NotNull String jsonResponse) throws JsonProcessingException {
-<span class="fc" id="L86">    MetadataResponse response = OBJECT_MAPPER.readValue(jsonResponse, MetadataResponse.class);</span>
+<span class="fc" id="L91">    MetadataResponse response = OBJECT_MAPPER.readValue(jsonResponse, MetadataResponse.class);</span>
 
-<span class="fc" id="L88">    String mimeType = null;</span>
-<span class="fc bfc" id="L89" title="All 2 branches covered.">    if (response.repositoryMetadata != null) {</span>
-<span class="fc" id="L90">      mimeType = response.repositoryMetadata.dcFormat;</span>
+<span class="fc" id="L93">    String mimeType = null;</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (response.repositoryMetadata != null) {</span>
+<span class="fc" id="L95">      mimeType = response.repositoryMetadata.dcFormat;</span>
     }
 
-<span class="fc" id="L93">    long width = 0;</span>
-<span class="fc" id="L94">    long height = 0;</span>
-<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (response.assetMetadata != null) {</span>
-<span class="fc" id="L96">      width = response.assetMetadata.tiffImageWidth;</span>
-<span class="fc" id="L97">      height = response.assetMetadata.tiffImageLength;</span>
+<span class="fc" id="L98">    long width = 0;</span>
+<span class="fc" id="L99">    long height = 0;</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (response.assetMetadata != null) {</span>
+<span class="fc" id="L101">      width = response.assetMetadata.tiffImageWidth;</span>
+<span class="fc" id="L102">      height = response.assetMetadata.tiffImageLength;</span>
     }
 
-<span class="fc" id="L100">    return new NextGenDynamicMediaMetadata(mimeType, width, height);</span>
+<span class="fc" id="L105">    return new NextGenDynamicMediaMetadata(mimeType, width, height);</span>
+  }
+
+  /**
+   * Gets metadata from DAM asset.
+   * @param asset Asset
+   * @return Metadata object
+   */
+  public static @NotNull NextGenDynamicMediaMetadata fromAsset(@NotNull Asset asset) {
+<span class="fc" id="L114">    String mimeType = asset.getMimeType();</span>
+
+<span class="fc" id="L116">    long width = 0;</span>
+<span class="fc" id="L117">    long height = 0;</span>
+<span class="fc" id="L118">    Dimension dimension = AssetRendition.getDimension(asset.getOriginal());</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">    if (dimension != null) {</span>
+<span class="fc" id="L120">      width = dimension.getWidth();</span>
+<span class="fc" id="L121">      height = dimension.getHeight();</span>
+    }
+
+<span class="fc" id="L124">    return new NextGenDynamicMediaMetadata(mimeType, width, height);</span>
   }
 
 }

@@ -84,21 +84,21 @@
 <a class="jxr_linenumber" name="L76" href="#L76">76</a>    <strong class="jxr_keyword">public</strong> @Nullable String build(@NotNull <a name="NextGenDynamicMediaImageDeliveryParams" href="../../../../../../io/wcm/handler/mediasource/ngdm/impl/NextGenDynamicMediaImageDeliveryParams.html#NextGenDynamicMediaImageDeliveryParams">NextGenDynamicMediaImageDeliveryParams</a> params) {
 <a class="jxr_linenumber" name="L77" href="#L77">77</a>  
 <a class="jxr_linenumber" name="L78" href="#L78">78</a>      <em class="jxr_comment">// get parameters from nextgen dynamic media config for URL parameters</em>
-<a class="jxr_linenumber" name="L79" href="#L79">79</a>      String repositoryId = context.getNextGenDynamicMediaConfig().getRepositoryId();
-<a class="jxr_linenumber" name="L80" href="#L80">80</a>      String imageDeliveryPath = context.getNextGenDynamicMediaConfig().getImageDeliveryBasePath();
-<a class="jxr_linenumber" name="L81" href="#L81">81</a>      <strong class="jxr_keyword">if</strong> (StringUtils.isAnyEmpty(repositoryId, imageDeliveryPath)) {
-<a class="jxr_linenumber" name="L82" href="#L82">82</a>        <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
-<a class="jxr_linenumber" name="L83" href="#L83">83</a>      }
-<a class="jxr_linenumber" name="L84" href="#L84">84</a>  
-<a class="jxr_linenumber" name="L85" href="#L85">85</a>      <em class="jxr_comment">// replace placeholders in delivery path</em>
-<a class="jxr_linenumber" name="L86" href="#L86">86</a>      String seoName = FilenameUtils.getBaseName(context.getReference().getFileName());
-<a class="jxr_linenumber" name="L87" href="#L87">87</a>      String format = context.getDefaultMediaArgs().getEnforceOutputFileExtension();
-<a class="jxr_linenumber" name="L88" href="#L88">88</a>      <strong class="jxr_keyword">if</strong> (StringUtils.isEmpty(format)) {
-<a class="jxr_linenumber" name="L89" href="#L89">89</a>        format = StringUtils.toRootLowerCase(FilenameUtils.getExtension(context.getReference().getFileName()));
-<a class="jxr_linenumber" name="L90" href="#L90">90</a>      }
-<a class="jxr_linenumber" name="L91" href="#L91">91</a>      <strong class="jxr_keyword">if</strong> (!SUPPORTED_FORMATS.contains(format)) {
-<a class="jxr_linenumber" name="L92" href="#L92">92</a>        format = FileExtension.JPEG;
-<a class="jxr_linenumber" name="L93" href="#L93">93</a>      }
+<a class="jxr_linenumber" name="L79" href="#L79">79</a>      String repositoryId;
+<a class="jxr_linenumber" name="L80" href="#L80">80</a>      <strong class="jxr_keyword">if</strong> (context.getReference().getAsset() != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L81" href="#L81">81</a>        repositoryId = context.getNextGenDynamicMediaConfig().getLocalAssetsRepositoryId();
+<a class="jxr_linenumber" name="L82" href="#L82">82</a>      }
+<a class="jxr_linenumber" name="L83" href="#L83">83</a>      <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="L84" href="#L84">84</a>        repositoryId = context.getNextGenDynamicMediaConfig().getRemoteAssetsRepositoryId();
+<a class="jxr_linenumber" name="L85" href="#L85">85</a>      }
+<a class="jxr_linenumber" name="L86" href="#L86">86</a>      String imageDeliveryPath = context.getNextGenDynamicMediaConfig().getImageDeliveryBasePath();
+<a class="jxr_linenumber" name="L87" href="#L87">87</a>      <strong class="jxr_keyword">if</strong> (StringUtils.isAnyBlank(repositoryId, imageDeliveryPath)) {
+<a class="jxr_linenumber" name="L88" href="#L88">88</a>        <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="L89" href="#L89">89</a>      }
+<a class="jxr_linenumber" name="L90" href="#L90">90</a>  
+<a class="jxr_linenumber" name="L91" href="#L91">91</a>      <em class="jxr_comment">// replace placeholders in delivery path</em>
+<a class="jxr_linenumber" name="L92" href="#L92">92</a>      String seoName = FilenameUtils.getBaseName(context.getReference().getFileName());
+<a class="jxr_linenumber" name="L93" href="#L93">93</a>      String format = getFileExtension();
 <a class="jxr_linenumber" name="L94" href="#L94">94</a>      imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_ASSET_ID, context.getReference().getAssetId());
 <a class="jxr_linenumber" name="L95" href="#L95">95</a>      imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_SEO_NAME, seoName);
 <a class="jxr_linenumber" name="L96" href="#L96">96</a>      imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_FORMAT, format);
@@ -161,7 +161,21 @@
 <a class="jxr_linenumber" name="L153" href="#L153">153</a>     <strong class="jxr_keyword">return</strong> sb.toString();
 <a class="jxr_linenumber" name="L154" href="#L154">154</a>   }
 <a class="jxr_linenumber" name="L155" href="#L155">155</a> 
-<a class="jxr_linenumber" name="L156" href="#L156">156</a> }
+<a class="jxr_linenumber" name="L156" href="#L156">156</a>   <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L157" href="#L157">157</a> <em class="jxr_javadoccomment">   * @return Get file extension used for rendering via DM API.</em>
+<a class="jxr_linenumber" name="L158" href="#L158">158</a> <em class="jxr_javadoccomment">   */</em>
+<a class="jxr_linenumber" name="L159" href="#L159">159</a>   <strong class="jxr_keyword">public</strong> @NotNull String getFileExtension() {
+<a class="jxr_linenumber" name="L160" href="#L160">160</a>     String format = context.getDefaultMediaArgs().getEnforceOutputFileExtension();
+<a class="jxr_linenumber" name="L161" href="#L161">161</a>     <strong class="jxr_keyword">if</strong> (StringUtils.isEmpty(format)) {
+<a class="jxr_linenumber" name="L162" href="#L162">162</a>       format = StringUtils.toRootLowerCase(FilenameUtils.getExtension(context.getReference().getFileName()));
+<a class="jxr_linenumber" name="L163" href="#L163">163</a>     }
+<a class="jxr_linenumber" name="L164" href="#L164">164</a>     <strong class="jxr_keyword">if</strong> (format == <strong class="jxr_keyword">null</strong> || !SUPPORTED_FORMATS.contains(format)) {
+<a class="jxr_linenumber" name="L165" href="#L165">165</a>       format = FileExtension.JPEG;
+<a class="jxr_linenumber" name="L166" href="#L166">166</a>     }
+<a class="jxr_linenumber" name="L167" href="#L167">167</a>     <strong class="jxr_keyword">return</strong> format;
+<a class="jxr_linenumber" name="L168" href="#L168">168</a>   }
+<a class="jxr_linenumber" name="L169" href="#L169">169</a> 
+<a class="jxr_linenumber" name="L170" href="#L170">170</a> }
 </pre>
 <hr/>
 <div id="footer">Copyright &#169; 2014&#x2013;2024 <a href="https://wcm.io">wcm.io</a>. All rights reserved.</div>

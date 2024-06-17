@@ -41,8 +41,6 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferencePolicy;
-import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -57,16 +55,16 @@ import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaReference;
  */
 @Component(service = NextGenDynamicMediaMetadataService.class, immediate = true)
 @Designate(ocd = NextGenDynamicMediaMetadataServiceImpl.Config.class)
-<span class="fc" id="L60">public class NextGenDynamicMediaMetadataServiceImpl implements NextGenDynamicMediaMetadataService {</span>
+<span class="fc" id="L58">public class NextGenDynamicMediaMetadataServiceImpl implements NextGenDynamicMediaMetadataService {</span>
 
   @ObjectClassDefinition(
-      name = &quot;wcm.io Media Handler Next Generation Dynamic Media Metadata Service&quot;,
-      description = &quot;Fetches metadata for Next Generation Dynamic Media assets.&quot;)
+      name = &quot;wcm.io Media Handler Dynamic Media with OpenAPI Metadata Service&quot;,
+      description = &quot;Fetches metadata for Dynamic Media with OpenAPI remote assets.&quot;)
   @interface Config {
 
     @AttributeDefinition(
         name = &quot;Enabled&quot;,
-        description = &quot;When enabled, metadata is fetched for each resolved asset. This checks for validity/existence of &quot;
+        description = &quot;When enabled, metadata is fetched for each resolved remote asset. This checks for validity/existence of &quot;
             + &quot;the asset and for the maximum supported resolution of the original image.&quot;)
     boolean enabled() default false;
 
@@ -103,58 +101,58 @@ import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaReference;
 
   }
 
-  @Reference(policy = ReferencePolicy.STATIC, policyOption = ReferencePolicyOption.GREEDY)
+  @Reference
   private NextGenDynamicMediaConfigService nextGenDynamicMediaConfig;
 
   private boolean enabled;
   private CloseableHttpClient httpClient;
 
-<span class="fc" id="L112">  private static final Logger log = LoggerFactory.getLogger(NextGenDynamicMediaMetadataServiceImpl.class);</span>
+<span class="fc" id="L110">  private static final Logger log = LoggerFactory.getLogger(NextGenDynamicMediaMetadataServiceImpl.class);</span>
 
   @Activate
   private void activate(Config config) {
-<span class="fc" id="L116">    this.enabled = config.enabled();</span>
-<span class="fc bfc" id="L117" title="All 2 branches covered.">    if (enabled) {</span>
-<span class="fc" id="L118">      httpClient = createHttpClient(config);</span>
+<span class="fc" id="L114">    this.enabled = config.enabled();</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">    if (enabled) {</span>
+<span class="fc" id="L116">      httpClient = createHttpClient(config);</span>
     }
-<span class="fc" id="L120">  }</span>
+<span class="fc" id="L118">  }</span>
 
   private static CloseableHttpClient createHttpClient(Config config) {
-<span class="fc" id="L123">    RequestConfig requestConfig = RequestConfig.custom()</span>
-<span class="fc" id="L124">        .setConnectTimeout(config.connectTimeout())</span>
-<span class="fc" id="L125">        .setConnectionRequestTimeout(config.connectionRequestTimeout())</span>
-<span class="fc" id="L126">        .setSocketTimeout(config.socketTimeout())</span>
-<span class="fc" id="L127">        .build();</span>
-<span class="fc" id="L128">    HttpClientBuilder builder = HttpClientBuilder.create()</span>
-<span class="fc" id="L129">        .setDefaultRequestConfig(requestConfig)</span>
-<span class="fc" id="L130">        .setDefaultHeaders(convertHeaders(config.httpHeaders()));</span>
-<span class="pc bpc" id="L131" title="3 of 4 branches missed.">    if (StringUtils.isNotBlank(config.proxyHost()) &amp;&amp; config.proxyPort() &gt; 0) {</span>
-<span class="nc" id="L132">      builder.setProxy(new HttpHost(config.proxyHost(), config.proxyPort()));</span>
+<span class="fc" id="L121">    RequestConfig requestConfig = RequestConfig.custom()</span>
+<span class="fc" id="L122">        .setConnectTimeout(config.connectTimeout())</span>
+<span class="fc" id="L123">        .setConnectionRequestTimeout(config.connectionRequestTimeout())</span>
+<span class="fc" id="L124">        .setSocketTimeout(config.socketTimeout())</span>
+<span class="fc" id="L125">        .build();</span>
+<span class="fc" id="L126">    HttpClientBuilder builder = HttpClientBuilder.create()</span>
+<span class="fc" id="L127">        .setDefaultRequestConfig(requestConfig)</span>
+<span class="fc" id="L128">        .setDefaultHeaders(convertHeaders(config.httpHeaders()));</span>
+<span class="pc bpc" id="L129" title="3 of 4 branches missed.">    if (StringUtils.isNotBlank(config.proxyHost()) &amp;&amp; config.proxyPort() &gt; 0) {</span>
+<span class="nc" id="L130">      builder.setProxy(new HttpHost(config.proxyHost(), config.proxyPort()));</span>
     }
-<span class="fc" id="L134">    return builder.build();</span>
+<span class="fc" id="L132">    return builder.build();</span>
   }
 
   private static Collection&lt;Header&gt; convertHeaders(String[] headers) {
-<span class="fc" id="L138">    List&lt;Header&gt; result = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L139" title="All 2 branches covered.">    for (String header : headers) {</span>
-<span class="fc" id="L140">      String[] parts = header.split(&quot;:&quot;, 2);</span>
-<span class="pc bpc" id="L141" title="1 of 2 branches missed.">      if (parts.length == 2) {</span>
-<span class="fc" id="L142">        result.add(new BasicHeader(parts[0], parts[1]));</span>
+<span class="fc" id="L136">    List&lt;Header&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    for (String header : headers) {</span>
+<span class="fc" id="L138">      String[] parts = header.split(&quot;:&quot;, 2);</span>
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">      if (parts.length == 2) {</span>
+<span class="fc" id="L140">        result.add(new BasicHeader(parts[0], parts[1]));</span>
       }
     }
-<span class="fc" id="L145">    return result;</span>
+<span class="fc" id="L143">    return result;</span>
   }
 
   @Deactivate
   private void deactivate() throws IOException {
-<span class="fc bfc" id="L150" title="All 2 branches covered.">    if (httpClient != null) {</span>
-<span class="fc" id="L151">      httpClient.close();</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">    if (httpClient != null) {</span>
+<span class="fc" id="L149">      httpClient.close();</span>
     }
-<span class="fc" id="L153">  }</span>
+<span class="fc" id="L151">  }</span>
 
   @Override
   public boolean isEnabled() {
-<span class="fc" id="L157">    return enabled;</span>
+<span class="fc" id="L155">    return enabled;</span>
   }
 
   /**
@@ -164,43 +162,43 @@ import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaReference;
    */
   @Override
   public @Nullable NextGenDynamicMediaMetadata fetchMetadata(@NotNull NextGenDynamicMediaReference reference) {
-<span class="fc bfc" id="L167" title="All 2 branches covered.">    if (!enabled) {</span>
-<span class="fc" id="L168">      return null;</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">    if (!enabled) {</span>
+<span class="fc" id="L166">      return null;</span>
     }
-<span class="fc" id="L170">    String metadataUrl = new NextGenDynamicMediaMetadataUrlBuilder(nextGenDynamicMediaConfig).build(reference);</span>
-<span class="pc bpc" id="L171" title="1 of 2 branches missed.">    if (metadataUrl == null) {</span>
-<span class="nc" id="L172">      return null;</span>
+<span class="fc" id="L168">    String metadataUrl = new NextGenDynamicMediaMetadataUrlBuilder(nextGenDynamicMediaConfig).build(reference);</span>
+<span class="pc bpc" id="L169" title="1 of 2 branches missed.">    if (metadataUrl == null) {</span>
+<span class="nc" id="L170">      return null;</span>
     }
 
-<span class="fc" id="L175">    HttpGet httpGet = new HttpGet(metadataUrl);</span>
-<span class="fc" id="L176">    try (CloseableHttpResponse response = httpClient.execute(httpGet)) {</span>
-<span class="fc" id="L177">      return processResponse(response, metadataUrl);</span>
+<span class="fc" id="L173">    HttpGet httpGet = new HttpGet(metadataUrl);</span>
+<span class="fc" id="L174">    try (CloseableHttpResponse response = httpClient.execute(httpGet)) {</span>
+<span class="fc" id="L175">      return processResponse(response, metadataUrl);</span>
     }
-<span class="fc" id="L179">    catch (IOException ex) {</span>
-<span class="fc" id="L180">      log.warn(&quot;Unable to fetch NGDM asset metadata from URL {}&quot;, metadataUrl, ex);</span>
-<span class="fc" id="L181">      return null;</span>
+<span class="fc" id="L177">    catch (IOException ex) {</span>
+<span class="fc" id="L178">      log.warn(&quot;Unable to fetch NGDM asset metadata from URL {}&quot;, metadataUrl, ex);</span>
+<span class="fc" id="L179">      return null;</span>
     }
   }
 
   private @Nullable NextGenDynamicMediaMetadata processResponse(@NotNull CloseableHttpResponse response,
       @NotNull String metadataUrl) throws IOException {
-<span class="fc bfc" id="L187" title="All 3 branches covered.">    switch (response.getStatusLine().getStatusCode()) {</span>
+<span class="fc bfc" id="L185" title="All 3 branches covered.">    switch (response.getStatusLine().getStatusCode()) {</span>
       case HttpStatus.SC_OK:
-<span class="fc" id="L189">        String jsonResponse = EntityUtils.toString(response.getEntity());</span>
-<span class="fc" id="L190">        NextGenDynamicMediaMetadata metadata = NextGenDynamicMediaMetadata.fromJson(jsonResponse);</span>
-<span class="fc" id="L191">        log.trace(&quot;HTTP response for NGDM asset metadata {} returns: {}&quot;, metadataUrl, metadata);</span>
-<span class="fc bfc" id="L192" title="All 2 branches covered.">        if (metadata.isValid()) {</span>
-<span class="fc" id="L193">          return metadata;</span>
+<span class="fc" id="L187">        String jsonResponse = EntityUtils.toString(response.getEntity());</span>
+<span class="fc" id="L188">        NextGenDynamicMediaMetadata metadata = NextGenDynamicMediaMetadata.fromJson(jsonResponse);</span>
+<span class="fc" id="L189">        log.trace(&quot;HTTP response for NGDM asset metadata {} returns: {}&quot;, metadataUrl, metadata);</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">        if (metadata.isValid()) {</span>
+<span class="fc" id="L191">          return metadata;</span>
         }
         break;
       case HttpStatus.SC_NOT_FOUND:
-<span class="fc" id="L197">        log.trace(&quot;HTTP response for NGDM asset metadata {} returns HTTP 404&quot;, metadataUrl);</span>
-<span class="fc" id="L198">        break;</span>
+<span class="fc" id="L195">        log.trace(&quot;HTTP response for NGDM asset metadata {} returns HTTP 404&quot;, metadataUrl);</span>
+<span class="fc" id="L196">        break;</span>
       default:
-<span class="fc" id="L200">        log.warn(&quot;Unexpected HTTP response for NGDM asset metadata {}: {}&quot;, metadataUrl, response.getStatusLine());</span>
+<span class="fc" id="L198">        log.warn(&quot;Unexpected HTTP response for NGDM asset metadata {}: {}&quot;, metadataUrl, response.getStatusLine());</span>
         break;
     }
-<span class="fc" id="L203">    return null;</span>
+<span class="fc" id="L201">    return null;</span>
   }
 
 }

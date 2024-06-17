@@ -8,7 +8,7 @@
 
   <head>
     <meta charset="UTF-8" />
-    <title>Media Handler System Configuration | wcm.io</title>
+    <title>Dynamic Media with OpenAPI | wcm.io</title>
 
     <link rel="shortcut icon" href="https://wcm.io/images/favicon.ico">
     <link rel="apple-touch-icon" href="https://wcm.io/images/favicon-152.png">
@@ -30,7 +30,7 @@
 
   </head>
 
-  <body class="page-configuration project-io.wcm.handler.media" data-spy="scroll" data-offset="60" data-target="#toc-scroll-target">
+  <body class="page-dynamic-media-openapi project-io.wcm.handler.media" data-spy="scroll" data-offset="60" data-target="#toc-scroll-target">
 
     <div class="navbar navbar-fixed-top">
       <div class="navbar-inner">
@@ -99,7 +99,7 @@
         <li class="divider">/</li>
         <li><a href="./" title="Media Handler">Media Handler</a></li>
         <li class="divider">/</li>
-        <li>Media Handler System Configuration</li>
+        <li>Dynamic Media with OpenAPI</li>
       </ul>
     </div>
   </header>
@@ -110,48 +110,103 @@
       <div class="body-content">
 <section> 
  <div class="page-header">
-  <h2 id="Media_Handler_System_Configuration">Media Handler System Configuration</h2>
+  <h2 id="Dynamic_Media_with_OpenAPI">Dynamic Media with OpenAPI</h2>
  </div> 
+ <p>wcm.io Media Handler optionally supports the <a class="externalLink" href="https://experienceleague.adobe.com/docs/experience-manager-core-components/using/developing/next-gen-dm.html?lang=en">Dynamic Media with OpenAPI</a> feature of AEM as a Cloud Service for:</p> 
+ <ul> 
+  <li>Rendering renditions including resizing and cropping</li> 
+  <li>Delivery via Dynamic Media with OpenAPI CDN</li> 
+  <li>AI-based Smart Cropping</li> 
+ </ul> 
+ <p>Dynamic Media with OpenAPI (formerly known as Next Generation Dynamic Media) has to be licensed separately and is not activated by default for AEMaaCS instances. It can be used for two use cases:</p> 
+ <ul> 
+  <li>Rendering remote assets referenced via the Remote Asset Picker from other assets instances 
+   <ul> 
+    <li>Those remote asset references typically start with <code>/urn:aaid:aem:...</code>.</li> 
+    <li>When Dynamic Media with OpenAPI is enabled for an AEMaaCS instance, the asset picker is shown automatically for Media Handler Granite UI widgets.</li> 
+   </ul> </li> 
+  <li>Rendering local assets stored in the same AEMaaCS instance.</li> 
+ </ul> 
+ <p>The Adobe AEM WCM Core Components currently support only a subset of features, i.e. they only support remote assets but no local assets. When you are using Media Handler directly in your components, or via the <a class="externalLink" href="https://wcm.io/wcm/core-components/">wcm.io WCM Core Components</a> you can leverage all features described in this page.</p> 
  <section> 
-  <h3 id="Service_user_configuration_for_Asset_Rendition_Metadata">Service user configuration for Asset Rendition Metadata</h3> 
-  <p>The DAM source implementation for Media Handler requires a background service that detects additional metadata for each rendition that is added, modified or removed for a DAM asset (to calculate their width and height and store them in the repository). Another service user mapping is required that allows the dynamic media support to read configured image profiles.</p> 
-  <p>This service needs a principal-based service user mapping with an entry like this:</p> 
-  <div class="source"> 
-   <pre><code>  org.apache.sling.serviceusermapping.impl.ServiceUserMapperImpl.amended-myapp-wcmio-handler-media-mtd
-    user.mapping=["io.wcm.handler.media:dam-rendition-metadata\=[dam-writer-service]"]
-</code></pre> 
-  </div> 
-  <p>The built-in principal <code>dam-writer-service</code> has read/write access to <code>/content/dam</code>.</p> 
-  <p>This configuration is required <b>only on author instances</b>.</p> 
+  <h3 id="Media_Handler_concept">Media Handler concept</h3> 
+  <p>The integration with Dynamic Media with OpenAPI builds on the <a href="general-concepts.html">general concepts</a> of the Media Handler using media formats and a unified media handling API to resolve the renditions for each use case.</p> 
+  <p>If a rendition is rendered via Dynamic Media with OpenAPI, the media handler returns rendition URLs pointing to the local ore remote asset instance using the <a class="externalLink" href="https://adobe-aem-assets-delivery-experimental.redoc.ly/">Assets Delivery API (DM API)</a>. From the <a href="file-format-support.html">supported file formats</a> Dynamic Media with OpenAPI supports scaling and smart cropping for JPEG, PNG, GIF and TIFF images. All other file formats including SVG images are delivered as original binary via the Dynamic Media with OpenAPI CDN.</p> 
+  <p>It's not required to configure anything in the component instance edit dialogs or content policies.</p> 
  </section> 
  <section> 
-  <h3 id="Service_user_configuration_for_Dynamic_Media_support">Service user configuration for Dynamic Media support</h3> 
-  <p>Another service user mapping is required that allows the dynamic media support to read configured image profiles.</p> 
-  <p>This service needs a principal-based service user mapping with an entry like this:</p> 
-  <div class="source"> 
-   <pre><code>  org.apache.sling.serviceusermapping.impl.ServiceUserMapperImpl.amended-myapp-wcmio-handler-media-dm
-    user.mapping=["io.wcm.handler.media:dynamic-media-support\=[configuration-reader-service]"]
-</code></pre> 
-  </div> 
-  <p>The built-in principal <code>configuration-reader-service</code> has read access to <code>/conf</code>.</p> 
-  <p>This configuration is required <b>for both author and publish instances</b>.</p> 
-  <p>Further system configuration options for <a href="dynamic-media.html">Dynamic Media</a>.</p> 
+  <h3 id="Approval_State">Approval State</h3> 
+  <p>Publishing assets to be used via Dynamic Media with OpenAPI works differently than usual:</p> 
+  <ul> 
+   <li>Set the property <b>Review Status</b> of the asset to <b>Approved</b> 
+    <ul> 
+     <li>With this, the asset is accessible for rendering both in author and publish/live environment</li> 
+     <li>If this status is not set, it's neither visible in Remote Asset Picker, nor can it rendered from local assets</li> 
+    </ul> </li> 
+   <li>The Publication status of an asset is not relevant 
+    <ul> 
+     <li>However, if you render local assets via Dynamic Media with OpenAPI and the Media Handler, you have to publish the asset after it is set to Approved, so the existence and approval state can be checked on the publish instance when rendering the pages and components.</li> 
+    </ul> </li> 
+  </ul> 
  </section> 
  <section> 
-  <h3 id="Previews_for_inline_images_in_Authoring">Previews for inline images in Authoring</h3> 
-  <p>The “FileUpload” Granite UI component provides a preview of the selected image in the edit dialog. This does not work out of the box if an inline image was uploaded to the component's resource (instead of selecting a DAM asset). In this case the component has to provide a preview of the image via the <code>img</code> selected. The media handler provides a servlet for this, but it has to be configured for each resource type that requires it.</p> 
-  <p>Example for the <a class="externalLink" href="https://wcm.io/wcm/core-components/">wcm.io WCM Core Components</a> Responsive Image component for the factory configuration <code>io.wcm.handler.media.impl.InlineImageAuthorPreviewServlet</code>:</p> 
-  <div class="source"> 
-   <pre><code>sling.servlet.resourceTypes=["wcm-io/wcm/core/components/wcmio/responsiveimage/v1/responsiveimage"]
-</code></pre> 
-  </div> 
-  <p>This configuration is required <b>only on author instances</b>.</p> 
+  <h3 id="Smart_Cropping">Smart Cropping</h3> 
+  <p>Smart Cropping is used automatically if a media format with a specific ratio (e.g. 16:9) is used.</p> 
+  <p>Media formats without any size restrictions, or e.g. only with a width restrictions, can be rendered, but are not cropped.</p> 
  </section> 
  <section> 
-  <h3 id="Workflow_process_for_rendition_metadata">Workflow process for rendition metadata</h3> 
-  <p>There is also a workflow process implementation named “wcm.io Media Handler: Rendition metadata” that can be applied to any existing asset to generate the metadata (width/height information) for all assets that were present in the system before the background service was deployed. Create a custom workflow, add a “Process Step” and assign this process with “Handler Advance” flag.</p> 
-  <p>However, this workflow process should not be part of the main “DAM Update Asset” workflow, as this would trigger the metadata generation twice for new assets.</p> 
-  <p>See this <a class="externalLink" href="https://wcm-io.atlassian.net/wiki/x/AQDrRw">How-to article</a> for details.</p> 
+  <h3 id="Validating_Assets">Validating Assets</h3> 
+  <p>When rendering local assets, the existence and approval state is checked within the local content repository when resolving the media. For this reason, local assets have to be published in AEM after setting the Approval state.</p> 
+  <p>For remote assets, the Media Handler assumes by default that a given remote asset reference is always valid, and supports all requested resolutions.</p> 
+  <p>Optionally, you can enable the metadata service. If enabled, each time a remote asset reference is resolved, the following checks are executed:</p> 
+  <ul> 
+   <li>If the remote asset does not exist, or is not approved, the reference is handled as invalid and the component can react to it (e.g. hide the image component).</li> 
+   <li>If the requested resolution of a rendition is larger than the original resolution of the binary asset, the rendition is handled as invalid. This avoid upscaling, and avoids using an asset in a context which would result in bad image quality for the user.</li> 
+  </ul> 
+  <p>See system configuration how to enable the metadata service.</p> 
+ </section> 
+ <section> 
+  <h3 id="System_configuration">System configuration</h3> 
+  <p>In your project-specific implementation of <code>io.wcm.handler.media.spi.MediaHandlerConfig</code> you have to add the media sources implementation <code>io.wcm.handler.mediasource.ngdm.NextGenDynamicMediaMediaSource</code> to the list returned by the <code>getSources()</code> method (overwrite it from the superclass if required). If you want to use local assets, make sure to put it on top of the list (above the <code>io.wcm.handler.mediasource.dam.DamMediaSource</code> media source).</p> 
+  <p>Example:</p> 
+  <div class="source"> 
+   <pre><code class="language-java">@Component(service = MediaHandlerConfig.class)
+public class MediaHandlerConfigImpl extends MediaHandlerConfig {
+
+  private static final List&lt;Class&lt;? extends MediaSource&gt;&gt; MEDIA_SOURCES = List.of(
+      NextGenDynamicMediaMediaSource.class,
+      DamMediaSource.class,
+      InlineMediaSource.class);
+
+  public @NotNull List&lt;Class&lt;? extends MediaSource&gt;&gt; getSources() {
+    return MEDIA_SOURCES;
+  }
+
+  // ...
+}
+</code></pre> 
+  </div> 
+  <p>With this configuration, remote assets should work out-of-the-box, if a remote asset repository is configured for the AEMaaCS instance.</p> 
+  <p>The “wcm.io Dynamic Media with OpenAPI Support” OSGi configuration allows to reconfigure the actual URLs used for the <a class="externalLink" href="https://adobe-aem-assets-delivery-experimental.redoc.ly/">Assets Delivery API (DM API)</a>. Usually you can stick with the default values which reflect the latest version of the DM API. Remote assets are supported by default, but can be disabled via this configuration. Local assets are disabled by support, but can be enabled via this configuration. In this case, you also have to configure a repository ID for building the rendition URLs pointing to the AEMaaCS instance. Example:</p> 
+  <div class="source"> 
+   <pre><code class="language-json">{
+  "enabledLocalAssets": true,
+  "localAssetsRepositoryId": "$[env:LOCAL_ASSET_DELIVERY_REPOSITORY_ID;default=]"
+}
+</code></pre> 
+  </div> 
+  <p>With this, you can configure an environment variable <code>LOCAL_ASSET_DELIVERY_REPOSITORY_ID</code> pointing to the actual host name which usually has a syntax like <code>delivery-pXXXXX-eXXXXX.adobeaemcloud.com</code> with the corresponding program and environment numbers.</p> 
+  <p>The “wcm.io Dynamic Media with OpenAPI Metadata Service” allows to enable the Asset Metadata support (see above). When this is enabled, for each resolved remote asset, a HTTP request is send from the server to the DM API, so make sure this is allowed in the network infrastructure (should work by default in AEMaaCS instances). Optionally, you can configure an proxy server and timeouts.</p> 
+ </section> 
+ <section> 
+  <h3 id="Known_Limitations_.28as_of_June_2024.29">Known Limitations (as of June 2024)</h3> 
+  <ul> 
+   <li>Dynamic Media with OpenAPI is not supported in Media Handler for AEM 6.x, only for AEMaaCS</li> 
+   <li>Same as with the Adobe AEM WCM Core Components, currently only a single remote AEM Asset instance is supported, which is configured centrally as described in <a class="externalLink" href="https://experienceleague.adobe.com/docs/experience-manager-core-components/using/developing/next-gen-dm.html?lang=en">Dynamic Media with OpenAPI</a>. The media handler uses the same convention for referencing remote assets (using strings starting with <code>/urn:aaid:aem:...</code>). This convention also does not support multiple remote AEM Asset instances, as it does not include a pointer to the Repository ID.</li> 
+   <li>If a component dialog is re-opened with a remote asset references and one of the Media Handler Granite UI widgets (e.g. pathfield), no thumbnail is displayed for the remote asset. But the reference is valid and works. The root cause is a bug/limitation in the underlying AEM pathfield component, which hopefully will be fixed soon by Adobe (SITES-19894).</li> 
+   <li>The Dynamic Media with OpenAPI remote asset picker currently ignores any folder structures for assets on the remote AEM Asset instance.</li> 
+   <li>The DM API currently does not support sending a “Content-Disposition: attachment” HTTP header for downloads. So, even if this is enforced by the Media Handler, it currently does not work for remote assets.</li> 
+  </ul> 
  </section> 
 </section>
       </div>
@@ -161,12 +216,14 @@
         <div class="well">
           <ul class="nav nav-list">
             <li class="nav-header">Table of Contents</li>
-    <li class="dropdown"><a href="#Media_Handler_System_Configuration" title="Media Handler System Configuration">Media Handler System Configuration <b class="caret"></b></a>
+    <li class="dropdown"><a href="#Dynamic_Media_with_OpenAPI" title="Dynamic Media with OpenAPI">Dynamic Media with OpenAPI <b class="caret"></b></a>
       <ul class="nav nav-list">
-    <li><a href="#Service_user_configuration_for_Asset_Rendition_Metadata" title="Service user configuration for Asset Rendition Metadata">Service user configuration for Asset Rendition Metadata</a>
-    <li><a href="#Service_user_configuration_for_Dynamic_Media_support" title="Service user configuration for Dynamic Media support">Service user configuration for Dynamic Media support</a>
-    <li><a href="#Previews_for_inline_images_in_Authoring" title="Previews for inline images in Authoring">Previews for inline images in Authoring</a>
-    <li><a href="#Workflow_process_for_rendition_metadata" title="Workflow process for rendition metadata">Workflow process for rendition metadata</a>
+    <li><a href="#Media_Handler_concept" title="Media Handler concept">Media Handler concept</a>
+    <li><a href="#Approval_State" title="Approval State">Approval State</a>
+    <li><a href="#Smart_Cropping" title="Smart Cropping">Smart Cropping</a>
+    <li><a href="#Validating_Assets" title="Validating Assets">Validating Assets</a>
+    <li><a href="#System_configuration" title="System configuration">System configuration</a>
+    <li><a href="#Known_Limitations_.28as_of_June_2024.29" title="Known Limitations (as of June 2024)">Known Limitations (as of June 2024)</a>
         <li class="divider"></li>
       </ul>
     </li>
