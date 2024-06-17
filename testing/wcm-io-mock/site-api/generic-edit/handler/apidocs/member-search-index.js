@@ -1,1 +1,0 @@
-memberSearchIndex = [{"p":"io.wcm.testing.mock.wcmio.siteapi.genericedit.handler","c":"ContextPlugins","l":"WCMIO_SITEAPI_GENERICEDIT_HANDLER"}]
