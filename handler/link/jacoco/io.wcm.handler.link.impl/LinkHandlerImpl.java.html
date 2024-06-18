@@ -31,6 +31,8 @@ import org.apache.sling.models.annotations.injectorspecific.OSGiService;
 import org.apache.sling.models.annotations.injectorspecific.Self;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.day.cq.wcm.api.Page;
 
@@ -55,7 +57,7 @@ import io.wcm.wcm.commons.component.ComponentPropertyResolverFactory;
 @Model(adaptables = {
     SlingHttpServletRequest.class, Resource.class
 }, adapters = LinkHandler.class)
-<span class="fc" id="L58">public final class LinkHandlerImpl implements LinkHandler {</span>
+<span class="fc" id="L60">public final class LinkHandlerImpl implements LinkHandler {</span>
 
   @Self
   private Adaptable adaptable;
@@ -66,24 +68,26 @@ import io.wcm.wcm.commons.component.ComponentPropertyResolverFactory;
   @OSGiService
   private ComponentPropertyResolverFactory componentPropertyResolverFactory;
 
+<span class="fc" id="L71">  private static final Logger log = LoggerFactory.getLogger(LinkHandlerImpl.class);</span>
+
   @Override
   public @NotNull LinkBuilder get(@Nullable Resource resource) {
-<span class="fc" id="L71">    return new LinkBuilderImpl(resource, this, componentPropertyResolverFactory);</span>
+<span class="fc" id="L75">    return new LinkBuilderImpl(resource, this, componentPropertyResolverFactory);</span>
   }
 
   @Override
   public @NotNull LinkBuilder get(@Nullable Page page) {
-<span class="fc" id="L76">    return new LinkBuilderImpl(page, this);</span>
+<span class="fc" id="L80">    return new LinkBuilderImpl(page, this);</span>
   }
 
   @Override
   public @NotNull LinkBuilder get(@Nullable String reference) {
-<span class="fc" id="L81">    return new LinkBuilderImpl(reference, this);</span>
+<span class="fc" id="L85">    return new LinkBuilderImpl(reference, this);</span>
   }
 
   @Override
   public @NotNull LinkBuilder get(@NotNull LinkRequest linkRequest) {
-<span class="fc" id="L86">    return new LinkBuilderImpl(linkRequest, this, componentPropertyResolverFactory);</span>
+<span class="fc" id="L90">    return new LinkBuilderImpl(linkRequest, this, componentPropertyResolverFactory);</span>
   }
 
   /**
@@ -102,85 +106,95 @@ import io.wcm.wcm.commons.component.ComponentPropertyResolverFactory;
   Link processRequest(@NotNull LinkRequest linkRequest) {
 
     // detect link type - first accepting wins
-<span class="fc" id="L105">    LinkType linkType = null;</span>
-<span class="fc" id="L106">    List&lt;Class&lt;? extends LinkType&gt;&gt; linkTypes = linkHandlerConfig.getLinkTypes();</span>
-<span class="pc bpc" id="L107" title="2 of 4 branches missed.">    if (linkTypes == null || linkTypes.isEmpty()) {</span>
-<span class="nc" id="L108">      throw new RuntimeException(&quot;No link types defined.&quot;);</span>
+<span class="fc" id="L109">    LinkType linkType = null;</span>
+<span class="fc" id="L110">    List&lt;Class&lt;? extends LinkType&gt;&gt; linkTypes = linkHandlerConfig.getLinkTypes();</span>
+<span class="pc bpc" id="L111" title="2 of 4 branches missed.">    if (linkTypes == null || linkTypes.isEmpty()) {</span>
+<span class="nc" id="L112">      throw new RuntimeException(&quot;No link types defined.&quot;);</span>
     }
-<span class="fc bfc" id="L110" title="All 2 branches covered.">    for (Class&lt;? extends LinkType&gt; candidateLinkTypeClass : linkTypes) {</span>
-<span class="fc" id="L111">      LinkType candidateLinkType = AdaptTo.notNull(adaptable, candidateLinkTypeClass);</span>
-<span class="fc bfc" id="L112" title="All 2 branches covered.">      if (candidateLinkType.accepts(linkRequest)) {</span>
-<span class="fc" id="L113">        linkType = candidateLinkType;</span>
-<span class="fc" id="L114">        break;</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">    for (Class&lt;? extends LinkType&gt; candidateLinkTypeClass : linkTypes) {</span>
+<span class="fc" id="L115">      LinkType candidateLinkType = AdaptTo.notNull(adaptable, candidateLinkTypeClass);</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">      if (candidateLinkType.accepts(linkRequest)) {</span>
+<span class="fc" id="L117">        linkType = candidateLinkType;</span>
+<span class="fc" id="L118">        break;</span>
       }
-<span class="fc" id="L116">    }</span>
-<span class="fc bfc" id="L117" title="All 2 branches covered.">    if (linkType == null) {</span>
-<span class="fc" id="L118">      linkType = AdaptTo.notNull(adaptable, InvalidLinkType.class);</span>
+<span class="fc" id="L120">    }</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">    if (linkType == null) {</span>
+<span class="fc" id="L122">      linkType = AdaptTo.notNull(adaptable, InvalidLinkType.class);</span>
     }
-<span class="fc" id="L120">    Link link = new Link(linkType, linkRequest);</span>
+<span class="fc" id="L124">    Link link = new Link(linkType, linkRequest);</span>
+
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">    if (log.isTraceEnabled()) {</span>
+<span class="nc" id="L127">      log.trace(&quot;Start processing link request (linkType={}): {}&quot;, linkType.getId(), linkRequest);</span>
+    }
 
     // preprocess link before resolving
-<span class="fc" id="L123">    List&lt;Class&lt;? extends LinkProcessor&gt;&gt; linkPreProcessors = linkHandlerConfig.getPreProcessors();</span>
-<span class="pc bpc" id="L124" title="1 of 2 branches missed.">    if (linkPreProcessors != null) {</span>
-<span class="fc bfc" id="L125" title="All 2 branches covered.">      for (Class&lt;? extends LinkProcessor&gt; processorClass : linkPreProcessors) {</span>
-<span class="fc" id="L126">        LinkProcessor processor = AdaptTo.notNull(adaptable, processorClass);</span>
-<span class="fc" id="L127">        link = processor.process(link);</span>
-<span class="pc bpc" id="L128" title="1 of 2 branches missed.">        if (link == null) {</span>
-<span class="nc bnc" id="L129" title="All 2 branches missed.">          throw new RuntimeException(&quot;LinkPreProcessor '&quot; + processor + &quot;' returned null, page '&quot; + (currentPage != null ? currentPage.getPath() : &quot;-&quot;) + &quot;'.&quot;);</span>
+<span class="fc" id="L131">    List&lt;Class&lt;? extends LinkProcessor&gt;&gt; linkPreProcessors = linkHandlerConfig.getPreProcessors();</span>
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">    if (linkPreProcessors != null) {</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">      for (Class&lt;? extends LinkProcessor&gt; processorClass : linkPreProcessors) {</span>
+<span class="fc" id="L134">        log.trace(&quot;Apply pre processor ({}): {}&quot;, processorClass, linkRequest);</span>
+<span class="fc" id="L135">        LinkProcessor processor = AdaptTo.notNull(adaptable, processorClass);</span>
+<span class="fc" id="L136">        link = processor.process(link);</span>
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">        if (link == null) {</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">          throw new RuntimeException(&quot;LinkPreProcessor '&quot; + processor + &quot;' returned null, page '&quot; + (currentPage != null ? currentPage.getPath() : &quot;-&quot;) + &quot;'.&quot;);</span>
         }
-<span class="fc" id="L131">      }</span>
+<span class="fc" id="L140">      }</span>
     }
 
     // resolve link
-<span class="fc" id="L135">    link = linkType.resolveLink(link);</span>
-<span class="pc bpc" id="L136" title="1 of 2 branches missed.">    if (link == null) {</span>
-<span class="nc bnc" id="L137" title="All 2 branches missed.">      throw new RuntimeException(&quot;LinkType '&quot; + linkType + &quot;' returned null, page '&quot; + (currentPage != null ? currentPage.getPath() : &quot;-&quot;) + &quot;'.&quot;);</span>
+<span class="fc" id="L144">    link = linkType.resolveLink(link);</span>
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">    if (link == null) {</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">      throw new RuntimeException(&quot;LinkType '&quot; + linkType + &quot;' returned null, page '&quot; + (currentPage != null ? currentPage.getPath() : &quot;-&quot;) + &quot;'.&quot;);</span>
     }
 
     // if link is invalid - check if a fallback link property is set and try resolution with it
-<span class="fc bfc" id="L141" title="All 2 branches covered.">    if (!link.isValid()) {</span>
-<span class="fc" id="L142">      LinkRequest fallbackLinkRequest = getFallbackLinkRequest(linkRequest);</span>
-<span class="fc bfc" id="L143" title="All 2 branches covered.">      if (fallbackLinkRequest != null) {</span>
-<span class="fc" id="L144">        Link fallbackLink = processRequest(fallbackLinkRequest);</span>
-<span class="pc bpc" id="L145" title="1 of 2 branches missed.">        if (fallbackLink.isValid()) {</span>
-<span class="fc" id="L146">          return fallbackLink;</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">    if (!link.isValid()) {</span>
+<span class="fc" id="L151">      LinkRequest fallbackLinkRequest = getFallbackLinkRequest(linkRequest);</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">      if (fallbackLinkRequest != null) {</span>
+<span class="fc" id="L153">        log.trace(&quot;Link is invalid ({}) - process fallback link request: {}&quot;, link, fallbackLinkRequest);</span>
+<span class="fc" id="L154">        Link fallbackLink = processRequest(fallbackLinkRequest);</span>
+<span class="pc bpc" id="L155" title="1 of 2 branches missed.">        if (fallbackLink.isValid()) {</span>
+<span class="fc" id="L156">          return fallbackLink;</span>
         }
       }
     }
 
     // generate markup (if markup builder is available) - first accepting wins
-<span class="fc" id="L152">    List&lt;Class&lt;? extends LinkMarkupBuilder&gt;&gt; linkMarkupBuilders = linkHandlerConfig.getMarkupBuilders();</span>
-<span class="pc bpc" id="L153" title="1 of 2 branches missed.">    if (linkMarkupBuilders != null) {</span>
-<span class="fc" id="L154">      link.setAnchorBuilder(l -&gt; {</span>
-<span class="fc bfc" id="L155" title="All 2 branches covered.">        for (Class&lt;? extends LinkMarkupBuilder&gt; linkMarkupBuilderClass : linkMarkupBuilders) {</span>
-<span class="fc" id="L156">          LinkMarkupBuilder linkMarkupBuilder = AdaptTo.notNull(adaptable, linkMarkupBuilderClass);</span>
-<span class="fc bfc" id="L157" title="All 2 branches covered.">          if (linkMarkupBuilder.accepts(l)) {</span>
-<span class="fc" id="L158">            return linkMarkupBuilder.build(l);</span>
+<span class="fc" id="L162">    List&lt;Class&lt;? extends LinkMarkupBuilder&gt;&gt; linkMarkupBuilders = linkHandlerConfig.getMarkupBuilders();</span>
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">    if (linkMarkupBuilders != null) {</span>
+<span class="fc" id="L164">      link.setAnchorBuilder(l -&gt; {</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">        for (Class&lt;? extends LinkMarkupBuilder&gt; linkMarkupBuilderClass : linkMarkupBuilders) {</span>
+<span class="fc" id="L166">          LinkMarkupBuilder linkMarkupBuilder = AdaptTo.notNull(adaptable, linkMarkupBuilderClass);</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">          if (linkMarkupBuilder.accepts(l)) {</span>
+<span class="fc" id="L168">            log.trace(&quot;Apply link markup builder ({}): {}&quot;, linkMarkupBuilderClass, linkRequest);</span>
+<span class="fc" id="L169">            return linkMarkupBuilder.build(l);</span>
           }
-<span class="fc" id="L160">        }</span>
-<span class="fc" id="L161">        return null;</span>
+<span class="fc" id="L171">        }</span>
+<span class="fc" id="L172">        return null;</span>
       });
     }
 
     // postprocess link after resolving
-<span class="fc" id="L166">    List&lt;Class&lt;? extends LinkProcessor&gt;&gt; linkPostProcessors = linkHandlerConfig.getPostProcessors();</span>
-<span class="pc bpc" id="L167" title="1 of 2 branches missed.">    if (linkPostProcessors != null) {</span>
-<span class="fc bfc" id="L168" title="All 2 branches covered.">      for (Class&lt;? extends LinkProcessor&gt; processorClass : linkPostProcessors) {</span>
-<span class="fc" id="L169">        LinkProcessor processor = AdaptTo.notNull(adaptable, processorClass);</span>
-<span class="fc" id="L170">        link = processor.process(link);</span>
-<span class="pc bpc" id="L171" title="1 of 2 branches missed.">        if (link == null) {</span>
-<span class="nc bnc" id="L172" title="All 2 branches missed.">          throw new RuntimeException(&quot;LinkPostProcessor '&quot; + processor + &quot;' returned null, page '&quot; + (currentPage != null ? currentPage.getPath() : &quot;-&quot;) + &quot;'.&quot;);</span>
+<span class="fc" id="L177">    List&lt;Class&lt;? extends LinkProcessor&gt;&gt; linkPostProcessors = linkHandlerConfig.getPostProcessors();</span>
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">    if (linkPostProcessors != null) {</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">      for (Class&lt;? extends LinkProcessor&gt; processorClass : linkPostProcessors) {</span>
+<span class="fc" id="L180">        log.trace(&quot;Apply post processor ({}): {}&quot;, processorClass, linkRequest);</span>
+<span class="fc" id="L181">        LinkProcessor processor = AdaptTo.notNull(adaptable, processorClass);</span>
+<span class="fc" id="L182">        link = processor.process(link);</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">        if (link == null) {</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">          throw new RuntimeException(&quot;LinkPostProcessor '&quot; + processor + &quot;' returned null, page '&quot; + (currentPage != null ? currentPage.getPath() : &quot;-&quot;) + &quot;'.&quot;);</span>
         }
-<span class="fc" id="L174">      }</span>
+<span class="fc" id="L186">      }</span>
     }
 
-<span class="fc" id="L177">    return link;</span>
+<span class="fc" id="L189">    log.debug(&quot;Finished link processing: {}&quot;, link);</span>
+
+<span class="fc" id="L191">    return link;</span>
   }
 
   @Override
   public Link invalid() {
-<span class="fc" id="L182">    LinkType linkType = AdaptTo.notNull(adaptable, InvalidLinkType.class);</span>
-<span class="fc" id="L183">    return new Link(linkType, new LinkRequest(null, null, null));</span>
+<span class="fc" id="L196">    LinkType linkType = AdaptTo.notNull(adaptable, InvalidLinkType.class);</span>
+<span class="fc" id="L197">    return new Link(linkType, new LinkRequest(null, null, null));</span>
   }
 
   /**
@@ -190,36 +204,36 @@ import io.wcm.wcm.commons.component.ComponentPropertyResolverFactory;
    * @return Fallback link request or null
    */
   private @Nullable LinkRequest getFallbackLinkRequest(@NotNull LinkRequest linkRequest) {
-<span class="fc" id="L193">    Resource resource = linkRequest.getResource();</span>
+<span class="fc" id="L207">    Resource resource = linkRequest.getResource();</span>
 
     // works only when resolution based on a resource
-<span class="fc bfc" id="L196" title="All 2 branches covered.">    if (resource == null) {</span>
-<span class="fc" id="L197">      return null;</span>
+<span class="fc bfc" id="L210" title="All 2 branches covered.">    if (resource == null) {</span>
+<span class="fc" id="L211">      return null;</span>
     }
 
     // check if a fallback property name was given
-<span class="fc" id="L201">    String[] linkTargetUrlFallbackProperty = linkRequest.getLinkArgs().getLinkTargetUrlFallbackProperty();</span>
-<span class="pc bpc" id="L202" title="1 of 4 branches missed.">    if (linkTargetUrlFallbackProperty == null || linkTargetUrlFallbackProperty.length == 0) {</span>
-<span class="fc" id="L203">      return null;</span>
+<span class="fc" id="L215">    String[] linkTargetUrlFallbackProperty = linkRequest.getLinkArgs().getLinkTargetUrlFallbackProperty();</span>
+<span class="pc bpc" id="L216" title="1 of 4 branches missed.">    if (linkTargetUrlFallbackProperty == null || linkTargetUrlFallbackProperty.length == 0) {</span>
+<span class="fc" id="L217">      return null;</span>
     }
 
     // check if a link target URL is set in the fallback property
-<span class="fc" id="L207">    String linkTargetUrl = null;</span>
-<span class="pc bpc" id="L208" title="1 of 2 branches missed.">    for (String propertyName : linkTargetUrlFallbackProperty) {</span>
-<span class="fc" id="L209">      linkTargetUrl = resource.getValueMap().get(propertyName, String.class);</span>
-<span class="fc bfc" id="L210" title="All 2 branches covered.">      if (StringUtils.isNotBlank(linkTargetUrl)) {</span>
-<span class="fc" id="L211">        break;</span>
+<span class="fc" id="L221">    String linkTargetUrl = null;</span>
+<span class="pc bpc" id="L222" title="1 of 2 branches missed.">    for (String propertyName : linkTargetUrlFallbackProperty) {</span>
+<span class="fc" id="L223">      linkTargetUrl = resource.getValueMap().get(propertyName, String.class);</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">      if (StringUtils.isNotBlank(linkTargetUrl)) {</span>
+<span class="fc" id="L225">        break;</span>
       }
     }
-<span class="pc bpc" id="L214" title="1 of 2 branches missed.">    if (StringUtils.isBlank(linkTargetUrl)) {</span>
-<span class="nc" id="L215">      return null;</span>
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">    if (StringUtils.isBlank(linkTargetUrl)) {</span>
+<span class="nc" id="L229">      return null;</span>
     }
 
-<span class="fc" id="L218">    LinkArgs fallbackLinkArgs = linkRequest.getLinkArgs().clone();</span>
+<span class="fc" id="L232">    LinkArgs fallbackLinkArgs = linkRequest.getLinkArgs().clone();</span>
     @NotNull
-<span class="fc" id="L220">    String @Nullable [] nullArray = null;</span>
-<span class="fc" id="L221">    fallbackLinkArgs.linkTargetUrlFallbackProperty(nullArray);</span>
-<span class="fc" id="L222">    return new LinkRequest(null, null, linkTargetUrl, fallbackLinkArgs);</span>
+<span class="fc" id="L234">    String @Nullable [] nullArray = null;</span>
+<span class="fc" id="L235">    fallbackLinkArgs.linkTargetUrlFallbackProperty(nullArray);</span>
+<span class="fc" id="L236">    return new LinkRequest(null, null, linkTargetUrl, fallbackLinkArgs);</span>
   }
 
 }
