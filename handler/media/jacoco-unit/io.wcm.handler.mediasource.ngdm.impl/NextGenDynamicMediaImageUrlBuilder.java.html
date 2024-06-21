@@ -36,6 +36,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.wcm.handler.media.Dimension;
+import io.wcm.handler.media.format.Ratio;
+import io.wcm.handler.mediasource.ngdm.impl.metadata.NextGenDynamicMediaMetadata;
+import io.wcm.handler.mediasource.ngdm.impl.metadata.SmartCrop;
 import io.wcm.wcm.commons.contenttype.FileExtension;
 
 /**
@@ -49,11 +52,13 @@ public final class NextGenDynamicMediaImageUrlBuilder {
 
   static final String PARAM_PREFER_WEBP = &quot;preferwebp&quot;;
   static final String PARAM_WIDTH = &quot;width&quot;;
+  static final String PARAM_HEIGHT = &quot;height&quot;;
   static final String PARAM_CROP = &quot;crop&quot;;
+  static final String PARAM_SMARTCROP = &quot;smartcrop&quot;;
   static final String PARAM_ROTATE = &quot;rotate&quot;;
   static final String PARAM_QUALITY = &quot;quality&quot;;
 
-<span class="fc" id="L56">  private static final Set&lt;String&gt; SUPPORTED_FORMATS = Set.of(</span>
+<span class="fc" id="L61">  private static final Set&lt;String&gt; SUPPORTED_FORMATS = Set.of(</span>
       FileExtension.JPEG,
       FileExtension.PNG,
       FileExtension.GIF,
@@ -64,9 +69,9 @@ public final class NextGenDynamicMediaImageUrlBuilder {
   /**
    * @param context Context
    */
-<span class="fc" id="L67">  public NextGenDynamicMediaImageUrlBuilder(@NotNull NextGenDynamicMediaContext context) {</span>
-<span class="fc" id="L68">    this.context = context;</span>
-<span class="fc" id="L69">  }</span>
+<span class="fc" id="L72">  public NextGenDynamicMediaImageUrlBuilder(@NotNull NextGenDynamicMediaContext context) {</span>
+<span class="fc" id="L73">    this.context = context;</span>
+<span class="fc" id="L74">  }</span>
 
   /**
    * Builds the URL for a rendition.
@@ -77,94 +82,147 @@ public final class NextGenDynamicMediaImageUrlBuilder {
 
     // get parameters from nextgen dynamic media config for URL parameters
     String repositoryId;
-<span class="fc bfc" id="L80" title="All 2 branches covered.">    if (context.getReference().getAsset() != null) {</span>
-<span class="fc" id="L81">      repositoryId = context.getNextGenDynamicMediaConfig().getLocalAssetsRepositoryId();</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">    if (context.getReference().getAsset() != null) {</span>
+<span class="fc" id="L86">      repositoryId = context.getNextGenDynamicMediaConfig().getLocalAssetsRepositoryId();</span>
     }
     else {
-<span class="fc" id="L84">      repositoryId = context.getNextGenDynamicMediaConfig().getRemoteAssetsRepositoryId();</span>
+<span class="fc" id="L89">      repositoryId = context.getNextGenDynamicMediaConfig().getRemoteAssetsRepositoryId();</span>
     }
-<span class="fc" id="L86">    String imageDeliveryPath = context.getNextGenDynamicMediaConfig().getImageDeliveryBasePath();</span>
-<span class="pc bpc" id="L87" title="1 of 2 branches missed.">    if (StringUtils.isAnyBlank(repositoryId, imageDeliveryPath)) {</span>
-<span class="nc" id="L88">      return null;</span>
+<span class="fc" id="L91">    String imageDeliveryPath = context.getNextGenDynamicMediaConfig().getImageDeliveryBasePath();</span>
+<span class="pc bpc" id="L92" title="3 of 6 branches missed.">    if (repositoryId == null || imageDeliveryPath == null || StringUtils.isAnyBlank(repositoryId, imageDeliveryPath)) {</span>
+<span class="nc" id="L93">      return null;</span>
     }
 
     // replace placeholders in delivery path
-<span class="fc" id="L92">    String seoName = FilenameUtils.getBaseName(context.getReference().getFileName());</span>
-<span class="fc" id="L93">    String format = getFileExtension();</span>
-<span class="fc" id="L94">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_ASSET_ID, context.getReference().getAssetId());</span>
-<span class="fc" id="L95">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_SEO_NAME, seoName);</span>
-<span class="fc" id="L96">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_FORMAT, format);</span>
+<span class="fc" id="L97">    String seoName = FilenameUtils.getBaseName(context.getReference().getFileName());</span>
+<span class="fc" id="L98">    String format = getFileExtension();</span>
+<span class="fc" id="L99">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_ASSET_ID, context.getReference().getAssetId());</span>
+<span class="fc" id="L100">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_SEO_NAME, seoName);</span>
+<span class="fc" id="L101">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_FORMAT, format);</span>
 
     // prepare URL params
-<span class="fc" id="L99">    Long width = params.getWidth();</span>
-<span class="fc" id="L100">    String widthPlaceholder = params.getWidthPlaceholder();</span>
-<span class="fc" id="L101">    Dimension cropSmartRatio = params.getCropSmartRatio();</span>
-<span class="fc" id="L102">    Integer rotation = params.getRotation();</span>
-<span class="fc" id="L103">    Integer quality = params.getQuality();</span>
+<span class="fc" id="L104">    Long width = params.getWidth();</span>
+<span class="fc" id="L105">    String widthPlaceholder = params.getWidthPlaceholder();</span>
+<span class="fc" id="L106">    Dimension cropSmartRatio = params.getCropSmartRatio();</span>
+<span class="fc" id="L107">    Integer rotation = params.getRotation();</span>
+<span class="fc" id="L108">    Integer quality = params.getQuality();</span>
 
-<span class="fc" id="L105">    SortedMap&lt;String, String&gt; urlParamMap = new TreeMap&lt;&gt;();</span>
-<span class="fc" id="L106">    urlParamMap.put(PARAM_PREFER_WEBP, &quot;true&quot;);</span>
-<span class="fc bfc" id="L107" title="All 2 branches covered.">    if (widthPlaceholder != null) {</span>
-<span class="fc" id="L108">      urlParamMap.put(PARAM_WIDTH, widthPlaceholder);</span>
+<span class="fc" id="L110">    SortedMap&lt;String, String&gt; urlParamMap = new TreeMap&lt;&gt;();</span>
+<span class="fc" id="L111">    urlParamMap.put(PARAM_PREFER_WEBP, &quot;true&quot;);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (widthPlaceholder != null) {</span>
+<span class="fc" id="L113">      urlParamMap.put(PARAM_WIDTH, widthPlaceholder);</span>
     }
-<span class="fc bfc" id="L110" title="All 2 branches covered.">    else if (width != null) {</span>
-<span class="fc" id="L111">      urlParamMap.put(PARAM_WIDTH, width.toString());</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">    else if (width != null) {</span>
+<span class="fc" id="L116">      urlParamMap.put(PARAM_WIDTH, width.toString());</span>
     }
-<span class="fc bfc" id="L113" title="All 2 branches covered.">    if (cropSmartRatio != null) {</span>
-<span class="fc" id="L114">      urlParamMap.put(PARAM_CROP, cropSmartRatio.getWidth() + &quot;:&quot; + cropSmartRatio.getHeight() + &quot;,smart&quot;);</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (cropSmartRatio != null) {</span>
+<span class="fc bfc" id="L119" title="All 4 branches covered.">      boolean hasWidthDefined = width != null || widthPlaceholder != null;</span>
+<span class="fc" id="L120">      applyCroppingParams(urlParamMap, cropSmartRatio, hasWidthDefined);</span>
     }
-<span class="pc bpc" id="L116" title="1 of 4 branches missed.">    if (rotation != null &amp;&amp; rotation != 0) {</span>
-<span class="fc" id="L117">      urlParamMap.put(PARAM_ROTATE, rotation.toString());</span>
+<span class="pc bpc" id="L122" title="1 of 4 branches missed.">    if (rotation != null &amp;&amp; rotation != 0) {</span>
+<span class="fc" id="L123">      urlParamMap.put(PARAM_ROTATE, rotation.toString());</span>
     }
-<span class="fc bfc" id="L119" title="All 2 branches covered.">    if (quality != null) {</span>
-<span class="fc" id="L120">      urlParamMap.put(PARAM_QUALITY, quality.toString());</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">    if (quality != null) {</span>
+<span class="fc" id="L126">      urlParamMap.put(PARAM_QUALITY, quality.toString());</span>
     }
 
     // build URL
-<span class="fc" id="L124">    StringBuilder url = new StringBuilder();</span>
-<span class="fc" id="L125">    url.append(&quot;https://&quot;)</span>
-<span class="fc" id="L126">        .append(repositoryId)</span>
-<span class="fc" id="L127">        .append(imageDeliveryPath);</span>
-<span class="fc" id="L128">    String urlParams = urlParamMap.entrySet().stream()</span>
-<span class="fc" id="L129">        .map(entry -&gt; toUrlParam(entry.getKey(), entry.getValue()))</span>
-<span class="fc" id="L130">        .collect(Collectors.joining(&quot;&amp;&quot;));</span>
-<span class="pc bpc" id="L131" title="1 of 2 branches missed.">    if (StringUtils.isNotEmpty(urlParams)) {</span>
-<span class="pc bpc" id="L132" title="1 of 2 branches missed.">      if (url.indexOf(&quot;?&quot;) &lt; 0) {</span>
-<span class="fc" id="L133">        url.append(&quot;?&quot;);</span>
-      }
-      else {
-<span class="nc" id="L136">        url.append(&quot;&amp;&quot;);</span>
-      }
-<span class="fc" id="L138">      url.append(urlParams);</span>
-    }
-<span class="fc" id="L140">    return url.toString();</span>
+<span class="fc" id="L130">    return buildImageUrl(repositoryId, imageDeliveryPath, urlParamMap);</span>
   }
 
+  /**
+   * Builds image URL based on URL parameter map.
+   */
+  private static @NotNull String buildImageUrl(@NotNull String repositoryId, @NotNull String imageDeliveryPath,
+      @NotNull SortedMap&lt;String, String&gt; urlParamMap) {
+<span class="fc" id="L138">    StringBuilder url = new StringBuilder();</span>
+<span class="fc" id="L139">    url.append(&quot;https://&quot;)</span>
+<span class="fc" id="L140">        .append(repositoryId)</span>
+<span class="fc" id="L141">        .append(imageDeliveryPath);</span>
+<span class="fc" id="L142">    String urlParams = urlParamMap.entrySet().stream()</span>
+<span class="fc" id="L143">        .map(entry -&gt; toUrlParam(entry.getKey(), entry.getValue()))</span>
+<span class="fc" id="L144">        .collect(Collectors.joining(&quot;&amp;&quot;));</span>
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">    if (StringUtils.isNotEmpty(urlParams)) {</span>
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">      if (url.indexOf(&quot;?&quot;) &lt; 0) {</span>
+<span class="fc" id="L147">        url.append(&quot;?&quot;);</span>
+      }
+      else {
+<span class="nc" id="L150">        url.append(&quot;&amp;&quot;);</span>
+      }
+<span class="fc" id="L152">      url.append(urlParams);</span>
+    }
+<span class="fc" id="L154">    return url.toString();</span>
+  }
+
+  /**
+   * Generates URL parameter key/value pair with escaping where appropriate.
+   */
   private static @NotNull String toUrlParam(@NotNull String key, @NotNull String value) {
-<span class="fc" id="L144">    StringBuilder sb = new StringBuilder();</span>
-<span class="fc" id="L145">    sb.append(key).append(&quot;=&quot;);</span>
+<span class="fc" id="L161">    StringBuilder sb = new StringBuilder();</span>
+<span class="fc" id="L162">    sb.append(key).append(&quot;=&quot;);</span>
     // we only need to encode crop, all other parameters are numbers only
-<span class="fc bfc" id="L147" title="All 2 branches covered.">    if (StringUtils.equals(key, PARAM_CROP)) {</span>
-<span class="fc" id="L148">      sb.append(URLEncoder.encode(value, StandardCharsets.UTF_8));</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">    if (StringUtils.equalsAny(key, PARAM_CROP, PARAM_SMARTCROP)) {</span>
+<span class="fc" id="L165">      sb.append(URLEncoder.encode(value, StandardCharsets.UTF_8));</span>
     }
     else {
-<span class="fc" id="L151">      sb.append(value);</span>
+<span class="fc" id="L168">      sb.append(value);</span>
     }
-<span class="fc" id="L153">    return sb.toString();</span>
+<span class="fc" id="L170">    return sb.toString();</span>
+  }
+
+  /**
+   * Generates cropping/smart cropping URL parameters with or without named smart crop.
+   */
+  private void applyCroppingParams(@NotNull SortedMap&lt;String, String&gt; urlParamMap,
+      @NotNull Dimension cropSmartRatio, boolean hasWidthDefined) {
+<span class="fc" id="L178">    SmartCrop namedSmartCrop = getMatchingNamedSmartCrop(cropSmartRatio);</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (namedSmartCrop != null) {</span>
+<span class="fc" id="L180">      urlParamMap.put(PARAM_SMARTCROP, namedSmartCrop.getName());</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">      if (!hasWidthDefined) {</span>
+        // if no width given apply default width/height to not rely on dimensions defined in AEM image profile
+<span class="fc" id="L183">        String imageWidthHeightDefault = Long.toString(context.getNextGenDynamicMediaConfig().getImageWidthHeightDefault());</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">        if (namedSmartCrop.getCropDimension().getWidth() &gt;= namedSmartCrop.getCropDimension().getHeight()) {</span>
+<span class="fc" id="L185">          urlParamMap.put(PARAM_WIDTH, imageWidthHeightDefault);</span>
+        }
+        else {
+<span class="fc" id="L188">          urlParamMap.put(PARAM_HEIGHT, imageWidthHeightDefault);</span>
+        }
+<span class="fc" id="L190">      }</span>
+    }
+    else {
+<span class="fc" id="L193">      urlParamMap.put(PARAM_CROP, cropSmartRatio.getWidth() + &quot;:&quot; + cropSmartRatio.getHeight() + &quot;,smart&quot;);</span>
+    }
+<span class="fc" id="L195">  }</span>
+
+  /**
+   * Looks up named smart crop definition matching the requested ratio.
+   * @param cropSmartRatio Requested ratio
+   * @return Matching named smart crop or null if none found
+   */
+  private @Nullable SmartCrop getMatchingNamedSmartCrop(@NotNull Dimension cropSmartRatio) {
+<span class="fc" id="L203">    NextGenDynamicMediaMetadata metadata = context.getMetadata();</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">    if (metadata == null) {</span>
+<span class="fc" id="L205">      return null;</span>
+    }
+<span class="fc" id="L207">    double requestedRatio = Ratio.get(cropSmartRatio);</span>
+<span class="fc" id="L208">    return metadata.getSmartCrops().stream()</span>
+<span class="fc" id="L209">        .filter(smartCrop -&gt; Ratio.matches(smartCrop.getRatio(), requestedRatio))</span>
+<span class="fc" id="L210">        .findFirst()</span>
+<span class="fc" id="L211">        .orElse(null);</span>
   }
 
   /**
    * @return Get file extension used for rendering via DM API.
    */
   public @NotNull String getFileExtension() {
-<span class="fc" id="L160">    String format = context.getDefaultMediaArgs().getEnforceOutputFileExtension();</span>
-<span class="fc bfc" id="L161" title="All 2 branches covered.">    if (StringUtils.isEmpty(format)) {</span>
-<span class="fc" id="L162">      format = StringUtils.toRootLowerCase(FilenameUtils.getExtension(context.getReference().getFileName()));</span>
+<span class="fc" id="L218">    String format = context.getDefaultMediaArgs().getEnforceOutputFileExtension();</span>
+<span class="fc bfc" id="L219" title="All 2 branches covered.">    if (StringUtils.isEmpty(format)) {</span>
+<span class="fc" id="L220">      format = StringUtils.toRootLowerCase(FilenameUtils.getExtension(context.getReference().getFileName()));</span>
     }
-<span class="pc bpc" id="L164" title="1 of 4 branches missed.">    if (format == null || !SUPPORTED_FORMATS.contains(format)) {</span>
-<span class="fc" id="L165">      format = FileExtension.JPEG;</span>
+<span class="pc bpc" id="L222" title="1 of 4 branches missed.">    if (format == null || !SUPPORTED_FORMATS.contains(format)) {</span>
+<span class="fc" id="L223">      format = FileExtension.JPEG;</span>
     }
-<span class="fc" id="L167">    return format;</span>
+<span class="fc" id="L225">    return format;</span>
   }
 
 }
