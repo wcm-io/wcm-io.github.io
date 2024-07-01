@@ -60,7 +60,7 @@ import io.wcm.handler.mediasource.ngdm.impl.metadata.NextGenDynamicMediaMetadata
 import io.wcm.sling.models.annotations.AemObject;
 
 /**
- * Handles remote asset referenced via Next Generation Dynamic Media.
+ * Handles remote asset referenced via Dynamic Media with OpenAPI.
  */
 @Model(adaptables = {
     SlingHttpServletRequest.class, Resource.class
