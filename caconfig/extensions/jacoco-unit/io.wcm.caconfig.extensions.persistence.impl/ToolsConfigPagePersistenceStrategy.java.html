@@ -102,15 +102,20 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
         description = &quot;Relative path to the configuration page content.&quot;)
     String relativeConfigPath() default &quot;/tools/config/jcr:content&quot;;
 
+    @AttributeDefinition(name = &quot;Context path allow list&quot;,
+            description = &quot;Expression to match context paths. Context paths matching this expression are allowed.&quot;)
+    String contextPathRegex() default &quot;^/content(/.+)$&quot;;
+
   }
 
   private static final String DEFAULT_CONFIG_NODE_TYPE = NT_UNSTRUCTURED;
   private static final String PROPERTY_CONFIG_COLLECTION_INHERIT = &quot;sling:configCollectionInherit&quot;;
 
-<span class="fc" id="L110">  private static final Logger log = LoggerFactory.getLogger(ToolsConfigPagePersistenceStrategy.class);</span>
+<span class="fc" id="L114">  private static final Logger log = LoggerFactory.getLogger(ToolsConfigPagePersistenceStrategy.class);</span>
 
   private boolean enabled;
   private Pattern configPathPattern;
+  private Pattern contextPathPattern;
   private Config config;
 
   @Reference
@@ -124,136 +129,144 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
   @Activate
   void activate(Config value) {
-<span class="fc" id="L127">    this.enabled = value.enabled();</span>
-<span class="fc" id="L128">    this.configPathPattern = loadConfigPathPattern(value);</span>
-<span class="fc" id="L129">    this.config = value;</span>
-<span class="fc" id="L130">  }</span>
+<span class="fc" id="L132">    this.enabled = value.enabled();</span>
+<span class="fc" id="L133">    this.configPathPattern = loadConfigPathPattern(value);</span>
+<span class="fc" id="L134">    this.contextPathPattern = loadContextPathPattern(value);</span>
+<span class="fc" id="L135">    this.config = value;</span>
+<span class="fc" id="L136">  }</span>
 
   private @Nullable Pattern loadConfigPathPattern(Config value) {
-<span class="fc" id="L133">    String relativeConfigPath = value.relativeConfigPath();</span>
-<span class="pc bpc" id="L134" title="2 of 4 branches missed.">    return enabled &amp;&amp; StringUtils.isNotBlank(relativeConfigPath)</span>
-<span class="fc" id="L135">            ? Pattern.compile(String.format(&quot;^.*%s(/.*)?$&quot;, relativeConfigPath))</span>
-<span class="nc" id="L136">            : null;</span>
+<span class="fc" id="L139">    String relativeConfigPath = value.relativeConfigPath();</span>
+<span class="pc bpc" id="L140" title="2 of 4 branches missed.">    return enabled &amp;&amp; StringUtils.isNotBlank(relativeConfigPath)</span>
+<span class="fc" id="L141">            ? Pattern.compile(String.format(&quot;^.*%s(/.*)?$&quot;, relativeConfigPath))</span>
+<span class="nc" id="L142">            : null;</span>
+  }
+
+  private @Nullable Pattern loadContextPathPattern(Config value) {
+<span class="fc" id="L146">    String contextPathRegex = value.contextPathRegex();</span>
+<span class="pc bpc" id="L147" title="2 of 4 branches missed.">    return enabled &amp;&amp; StringUtils.isNotBlank(contextPathRegex)</span>
+<span class="fc" id="L148">            ? Pattern.compile(contextPathRegex)</span>
+<span class="nc" id="L149">            : null;</span>
   }
 
   @Override
   public Resource getResource(@NotNull Resource resource) {
-<span class="pc bpc" id="L141" title="2 of 4 branches missed.">    if (!enabled || !isConfigPagePath(resource.getPath())) {</span>
-<span class="nc" id="L142">      return null;</span>
+<span class="pc bpc" id="L154" title="2 of 4 branches missed.">    if (!enabled || !isConfigPagePath(resource.getPath())) {</span>
+<span class="nc" id="L155">      return null;</span>
     }
-<span class="fc" id="L144">    return resource;</span>
+<span class="fc" id="L157">    return resource;</span>
   }
 
   @Override
   public Resource getCollectionParentResource(@NotNull Resource resource) {
-<span class="nc" id="L149">    return getResource(resource);</span>
+<span class="nc" id="L162">    return getResource(resource);</span>
   }
 
   @Override
   public Resource getCollectionItemResource(@NotNull Resource resource) {
-<span class="fc" id="L154">    return getResource(resource);</span>
+<span class="fc" id="L167">    return getResource(resource);</span>
   }
 
   @Override
   public String getResourcePath(@NotNull String resourcePath) {
-<span class="pc bpc" id="L159" title="2 of 4 branches missed.">    if (!enabled || !isConfigPagePath(resourcePath)) {</span>
-<span class="nc" id="L160">      return null;</span>
+<span class="pc bpc" id="L172" title="2 of 4 branches missed.">    if (!enabled || !isConfigPagePath(resourcePath)) {</span>
+<span class="nc" id="L173">      return null;</span>
     }
-<span class="fc" id="L162">    return resourcePath;</span>
+<span class="fc" id="L175">    return resourcePath;</span>
   }
 
   @Override
   public String getCollectionParentResourcePath(@NotNull String resourcePath) {
-<span class="nc" id="L167">    return getResourcePath(resourcePath);</span>
+<span class="nc" id="L180">    return getResourcePath(resourcePath);</span>
   }
 
   @Override
   public String getCollectionItemResourcePath(@NotNull String resourcePath) {
-<span class="nc" id="L172">    return getResourcePath(resourcePath);</span>
+<span class="nc" id="L185">    return getResourcePath(resourcePath);</span>
   }
 
   @Override
   public String getConfigName(@NotNull String configName, @Nullable String relatedConfigPath) {
-<span class="pc bpc" id="L177" title="2 of 6 branches missed.">    if (!enabled || (relatedConfigPath != null &amp;&amp; !isConfigPagePath(relatedConfigPath))) {</span>
-<span class="nc" id="L178">      return null;</span>
+<span class="pc bpc" id="L190" title="2 of 6 branches missed.">    if (!enabled || (relatedConfigPath != null &amp;&amp; !isConfigPagePath(relatedConfigPath))) {</span>
+<span class="nc" id="L191">      return null;</span>
     }
-<span class="fc" id="L180">    return configName;</span>
+<span class="fc" id="L193">    return configName;</span>
   }
 
   @Override
   public String getCollectionParentConfigName(@NotNull String configName, @Nullable String relatedConfigPath) {
-<span class="fc" id="L185">    return getConfigName(configName, relatedConfigPath);</span>
+<span class="fc" id="L198">    return getConfigName(configName, relatedConfigPath);</span>
   }
 
   @Override
   public String getCollectionItemConfigName(@NotNull String configName, @Nullable String relatedConfigPath) {
-<span class="fc" id="L190">    return getConfigName(configName, relatedConfigPath);</span>
+<span class="fc" id="L203">    return getConfigName(configName, relatedConfigPath);</span>
   }
 
   @Override
   @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
   public boolean persistConfiguration(@NotNull ResourceResolver resolver, @NotNull String configResourcePath,
       @NotNull ConfigurationPersistData data) {
-<span class="pc bpc" id="L197" title="2 of 4 branches missed.">    if (!enabled || !isConfigPagePath(configResourcePath)) {</span>
-<span class="nc" id="L198">      return false;</span>
+<span class="pc bpc" id="L210" title="2 of 4 branches missed.">    if (!enabled || !isConfigPagePath(configResourcePath)) {</span>
+<span class="nc" id="L211">      return false;</span>
     }
-<span class="fc" id="L200">    String path = getResourcePath(configResourcePath);</span>
-<span class="fc" id="L201">    ensureContainingPage(resolver, path, config.configPageTemplate(), null, config.structurePageTemplate(), configurationManagementSettings);</span>
+<span class="fc" id="L213">    String path = getResourcePath(configResourcePath);</span>
+<span class="fc" id="L214">    ensureContainingPage(resolver, path, config.configPageTemplate(), null, config.structurePageTemplate(), configurationManagementSettings);</span>
 
-<span class="fc" id="L203">    getOrCreateResource(resolver, path, DEFAULT_CONFIG_NODE_TYPE, data.getProperties(), configurationManagementSettings);</span>
+<span class="fc" id="L216">    getOrCreateResource(resolver, path, DEFAULT_CONFIG_NODE_TYPE, data.getProperties(), configurationManagementSettings);</span>
 
-<span class="fc" id="L205">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
-<span class="fc" id="L206">    updatePageLastMod(resolver, pageManager, path);</span>
-<span class="fc" id="L207">    commit(resolver, configResourcePath);</span>
-<span class="fc" id="L208">    return true;</span>
+<span class="fc" id="L218">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
+<span class="fc" id="L219">    updatePageLastMod(resolver, pageManager, path);</span>
+<span class="fc" id="L220">    commit(resolver, configResourcePath);</span>
+<span class="fc" id="L221">    return true;</span>
   }
 
   @Override
   public boolean persistConfigurationCollection(@NotNull ResourceResolver resolver, @NotNull String configResourceCollectionParentPath,
       @NotNull ConfigurationCollectionPersistData data) {
-<span class="pc bpc" id="L214" title="2 of 4 branches missed.">    if (!enabled || !isConfigPagePath(configResourceCollectionParentPath)) {</span>
-<span class="nc" id="L215">      return false;</span>
+<span class="pc bpc" id="L227" title="2 of 4 branches missed.">    if (!enabled || !isConfigPagePath(configResourceCollectionParentPath)) {</span>
+<span class="nc" id="L228">      return false;</span>
     }
-<span class="fc" id="L217">    ensureContainingPage(resolver, configResourceCollectionParentPath, config.configPageTemplate(), null, config.structurePageTemplate(),</span>
+<span class="fc" id="L230">    ensureContainingPage(resolver, configResourceCollectionParentPath, config.configPageTemplate(), null, config.structurePageTemplate(),</span>
         configurationManagementSettings);
-<span class="fc" id="L219">    Resource configResourceParent = getOrCreateResource(resolver, configResourceCollectionParentPath, DEFAULT_CONFIG_NODE_TYPE, ValueMap.EMPTY,</span>
+<span class="fc" id="L232">    Resource configResourceParent = getOrCreateResource(resolver, configResourceCollectionParentPath, DEFAULT_CONFIG_NODE_TYPE, ValueMap.EMPTY,</span>
         configurationManagementSettings);
 
     // delete existing children no longer in the list
-<span class="fc" id="L223">    deleteChildrenNotInCollection(configResourceParent, data);</span>
-<span class="fc bfc" id="L224" title="All 2 branches covered.">    for (ConfigurationPersistData item : data.getItems()) {</span>
-<span class="fc" id="L225">      String path = configResourceParent.getPath() + &quot;/&quot; + item.getCollectionItemName();</span>
-<span class="fc" id="L226">      getOrCreateResource(resolver, path, DEFAULT_CONFIG_NODE_TYPE, item.getProperties(), configurationManagementSettings);</span>
-<span class="fc" id="L227">    }</span>
+<span class="fc" id="L236">    deleteChildrenNotInCollection(configResourceParent, data);</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">    for (ConfigurationPersistData item : data.getItems()) {</span>
+<span class="fc" id="L238">      String path = configResourceParent.getPath() + &quot;/&quot; + item.getCollectionItemName();</span>
+<span class="fc" id="L239">      getOrCreateResource(resolver, path, DEFAULT_CONFIG_NODE_TYPE, item.getProperties(), configurationManagementSettings);</span>
+<span class="fc" id="L240">    }</span>
 
     // if resource collection parent properties are given replace them as well
-<span class="pc bpc" id="L230" title="1 of 2 branches missed.">    if (data.getProperties() != null) {</span>
-<span class="nc" id="L231">      replaceProperties(configResourceParent, data.getProperties(), configurationManagementSettings);</span>
+<span class="pc bpc" id="L243" title="1 of 2 branches missed.">    if (data.getProperties() != null) {</span>
+<span class="nc" id="L244">      replaceProperties(configResourceParent, data.getProperties(), configurationManagementSettings);</span>
     }
 
-<span class="fc" id="L234">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
-<span class="fc" id="L235">    updatePageLastMod(resolver, pageManager, configResourceCollectionParentPath);</span>
-<span class="fc" id="L236">    commit(resolver, configResourceCollectionParentPath);</span>
-<span class="fc" id="L237">    return true;</span>
+<span class="fc" id="L247">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
+<span class="fc" id="L248">    updatePageLastMod(resolver, pageManager, configResourceCollectionParentPath);</span>
+<span class="fc" id="L249">    commit(resolver, configResourceCollectionParentPath);</span>
+<span class="fc" id="L250">    return true;</span>
   }
 
   @Override
   public boolean deleteConfiguration(@NotNull ResourceResolver resolver, @NotNull String configResourcePath) {
-<span class="pc bpc" id="L242" title="2 of 4 branches missed.">    if (!enabled || !isConfigPagePath(configResourcePath)) {</span>
-<span class="nc" id="L243">      return false;</span>
+<span class="pc bpc" id="L255" title="2 of 4 branches missed.">    if (!enabled || !isConfigPagePath(configResourcePath)) {</span>
+<span class="nc" id="L256">      return false;</span>
     }
-<span class="fc" id="L245">    Resource resource = resolver.getResource(configResourcePath);</span>
-<span class="pc bpc" id="L246" title="1 of 2 branches missed.">    if (resource != null) {</span>
-<span class="fc" id="L247">      deletePageOrResource(resource);</span>
+<span class="fc" id="L258">    Resource resource = resolver.getResource(configResourcePath);</span>
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">    if (resource != null) {</span>
+<span class="fc" id="L260">      deletePageOrResource(resource);</span>
     }
-<span class="fc" id="L249">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
-<span class="fc" id="L250">    updatePageLastMod(resolver, pageManager, configResourcePath);</span>
-<span class="fc" id="L251">    commit(resolver, configResourcePath);</span>
-<span class="fc" id="L252">    return true;</span>
+<span class="fc" id="L262">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
+<span class="fc" id="L263">    updatePageLastMod(resolver, pageManager, configResourcePath);</span>
+<span class="fc" id="L264">    commit(resolver, configResourcePath);</span>
+<span class="fc" id="L265">    return true;</span>
   }
 
   private boolean isConfigPagePath(String configPath) {
-<span class="pc bpc" id="L256" title="2 of 4 branches missed.">    return configPathPattern != null &amp;&amp; configPathPattern.matcher(configPath).matches();</span>
+<span class="pc bpc" id="L269" title="2 of 4 branches missed.">    return configPathPattern != null &amp;&amp; configPathPattern.matcher(configPath).matches();</span>
   }
 
 
@@ -265,154 +278,158 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
   private Iterator&lt;String&gt; findConfigRefs(@NotNull final Resource startResource, @NotNull final Collection&lt;String&gt; bucketNames) {
 
     // collect all context path resources (but filter out those without config reference)
-<span class="fc" id="L268">    final Iterator&lt;ContextResource&gt; contextResources = new FilterIterator&lt;&gt;(contextPathStrategy.findContextResources(startResource),</span>
-<span class="fc" id="L269">        contextResource -&gt; StringUtils.isNotBlank(contextResource.getConfigRef()));</span>
+<span class="fc" id="L281">    final Iterator&lt;ContextResource&gt; contextResources = new FilterIterator&lt;&gt;(contextPathStrategy.findContextResources(startResource),</span>
+<span class="fc" id="L282">        contextResource -&gt; StringUtils.isNotBlank(contextResource.getConfigRef()));</span>
 
     // get config resource path for each context resource, filter out items where not reference could be resolved
-<span class="fc" id="L272">    final Iterator&lt;String&gt; configPaths = new TransformIterator&lt;&gt;(contextResources,</span>
+<span class="fc" id="L285">    final Iterator&lt;String&gt; configPaths = new TransformIterator&lt;&gt;(contextResources,</span>
         contextResource -&gt; {
-<span class="fc" id="L274">          String val = checkPath(contextResource, contextResource.getConfigRef(), bucketNames);</span>
-<span class="pc bpc" id="L275" title="1 of 2 branches missed.">          if (val != null) {</span>
-<span class="fc" id="L276">            log.trace(&quot;+ Found reference for context path {}: {}&quot;, contextResource.getResource().getPath(), val);</span>
+<span class="fc" id="L287">          String val = checkPath(contextResource, contextResource.getConfigRef(), bucketNames);</span>
+<span class="pc bpc" id="L288" title="1 of 2 branches missed.">          if (val != null) {</span>
+<span class="fc" id="L289">            log.trace(&quot;+ Found reference for context path {}: {}&quot;, contextResource.getResource().getPath(), val);</span>
           }
-<span class="fc" id="L278">          return val;</span>
+<span class="fc" id="L291">          return val;</span>
         });
-<span class="fc" id="L280">    return new FilterIterator&lt;&gt;(configPaths, PredicateUtils.notNullPredicate());</span>
+<span class="fc" id="L293">    return new FilterIterator&lt;&gt;(configPaths, PredicateUtils.notNullPredicate());</span>
   }
 
   private String checkPath(final ContextResource contextResource, final String checkRef, final Collection&lt;String&gt; bucketNames) {
     // combine full path if relativeRef is present
-<span class="fc" id="L285">    String ref = ResourceUtil.normalize(checkRef);</span>
+<span class="fc" id="L298">    String ref = ResourceUtil.normalize(checkRef);</span>
 
-<span class="fc bfc" id="L287" title="All 2 branches covered.">    for (String bucketName : bucketNames) {</span>
-<span class="fc" id="L288">      String notAllowedPostfix = &quot;/&quot; + bucketName;</span>
-<span class="pc bpc" id="L289" title="2 of 4 branches missed.">      if (ref != null &amp;&amp; ref.endsWith(notAllowedPostfix)) {</span>
-<span class="nc" id="L290">        log.debug(&quot;Ignoring reference to {} from {} - Probably misconfigured as it ends with '{}'&quot;,</span>
-<span class="nc" id="L291">            contextResource.getConfigRef(), contextResource.getResource().getPath(), notAllowedPostfix);</span>
-<span class="nc" id="L292">        ref = null;</span>
+<span class="fc bfc" id="L300" title="All 2 branches covered.">    for (String bucketName : bucketNames) {</span>
+<span class="fc" id="L301">      String notAllowedPostfix = &quot;/&quot; + bucketName;</span>
+<span class="pc bpc" id="L302" title="2 of 4 branches missed.">      if (ref != null &amp;&amp; ref.endsWith(notAllowedPostfix)) {</span>
+<span class="nc" id="L303">        log.debug(&quot;Ignoring reference to {} from {} - Probably misconfigured as it ends with '{}'&quot;,</span>
+<span class="nc" id="L304">            contextResource.getConfigRef(), contextResource.getResource().getPath(), notAllowedPostfix);</span>
+<span class="nc" id="L305">        ref = null;</span>
       }
-<span class="fc" id="L294">    }</span>
+<span class="fc" id="L307">    }</span>
 
-<span class="fc" id="L296">    return ref;</span>
+<span class="fc" id="L309">    return ref;</span>
   }
 
   @SuppressWarnings(&quot;unused&quot;)
   private boolean isEnabledAndParamsValid(final Resource contentResource, final Collection&lt;String&gt; bucketNames, final String configName) {
-<span class="pc bpc" id="L301" title="2 of 4 branches missed.">    return enabled &amp;&amp; contentResource != null;</span>
+<span class="pc bpc" id="L314" title="2 of 6 branches missed.">    return enabled &amp;&amp; contentResource != null &amp;&amp; isContextPathAllowed(contentResource.getPath());</span>
+  }
+
+  private boolean isContextPathAllowed(String contextPath) {
+<span class="pc bpc" id="L318" title="1 of 4 branches missed.">    return contextPathPattern == null || contextPathPattern.matcher(contextPath).matches();</span>
   }
 
   private String buildResourcePath(String path, String name) {
-<span class="fc" id="L305">    return ResourceUtil.normalize(path + &quot;/&quot; + name);</span>
+<span class="fc" id="L322">    return ResourceUtil.normalize(path + &quot;/&quot; + name);</span>
   }
 
   @Override
   public Resource getResource(@NotNull final Resource contentResource, @NotNull final Collection&lt;String&gt; bucketNames, @NotNull final String configName) {
-<span class="nc" id="L310">    Iterator&lt;Resource&gt; resources = getResourceInheritanceChain(contentResource, bucketNames, configName);</span>
-<span class="nc bnc" id="L311" title="All 4 branches missed.">    if (resources != null &amp;&amp; resources.hasNext()) {</span>
-<span class="nc" id="L312">      return resources.next();</span>
+<span class="nc" id="L327">    Iterator&lt;Resource&gt; resources = getResourceInheritanceChain(contentResource, bucketNames, configName);</span>
+<span class="nc bnc" id="L328" title="All 4 branches missed.">    if (resources != null &amp;&amp; resources.hasNext()) {</span>
+<span class="nc" id="L329">      return resources.next();</span>
     }
-<span class="nc" id="L314">    return null;</span>
+<span class="nc" id="L331">    return null;</span>
   }
 
   private Iterator&lt;Resource&gt; getResourceInheritanceChainInternal(final Collection&lt;String&gt; bucketNames, final String configName,
       final Iterator&lt;String&gt; paths, final ResourceResolver resourceResolver) {
 
     // find all matching items among all configured paths
-<span class="fc" id="L321">    Iterator&lt;Resource&gt; matchingResources = IteratorUtils.transformedIterator(paths,</span>
+<span class="fc" id="L338">    Iterator&lt;Resource&gt; matchingResources = IteratorUtils.transformedIterator(paths,</span>
         path -&gt; {
-<span class="fc bfc" id="L323" title="All 2 branches covered.">          for (String bucketName : bucketNames) {</span>
-<span class="fc" id="L324">            final String name = bucketName + &quot;/&quot; + configName;</span>
-<span class="fc" id="L325">            final String configPath = buildResourcePath(path, name);</span>
-<span class="fc" id="L326">            Resource resource = resourceResolver.getResource(configPath);</span>
-<span class="fc bfc" id="L327" title="All 2 branches covered.">            if (resource != null) {</span>
-<span class="fc" id="L328">              log.trace(&quot;+ Found matching config resource for inheritance chain: {}&quot;, configPath);</span>
-<span class="fc" id="L329">              return resource;</span>
+<span class="fc bfc" id="L340" title="All 2 branches covered.">          for (String bucketName : bucketNames) {</span>
+<span class="fc" id="L341">            final String name = bucketName + &quot;/&quot; + configName;</span>
+<span class="fc" id="L342">            final String configPath = buildResourcePath(path, name);</span>
+<span class="fc" id="L343">            Resource resource = resourceResolver.getResource(configPath);</span>
+<span class="fc bfc" id="L344" title="All 2 branches covered.">            if (resource != null) {</span>
+<span class="fc" id="L345">              log.trace(&quot;+ Found matching config resource for inheritance chain: {}&quot;, configPath);</span>
+<span class="fc" id="L346">              return resource;</span>
             }
             else {
-<span class="fc" id="L332">              log.trace(&quot;- No matching config resource for inheritance chain: {}&quot;, configPath);</span>
+<span class="fc" id="L349">              log.trace(&quot;- No matching config resource for inheritance chain: {}&quot;, configPath);</span>
             }
-<span class="fc" id="L334">          }</span>
-<span class="fc" id="L335">          return null;</span>
+<span class="fc" id="L351">          }</span>
+<span class="fc" id="L352">          return null;</span>
         });
-<span class="fc" id="L337">    Iterator&lt;Resource&gt; result = IteratorUtils.filteredIterator(matchingResources, PredicateUtils.notNullPredicate());</span>
-<span class="fc bfc" id="L338" title="All 2 branches covered.">    if (result.hasNext()) {</span>
-<span class="fc" id="L339">      return result;</span>
+<span class="fc" id="L354">    Iterator&lt;Resource&gt; result = IteratorUtils.filteredIterator(matchingResources, PredicateUtils.notNullPredicate());</span>
+<span class="fc bfc" id="L355" title="All 2 branches covered.">    if (result.hasNext()) {</span>
+<span class="fc" id="L356">      return result;</span>
     }
-<span class="fc" id="L341">    return null;</span>
+<span class="fc" id="L358">    return null;</span>
   }
 
   @Override
   public Iterator&lt;Resource&gt; getResourceInheritanceChain(@NotNull Resource contentResource, @NotNull Collection&lt;String&gt; bucketNames,
       @NotNull String configName) {
-<span class="pc bpc" id="L347" title="1 of 2 branches missed.">    if (!isEnabledAndParamsValid(contentResource, bucketNames, configName)) {</span>
-<span class="nc" id="L348">      return null;</span>
+<span class="pc bpc" id="L364" title="1 of 2 branches missed.">    if (!isEnabledAndParamsValid(contentResource, bucketNames, configName)) {</span>
+<span class="nc" id="L365">      return null;</span>
     }
-<span class="fc" id="L350">    final ResourceResolver resourceResolver = contentResource.getResourceResolver();</span>
+<span class="fc" id="L367">    final ResourceResolver resourceResolver = contentResource.getResourceResolver();</span>
 
-<span class="fc" id="L352">    Iterator&lt;String&gt; paths = findConfigRefs(contentResource, bucketNames);</span>
-<span class="fc" id="L353">    return getResourceInheritanceChainInternal(bucketNames, configName, paths, resourceResolver);</span>
+<span class="fc" id="L369">    Iterator&lt;String&gt; paths = findConfigRefs(contentResource, bucketNames);</span>
+<span class="fc" id="L370">    return getResourceInheritanceChainInternal(bucketNames, configName, paths, resourceResolver);</span>
   }
 
   private Collection&lt;Resource&gt; getResourceCollectionInternal(final Collection&lt;String&gt; bucketNames, final String configName,
       Iterator&lt;String&gt; paths, ResourceResolver resourceResolver) {
 
-<span class="fc" id="L359">    final Map&lt;String, Resource&gt; result = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L376">    final Map&lt;String, Resource&gt; result = new LinkedHashMap&lt;&gt;();</span>
 
-<span class="fc" id="L361">    boolean inherit = false;</span>
-<span class="fc bfc" id="L362" title="All 2 branches covered.">    while (paths.hasNext()) {</span>
-<span class="fc" id="L363">      final String path = paths.next();</span>
+<span class="fc" id="L378">    boolean inherit = false;</span>
+<span class="fc bfc" id="L379" title="All 2 branches covered.">    while (paths.hasNext()) {</span>
+<span class="fc" id="L380">      final String path = paths.next();</span>
 
-<span class="fc" id="L365">      Resource item = null;</span>
-<span class="fc bfc" id="L366" title="All 2 branches covered.">      for (String bucketName : bucketNames) {</span>
-<span class="fc" id="L367">        String name = bucketName + &quot;/&quot; + configName;</span>
-<span class="fc" id="L368">        String configPath = buildResourcePath(path, name);</span>
-<span class="fc" id="L369">        item = resourceResolver.getResource(configPath);</span>
-<span class="fc bfc" id="L370" title="All 2 branches covered.">        if (item != null) {</span>
-<span class="fc" id="L371">          break;</span>
+<span class="fc" id="L382">      Resource item = null;</span>
+<span class="fc bfc" id="L383" title="All 2 branches covered.">      for (String bucketName : bucketNames) {</span>
+<span class="fc" id="L384">        String name = bucketName + &quot;/&quot; + configName;</span>
+<span class="fc" id="L385">        String configPath = buildResourcePath(path, name);</span>
+<span class="fc" id="L386">        item = resourceResolver.getResource(configPath);</span>
+<span class="fc bfc" id="L387" title="All 2 branches covered.">        if (item != null) {</span>
+<span class="fc" id="L388">          break;</span>
         }
         else {
-<span class="fc" id="L374">          log.trace(&quot;- No collection parent resource found: {}&quot;, configPath);</span>
+<span class="fc" id="L391">          log.trace(&quot;- No collection parent resource found: {}&quot;, configPath);</span>
         }
-<span class="fc" id="L376">      }</span>
+<span class="fc" id="L393">      }</span>
 
-<span class="fc bfc" id="L378" title="All 2 branches covered.">      if (item != null) {</span>
-<span class="fc" id="L379">        log.trace(&quot;o Check children of collection parent resource: {}&quot;, item.getPath());</span>
-<span class="pc bpc" id="L380" title="1 of 2 branches missed.">        if (item.hasChildren()) {</span>
-<span class="fc bfc" id="L381" title="All 2 branches covered.">          for (Resource child : item.getChildren()) {</span>
-<span class="pc bpc" id="L382" title="1 of 2 branches missed.">            if (isValidResourceCollectionItem(child)</span>
-<span class="pc bpc" id="L383" title="1 of 2 branches missed.">                &amp;&amp; !result.containsKey(child.getName())) {</span>
-<span class="fc" id="L384">              log.trace(&quot;+ Found collection resource item {}&quot;, child.getPath());</span>
-<span class="fc" id="L385">              result.put(child.getName(), child);</span>
+<span class="fc bfc" id="L395" title="All 2 branches covered.">      if (item != null) {</span>
+<span class="fc" id="L396">        log.trace(&quot;o Check children of collection parent resource: {}&quot;, item.getPath());</span>
+<span class="pc bpc" id="L397" title="1 of 2 branches missed.">        if (item.hasChildren()) {</span>
+<span class="fc bfc" id="L398" title="All 2 branches covered.">          for (Resource child : item.getChildren()) {</span>
+<span class="pc bpc" id="L399" title="1 of 2 branches missed.">            if (isValidResourceCollectionItem(child)</span>
+<span class="pc bpc" id="L400" title="1 of 2 branches missed.">                &amp;&amp; !result.containsKey(child.getName())) {</span>
+<span class="fc" id="L401">              log.trace(&quot;+ Found collection resource item {}&quot;, child.getPath());</span>
+<span class="fc" id="L402">              result.put(child.getName(), child);</span>
             }
-<span class="fc" id="L387">          }</span>
+<span class="fc" id="L404">          }</span>
         }
 
         // check collection inheritance mode on current level - should we check on next-highest level as well?
-<span class="fc" id="L391">        final ValueMap valueMap = item.getValueMap();</span>
-<span class="fc" id="L392">        inherit = valueMap.get(PROPERTY_CONFIG_COLLECTION_INHERIT, false);</span>
-<span class="pc bpc" id="L393" title="1 of 2 branches missed.">        if (!inherit) {</span>
-<span class="fc" id="L394">          break;</span>
+<span class="fc" id="L408">        final ValueMap valueMap = item.getValueMap();</span>
+<span class="fc" id="L409">        inherit = valueMap.get(PROPERTY_CONFIG_COLLECTION_INHERIT, false);</span>
+<span class="pc bpc" id="L410" title="1 of 2 branches missed.">        if (!inherit) {</span>
+<span class="fc" id="L411">          break;</span>
         }
       }
-<span class="fc" id="L397">    }</span>
+<span class="fc" id="L414">    }</span>
 
-<span class="fc" id="L399">    return result.values();</span>
+<span class="fc" id="L416">    return result.values();</span>
   }
 
   @Override
   @SuppressWarnings(&quot;java:S1168&quot;)
   public Collection&lt;Resource&gt; getResourceCollection(@NotNull final Resource contentResource, @NotNull final Collection&lt;String&gt; bucketNames,
       @NotNull final String configName) {
-<span class="nc bnc" id="L406" title="All 2 branches missed.">    if (!isEnabledAndParamsValid(contentResource, bucketNames, configName)) {</span>
-<span class="nc" id="L407">      return null;</span>
+<span class="nc bnc" id="L423" title="All 2 branches missed.">    if (!isEnabledAndParamsValid(contentResource, bucketNames, configName)) {</span>
+<span class="nc" id="L424">      return null;</span>
     }
-<span class="nc" id="L409">    Iterator&lt;String&gt; paths = findConfigRefs(contentResource, bucketNames);</span>
-<span class="nc" id="L410">    Collection&lt;Resource&gt; result = getResourceCollectionInternal(bucketNames, configName, paths, contentResource.getResourceResolver());</span>
-<span class="nc bnc" id="L411" title="All 2 branches missed.">    if (!result.isEmpty()) {</span>
-<span class="nc" id="L412">      return result;</span>
+<span class="nc" id="L426">    Iterator&lt;String&gt; paths = findConfigRefs(contentResource, bucketNames);</span>
+<span class="nc" id="L427">    Collection&lt;Resource&gt; result = getResourceCollectionInternal(bucketNames, configName, paths, contentResource.getResourceResolver());</span>
+<span class="nc bnc" id="L428" title="All 2 branches missed.">    if (!result.isEmpty()) {</span>
+<span class="nc" id="L429">      return result;</span>
     }
     else {
-<span class="nc" id="L415">      return null;</span>
+<span class="nc" id="L432">      return null;</span>
     }
   }
 
@@ -420,54 +437,54 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
   @SuppressWarnings(&quot;java:S1168&quot;)
   public Collection&lt;Iterator&lt;Resource&gt;&gt; getResourceCollectionInheritanceChain(@NotNull final Resource contentResource,
       @NotNull final Collection&lt;String&gt; bucketNames, @NotNull final String configName) {
-<span class="pc bpc" id="L423" title="1 of 2 branches missed.">    if (!isEnabledAndParamsValid(contentResource, bucketNames, configName)) {</span>
-<span class="nc" id="L424">      return null;</span>
+<span class="pc bpc" id="L440" title="1 of 2 branches missed.">    if (!isEnabledAndParamsValid(contentResource, bucketNames, configName)) {</span>
+<span class="nc" id="L441">      return null;</span>
     }
-<span class="fc" id="L426">    final ResourceResolver resourceResolver = contentResource.getResourceResolver();</span>
-<span class="fc" id="L427">    final List&lt;String&gt; paths = IteratorUtils.toList(findConfigRefs(contentResource, bucketNames));</span>
+<span class="fc" id="L443">    final ResourceResolver resourceResolver = contentResource.getResourceResolver();</span>
+<span class="fc" id="L444">    final List&lt;String&gt; paths = IteratorUtils.toList(findConfigRefs(contentResource, bucketNames));</span>
 
     // get resource collection with respect to collection inheritance
-<span class="fc" id="L430">    Collection&lt;Resource&gt; resourceCollection = getResourceCollectionInternal(bucketNames, configName, paths.iterator(), resourceResolver);</span>
+<span class="fc" id="L447">    Collection&lt;Resource&gt; resourceCollection = getResourceCollectionInternal(bucketNames, configName, paths.iterator(), resourceResolver);</span>
 
     // get inheritance chain for each item found
     // yes, this resolves the closest item twice, but is the easiest solution to combine both logic aspects
-<span class="fc" id="L434">    Iterator&lt;Iterator&lt;Resource&gt;&gt; result = IteratorUtils.transformedIterator(resourceCollection.iterator(),</span>
-<span class="fc" id="L435">        item -&gt; getResourceInheritanceChainInternal(bucketNames, configName + &quot;/&quot; + item.getName(), paths.iterator(), resourceResolver));</span>
-<span class="fc bfc" id="L436" title="All 2 branches covered.">    if (result.hasNext()) {</span>
-<span class="fc" id="L437">      return IteratorUtils.toList(result);</span>
+<span class="fc" id="L451">    Iterator&lt;Iterator&lt;Resource&gt;&gt; result = IteratorUtils.transformedIterator(resourceCollection.iterator(),</span>
+<span class="fc" id="L452">        item -&gt; getResourceInheritanceChainInternal(bucketNames, configName + &quot;/&quot; + item.getName(), paths.iterator(), resourceResolver));</span>
+<span class="fc bfc" id="L453" title="All 2 branches covered.">    if (result.hasNext()) {</span>
+<span class="fc" id="L454">      return IteratorUtils.toList(result);</span>
     }
     else {
-<span class="fc" id="L440">      return null;</span>
+<span class="fc" id="L457">      return null;</span>
     }
   }
 
   private boolean isValidResourceCollectionItem(Resource resource) {
     // do not include jcr:content nodes in resource collection list
-<span class="pc bpc" id="L446" title="1 of 2 branches missed.">    return !StringUtils.equals(resource.getName(), &quot;jcr:content&quot;);</span>
+<span class="pc bpc" id="L463" title="1 of 2 branches missed.">    return !StringUtils.equals(resource.getName(), &quot;jcr:content&quot;);</span>
   }
 
   @Override
   public String getResourcePath(@NotNull Resource contentResource, @NotNull String bucketName, @NotNull String configName) {
-<span class="pc bpc" id="L451" title="1 of 2 branches missed.">    if (!isEnabledAndParamsValid(contentResource, Collections.singleton(bucketName), configName)) {</span>
-<span class="nc" id="L452">      return null;</span>
+<span class="fc bfc" id="L468" title="All 2 branches covered.">    if (!isEnabledAndParamsValid(contentResource, Collections.singleton(bucketName), configName)) {</span>
+<span class="fc" id="L469">      return null;</span>
     }
-<span class="fc" id="L454">    String name = bucketName + &quot;/&quot; + configName;</span>
+<span class="fc" id="L471">    String name = bucketName + &quot;/&quot; + configName;</span>
 
-<span class="fc" id="L456">    Iterator&lt;String&gt; configPaths = this.findConfigRefs(contentResource, Collections.singleton(bucketName));</span>
-<span class="pc bpc" id="L457" title="1 of 2 branches missed.">    if (configPaths.hasNext()) {</span>
-<span class="fc" id="L458">      String configPath = buildResourcePath(configPaths.next(), name);</span>
-<span class="fc" id="L459">      log.trace(&quot;+ Building configuration path for name '{}' for resource {}: {}&quot;, name, contentResource.getPath(), configPath);</span>
-<span class="fc" id="L460">      return configPath;</span>
+<span class="fc" id="L473">    Iterator&lt;String&gt; configPaths = this.findConfigRefs(contentResource, Collections.singleton(bucketName));</span>
+<span class="pc bpc" id="L474" title="1 of 2 branches missed.">    if (configPaths.hasNext()) {</span>
+<span class="fc" id="L475">      String configPath = buildResourcePath(configPaths.next(), name);</span>
+<span class="fc" id="L476">      log.trace(&quot;+ Building configuration path for name '{}' for resource {}: {}&quot;, name, contentResource.getPath(), configPath);</span>
+<span class="fc" id="L477">      return configPath;</span>
     }
     else {
-<span class="nc" id="L463">      log.trace(&quot;- No configuration path for name '{}' found for resource {}&quot;, name, contentResource.getPath());</span>
-<span class="nc" id="L464">      return null;</span>
+<span class="nc" id="L480">      log.trace(&quot;- No configuration path for name '{}' found for resource {}&quot;, name, contentResource.getPath());</span>
+<span class="nc" id="L481">      return null;</span>
     }
   }
 
   @Override
   public String getResourceCollectionParentPath(@NotNull Resource contentResource, @NotNull String bucketName, @NotNull String configName) {
-<span class="fc" id="L470">    return getResourcePath(contentResource, bucketName, configName);</span>
+<span class="fc" id="L487">    return getResourcePath(contentResource, bucketName, configName);</span>
   }
 
 }
