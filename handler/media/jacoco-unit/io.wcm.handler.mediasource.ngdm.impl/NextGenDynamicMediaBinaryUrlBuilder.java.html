@@ -37,43 +37,48 @@ public final class NextGenDynamicMediaBinaryUrlBuilder {
 
   private final NextGenDynamicMediaContext context;
 
+  static final String PARAM_ATTACHMENT = &quot;attachment&quot;;
+
   /**
    * @param context Context
    */
-<span class="fc" id="L43">  public NextGenDynamicMediaBinaryUrlBuilder(@NotNull NextGenDynamicMediaContext context) {</span>
-<span class="fc" id="L44">    this.context = context;</span>
-<span class="fc" id="L45">  }</span>
+<span class="fc" id="L45">  public NextGenDynamicMediaBinaryUrlBuilder(@NotNull NextGenDynamicMediaContext context) {</span>
+<span class="fc" id="L46">    this.context = context;</span>
+<span class="fc" id="L47">  }</span>
 
   /**
    * Builds the URL for a binary.
    * @return URL or null if invalid/not possible
    */
-  public @Nullable String build() {
+  public @Nullable String build(boolean contentDispositionAttachment) {
 
     // get parameters from nextgen dynamic media config for URL parameters
     String repositoryId;
-<span class="fc bfc" id="L55" title="All 2 branches covered.">    if (context.getReference().getAsset() != null) {</span>
-<span class="fc" id="L56">      repositoryId = context.getNextGenDynamicMediaConfig().getLocalAssetsRepositoryId();</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">    if (context.getReference().getAsset() != null) {</span>
+<span class="fc" id="L58">      repositoryId = context.getNextGenDynamicMediaConfig().getLocalAssetsRepositoryId();</span>
     }
     else {
-<span class="fc" id="L59">      repositoryId = context.getNextGenDynamicMediaConfig().getRemoteAssetsRepositoryId();</span>
+<span class="fc" id="L61">      repositoryId = context.getNextGenDynamicMediaConfig().getRemoteAssetsRepositoryId();</span>
     }
-<span class="fc" id="L61">    String binaryDeliveryPath = context.getNextGenDynamicMediaConfig().getAssetOriginalBinaryDeliveryPath();</span>
-<span class="pc bpc" id="L62" title="1 of 2 branches missed.">    if (StringUtils.isAnyBlank(repositoryId, binaryDeliveryPath)) {</span>
-<span class="nc" id="L63">      return null;</span>
+<span class="fc" id="L63">    String binaryDeliveryPath = context.getNextGenDynamicMediaConfig().getAssetOriginalBinaryDeliveryPath();</span>
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">    if (StringUtils.isAnyBlank(repositoryId, binaryDeliveryPath)) {</span>
+<span class="nc" id="L65">      return null;</span>
     }
 
     // replace placeholders in delivery path
-<span class="fc" id="L67">    String seoName = context.getReference().getFileName();</span>
-<span class="fc" id="L68">    binaryDeliveryPath = StringUtils.replace(binaryDeliveryPath, PLACEHOLDER_ASSET_ID, context.getReference().getAssetId());</span>
-<span class="fc" id="L69">    binaryDeliveryPath = StringUtils.replace(binaryDeliveryPath, PLACEHOLDER_SEO_NAME, seoName);</span>
+<span class="fc" id="L69">    String seoName = context.getReference().getFileName();</span>
+<span class="fc" id="L70">    binaryDeliveryPath = StringUtils.replace(binaryDeliveryPath, PLACEHOLDER_ASSET_ID, context.getReference().getAssetId());</span>
+<span class="fc" id="L71">    binaryDeliveryPath = StringUtils.replace(binaryDeliveryPath, PLACEHOLDER_SEO_NAME, seoName);</span>
 
     // build URL
-<span class="fc" id="L72">    StringBuilder url = new StringBuilder();</span>
-<span class="fc" id="L73">    url.append(&quot;https://&quot;)</span>
-<span class="fc" id="L74">        .append(repositoryId)</span>
-<span class="fc" id="L75">        .append(binaryDeliveryPath);</span>
-<span class="fc" id="L76">    return url.toString();</span>
+<span class="fc" id="L74">    StringBuilder url = new StringBuilder();</span>
+<span class="fc" id="L75">    url.append(&quot;https://&quot;)</span>
+<span class="fc" id="L76">        .append(repositoryId)</span>
+<span class="fc" id="L77">        .append(binaryDeliveryPath);</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">    if (contentDispositionAttachment) {</span>
+<span class="fc" id="L79">      url.append(&quot;?&quot;).append(PARAM_ATTACHMENT).append(&quot;=true&quot;);</span>
+    }
+<span class="fc" id="L81">    return url.toString();</span>
   }
 
 }
