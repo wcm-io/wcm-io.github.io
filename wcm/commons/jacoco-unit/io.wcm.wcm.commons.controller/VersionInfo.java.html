@@ -77,54 +77,57 @@ import io.wcm.wcm.commons.component.ComponentPropertyResolverFactory;
 <span class="fc" id="L77">    this.bundles = getFilteredBundles(filterPatterns);</span>
 <span class="fc" id="L78">  }</span>
 
+  /**
+   * @return Bundles
+   */
   public Collection&lt;BundleInfo&gt; getBundles() {
-<span class="fc" id="L81">    return this.bundles;</span>
+<span class="fc" id="L84">    return this.bundles;</span>
   }
 
   private Collection&lt;BundleInfo&gt; getFilteredBundles(List&lt;Pattern&gt; filterPatterns) {
-<span class="fc" id="L85">    Collection&lt;BundleInfo&gt; allBundles = bundleInfoService.getBundles();</span>
-<span class="fc" id="L86">    return allBundles.stream()</span>
-<span class="fc" id="L87">        .filter(bundle -&gt; matchesFilterPatterns(bundle, filterPatterns))</span>
-<span class="fc" id="L88">        .collect(Collectors.toList());</span>
+<span class="fc" id="L88">    Collection&lt;BundleInfo&gt; allBundles = bundleInfoService.getBundles();</span>
+<span class="fc" id="L89">    return allBundles.stream()</span>
+<span class="fc" id="L90">        .filter(bundle -&gt; matchesFilterPatterns(bundle, filterPatterns))</span>
+<span class="fc" id="L91">        .collect(Collectors.toList());</span>
   }
 
   private boolean matchesFilterPatterns(BundleInfo bundle, List&lt;Pattern&gt; filterPatterns) {
-<span class="fc bfc" id="L92" title="All 2 branches covered.">    if (filterPatterns.isEmpty()) {</span>
-<span class="fc" id="L93">      return true;</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (filterPatterns.isEmpty()) {</span>
+<span class="fc" id="L96">      return true;</span>
     }
-<span class="fc" id="L95">    return filterPatterns.stream()</span>
-<span class="fc" id="L96">        .anyMatch(pattern -&gt; pattern.matcher(bundle.getSymbolicName()).matches());</span>
+<span class="fc" id="L98">    return filterPatterns.stream()</span>
+<span class="fc" id="L99">        .anyMatch(pattern -&gt; pattern.matcher(bundle.getSymbolicName()).matches());</span>
   }
 
   private Stream&lt;String&gt; getFilterRegex() {
     String[] regex;
-<span class="fc" id="L101">    try (ComponentPropertyResolver componentPropertyResolver = componentPropertyResolverFactory.get(currentPage)</span>
-<span class="fc" id="L102">        .componentPropertiesResolution(ComponentPropertyResolution.RESOLVE)</span>
-<span class="fc" id="L103">        .pagePropertiesResolution(ComponentPropertyResolution.RESOLVE)) {</span>
-<span class="fc" id="L104">      regex = componentPropertyResolver.get(PN_FILTER_REGEX, String[].class);</span>
+<span class="fc" id="L104">    try (ComponentPropertyResolver componentPropertyResolver = componentPropertyResolverFactory.get(currentPage)</span>
+<span class="fc" id="L105">        .componentPropertiesResolution(ComponentPropertyResolution.RESOLVE)</span>
+<span class="fc" id="L106">        .pagePropertiesResolution(ComponentPropertyResolution.RESOLVE)) {</span>
+<span class="fc" id="L107">      regex = componentPropertyResolver.get(PN_FILTER_REGEX, String[].class);</span>
     }
-<span class="fc bfc" id="L106" title="All 2 branches covered.">    if (regex != null) {</span>
-<span class="fc" id="L107">      return Arrays.stream(regex);</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (regex != null) {</span>
+<span class="fc" id="L110">      return Arrays.stream(regex);</span>
     }
     else {
-<span class="fc" id="L110">      return Stream.empty();</span>
+<span class="fc" id="L113">      return Stream.empty();</span>
     }
   }
 
   private List&lt;Pattern&gt; toPattern(Stream&lt;String&gt; regex) {
-<span class="fc" id="L115">    return regex</span>
-<span class="fc" id="L116">        .map(regExString -&gt; {</span>
+<span class="fc" id="L118">    return regex</span>
+<span class="fc" id="L119">        .map(regExString -&gt; {</span>
           try {
-<span class="fc" id="L118">            return Pattern.compile(regExString);</span>
+<span class="fc" id="L121">            return Pattern.compile(regExString);</span>
           }
-<span class="nc" id="L120">          catch (PatternSyntaxException ex) {</span>
-<span class="nc" id="L121">            log.warn(&quot;Invalid pattern for version info filtering: {} in {}&quot;,</span>
-<span class="nc" id="L122">                regex, currentPage.getPath(), ex);</span>
-<span class="nc" id="L123">            return null;</span>
+<span class="nc" id="L123">          catch (PatternSyntaxException ex) {</span>
+<span class="nc" id="L124">            log.warn(&quot;Invalid pattern for version info filtering: {} in {}&quot;,</span>
+<span class="nc" id="L125">                regex, currentPage.getPath(), ex);</span>
+<span class="nc" id="L126">            return null;</span>
           }
         })
-<span class="fc" id="L126">        .filter(Objects::nonNull)</span>
-<span class="fc" id="L127">        .collect(Collectors.toList());</span>
+<span class="fc" id="L129">        .filter(Objects::nonNull)</span>
+<span class="fc" id="L130">        .collect(Collectors.toList());</span>
   }
 
 }
