@@ -56,10 +56,11 @@ import io.wcm.maven.plugins.i18n.readers.XmlI18nReader;
   private static final String FILE_EXTENSION_XML = &quot;xml&quot;;
   private static final String FILE_EXTENSION_PROPERTIES = &quot;properties&quot;;
 
-<span class="fc" id="L59">  private static final String[] SOURCE_FILES_INCLUDES = new String[] {</span>
-      &quot;**/*.&quot; + FILE_EXTENSION_PROPERTIES,
-      &quot;**/*.&quot; + FILE_EXTENSION_XML,
-      &quot;**/*.&quot; + FILE_EXTENSION_JSON
+  private static final String ALL_FILES = &quot;**/*.&quot;;
+<span class="fc" id="L60">  private static final String[] SOURCE_FILES_INCLUDES = new String[] {</span>
+      ALL_FILES + FILE_EXTENSION_PROPERTIES,
+      ALL_FILES + FILE_EXTENSION_XML,
+      ALL_FILES + FILE_EXTENSION_JSON
   };
 
   /**
@@ -100,39 +101,43 @@ import io.wcm.maven.plugins.i18n.readers.XmlI18nReader;
 
   @Override
   public void execute() throws MojoExecutionException, MojoFailureException {
-<span class="fc" id="L103">    OutputFormat selectedOutputFormat = OutputFormat.valueOf(StringUtils.upperCase(outputFormat));</span>
+<span class="fc" id="L104">    OutputFormat selectedOutputFormat = OutputFormat.valueOf(StringUtils.upperCase(outputFormat));</span>
     try {
-<span class="fc" id="L105">      File sourceDirectory = getSourceDirectory();</span>
-<span class="fc" id="L106">      intialize(sourceDirectory);</span>
+<span class="fc" id="L106">      File sourceDirectory = getSourceDirectory();</span>
+<span class="fc" id="L107">      intialize(sourceDirectory);</span>
 
       // skip incremental build if no i18n source file was changed
-<span class="pc bpc" id="L109" title="3 of 4 branches missed.">      if (buildContext.isIncremental() &amp;&amp; !isI18nSourceFileChanged(sourceDirectory)) {</span>
-<span class="nc" id="L110">        return;</span>
+<span class="pc bpc" id="L110" title="3 of 4 branches missed.">      if (buildContext.isIncremental() &amp;&amp; !isI18nSourceFileChanged(sourceDirectory)) {</span>
+<span class="nc" id="L111">        return;</span>
       }
 
-<span class="fc" id="L113">      List&lt;File&gt; sourceFiles = getI18nSourceFiles(sourceDirectory);</span>
-<span class="fc bfc" id="L114" title="All 2 branches covered.">      for (File file : sourceFiles) {</span>
-        try {
-          // transform i18n files
-<span class="fc" id="L117">          String languageKey = FileUtils.removeExtension(file.getName());</span>
-<span class="fc" id="L118">          I18nReader reader = getI18nReader(file);</span>
-<span class="fc" id="L119">          SlingI18nMap i18nMap = new SlingI18nMap(languageKey, reader.read(file));</span>
-
-          // write mappings to target file
-<span class="fc" id="L122">          File targetFile = getTargetFile(file, selectedOutputFormat);</span>
-<span class="fc" id="L123">          writeTargetI18nFile(i18nMap, targetFile, selectedOutputFormat);</span>
-
-<span class="fc" id="L125">          getLog().info(&quot;Transformed &quot; + file.getPath() + &quot; to  &quot; + targetFile.getPath());</span>
-        }
-<span class="nc" id="L127">        catch (IOException ex) {</span>
-<span class="nc" id="L128">          throw new MojoFailureException(&quot;Unable to transform i18n resource: &quot; + file.getPath(), ex);</span>
-<span class="fc" id="L129">        }</span>
-<span class="fc" id="L130">      }</span>
+<span class="fc" id="L114">      List&lt;File&gt; sourceFiles = getI18nSourceFiles(sourceDirectory);</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">      for (File file : sourceFiles) {</span>
+<span class="fc" id="L116">        transformFile(file, selectedOutputFormat);</span>
+<span class="fc" id="L117">      }</span>
     }
-<span class="nc" id="L132">    catch (IOException ex) {</span>
-<span class="nc" id="L133">      throw new MojoFailureException(&quot;Failure to transform i18n resources&quot;, ex);</span>
-<span class="fc" id="L134">    }</span>
-<span class="fc" id="L135">  }</span>
+<span class="nc" id="L119">    catch (IOException ex) {</span>
+<span class="nc" id="L120">      throw new MojoFailureException(&quot;Failure to transform i18n resources&quot;, ex);</span>
+<span class="fc" id="L121">    }</span>
+<span class="fc" id="L122">  }</span>
+
+  private void transformFile(File file, OutputFormat selectedOutputFormat) throws MojoFailureException {
+    try {
+      // transform i18n files
+<span class="fc" id="L127">      String languageKey = FileUtils.removeExtension(file.getName());</span>
+<span class="fc" id="L128">      I18nReader reader = getI18nReader(file);</span>
+<span class="fc" id="L129">      SlingI18nMap i18nMap = new SlingI18nMap(languageKey, reader.read(file));</span>
+
+      // write mappings to target file
+<span class="fc" id="L132">      File targetFile = getTargetFile(file, selectedOutputFormat);</span>
+<span class="fc" id="L133">      writeTargetI18nFile(i18nMap, targetFile, selectedOutputFormat);</span>
+
+<span class="fc" id="L135">      getLog().info(&quot;Transformed &quot; + file.getPath() + &quot; to  &quot; + targetFile.getPath());</span>
+    }
+<span class="nc" id="L137">    catch (IOException ex) {</span>
+<span class="nc" id="L138">      throw new MojoFailureException(&quot;Unable to transform i18n resource: &quot; + file.getPath(), ex);</span>
+<span class="fc" id="L139">    }</span>
+<span class="fc" id="L140">  }</span>
 
   /**
    * Checks if and i18n source file was changes in incremental build.
@@ -140,16 +145,16 @@ import io.wcm.maven.plugins.i18n.readers.XmlI18nReader;
    * @return true if changes detected
    */
   private boolean isI18nSourceFileChanged(File sourceDirectory) {
-<span class="nc" id="L143">    Scanner scanner = buildContext.newScanner(sourceDirectory);</span>
-<span class="nc" id="L144">    Scanner deleteScanner = buildContext.newDeleteScanner(sourceDirectory);</span>
-<span class="nc bnc" id="L145" title="All 4 branches missed.">    return isI18nSourceFileChanged(scanner) || isI18nSourceFileChanged(deleteScanner);</span>
+<span class="nc" id="L148">    Scanner scanner = buildContext.newScanner(sourceDirectory);</span>
+<span class="nc" id="L149">    Scanner deleteScanner = buildContext.newDeleteScanner(sourceDirectory);</span>
+<span class="nc bnc" id="L150" title="All 4 branches missed.">    return isI18nSourceFileChanged(scanner) || isI18nSourceFileChanged(deleteScanner);</span>
   }
 
   private boolean isI18nSourceFileChanged(Scanner scanner) {
-<span class="nc" id="L149">    scanner.setIncludes(SOURCE_FILES_INCLUDES);</span>
-<span class="nc" id="L150">    scanner.addDefaultExcludes();</span>
-<span class="nc" id="L151">    scanner.scan();</span>
-<span class="nc bnc" id="L152" title="All 2 branches missed.">    return scanner.getIncludedFiles().length &gt; 0;</span>
+<span class="nc" id="L154">    scanner.setIncludes(SOURCE_FILES_INCLUDES);</span>
+<span class="nc" id="L155">    scanner.addDefaultExcludes();</span>
+<span class="nc" id="L156">    scanner.scan();</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">    return scanner.getIncludedFiles().length &gt; 0;</span>
   }
 
   /**
@@ -157,28 +162,28 @@ import io.wcm.maven.plugins.i18n.readers.XmlI18nReader;
    * @throws IOException I/O exception
    */
   private void intialize(File sourceDirectory) throws IOException {
-<span class="fc" id="L160">    getLog().debug(&quot;Initializing i18n plugin...&quot;);</span>
+<span class="fc" id="L165">    getLog().debug(&quot;Initializing i18n plugin...&quot;);</span>
 
     // resource
-<span class="pc bpc" id="L163" title="1 of 2 branches missed.">    if (!getI18nSourceFiles(sourceDirectory).isEmpty()) {</span>
-<span class="fc" id="L164">      File myGeneratedResourcesFolder = getGeneratedResourcesFolder();</span>
-<span class="fc" id="L165">      addResource(myGeneratedResourcesFolder.getPath(), target);</span>
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">    if (!getI18nSourceFiles(sourceDirectory).isEmpty()) {</span>
+<span class="fc" id="L169">      File myGeneratedResourcesFolder = getGeneratedResourcesFolder();</span>
+<span class="fc" id="L170">      addResource(myGeneratedResourcesFolder.getPath(), target);</span>
     }
 
-<span class="fc" id="L168">  }</span>
+<span class="fc" id="L173">  }</span>
 
   private void addResource(String generatedResourcesDirectory, String targetPath) {
 
     // construct resource
-<span class="fc" id="L173">    Resource resource = new Resource();</span>
-<span class="fc" id="L174">    resource.setDirectory(generatedResourcesDirectory);</span>
-<span class="fc" id="L175">    resource.setTargetPath(targetPath);</span>
+<span class="fc" id="L178">    Resource resource = new Resource();</span>
+<span class="fc" id="L179">    resource.setDirectory(generatedResourcesDirectory);</span>
+<span class="fc" id="L180">    resource.setTargetPath(targetPath);</span>
 
     // add to build
-<span class="fc" id="L178">    Build build = this.project.getBuild();</span>
-<span class="fc" id="L179">    build.addResource(resource);</span>
-<span class="fc" id="L180">    getLog().debug(&quot;Added resource: &quot; + resource.getDirectory() + &quot; -&gt; &quot; + resource.getTargetPath());</span>
-<span class="fc" id="L181">  }</span>
+<span class="fc" id="L183">    Build build = this.project.getBuild();</span>
+<span class="fc" id="L184">    build.addResource(resource);</span>
+<span class="fc" id="L185">    getLog().debug(&quot;Added resource: &quot; + resource.getDirectory() + &quot; -&gt; &quot; + resource.getTargetPath());</span>
+<span class="fc" id="L186">  }</span>
 
   /**
    * Fetches i18n source files from source directory.
@@ -187,20 +192,20 @@ import io.wcm.maven.plugins.i18n.readers.XmlI18nReader;
    */
   private List&lt;File&gt; getI18nSourceFiles(File sourceDirectory) throws IOException {
 
-<span class="fc bfc" id="L190" title="All 2 branches covered.">    if (i18nSourceFiles == null) {</span>
-<span class="pc bpc" id="L191" title="1 of 2 branches missed.">      if (!sourceDirectory.isDirectory()) {</span>
-<span class="nc" id="L192">        i18nSourceFiles = Collections.emptyList();</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">    if (i18nSourceFiles == null) {</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">      if (!sourceDirectory.isDirectory()) {</span>
+<span class="nc" id="L197">        i18nSourceFiles = Collections.emptyList();</span>
       }
       else {
         // get list of source files
-<span class="fc" id="L196">        String includes = StringUtils.join(SOURCE_FILES_INCLUDES, &quot;,&quot;);</span>
-<span class="fc" id="L197">        String excludes = FileUtils.getDefaultExcludesAsString();</span>
+<span class="fc" id="L201">        String includes = StringUtils.join(SOURCE_FILES_INCLUDES, &quot;,&quot;);</span>
+<span class="fc" id="L202">        String excludes = FileUtils.getDefaultExcludesAsString();</span>
 
-<span class="fc" id="L199">        i18nSourceFiles = FileUtils.getFiles(sourceDirectory, includes, excludes);</span>
+<span class="fc" id="L204">        i18nSourceFiles = FileUtils.getFiles(sourceDirectory, includes, excludes);</span>
       }
     }
 
-<span class="fc" id="L203">    return i18nSourceFiles;</span>
+<span class="fc" id="L208">    return i18nSourceFiles;</span>
   }
 
   /**
@@ -208,11 +213,11 @@ import io.wcm.maven.plugins.i18n.readers.XmlI18nReader;
    * @return directory containing source i18n files.
    */
   private File getSourceDirectory() throws IOException {
-<span class="fc" id="L211">    File file = new File(source);</span>
-<span class="pc bpc" id="L212" title="1 of 2 branches missed.">    if (!file.isDirectory()) {</span>
-<span class="nc" id="L213">      getLog().debug(&quot;Could not find directory at '&quot; + source + &quot;'&quot;);</span>
+<span class="fc" id="L216">    File file = new File(source);</span>
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">    if (!file.isDirectory()) {</span>
+<span class="nc" id="L218">      getLog().debug(&quot;Could not find directory at '&quot; + source + &quot;'&quot;);</span>
     }
-<span class="fc" id="L215">    return file.getCanonicalFile();</span>
+<span class="fc" id="L220">    return file.getCanonicalFile();</span>
   }
 
   /**
@@ -222,25 +227,25 @@ import io.wcm.maven.plugins.i18n.readers.XmlI18nReader;
    * @param selectedOutputFormat Output format
    */
   private void writeTargetI18nFile(SlingI18nMap i18nMap, File targetfile, OutputFormat selectedOutputFormat) throws IOException {
-<span class="pc bpc" id="L225" title="1 of 5 branches missed.">    switch (selectedOutputFormat) {</span>
+<span class="pc bpc" id="L230" title="1 of 5 branches missed.">    switch (selectedOutputFormat) {</span>
       case XML:
-<span class="fc" id="L227">        FileUtils.fileWrite(targetfile, StandardCharsets.UTF_8.name(), i18nMap.getI18nXmlString());</span>
-<span class="fc" id="L228">        break;</span>
+<span class="fc" id="L232">        FileUtils.fileWrite(targetfile, StandardCharsets.UTF_8.name(), i18nMap.getI18nXmlString());</span>
+<span class="fc" id="L233">        break;</span>
       case PROPERTIES:
-<span class="fc" id="L230">        FileUtils.fileWrite(targetfile, StandardCharsets.ISO_8859_1.name(), i18nMap.getI18nPropertiesString());</span>
-<span class="fc" id="L231">        break;</span>
+<span class="fc" id="L235">        FileUtils.fileWrite(targetfile, StandardCharsets.ISO_8859_1.name(), i18nMap.getI18nPropertiesString());</span>
+<span class="fc" id="L236">        break;</span>
       case JSON:
-<span class="fc" id="L233">        FileUtils.fileWrite(targetfile, StandardCharsets.UTF_8.name(), i18nMap.getI18nJsonString());</span>
-<span class="fc" id="L234">        break;</span>
+<span class="fc" id="L238">        FileUtils.fileWrite(targetfile, StandardCharsets.UTF_8.name(), i18nMap.getI18nJsonString());</span>
+<span class="fc" id="L239">        break;</span>
       case JSON_PROPERTIES:
-<span class="fc" id="L236">        FileUtils.fileWrite(targetfile, StandardCharsets.UTF_8.name(), i18nMap.getI18nJsonPropertiesString());</span>
-<span class="fc" id="L237">        break;</span>
+<span class="fc" id="L241">        FileUtils.fileWrite(targetfile, StandardCharsets.UTF_8.name(), i18nMap.getI18nJsonPropertiesString());</span>
+<span class="fc" id="L242">        break;</span>
       default:
-<span class="nc" id="L239">        throw new IllegalArgumentException(&quot;Unsupported ouptut format: &quot; + selectedOutputFormat);</span>
+<span class="nc" id="L244">        throw new IllegalArgumentException(&quot;Unsupported ouptut format: &quot; + selectedOutputFormat);</span>
 
     }
-<span class="fc" id="L242">    buildContext.refresh(targetfile);</span>
-<span class="fc" id="L243">  }</span>
+<span class="fc" id="L247">    buildContext.refresh(targetfile);</span>
+<span class="fc" id="L248">  }</span>
 
   /**
    * Get the JSON file for source file.
@@ -250,37 +255,36 @@ import io.wcm.maven.plugins.i18n.readers.XmlI18nReader;
    */
   private File getTargetFile(File sourceFile, OutputFormat selectedOutputFormat) throws IOException {
 
-<span class="fc" id="L253">    File sourceDirectory = getSourceDirectory();</span>
-<span class="fc" id="L254">    String relativePath = StringUtils.substringAfter(sourceFile.getAbsolutePath(), sourceDirectory.getAbsolutePath());</span>
-<span class="fc" id="L255">    String relativeTargetPath = FileUtils.removeExtension(relativePath) + &quot;.&quot; + selectedOutputFormat.getFileExtension();</span>
+<span class="fc" id="L258">    File sourceDirectory = getSourceDirectory();</span>
+<span class="fc" id="L259">    String relativePath = StringUtils.substringAfter(sourceFile.getAbsolutePath(), sourceDirectory.getAbsolutePath());</span>
+<span class="fc" id="L260">    String relativeTargetPath = FileUtils.removeExtension(relativePath) + &quot;.&quot; + selectedOutputFormat.getFileExtension();</span>
 
-<span class="fc" id="L257">    File jsonFile = new File(getGeneratedResourcesFolder().getPath() + relativeTargetPath);</span>
+<span class="fc" id="L262">    File jsonFile = new File(getGeneratedResourcesFolder().getPath() + relativeTargetPath);</span>
 
-<span class="fc" id="L259">    jsonFile = jsonFile.getCanonicalFile();</span>
+<span class="fc" id="L264">    jsonFile = jsonFile.getCanonicalFile();</span>
 
-<span class="fc" id="L261">    File parentDirectory = jsonFile.getParentFile();</span>
-<span class="pc bpc" id="L262" title="1 of 2 branches missed.">    if (!parentDirectory.exists()) {</span>
-<span class="nc bnc" id="L263" title="All 2 branches missed.">      if (!parentDirectory.mkdirs()) {</span>
-<span class="nc" id="L264">        throw new IOException(&quot;Unable to create directory: &quot; + parentDirectory.getPath());</span>
+<span class="fc" id="L266">    File parentDirectory = jsonFile.getParentFile();</span>
+<span class="pc bpc" id="L267" title="1 of 2 branches missed.">    if (!parentDirectory.exists()) {</span>
+<span class="nc bnc" id="L268" title="All 2 branches missed.">      if (!parentDirectory.mkdirs()) {</span>
+<span class="nc" id="L269">        throw new IOException(&quot;Unable to create directory: &quot; + parentDirectory.getPath());</span>
       }
-<span class="nc" id="L266">      buildContext.refresh(parentDirectory);</span>
+<span class="nc" id="L271">      buildContext.refresh(parentDirectory);</span>
     }
 
-<span class="fc" id="L269">    return jsonFile;</span>
+<span class="fc" id="L274">    return jsonFile;</span>
   }
 
   private File getGeneratedResourcesFolder() throws IOException {
-<span class="fc bfc" id="L273" title="All 2 branches covered.">    if (generatedResourcesFolder == null) {</span>
-<span class="fc" id="L274">      String generatedResourcesFolderAbsolutePath = this.project.getBuild().getDirectory() + &quot;/&quot; + generatedResourcesFolderPath;</span>
-<span class="fc" id="L275">      generatedResourcesFolder = new File(generatedResourcesFolderAbsolutePath);</span>
-<span class="pc bpc" id="L276" title="1 of 2 branches missed.">      if (!generatedResourcesFolder.exists()) {</span>
-<span class="pc bpc" id="L277" title="1 of 2 branches missed.">        if (!generatedResourcesFolder.mkdirs()) {</span>
-<span class="nc" id="L278">          throw new IOException(&quot;Unable to create directory: &quot; + generatedResourcesFolder.getPath());</span>
+<span class="fc bfc" id="L278" title="All 2 branches covered.">    if (generatedResourcesFolder == null) {</span>
+<span class="fc" id="L279">      generatedResourcesFolder = new File(this.project.getBuild().getDirectory(), generatedResourcesFolderPath);</span>
+<span class="pc bpc" id="L280" title="1 of 2 branches missed.">      if (!generatedResourcesFolder.exists()) {</span>
+<span class="pc bpc" id="L281" title="1 of 2 branches missed.">        if (!generatedResourcesFolder.mkdirs()) {</span>
+<span class="nc" id="L282">          throw new IOException(&quot;Unable to create directory: &quot; + generatedResourcesFolder.getPath());</span>
         }
-<span class="fc" id="L280">        buildContext.refresh(generatedResourcesFolder);</span>
+<span class="fc" id="L284">        buildContext.refresh(generatedResourcesFolder);</span>
       }
     }
-<span class="fc" id="L283">    return generatedResourcesFolder;</span>
+<span class="fc" id="L287">    return generatedResourcesFolder;</span>
   }
 
   /**
@@ -289,17 +293,17 @@ import io.wcm.maven.plugins.i18n.readers.XmlI18nReader;
    * @return I18n reader
    */
   private I18nReader getI18nReader(File sourceFile) throws MojoFailureException {
-<span class="fc" id="L292">    String extension = FileUtils.getExtension(sourceFile.getName());</span>
-<span class="fc bfc" id="L293" title="All 2 branches covered.">    if (StringUtils.equalsIgnoreCase(extension, FILE_EXTENSION_PROPERTIES)) {</span>
-<span class="fc" id="L294">      return new PropertiesI18nReader();</span>
+<span class="fc" id="L296">    String extension = FileUtils.getExtension(sourceFile.getName());</span>
+<span class="fc bfc" id="L297" title="All 2 branches covered.">    if (StringUtils.equalsIgnoreCase(extension, FILE_EXTENSION_PROPERTIES)) {</span>
+<span class="fc" id="L298">      return new PropertiesI18nReader();</span>
     }
-<span class="fc bfc" id="L296" title="All 2 branches covered.">    if (StringUtils.equalsIgnoreCase(extension, FILE_EXTENSION_XML)) {</span>
-<span class="fc" id="L297">      return new XmlI18nReader();</span>
+<span class="fc bfc" id="L300" title="All 2 branches covered.">    if (StringUtils.equalsIgnoreCase(extension, FILE_EXTENSION_XML)) {</span>
+<span class="fc" id="L301">      return new XmlI18nReader();</span>
     }
-<span class="pc bpc" id="L299" title="1 of 2 branches missed.">    if (StringUtils.equalsIgnoreCase(extension, FILE_EXTENSION_JSON)) {</span>
-<span class="fc" id="L300">      return new JsonI18nReader();</span>
+<span class="pc bpc" id="L303" title="1 of 2 branches missed.">    if (StringUtils.equalsIgnoreCase(extension, FILE_EXTENSION_JSON)) {</span>
+<span class="fc" id="L304">      return new JsonI18nReader();</span>
     }
-<span class="nc" id="L302">    throw new MojoFailureException(&quot;Unsupported file extension '&quot; + extension + &quot;': &quot; + sourceFile.getAbsolutePath());</span>
+<span class="nc" id="L306">    throw new MojoFailureException(&quot;Unsupported file extension '&quot; + extension + &quot;': &quot; + sourceFile.getAbsolutePath());</span>
   }
 
 }
