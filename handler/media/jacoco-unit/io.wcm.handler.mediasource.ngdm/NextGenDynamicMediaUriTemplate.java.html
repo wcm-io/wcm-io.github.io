@@ -30,6 +30,7 @@ import io.wcm.handler.mediasource.ngdm.impl.MediaArgsDimension;
 import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaContext;
 import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaImageDeliveryParams;
 import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaImageUrlBuilder;
+import io.wcm.handler.mediasource.ngdm.impl.metadata.NextGenDynamicMediaMetadata;
 
 /**
  * {@link UriTemplate} implementation for Next Gen. Dynamic Media remote assets.
@@ -38,46 +39,63 @@ final class NextGenDynamicMediaUriTemplate implements UriTemplate {
 
   private final UriTemplateType type;
   private final String uriTemplate;
+  private final Dimension dimension;
 
   NextGenDynamicMediaUriTemplate(@NotNull NextGenDynamicMediaContext context,
-<span class="fc" id="L43">      @NotNull UriTemplateType type) {</span>
-<span class="fc" id="L44">    this.type = type;</span>
+<span class="fc" id="L45">      @NotNull UriTemplateType type) {</span>
+<span class="fc" id="L46">    this.type = type;</span>
 
-<span class="pc bpc" id="L46" title="1 of 2 branches missed.">    if (type == UriTemplateType.SCALE_HEIGHT) {</span>
-<span class="nc" id="L47">      throw new IllegalArgumentException(&quot;URI template type not supported: &quot; + type);</span>
+<span class="fc" id="L48">    NextGenDynamicMediaMetadata metadata = context.getMetadata();</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">    if (metadata != null) {</span>
+<span class="fc" id="L50">      dimension = metadata.getDimension();</span>
+    }
+    else {
+<span class="fc" id="L53">      dimension = null;</span>
     }
 
-<span class="fc" id="L50">    NextGenDynamicMediaImageDeliveryParams params = new NextGenDynamicMediaImageDeliveryParams()</span>
-<span class="fc" id="L51">        .widthPlaceholder(MediaNameConstants.URI_TEMPLATE_PLACEHOLDER_WIDTH)</span>
-<span class="fc" id="L52">        .rotation(context.getMedia().getRotation())</span>
-<span class="fc" id="L53">        .quality(ImageQualityPercentage.getAsInteger(context.getDefaultMediaArgs(), context.getMediaHandlerConfig()));</span>
+<span class="fc" id="L56">    NextGenDynamicMediaImageDeliveryParams params = new NextGenDynamicMediaImageDeliveryParams()</span>
+<span class="fc" id="L57">        .rotation(context.getMedia().getRotation())</span>
+<span class="fc" id="L58">        .quality(ImageQualityPercentage.getAsInteger(context.getDefaultMediaArgs(), context.getMediaHandlerConfig()));</span>
 
-<span class="fc" id="L55">    Dimension ratio = MediaArgsDimension.getRequestedRatioAsWidthHeight(context.getDefaultMediaArgs());</span>
-<span class="fc bfc" id="L56" title="All 2 branches covered.">    if (ratio != null) {</span>
-<span class="fc" id="L57">      params.cropSmartRatio(ratio);</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">    if (type == UriTemplateType.SCALE_HEIGHT) {</span>
+<span class="fc" id="L61">      params.heightPlaceholder(MediaNameConstants.URI_TEMPLATE_PLACEHOLDER_HEIGHT);</span>
+    }
+    else {
+<span class="fc" id="L64">      params.widthPlaceholder(MediaNameConstants.URI_TEMPLATE_PLACEHOLDER_WIDTH);</span>
     }
 
-<span class="fc" id="L60">    this.uriTemplate = new NextGenDynamicMediaImageUrlBuilder(context).build(params);</span>
-<span class="fc" id="L61">  }</span>
+<span class="fc" id="L67">    Dimension ratio = MediaArgsDimension.getRequestedRatioAsWidthHeight(context.getDefaultMediaArgs());</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">    if (ratio != null) {</span>
+<span class="nc" id="L69">      params.ratio(ratio);</span>
+    }
+
+<span class="fc" id="L72">    this.uriTemplate = new NextGenDynamicMediaImageUrlBuilder(context).build(params);</span>
+<span class="fc" id="L73">  }</span>
 
   @Override
   public @NotNull String getUriTemplate() {
-<span class="fc" id="L65">    return uriTemplate;</span>
+<span class="fc" id="L77">    return uriTemplate;</span>
   }
 
   @Override
   public @NotNull UriTemplateType getType() {
-<span class="fc" id="L70">    return type;</span>
+<span class="fc" id="L82">    return type;</span>
   }
 
   @Override
   public long getMaxWidth() {
-<span class="fc" id="L75">    return 0; // unknown</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">    if (dimension != null) {</span>
+<span class="fc" id="L88">      return dimension.getWidth();</span>
+    }
+<span class="fc" id="L90">    return 0; // unknown</span>
   }
 
   @Override
   public long getMaxHeight() {
-<span class="fc" id="L80">    return 0; // unknown</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (dimension != null) {</span>
+<span class="fc" id="L96">      return dimension.getHeight();</span>
+    }
+<span class="fc" id="L98">    return 0; // unknown</span>
   }
 
 }
