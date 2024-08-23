@@ -35,13 +35,13 @@ import com.day.cq.dam.scene7.api.constants.Scene7Constants;
 
 import io.wcm.handler.media.Dimension;
 import io.wcm.handler.media.MediaArgs;
+import io.wcm.handler.media.impl.ImageQualityPercentage;
 import io.wcm.handler.media.spi.MediaHandlerConfig;
 import io.wcm.handler.mediasource.dam.impl.dynamicmedia.DynamicMediaSupportService;
 import io.wcm.handler.mediasource.dam.impl.dynamicmedia.ImageProfile;
 import io.wcm.handler.mediasource.dam.impl.dynamicmedia.NamedDimension;
 import io.wcm.handler.mediasource.dam.impl.weboptimized.WebOptimizedImageDeliveryParams;
 import io.wcm.handler.mediasource.dam.impl.weboptimized.WebOptimizedImageDeliveryService;
-import io.wcm.handler.mediasource.ngdm.impl.ImageQualityPercentage;
 
 /**
  * Context objects require in DAM support implementation.
@@ -164,13 +164,21 @@ public final class DamContext implements Adaptable {
   }
 
   /**
+   * @return Whether to control image quality for lossy output formats for each media request via 'qlt' URL parameter
+   *         (instead of relying on default setting within Dynamic Media).
+   */
+  public boolean isDynamicMediaSetImageQuality() {
+<span class="fc" id="L171">    return dynamicMediaSupportService.isSetImageQuality();</span>
+  }
+
+  /**
    * @return Dynamic media reply image size limit
    */
   public @NotNull Dimension getDynamicMediaImageSizeLimit() {
-<span class="fc bfc" id="L170" title="All 2 branches covered.">    if (dynamicMediaImageSizeLimit == null) {</span>
-<span class="fc" id="L171">      dynamicMediaImageSizeLimit = dynamicMediaSupportService.getImageSizeLimit();</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">    if (dynamicMediaImageSizeLimit == null) {</span>
+<span class="fc" id="L179">      dynamicMediaImageSizeLimit = dynamicMediaSupportService.getImageSizeLimit();</span>
     }
-<span class="fc" id="L173">    return dynamicMediaImageSizeLimit;</span>
+<span class="fc" id="L181">    return dynamicMediaImageSizeLimit;</span>
   }
 
   /**
@@ -178,17 +186,17 @@ public final class DamContext implements Adaptable {
    * @return Image profile or null if none associated/found
    */
   public @Nullable ImageProfile getImageProfile() {
-<span class="fc bfc" id="L181" title="All 2 branches covered.">    if (imageProfile == null) {</span>
-<span class="fc" id="L182">      imageProfile = dynamicMediaSupportService.getImageProfileForAsset(asset);</span>
-<span class="fc bfc" id="L183" title="All 2 branches covered.">      if (imageProfile == null) {</span>
-<span class="fc" id="L184">        imageProfile = NO_IMAGE_PROFILE;</span>
+<span class="fc bfc" id="L189" title="All 2 branches covered.">    if (imageProfile == null) {</span>
+<span class="fc" id="L190">      imageProfile = dynamicMediaSupportService.getImageProfileForAsset(asset);</span>
+<span class="fc bfc" id="L191" title="All 2 branches covered.">      if (imageProfile == null) {</span>
+<span class="fc" id="L192">        imageProfile = NO_IMAGE_PROFILE;</span>
       }
     }
-<span class="fc bfc" id="L187" title="All 2 branches covered.">    if (imageProfile == NO_IMAGE_PROFILE) {</span>
-<span class="fc" id="L188">      return null;</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">    if (imageProfile == NO_IMAGE_PROFILE) {</span>
+<span class="fc" id="L196">      return null;</span>
     }
     else {
-<span class="fc" id="L191">      return imageProfile;</span>
+<span class="fc" id="L199">      return imageProfile;</span>
     }
   }
 
@@ -196,7 +204,7 @@ public final class DamContext implements Adaptable {
    * @return Whether web-optimized image delivery is enabled on this AEM instance
    */
   public boolean isWebOptimizedImageDeliveryEnabled() {
-<span class="fc" id="L199">    return webOptimizedImageDeliveryService.isEnabled();</span>
+<span class="fc" id="L207">    return webOptimizedImageDeliveryService.isEnabled();</span>
   }
 
   /**
@@ -207,29 +215,29 @@ public final class DamContext implements Adaptable {
   public @Nullable String getWebOptimizedImageDeliveryUrl(@NotNull WebOptimizedImageDeliveryParams params) {
 
     // set image quality.
-<span class="fc" id="L210">    params.quality(ImageQualityPercentage.getAsInteger(this.mediaArgs, this.mediaHandlerConfig));</span>
+<span class="fc" id="L218">    params.quality(ImageQualityPercentage.getAsInteger(this.mediaArgs, this.mediaHandlerConfig));</span>
 
-<span class="fc" id="L212">    return webOptimizedImageDeliveryService.getDeliveryUrl(asset, params);</span>
+<span class="fc" id="L220">    return webOptimizedImageDeliveryService.getDeliveryUrl(asset, params);</span>
   }
 
   /**
    * @return Resource resolver from current context
    */
   public @NotNull ResourceResolver getResourceResolver() {
-<span class="pc bpc" id="L219" title="1 of 2 branches missed.">    if (adaptable instanceof Resource) {</span>
-<span class="nc" id="L220">      return ((Resource)adaptable).getResourceResolver();</span>
+<span class="pc bpc" id="L227" title="1 of 2 branches missed.">    if (adaptable instanceof Resource) {</span>
+<span class="nc" id="L228">      return ((Resource)adaptable).getResourceResolver();</span>
     }
-<span class="pc bpc" id="L222" title="1 of 2 branches missed.">    else if (adaptable instanceof SlingHttpServletRequest) {</span>
-<span class="fc" id="L223">      return ((SlingHttpServletRequest)adaptable).getResourceResolver();</span>
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">    else if (adaptable instanceof SlingHttpServletRequest) {</span>
+<span class="fc" id="L231">      return ((SlingHttpServletRequest)adaptable).getResourceResolver();</span>
     }
     else {
-<span class="nc" id="L226">      throw new IllegalStateException(&quot;Adaptable is neither Resoucre nor SlingHttpServletRequest&quot;);</span>
+<span class="nc" id="L234">      throw new IllegalStateException(&quot;Adaptable is neither Resoucre nor SlingHttpServletRequest&quot;);</span>
     }
   }
 
   @Override
   public &lt;AdapterType&gt; @Nullable AdapterType adaptTo(@NotNull Class&lt;AdapterType&gt; type) {
-<span class="fc" id="L232">    return adaptable.adaptTo(type);</span>
+<span class="fc" id="L240">    return adaptable.adaptTo(type);</span>
   }
 
 }
