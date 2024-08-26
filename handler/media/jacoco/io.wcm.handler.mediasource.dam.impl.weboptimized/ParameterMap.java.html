@@ -28,10 +28,14 @@ import java.util.Set;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.day.cq.dam.api.Asset;
+import com.day.cq.dam.api.Rendition;
 
 import io.wcm.handler.media.CropDimension;
+import io.wcm.handler.media.Dimension;
+import io.wcm.handler.mediasource.dam.AssetRendition;
 import io.wcm.wcm.commons.contenttype.FileExtension;
 
 final class ParameterMap {
@@ -46,7 +50,7 @@ final class ParameterMap {
   static final String PARAM_ROTATE = &quot;r&quot;;
   static final String PARAM_QUALITY = &quot;quality&quot;;
 
-<span class="fc" id="L49">  private static final Set&lt;String&gt; SUPPORTED_FORMATS = Set.of(</span>
+<span class="fc" id="L53">  private static final Set&lt;String&gt; SUPPORTED_FORMATS = Set.of(</span>
       FileExtension.JPEG,
       FileExtension.PNG,
       FileExtension.GIF,
@@ -57,39 +61,58 @@ final class ParameterMap {
   }
 
   @NotNull
-  static Map&lt;String, Object&gt; build(@NotNull Asset asset, @NotNull WebOptimizedImageDeliveryParams params) {
-<span class="fc" id="L61">    String path = asset.getPath();</span>
-<span class="fc" id="L62">    String seoName = FilenameUtils.getBaseName(asset.getName());</span>
-<span class="fc" id="L63">    String format = StringUtils.toRootLowerCase(FilenameUtils.getExtension(asset.getName()));</span>
+  static Map&lt;String, Object&gt; build(@NotNull Asset asset, @NotNull WebOptimizedImageDeliveryParams params,
+      @NotNull WebOptimizedImageDeliveryCropOption cropOption) {
+<span class="fc" id="L66">    String path = asset.getPath();</span>
+<span class="fc" id="L67">    String seoName = FilenameUtils.getBaseName(asset.getName());</span>
+<span class="fc" id="L68">    String format = StringUtils.toRootLowerCase(FilenameUtils.getExtension(asset.getName()));</span>
 
-<span class="fc bfc" id="L65" title="All 2 branches covered.">    if (!SUPPORTED_FORMATS.contains(format)) {</span>
-<span class="fc" id="L66">      format = FileExtension.JPEG;</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (!SUPPORTED_FORMATS.contains(format)) {</span>
+<span class="fc" id="L71">      format = FileExtension.JPEG;</span>
     }
 
-<span class="fc" id="L69">    Long width = params.getWidth();</span>
-<span class="fc" id="L70">    CropDimension cropDimension = params.getCropDimension();</span>
-<span class="fc" id="L71">    Integer rotation = params.getRotation();</span>
-<span class="fc" id="L72">    Integer quality = params.getQuality();</span>
+<span class="fc" id="L74">    Long width = params.getWidth();</span>
+<span class="fc" id="L75">    CropDimension cropDimension = params.getCropDimension();</span>
+<span class="fc" id="L76">    Integer rotation = params.getRotation();</span>
+<span class="fc" id="L77">    Integer quality = params.getQuality();</span>
 
     // please note: AssetDelivery API expects all values as strings (although the expected map supports other types)
-<span class="fc" id="L75">    Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L76">    map.put(PARAM_PATH, path);</span>
-<span class="fc" id="L77">    map.put(PARAM_SEO_NAME, sanitizeSeoName(seoName));</span>
-<span class="fc" id="L78">    map.put(PARAM_FORMAT, format);</span>
-<span class="fc" id="L79">    map.put(PARAM_PREFER_WEBP, &quot;true&quot;);</span>
-<span class="fc bfc" id="L80" title="All 2 branches covered.">    if (width != null) {</span>
-<span class="fc" id="L81">      map.put(PARAM_WIDTH, width.toString());</span>
+<span class="fc" id="L80">    Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L81">    map.put(PARAM_PATH, path);</span>
+<span class="fc" id="L82">    map.put(PARAM_SEO_NAME, sanitizeSeoName(seoName));</span>
+<span class="fc" id="L83">    map.put(PARAM_FORMAT, format);</span>
+<span class="fc" id="L84">    map.put(PARAM_PREFER_WEBP, &quot;true&quot;);</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">    if (width != null) {</span>
+<span class="fc" id="L86">      map.put(PARAM_WIDTH, width.toString());</span>
     }
-<span class="fc bfc" id="L83" title="All 2 branches covered.">    if (cropDimension != null) {</span>
-<span class="fc" id="L84">      map.put(PARAM_CROP, cropDimension.getCropStringWidthHeight());</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (cropDimension != null) {</span>
+<span class="fc" id="L89">      map.put(PARAM_CROP, createCroppingString(asset, cropDimension, cropOption));</span>
     }
-<span class="pc bpc" id="L86" title="1 of 4 branches missed.">    if (rotation != null &amp;&amp; rotation != 0) {</span>
-<span class="fc" id="L87">      map.put(PARAM_ROTATE, rotation.toString());</span>
+<span class="pc bpc" id="L91" title="1 of 4 branches missed.">    if (rotation != null &amp;&amp; rotation != 0) {</span>
+<span class="fc" id="L92">      map.put(PARAM_ROTATE, rotation.toString());</span>
     }
-<span class="fc bfc" id="L89" title="All 2 branches covered.">    if (quality != null) {</span>
-<span class="fc" id="L90">      map.put(PARAM_QUALITY, quality.toString());</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (quality != null) {</span>
+<span class="fc" id="L95">      map.put(PARAM_QUALITY, quality.toString());</span>
     }
-<span class="fc" id="L92">    return map;</span>
+<span class="fc" id="L97">    return map;</span>
+  }
+
+  private static @NotNull String createCroppingString(@NotNull Asset asset, @NotNull CropDimension cropDimension,
+      @NotNull WebOptimizedImageDeliveryCropOption cropOption) {
+<span class="fc bfc" id="L102" title="All 2 branches covered.">    if (cropOption == WebOptimizedImageDeliveryCropOption.RELATIVE_PARAMETERS) {</span>
+<span class="fc" id="L103">      Dimension imageDimension = loadImageDimension(asset);</span>
+<span class="pc bpc" id="L104" title="3 of 6 branches missed.">      if (imageDimension != null &amp;&amp; imageDimension.getWidth() &gt; 0 &amp;&amp; imageDimension.getHeight() &gt; 0) {</span>
+<span class="fc" id="L105">        return RelativeCroppingString.createFromCropDimension(cropDimension, imageDimension);</span>
+      }
+    }
+<span class="fc" id="L108">    return cropDimension.getCropStringWidthHeight();</span>
+  }
+
+  private static @Nullable Dimension loadImageDimension(@NotNull Asset asset) {
+<span class="fc" id="L112">    Rendition originalRendition = asset.getOriginal();</span>
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">      return originalRendition == null</span>
+<span class="nc" id="L114">            ? null</span>
+<span class="fc" id="L115">            : AssetRendition.getDimension(originalRendition);</span>
   }
 
 }
