@@ -22,6 +22,7 @@ package io.wcm.handler.mediasource.dam;
 import static com.day.cq.commons.jcr.JcrConstants.JCR_CONTENT;
 import static com.day.cq.dam.api.DamConstants.EXIF_PIXELXDIMENSION;
 import static com.day.cq.dam.api.DamConstants.EXIF_PIXELYDIMENSION;
+import static com.day.cq.dam.api.DamConstants.METADATA_FOLDER;
 import static com.day.cq.dam.api.DamConstants.ORIGINAL_FILE;
 import static com.day.cq.dam.api.DamConstants.TIFF_IMAGELENGTH;
 import static com.day.cq.dam.api.DamConstants.TIFF_IMAGEWIDTH;
@@ -57,7 +58,7 @@ import io.wcm.sling.commons.adapter.AdaptTo;
 @ProviderType
 public final class AssetRendition {
 
-<span class="fc" id="L60">  private static final Logger log = LoggerFactory.getLogger(AssetRendition.class);</span>
+<span class="fc" id="L61">  private static final Logger log = LoggerFactory.getLogger(AssetRendition.class);</span>
 
   private AssetRendition() {
     // static methods only
@@ -75,7 +76,7 @@ public final class AssetRendition {
    * @return Dimension or null if dimension could not be detected, not even in fallback mode
    */
   public static @Nullable Dimension getDimension(@NotNull Rendition rendition) {
-<span class="fc" id="L78">    return getDimension(rendition, false);</span>
+<span class="fc" id="L79">    return getDimension(rendition, false);</span>
   }
 
   /**
@@ -94,31 +95,36 @@ public final class AssetRendition {
   public static @Nullable Dimension getDimension(@NotNull Rendition rendition,
       boolean suppressLogWarningNoRenditionsMetadata) {
 
-<span class="fc" id="L97">    boolean isOriginal = isOriginal(rendition);</span>
-<span class="fc" id="L98">    String fileExtension = FilenameUtils.getExtension(getFilename(rendition));</span>
+<span class="fc" id="L98">    boolean isOriginal = isOriginal(rendition);</span>
+<span class="fc" id="L99">    String fileExtension = FilenameUtils.getExtension(getFilename(rendition));</span>
 
     // get image width/height
-<span class="fc" id="L101">    Dimension dimension = null;</span>
-<span class="fc bfc" id="L102" title="All 2 branches covered.">    if (isOriginal) {</span>
+<span class="fc" id="L102">    Dimension dimension = null;</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">    if (isOriginal) {</span>
       // get width/height from metadata for original renditions
-<span class="fc" id="L104">      dimension = getDimensionFromOriginal(rendition);</span>
+<span class="fc" id="L105">      dimension = getDimensionFromOriginal(rendition);</span>
     }
 
     // dimensions for non-original renditions only supported for image binaries
-<span class="fc bfc" id="L108" title="All 2 branches covered.">    if (MediaFileType.isImage(fileExtension)) {</span>
-<span class="fc bfc" id="L109" title="All 2 branches covered.">      if (dimension == null) {</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (MediaFileType.isImage(fileExtension)) {</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">      if (dimension == null) {</span>
+        // check if rendition metadata is present in &lt;rendition&gt;/jcr:content/metadata provided by AEMaaCS asset compute
+<span class="fc" id="L112">        dimension = getDimensionFromAemRenditionMetadata(rendition);</span>
+      }
+
+<span class="fc bfc" id="L115" title="All 2 branches covered.">      if (dimension == null) {</span>
         // otherwise get from rendition metadata written by {@link DamRenditionMetadataService}
-<span class="fc" id="L111">        dimension = getDimensionFromRenditionMetadata(rendition);</span>
+<span class="fc" id="L117">        dimension = getDimensionFromMediaHandlerRenditionMetadata(rendition);</span>
       }
 
       // fallback: if width/height could not be read from either asset or rendition metadata load the image
       // into memory and get width/height from there - but log an warning because this is inefficient
-<span class="fc bfc" id="L116" title="All 2 branches covered.">      if (dimension == null) {</span>
-<span class="fc" id="L117">        dimension = getDimensionFromImageBinary(rendition, suppressLogWarningNoRenditionsMetadata);</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">      if (dimension == null) {</span>
+<span class="fc" id="L123">        dimension = getDimensionFromImageBinary(rendition, suppressLogWarningNoRenditionsMetadata);</span>
       }
     }
 
-<span class="fc" id="L121">    return dimension;</span>
+<span class="fc" id="L127">    return dimension;</span>
   }
 
   /**
@@ -127,21 +133,21 @@ public final class AssetRendition {
    * @return Dimension or null
    */
   private static @Nullable Dimension getDimensionFromOriginal(@NotNull Rendition rendition) {
-<span class="fc" id="L130">    Asset asset = rendition.getAsset();</span>
+<span class="fc" id="L136">    Asset asset = rendition.getAsset();</span>
     // asset may have stored dimension in different property names
-<span class="fc" id="L132">    long width = getAssetMetadataValueAsLong(asset, TIFF_IMAGEWIDTH, EXIF_PIXELXDIMENSION);</span>
-<span class="fc" id="L133">    long height = getAssetMetadataValueAsLong(asset, TIFF_IMAGELENGTH, EXIF_PIXELYDIMENSION);</span>
-<span class="fc" id="L134">    return toDimension(width, height);</span>
+<span class="fc" id="L138">    long width = getAssetMetadataValueAsLong(asset, TIFF_IMAGEWIDTH, EXIF_PIXELXDIMENSION);</span>
+<span class="fc" id="L139">    long height = getAssetMetadataValueAsLong(asset, TIFF_IMAGELENGTH, EXIF_PIXELYDIMENSION);</span>
+<span class="fc" id="L140">    return toValidDimension(width, height);</span>
   }
 
   private static long getAssetMetadataValueAsLong(Asset asset, String... propertyNames) {
-<span class="fc bfc" id="L138" title="All 2 branches covered.">    for (String propertyName : propertyNames) {</span>
-<span class="fc" id="L139">      long value = NumberUtils.toLong(StringUtils.defaultString(asset.getMetadataValueFromJcr(propertyName), &quot;0&quot;));</span>
-<span class="fc bfc" id="L140" title="All 2 branches covered.">      if (value &gt; 0L) {</span>
-<span class="fc" id="L141">        return value;</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">    for (String propertyName : propertyNames) {</span>
+<span class="fc" id="L145">      long value = NumberUtils.toLong(StringUtils.defaultString(asset.getMetadataValueFromJcr(propertyName), &quot;0&quot;));</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">      if (value &gt; 0L) {</span>
+<span class="fc" id="L147">        return value;</span>
       }
     }
-<span class="fc" id="L144">    return 0L;</span>
+<span class="fc" id="L150">    return 0L;</span>
   }
 
   /**
@@ -150,17 +156,35 @@ public final class AssetRendition {
    * @return Dimension or null
    */
   @SuppressWarnings(&quot;java:S1075&quot;) // not a file path
-  private static @Nullable Dimension getDimensionFromRenditionMetadata(@NotNull Rendition rendition) {
-<span class="fc" id="L154">    Asset asset = rendition.getAsset();</span>
-<span class="fc" id="L155">    String metadataPath = JCR_CONTENT + &quot;/&quot; + NN_RENDITIONS_METADATA + &quot;/&quot; + rendition.getName();</span>
-<span class="fc" id="L156">    Resource metadataResource = AdaptTo.notNull(asset, Resource.class).getChild(metadataPath);</span>
-<span class="fc bfc" id="L157" title="All 2 branches covered.">    if (metadataResource != null) {</span>
-<span class="fc" id="L158">      ValueMap props = metadataResource.getValueMap();</span>
-<span class="fc" id="L159">      long width = props.get(PN_IMAGE_WIDTH, 0L);</span>
-<span class="fc" id="L160">      long height = props.get(PN_IMAGE_HEIGHT, 0L);</span>
-<span class="fc" id="L161">      return toDimension(width, height);</span>
+  private static @Nullable Dimension getDimensionFromMediaHandlerRenditionMetadata(@NotNull Rendition rendition) {
+<span class="fc" id="L160">    Asset asset = rendition.getAsset();</span>
+<span class="fc" id="L161">    String metadataPath = JCR_CONTENT + &quot;/&quot; + NN_RENDITIONS_METADATA + &quot;/&quot; + rendition.getName();</span>
+<span class="fc" id="L162">    Resource metadataResource = AdaptTo.notNull(asset, Resource.class).getChild(metadataPath);</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">    if (metadataResource != null) {</span>
+<span class="fc" id="L164">      ValueMap props = metadataResource.getValueMap();</span>
+<span class="fc" id="L165">      long width = props.get(PN_IMAGE_WIDTH, 0L);</span>
+<span class="fc" id="L166">      long height = props.get(PN_IMAGE_HEIGHT, 0L);</span>
+<span class="fc" id="L167">      return toValidDimension(width, height);</span>
     }
-<span class="fc" id="L163">    return null;</span>
+<span class="fc" id="L169">    return null;</span>
+  }
+
+  /**
+   * Asset Compute from AEMaaCS writes rendition metadata including width/height to jcr:content/metadata of the
+   * rendition resource - try to read it from there (it may be missing for not fully processed assets, or in local
+   * AEMaaCS SDK or AEM 6.5 instances).
+   * @param rendition Rendition
+   * @return Dimension or null
+   */
+  private static @Nullable Dimension getDimensionFromAemRenditionMetadata(@NotNull Rendition rendition) {
+<span class="fc" id="L180">    Resource metadataResource = rendition.getChild(JCR_CONTENT + &quot;/&quot; + METADATA_FOLDER);</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">    if (metadataResource != null) {</span>
+<span class="fc" id="L182">      ValueMap props = metadataResource.getValueMap();</span>
+<span class="fc" id="L183">      long width = props.get(TIFF_IMAGEWIDTH, 0L);</span>
+<span class="fc" id="L184">      long height = props.get(TIFF_IMAGELENGTH, 0L);</span>
+<span class="fc" id="L185">      return toValidDimension(width, height);</span>
+    }
+<span class="fc" id="L187">    return null;</span>
   }
 
   /**
@@ -173,41 +197,41 @@ public final class AssetRendition {
   @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
   private static @Nullable Dimension getDimensionFromImageBinary(@NotNull Rendition rendition,
       boolean suppressLogWarningNoRenditionsMetadata) {
-<span class="fc" id="L176">    try (InputStream is = rendition.getStream()) {</span>
-<span class="fc bfc" id="L177" title="All 2 branches covered.">      if (is != null) {</span>
-<span class="fc" id="L178">        Layer layer = new Layer(is);</span>
-<span class="fc" id="L179">        long width = layer.getWidth();</span>
-<span class="fc" id="L180">        long height = layer.getHeight();</span>
-<span class="fc" id="L181">        Dimension dimension = toDimension(width, height);</span>
-<span class="fc bfc" id="L182" title="All 2 branches covered.">        if (!suppressLogWarningNoRenditionsMetadata) {</span>
-<span class="fc" id="L183">          log.warn(&quot;Unable to detect rendition metadata for {}, &quot;</span>
+<span class="fc" id="L200">    try (InputStream is = rendition.getStream()) {</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">      if (is != null) {</span>
+<span class="fc" id="L202">        Layer layer = new Layer(is);</span>
+<span class="fc" id="L203">        long width = layer.getWidth();</span>
+<span class="fc" id="L204">        long height = layer.getHeight();</span>
+<span class="fc" id="L205">        Dimension dimension = toValidDimension(width, height);</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">        if (!suppressLogWarningNoRenditionsMetadata) {</span>
+<span class="fc" id="L207">          log.warn(&quot;Unable to detect rendition metadata for {}, &quot;</span>
               + &quot;fallback to inefficient detection by loading image into in memory (detected dimension={}). &quot;
               + &quot;Please check if the service user for the bundle 'io.wcm.handler.media' is configured properly.&quot;,
-<span class="fc" id="L186">              rendition.getPath(), dimension);</span>
+<span class="fc" id="L210">              rendition.getPath(), dimension);</span>
         }
-<span class="fc" id="L188">        return dimension;</span>
+<span class="fc" id="L212">        return dimension;</span>
       }
       else {
-<span class="fc" id="L191">        log.warn(&quot;Unable to get binary stream for rendition {}&quot;, rendition.getPath());</span>
+<span class="fc" id="L215">        log.warn(&quot;Unable to get binary stream for rendition {}&quot;, rendition.getPath());</span>
       }
-<span class="pc bpc" id="L193" title="1 of 2 branches missed.">    }</span>
-<span class="nc" id="L194">    catch (IOException ex) {</span>
-<span class="nc" id="L195">      log.warn(&quot;Unable to read binary stream to layer for rendition {}&quot;, rendition.getPath(), ex);</span>
-<span class="fc" id="L196">    }</span>
-<span class="fc" id="L197">    return null;</span>
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">    }</span>
+<span class="nc" id="L218">    catch (IOException ex) {</span>
+<span class="nc" id="L219">      log.warn(&quot;Unable to read binary stream to layer for rendition {}&quot;, rendition.getPath(), ex);</span>
+<span class="fc" id="L220">    }</span>
+<span class="fc" id="L221">    return null;</span>
   }
 
   /**
-   * Convert width/height to dimension
+   * Convert width/height to dimension.
    * @param width Width
    * @param height Height
    * @return Dimension or null if width or height are not valid
    */
-  private static @Nullable Dimension toDimension(long width, long height) {
-<span class="pc bpc" id="L207" title="1 of 4 branches missed.">    if (width &gt; 0L &amp;&amp; height &gt; 0L) {</span>
-<span class="fc" id="L208">      return new Dimension(width, height);</span>
+  private static @Nullable Dimension toValidDimension(long width, long height) {
+<span class="pc bpc" id="L231" title="1 of 4 branches missed.">    if (width &gt; 0L &amp;&amp; height &gt; 0L) {</span>
+<span class="fc" id="L232">      return new Dimension(width, height);</span>
     }
-<span class="fc" id="L210">    return null;</span>
+<span class="fc" id="L234">    return null;</span>
   }
 
   /**
@@ -216,7 +240,7 @@ public final class AssetRendition {
    * @return true if rendition is the original
    */
   public static boolean isOriginal(@NotNull Rendition rendition) {
-<span class="fc" id="L219">    return StringUtils.equals(rendition.getName(), ORIGINAL_FILE);</span>
+<span class="fc" id="L243">    return StringUtils.equals(rendition.getName(), ORIGINAL_FILE);</span>
   }
 
   /**
@@ -226,7 +250,7 @@ public final class AssetRendition {
    * @return true if rendition is a thumbnail rendition
    */
   public static boolean isThumbnailRendition(@NotNull Rendition rendition) {
-<span class="fc" id="L229">    return AemRenditionType.THUMBNAIL_RENDITION.matches(rendition);</span>
+<span class="fc" id="L253">    return AemRenditionType.THUMBNAIL_RENDITION.matches(rendition);</span>
   }
 
   /**
@@ -236,7 +260,7 @@ public final class AssetRendition {
    * @return true if rendition is a web rendition
    */
   public static boolean isWebRendition(@NotNull Rendition rendition) {
-<span class="fc" id="L239">    return AemRenditionType.WEB_RENDITION.matches(rendition);</span>
+<span class="fc" id="L263">    return AemRenditionType.WEB_RENDITION.matches(rendition);</span>
   }
 
   /**
@@ -245,12 +269,12 @@ public final class AssetRendition {
    * @return File extension or null if it could not be detected
    */
   public static String getFilename(@NotNull Rendition rendition) {
-<span class="fc" id="L248">    boolean isOriginal = isOriginal(rendition);</span>
-<span class="fc bfc" id="L249" title="All 2 branches covered.">    if (isOriginal) {</span>
-<span class="fc" id="L250">      return rendition.getAsset().getName();</span>
+<span class="fc" id="L272">    boolean isOriginal = isOriginal(rendition);</span>
+<span class="fc bfc" id="L273" title="All 2 branches covered.">    if (isOriginal) {</span>
+<span class="fc" id="L274">      return rendition.getAsset().getName();</span>
     }
     else {
-<span class="fc" id="L253">      return rendition.getName();</span>
+<span class="fc" id="L277">      return rendition.getName();</span>
     }
   }
 
