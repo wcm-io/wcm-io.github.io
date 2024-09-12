@@ -65,6 +65,8 @@ import com.adobe.granite.ui.clientlibs.LibraryType;
   @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
   private String rel;
   @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private Object allowMultipleIncludes;
+  @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
   private Object customAttributes;
 
   private String include;
@@ -72,17 +74,17 @@ import com.adobe.granite.ui.clientlibs.LibraryType;
   @PostConstruct
   private void activate() {
     // build include string
-<span class="fc" id="L75">    String[] categoryArray = IncludeUtil.toArray(categories);</span>
-<span class="fc bfc" id="L76" title="All 2 branches covered.">    if (categoryArray != null) {</span>
-<span class="fc" id="L77">      List&lt;String&gt; libraryPaths = IncludeUtil.getLibraryUrls(htmlLibraryManager, resourceResolver,</span>
+<span class="fc" id="L77">    String[] categoryArray = IncludeUtil.toArray(categories);</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">    if (categoryArray != null) {</span>
+<span class="fc" id="L79">      List&lt;String&gt; libraryPaths = IncludeUtil.getLibraryUrls(htmlLibraryManager, resourceResolver,</span>
           categoryArray, LibraryType.CSS);
-<span class="fc bfc" id="L79" title="All 2 branches covered.">      if (!libraryPaths.isEmpty()) {</span>
-<span class="fc" id="L80">        Map&lt;String, String&gt; attrs = validateAndBuildAttributes();</span>
-<span class="fc" id="L81">        Map&lt;String, String&gt; customAttrs = IncludeUtil.getCustomAttributes(customAttributes);</span>
-<span class="fc" id="L82">        this.include = buildIncludeString(libraryPaths, attrs, customAttrs);</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">      if (!libraryPaths.isEmpty()) {</span>
+<span class="fc" id="L82">        Map&lt;String, String&gt; attrs = validateAndBuildAttributes();</span>
+<span class="fc" id="L83">        Map&lt;String, String&gt; customAttrs = IncludeUtil.getCustomAttributes(customAttributes);</span>
+<span class="fc" id="L84">        this.include = buildIncludeString(libraryPaths, attrs, customAttrs);</span>
       }
     }
-<span class="fc" id="L85">  }</span>
+<span class="fc" id="L87">  }</span>
 
   /**
    * Validate attribute values from HTL script, escape them properly and build a map with all attributes
@@ -90,16 +92,16 @@ import com.adobe.granite.ui.clientlibs.LibraryType;
    * @return Map with attribute for script tag
    */
   private @NotNull Map&lt;String, String&gt; validateAndBuildAttributes() {
-<span class="fc" id="L93">    Map&lt;String, String&gt; attrs = new HashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L94" title="All 4 branches covered.">    if (rel != null &amp;&amp; REL_ALLOWED_VALUES.contains(rel)) {</span>
-<span class="fc" id="L95">      attrs.put(&quot;rel&quot;, rel);</span>
+<span class="fc" id="L95">    Map&lt;String, String&gt; attrs = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L96" title="All 4 branches covered.">    if (rel != null &amp;&amp; REL_ALLOWED_VALUES.contains(rel)) {</span>
+<span class="fc" id="L97">      attrs.put(&quot;rel&quot;, rel);</span>
     }
     else {
       // no specific rel defined, provide default rel/type attrs for CSS
-<span class="fc" id="L99">      attrs.put(&quot;rel&quot;, &quot;stylesheet&quot;);</span>
-<span class="fc" id="L100">      attrs.put(&quot;type&quot;, &quot;text/css&quot;);</span>
+<span class="fc" id="L101">      attrs.put(&quot;rel&quot;, &quot;stylesheet&quot;);</span>
+<span class="fc" id="L102">      attrs.put(&quot;type&quot;, &quot;text/css&quot;);</span>
     }
-<span class="fc" id="L102">    return attrs;</span>
+<span class="fc" id="L104">    return attrs;</span>
   }
 
   /**
@@ -111,22 +113,21 @@ import com.adobe.granite.ui.clientlibs.LibraryType;
    */
   private @NotNull String buildIncludeString(@NotNull List&lt;String&gt; libraryPaths, @NotNull Map&lt;String, String&gt; attrs,
       @NotNull Map&lt;String, String&gt; customAttrs) {
-<span class="fc" id="L114">    StringBuilder markup = new StringBuilder();</span>
-<span class="fc bfc" id="L115" title="All 2 branches covered.">    for (String libraryPath : libraryPaths) {</span>
-<span class="fc" id="L116">      HtmlTagBuilder builder = new HtmlTagBuilder(&quot;link&quot;, false, xssApi);</span>
-<span class="fc" id="L117">      builder.setAttrs(attrs);</span>
-<span class="fc" id="L118">      builder.setAttrs(customAttrs);</span>
-<span class="fc" id="L119">      builder.setAttr(&quot;href&quot;, IncludeUtil.appendRequestPath(libraryPath, request));</span>
-<span class="fc" id="L120">      markup.append(builder.build());</span>
-<span class="fc" id="L121">    }</span>
-<span class="fc" id="L122">    return markup.toString();</span>
+<span class="fc" id="L116">    return new RequestIncludedLibraries(request, allowMultipleIncludes)</span>
+<span class="fc" id="L117">        .buildMarkupIgnoringDuplicateLibraries(libraryPaths, libraryPath -&gt; {</span>
+<span class="fc" id="L118">          HtmlTagBuilder builder = new HtmlTagBuilder(&quot;link&quot;, false, xssApi);</span>
+<span class="fc" id="L119">          builder.setAttrs(attrs);</span>
+<span class="fc" id="L120">          builder.setAttrs(customAttrs);</span>
+<span class="fc" id="L121">          builder.setAttr(&quot;href&quot;, IncludeUtil.appendRequestPath(libraryPath, request));</span>
+<span class="fc" id="L122">          return builder;</span>
+        });
   }
 
   /**
    * @return HTML markup with script tags
    */
   public @Nullable String getInclude() {
-<span class="fc" id="L129">    return include;</span>
+<span class="fc" id="L130">    return include;</span>
   }
 
 }
