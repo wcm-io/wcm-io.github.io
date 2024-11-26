@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImsAccessTokenCache.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.ngdm.impl.metadata</a> &gt; <span class="el_source">ImsAccessTokenCache.java</span></div><h1>ImsAccessTokenCache.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2024 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.ngdm.impl.metadata;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.http.HttpStatus;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
+
+/**
+ * Manages IMS access tokens with expiration handling.
+ */
+class ImsAccessTokenCache {
+
+  private static final long EXPERIATION_BUFFER_SEC = 5;
+
+  // cache IMS access tokens until they expire
+<span class="fc" id="L54">  private final Cache&lt;String, AccessTokenResponse&gt; tokenCache = Caffeine.newBuilder()</span>
+<span class="fc" id="L55">      .expireAfter(new Expiry&lt;String, AccessTokenResponse&gt;() {</span>
+        @Override
+        public long expireAfterCreate(String key, AccessTokenResponse value, long currentTime) {
+          // substract a few secs from expiration time to be on the safe side
+<span class="fc" id="L59">          return TimeUnit.SECONDS.toNanos(value.expiresInSec - EXPERIATION_BUFFER_SEC);</span>
+        }
+        @Override
+        public long expireAfterUpdate(String key, AccessTokenResponse value, long currentTime, long currentDuration) {
+          // not used
+<span class="nc" id="L64">          return Long.MAX_VALUE;</span>
+        }
+        @Override
+        public long expireAfterRead(String key, AccessTokenResponse value, long currentTime, long currentDuration) {
+          // not used
+<span class="nc" id="L69">          return Long.MAX_VALUE;</span>
+        }
+      })
+<span class="fc" id="L72">      .build();</span>
+
+<span class="fc" id="L74">  private static final JsonMapper OBJECT_MAPPER = new JsonMapper();</span>
+<span class="fc" id="L75">  private static final Logger log = LoggerFactory.getLogger(ImsAccessTokenCache.class);</span>
+
+  private final CloseableHttpClient httpClient;
+  private final String imsTokenApiUrl;
+
+<span class="fc" id="L80">  ImsAccessTokenCache(@NotNull CloseableHttpClient httpClient, @NotNull String imsTokenApiUrl) {</span>
+<span class="fc" id="L81">    this.httpClient = httpClient;</span>
+<span class="fc" id="L82">    this.imsTokenApiUrl = imsTokenApiUrl;</span>
+<span class="fc" id="L83">  }</span>
+
+  /**
+   * Get IMS OAuth access token
+   * @param clientId Client ID
+   * @param clientSecret Client Secret
+   * @param scope Scope
+   * @return Access token or null if access token could not be obtained
+   */
+  public @Nullable String getAccessToken(@NotNull String clientId, @NotNull String clientSecret, @NotNull String scope) {
+<span class="fc" id="L93">    String key = clientId + &quot;::&quot; + scope;</span>
+<span class="fc" id="L94">    AccessTokenResponse accessTokenResponse = tokenCache.get(key, k -&gt; createAccessToken(clientId, clientSecret, scope));</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (accessTokenResponse != null) {</span>
+<span class="fc" id="L96">      return accessTokenResponse.accessToken;</span>
+    }
+<span class="fc" id="L98">    return null;</span>
+  }
+
+  private @Nullable AccessTokenResponse createAccessToken(@NotNull String clientId, @NotNull String clientSecret, @NotNull String scope) {
+<span class="fc" id="L102">    List&lt;NameValuePair&gt; formData = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L103">    formData.add(new BasicNameValuePair(&quot;grant_type&quot;, &quot;client_credentials&quot;));</span>
+<span class="fc" id="L104">    formData.add(new BasicNameValuePair(&quot;client_id&quot;, clientId));</span>
+<span class="fc" id="L105">    formData.add(new BasicNameValuePair(&quot;client_secret&quot;, clientSecret));</span>
+<span class="fc" id="L106">    formData.add(new BasicNameValuePair(&quot;scope&quot;, scope));</span>
+
+<span class="fc" id="L108">    HttpPost httpPost = new HttpPost(imsTokenApiUrl);</span>
+<span class="fc" id="L109">    httpPost.setEntity(new UrlEncodedFormEntity(formData, StandardCharsets.UTF_8));</span>
+
+<span class="fc" id="L111">    try (CloseableHttpResponse response = httpClient.execute(httpPost)) {</span>
+<span class="fc" id="L112">      return processResponse(response);</span>
+    }
+<span class="nc" id="L114">    catch (IOException ex) {</span>
+<span class="nc" id="L115">      log.warn(&quot;Unable to obtain access token from URL {}&quot;, imsTokenApiUrl, ex);</span>
+<span class="nc" id="L116">      return null;</span>
+    }
+  }
+
+  @SuppressWarnings(&quot;null&quot;)
+  private @Nullable AccessTokenResponse processResponse(@NotNull CloseableHttpResponse response) throws IOException {
+<span class="fc bfc" id="L122" title="All 2 branches covered.">    if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {</span>
+<span class="fc" id="L123">      String jsonResponse = EntityUtils.toString(response.getEntity());</span>
+<span class="fc" id="L124">      AccessTokenResponse accessTokenResponse = OBJECT_MAPPER.readValue(jsonResponse, AccessTokenResponse.class);</span>
+<span class="fc" id="L125">      log.trace(&quot;HTTP response for access token reqeust from {} returned a response, expires in {} sec&quot;,</span>
+<span class="fc" id="L126">          imsTokenApiUrl, accessTokenResponse.expiresInSec);</span>
+<span class="fc" id="L127">      return accessTokenResponse;</span>
+    }
+    else {
+<span class="fc" id="L130">      log.warn(&quot;Unexpected HTTP response for access token request from {}: {}&quot;, imsTokenApiUrl, response.getStatusLine());</span>
+<span class="fc" id="L131">      return null;</span>
+    }
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

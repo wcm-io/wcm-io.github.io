@@ -99,6 +99,26 @@ import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaReference;
         description = &quot;Proxy port&quot;)
     int proxyPort();
 
+    @AttributeDefinition(
+        name = &quot;IMS Token API URL&quot;,
+        description = &quot;API to obtain IMS access token for obtaining full metadata.&quot;)
+    String imsTokenApiUrl() default &quot;https://ims-na1.adobelogin.com/ims/token/v3&quot;;
+
+    @AttributeDefinition(
+        name = &quot;IMS OAuth Client ID&quot;,
+        description = &quot;Optional: If you want to fetch the full metadata for assets, provide the IMS OAuth Client ID.&quot;)
+    String authenticationClientId();
+
+    @AttributeDefinition(
+        name = &quot;IMS OAuth Client Secret&quot;,
+        description = &quot;Optional: If you want to fetch the full metadata for assets, provide the IMS OAuth Client Secret.&quot;)
+    String authenticationClientSecret();
+
+    @AttributeDefinition(
+        name = &quot;IMS OAuth Scope&quot;,
+        description = &quot;OAuth Scope to use for obtaining IMS access token.&quot;)
+    String authenticationScope() default &quot;openid,AdobeID,read_organizations,additional_info.projectedProductContext,read_pc.dma_aem_ams&quot;;
+
   }
 
   @Reference
@@ -107,52 +127,78 @@ import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaReference;
   private boolean enabled;
   private CloseableHttpClient httpClient;
 
-<span class="fc" id="L110">  private static final Logger log = LoggerFactory.getLogger(NextGenDynamicMediaMetadataServiceImpl.class);</span>
+  private ImsAccessTokenCache imsAccessTokenCache;
+  private String authenticationClientId;
+  private String authenticationClientSecret;
+  private String authenticationScope;
+
+<span class="fc" id="L135">  private static final Logger log = LoggerFactory.getLogger(NextGenDynamicMediaMetadataServiceImpl.class);</span>
 
   @Activate
   private void activate(Config config) {
-<span class="fc" id="L114">    this.enabled = config.enabled();</span>
-<span class="fc bfc" id="L115" title="All 2 branches covered.">    if (enabled) {</span>
-<span class="fc" id="L116">      httpClient = createHttpClient(config);</span>
+<span class="fc" id="L139">    this.enabled = config.enabled();</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">    if (enabled) {</span>
+<span class="fc" id="L141">      httpClient = createHttpClient(config);</span>
+
+      // if configured, enable IMS access token fetching
+<span class="fc" id="L144">      String imsTokenApiUrl = config.imsTokenApiUrl();</span>
+<span class="fc" id="L145">      authenticationClientId = config.authenticationClientId();</span>
+<span class="fc" id="L146">      authenticationClientSecret = config.authenticationClientSecret();</span>
+<span class="fc" id="L147">      authenticationScope = config.authenticationScope();</span>
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">      if (log.isTraceEnabled()) {</span>
+<span class="nc" id="L149">        log.trace(&quot;Authentication configuration: imsTokenApiUrl={}, authenticationClientId={}, authenticationClientSecret={}, authenticationScope={}&quot;,</span>
+<span class="nc" id="L150">            StringUtils.defaultString(imsTokenApiUrl),</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">            StringUtils.isNotBlank(authenticationClientId) ? &quot;***&quot; : &quot;&quot;,</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">            StringUtils.isNotBlank(authenticationClientSecret) ? &quot;***&quot; : &quot;&quot;,</span>
+<span class="nc" id="L153">            StringUtils.defaultString(authenticationScope));</span>
+      }
+<span class="fc bfc" id="L155" title="All 2 branches covered.">      if (StringUtils.isNoneBlank(imsTokenApiUrl, authenticationClientId, authenticationClientSecret, authenticationScope)) {</span>
+<span class="fc" id="L156">        log.debug(&quot;Enable IMS access token fetching for NGDM asset metadata.&quot;);</span>
+<span class="fc" id="L157">        imsAccessTokenCache = new ImsAccessTokenCache(httpClient, config.imsTokenApiUrl());</span>
+      }
+      else {
+<span class="fc" id="L160">        log.debug(&quot;IMS access token fetching for NGDM asset metadata is disabled.&quot;);</span>
+      }
     }
-<span class="fc" id="L118">  }</span>
+<span class="fc" id="L163">  }</span>
 
   private static CloseableHttpClient createHttpClient(Config config) {
-<span class="fc" id="L121">    RequestConfig requestConfig = RequestConfig.custom()</span>
-<span class="fc" id="L122">        .setConnectTimeout(config.connectTimeout())</span>
-<span class="fc" id="L123">        .setConnectionRequestTimeout(config.connectionRequestTimeout())</span>
-<span class="fc" id="L124">        .setSocketTimeout(config.socketTimeout())</span>
-<span class="fc" id="L125">        .build();</span>
-<span class="fc" id="L126">    HttpClientBuilder builder = HttpClientBuilder.create()</span>
-<span class="fc" id="L127">        .setDefaultRequestConfig(requestConfig)</span>
-<span class="fc" id="L128">        .setDefaultHeaders(convertHeaders(config.httpHeaders()));</span>
-<span class="pc bpc" id="L129" title="3 of 4 branches missed.">    if (StringUtils.isNotBlank(config.proxyHost()) &amp;&amp; config.proxyPort() &gt; 0) {</span>
-<span class="nc" id="L130">      builder.setProxy(new HttpHost(config.proxyHost(), config.proxyPort()));</span>
+<span class="fc" id="L166">    RequestConfig requestConfig = RequestConfig.custom()</span>
+<span class="fc" id="L167">        .setConnectTimeout(config.connectTimeout())</span>
+<span class="fc" id="L168">        .setConnectionRequestTimeout(config.connectionRequestTimeout())</span>
+<span class="fc" id="L169">        .setSocketTimeout(config.socketTimeout())</span>
+<span class="fc" id="L170">        .build();</span>
+<span class="fc" id="L171">    HttpClientBuilder builder = HttpClientBuilder.create()</span>
+<span class="fc" id="L172">        .setDefaultRequestConfig(requestConfig)</span>
+<span class="fc" id="L173">        .setDefaultHeaders(convertHeaders(config.httpHeaders()));</span>
+<span class="pc bpc" id="L174" title="3 of 4 branches missed.">    if (StringUtils.isNotBlank(config.proxyHost()) &amp;&amp; config.proxyPort() &gt; 0) {</span>
+<span class="nc" id="L175">      builder.setProxy(new HttpHost(config.proxyHost(), config.proxyPort()));</span>
     }
-<span class="fc" id="L132">    return builder.build();</span>
+<span class="fc" id="L177">    return builder.build();</span>
   }
 
   private static Collection&lt;Header&gt; convertHeaders(String[] headers) {
-<span class="fc" id="L136">    List&lt;Header&gt; result = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L137" title="All 2 branches covered.">    for (String header : headers) {</span>
-<span class="fc" id="L138">      String[] parts = header.split(&quot;:&quot;, 2);</span>
-<span class="pc bpc" id="L139" title="1 of 2 branches missed.">      if (parts.length == 2) {</span>
-<span class="fc" id="L140">        result.add(new BasicHeader(parts[0], parts[1]));</span>
+<span class="fc" id="L181">    List&lt;Header&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">    for (String header : headers) {</span>
+<span class="fc" id="L183">      String[] parts = header.split(&quot;:&quot;, 2);</span>
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">      if (parts.length == 2) {</span>
+<span class="fc" id="L185">        result.add(new BasicHeader(parts[0], parts[1]));</span>
       }
     }
-<span class="fc" id="L143">    return result;</span>
+<span class="fc" id="L188">    return result;</span>
   }
 
   @Deactivate
   private void deactivate() throws IOException {
-<span class="fc bfc" id="L148" title="All 2 branches covered.">    if (httpClient != null) {</span>
-<span class="fc" id="L149">      httpClient.close();</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">    if (httpClient != null) {</span>
+<span class="fc" id="L194">      httpClient.close();</span>
+<span class="fc" id="L195">      imsAccessTokenCache = null;</span>
     }
-<span class="fc" id="L151">  }</span>
+<span class="fc" id="L197">  }</span>
 
   @Override
   public boolean isEnabled() {
-<span class="fc" id="L155">    return enabled;</span>
+<span class="fc" id="L201">    return enabled;</span>
   }
 
   /**
@@ -162,43 +208,52 @@ import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaReference;
    */
   @Override
   public @Nullable NextGenDynamicMediaMetadata fetchMetadata(@NotNull NextGenDynamicMediaReference reference) {
-<span class="fc bfc" id="L165" title="All 2 branches covered.">    if (!enabled) {</span>
-<span class="fc" id="L166">      return null;</span>
+<span class="fc bfc" id="L211" title="All 2 branches covered.">    if (!enabled) {</span>
+<span class="fc" id="L212">      return null;</span>
     }
-<span class="fc" id="L168">    String metadataUrl = new NextGenDynamicMediaMetadataUrlBuilder(nextGenDynamicMediaConfig).build(reference);</span>
-<span class="pc bpc" id="L169" title="1 of 2 branches missed.">    if (metadataUrl == null) {</span>
-<span class="nc" id="L170">      return null;</span>
+<span class="fc" id="L214">    String metadataUrl = new NextGenDynamicMediaMetadataUrlBuilder(nextGenDynamicMediaConfig).build(reference);</span>
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">    if (metadataUrl == null) {</span>
+<span class="nc" id="L216">      return null;</span>
     }
 
-<span class="fc" id="L173">    HttpGet httpGet = new HttpGet(metadataUrl);</span>
-<span class="fc" id="L174">    try (CloseableHttpResponse response = httpClient.execute(httpGet)) {</span>
-<span class="fc" id="L175">      return processResponse(response, metadataUrl);</span>
+<span class="fc" id="L219">    HttpGet httpGet = new HttpGet(metadataUrl);</span>
+
+    // add IMS access if configured
+<span class="fc bfc" id="L222" title="All 2 branches covered.">    if (imsAccessTokenCache != null) {</span>
+<span class="fc" id="L223">      String accessToken = imsAccessTokenCache.getAccessToken(authenticationClientId, authenticationClientSecret, authenticationScope);</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">      if (accessToken != null) {</span>
+<span class="fc" id="L225">        httpGet.addHeader(&quot;Authorization&quot;, &quot;Bearer &quot; + accessToken);</span>
+      }
     }
-<span class="fc" id="L177">    catch (IOException ex) {</span>
-<span class="fc" id="L178">      log.warn(&quot;Unable to fetch NGDM asset metadata from URL {}&quot;, metadataUrl, ex);</span>
-<span class="fc" id="L179">      return null;</span>
+
+<span class="fc" id="L229">    try (CloseableHttpResponse response = httpClient.execute(httpGet)) {</span>
+<span class="fc" id="L230">      return processResponse(response, metadataUrl);</span>
+    }
+<span class="fc" id="L232">    catch (IOException ex) {</span>
+<span class="fc" id="L233">      log.warn(&quot;Unable to fetch NGDM asset metadata from URL {}&quot;, metadataUrl, ex);</span>
+<span class="fc" id="L234">      return null;</span>
     }
   }
 
   private @Nullable NextGenDynamicMediaMetadata processResponse(@NotNull CloseableHttpResponse response,
       @NotNull String metadataUrl) throws IOException {
-<span class="fc bfc" id="L185" title="All 3 branches covered.">    switch (response.getStatusLine().getStatusCode()) {</span>
+<span class="fc bfc" id="L240" title="All 3 branches covered.">    switch (response.getStatusLine().getStatusCode()) {</span>
       case HttpStatus.SC_OK:
-<span class="fc" id="L187">        String jsonResponse = EntityUtils.toString(response.getEntity());</span>
-<span class="fc" id="L188">        NextGenDynamicMediaMetadata metadata = NextGenDynamicMediaMetadata.fromJson(jsonResponse);</span>
-<span class="fc" id="L189">        log.trace(&quot;HTTP response for NGDM asset metadata {} returns: {}&quot;, metadataUrl, metadata);</span>
-<span class="fc bfc" id="L190" title="All 2 branches covered.">        if (metadata.isValid()) {</span>
-<span class="fc" id="L191">          return metadata;</span>
+<span class="fc" id="L242">        String jsonResponse = EntityUtils.toString(response.getEntity());</span>
+<span class="fc" id="L243">        NextGenDynamicMediaMetadata metadata = NextGenDynamicMediaMetadata.fromJson(jsonResponse);</span>
+<span class="fc" id="L244">        log.trace(&quot;HTTP response for NGDM asset metadata {} returns: {}&quot;, metadataUrl, metadata);</span>
+<span class="fc bfc" id="L245" title="All 2 branches covered.">        if (metadata.isValid()) {</span>
+<span class="fc" id="L246">          return metadata;</span>
         }
         break;
       case HttpStatus.SC_NOT_FOUND:
-<span class="fc" id="L195">        log.trace(&quot;HTTP response for NGDM asset metadata {} returns HTTP 404&quot;, metadataUrl);</span>
-<span class="fc" id="L196">        break;</span>
+<span class="fc" id="L250">        log.trace(&quot;HTTP response for NGDM asset metadata {} returns HTTP 404&quot;, metadataUrl);</span>
+<span class="fc" id="L251">        break;</span>
       default:
-<span class="fc" id="L198">        log.warn(&quot;Unexpected HTTP response for NGDM asset metadata {}: {}&quot;, metadataUrl, response.getStatusLine());</span>
+<span class="fc" id="L253">        log.warn(&quot;Unexpected HTTP response for NGDM asset metadata {}: {}&quot;, metadataUrl, response.getStatusLine());</span>
         break;
     }
-<span class="fc" id="L201">    return null;</span>
+<span class="fc" id="L256">    return null;</span>
   }
 
 }

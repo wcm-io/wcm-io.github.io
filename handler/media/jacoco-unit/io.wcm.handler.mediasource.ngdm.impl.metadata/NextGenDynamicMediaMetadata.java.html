@@ -19,14 +19,20 @@
  */
 package io.wcm.handler.mediasource.ngdm.impl.metadata;
 
+import static com.day.cq.dam.api.DamConstants.TIFF_IMAGELENGTH;
+import static com.day.cq.dam.api.DamConstants.TIFF_IMAGEWIDTH;
+
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.api.wrappers.ValueMapDecorator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,9 +40,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import io.wcm.handler.media.Dimension;
-import io.wcm.handler.mediasource.ngdm.impl.metadata.MetadataResponse.AssetMetadata;
 import io.wcm.handler.mediasource.ngdm.impl.metadata.MetadataResponse.RepositoryMetadata;
 import io.wcm.wcm.commons.contenttype.ContentType;
+import io.wcm.wcm.commons.util.ToStringStyle;
 
 /**
  * Metadata for Next Gen Dynamic Media asset fetched from the HTTP API.
@@ -46,62 +52,82 @@ public final class NextGenDynamicMediaMetadata {
   private final String mimeType;
   private final Dimension dimension;
   private final String assetStatus;
+  private final ValueMap properties;
   private final List&lt;SmartCrop&gt; smartCrops;
 
-<span class="fc" id="L51">  private static final JsonMapper OBJECT_MAPPER = new JsonMapper();</span>
+<span class="fc" id="L58">  private static final JsonMapper OBJECT_MAPPER = new JsonMapper();</span>
   static final String RT_RENDITION_SMARTCROP = &quot;dam/rendition/smartcrop&quot;;
 
   NextGenDynamicMediaMetadata(@Nullable String mimeType, @Nullable Dimension dimension,
-<span class="fc" id="L55">      @Nullable String assetStatus, @Nullable List&lt;SmartCrop&gt; smartCrops) {</span>
-<span class="fc" id="L56">    this.mimeType = mimeType;</span>
-<span class="fc" id="L57">    this.dimension = dimension;</span>
-<span class="fc" id="L58">    this.assetStatus = assetStatus;</span>
-<span class="fc bfc" id="L59" title="All 2 branches covered.">    if (smartCrops != null) {</span>
-<span class="fc" id="L60">      this.smartCrops = smartCrops;</span>
+<span class="fc" id="L62">      @Nullable String assetStatus, @Nullable ValueMap properties, @Nullable List&lt;SmartCrop&gt; smartCrops) {</span>
+<span class="fc" id="L63">    this.mimeType = mimeType;</span>
+<span class="fc" id="L64">    this.dimension = dimension;</span>
+<span class="fc" id="L65">    this.assetStatus = assetStatus;</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">    if (properties != null) {</span>
+<span class="fc" id="L67">      this.properties = properties;</span>
     }
     else {
-<span class="fc" id="L63">      this.smartCrops = Collections.emptyList();</span>
+<span class="fc" id="L70">      this.properties = ValueMap.EMPTY;</span>
     }
-<span class="fc" id="L65">  }</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (smartCrops != null) {</span>
+<span class="fc" id="L73">      this.smartCrops = smartCrops;</span>
+    }
+    else {
+<span class="fc" id="L76">      this.smartCrops = Collections.emptyList();</span>
+    }
+<span class="fc" id="L78">  }</span>
 
   /**
    * @return Mime type
    */
   public @NotNull String getMimeType() {
-<span class="fc" id="L71">    return Objects.toString(mimeType, ContentType.OCTET_STREAM);</span>
+<span class="fc" id="L84">    return Objects.toString(mimeType, ContentType.OCTET_STREAM);</span>
   }
 
   /**
    * @return Image Dimension or null if no image or dimension not available
    */
   public @Nullable Dimension getDimension() {
-<span class="fc" id="L78">    return dimension;</span>
+<span class="fc" id="L91">    return dimension;</span>
   }
 
   /**
    * @return Asset review status
    */
   public String getAssetStatus() {
-<span class="fc" id="L85">    return this.assetStatus;</span>
+<span class="fc" id="L98">    return this.assetStatus;</span>
+  }
+
+  /**
+   * @return Asset properties
+   */
+  public ValueMap getProperties() {
+<span class="fc" id="L105">    return properties;</span>
   }
 
   /**
    * @return Named smart crop definitions.
    */
   public List&lt;SmartCrop&gt; getSmartCrops() {
-<span class="fc" id="L92">    return Collections.unmodifiableList(smartCrops);</span>
+<span class="fc" id="L112">    return Collections.unmodifiableList(smartCrops);</span>
   }
 
   /**
    * @return true if metadata is valid (has mime type)
    */
   public boolean isValid() {
-<span class="fc bfc" id="L99" title="All 2 branches covered.">    return mimeType != null;</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">    return mimeType != null;</span>
   }
 
   @Override
   public String toString() {
-<span class="fc" id="L104">    return ToStringBuilder.reflectionToString(this, ToStringStyle.NO_CLASS_NAME_STYLE);</span>
+<span class="fc" id="L124">    return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_OMIT_NULL_STYLE)</span>
+<span class="fc" id="L125">        .append(&quot;mimeType&quot;, mimeType)</span>
+<span class="fc" id="L126">        .append(&quot;dimension&quot;, dimension)</span>
+<span class="fc" id="L127">        .append(&quot;assetStatus&quot;, assetStatus)</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        .append(&quot;properties&quot;, properties.isEmpty() ? null : new TreeMap&lt;String, Object&gt;(properties))</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">        .append(&quot;smartCrops&quot;, smartCrops.isEmpty() ? null : smartCrops)</span>
+<span class="fc" id="L130">        .toString();</span>
   }
 
   /**
@@ -112,44 +138,46 @@ public final class NextGenDynamicMediaMetadata {
    */
   @SuppressWarnings(&quot;null&quot;)
   public static @NotNull NextGenDynamicMediaMetadata fromJson(@NotNull String jsonResponse) throws JsonProcessingException {
-<span class="fc" id="L115">    MetadataResponse response = OBJECT_MAPPER.readValue(jsonResponse, MetadataResponse.class);</span>
-<span class="fc" id="L116">    RepositoryMetadata respositoryMetadata = response.repositoryMetadata;</span>
-<span class="fc" id="L117">    AssetMetadata assetMetadata = response.assetMetadata;</span>
+<span class="fc" id="L141">    MetadataResponse response = OBJECT_MAPPER.readValue(jsonResponse, MetadataResponse.class);</span>
+<span class="fc" id="L142">    RepositoryMetadata respositoryMetadata = response.repositoryMetadata;</span>
+<span class="fc" id="L143">    Map&lt;String, Object&gt; assetMetadata = response.assetMetadata;</span>
+<span class="fc" id="L144">    ValueMap properties = null;</span>
 
-<span class="fc" id="L119">    long width = 0;</span>
-<span class="fc" id="L120">    long height = 0;</span>
-<span class="fc" id="L121">    String assetStatus = null;</span>
-<span class="fc bfc" id="L122" title="All 2 branches covered.">    if (assetMetadata != null) {</span>
-<span class="fc" id="L123">      width = assetMetadata.tiffImageWidth;</span>
-<span class="fc" id="L124">      height = assetMetadata.tiffImageLength;</span>
-<span class="fc" id="L125">      assetStatus = assetMetadata.assetStatus;</span>
+<span class="fc" id="L146">    long width = 0;</span>
+<span class="fc" id="L147">    long height = 0;</span>
+<span class="fc" id="L148">    String assetStatus = null;</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">    if (assetMetadata != null) {</span>
+<span class="fc" id="L150">      properties = new ValueMapDecorator(assetMetadata);</span>
+<span class="fc" id="L151">      width = properties.get(TIFF_IMAGEWIDTH, 0L);</span>
+<span class="fc" id="L152">      height = properties.get(TIFF_IMAGELENGTH, 0L);</span>
+<span class="fc" id="L153">      assetStatus = properties.get(&quot;dam:assetStatus&quot;, String.class);</span>
     }
-<span class="fc" id="L127">    Dimension dimension = toDimension(width, height);</span>
+<span class="fc" id="L155">    Dimension dimension = toDimension(width, height);</span>
 
-<span class="fc" id="L129">    String mimeType = null;</span>
-<span class="fc" id="L130">    List&lt;SmartCrop&gt; smartCrops = null;</span>
-<span class="fc bfc" id="L131" title="All 2 branches covered.">    if (respositoryMetadata != null) {</span>
-<span class="fc" id="L132">      mimeType = respositoryMetadata.dcFormat;</span>
-<span class="pc bpc" id="L133" title="1 of 4 branches missed.">      if (respositoryMetadata.smartCrops != null &amp;&amp; dimension != null) {</span>
-<span class="fc" id="L134">        smartCrops = respositoryMetadata.smartCrops.entrySet().stream()</span>
-<span class="fc" id="L135">            .filter(entry -&gt; isSmartCropDefinitionValid(entry.getKey(), entry.getValue()))</span>
-<span class="fc" id="L136">            .map(entry -&gt; new SmartCrop(entry.getKey(), entry.getValue(), dimension))</span>
-<span class="fc" id="L137">            .collect(Collectors.toList());</span>
+<span class="fc" id="L157">    String mimeType = null;</span>
+<span class="fc" id="L158">    List&lt;SmartCrop&gt; smartCrops = null;</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">    if (respositoryMetadata != null) {</span>
+<span class="fc" id="L160">      mimeType = respositoryMetadata.dcFormat;</span>
+<span class="pc bpc" id="L161" title="1 of 4 branches missed.">      if (respositoryMetadata.smartCrops != null &amp;&amp; dimension != null) {</span>
+<span class="fc" id="L162">        smartCrops = respositoryMetadata.smartCrops.entrySet().stream()</span>
+<span class="fc" id="L163">            .filter(entry -&gt; isSmartCropDefinitionValid(entry.getKey(), entry.getValue()))</span>
+<span class="fc" id="L164">            .map(entry -&gt; new SmartCrop(entry.getKey(), entry.getValue(), dimension))</span>
+<span class="fc" id="L165">            .collect(Collectors.toList());</span>
       }
     }
 
-<span class="fc" id="L141">    return new NextGenDynamicMediaMetadata(mimeType, dimension, assetStatus, smartCrops);</span>
+<span class="fc" id="L169">    return new NextGenDynamicMediaMetadata(mimeType, dimension, assetStatus, properties, smartCrops);</span>
   }
 
   private static @Nullable Dimension toDimension(long width, long height) {
-<span class="pc bpc" id="L145" title="1 of 4 branches missed.">    if (width &gt; 0 &amp;&amp; height &gt; 0) {</span>
-<span class="fc" id="L146">      return new Dimension(width, height);</span>
+<span class="pc bpc" id="L173" title="1 of 4 branches missed.">    if (width &gt; 0 &amp;&amp; height &gt; 0) {</span>
+<span class="fc" id="L174">      return new Dimension(width, height);</span>
     }
-<span class="fc" id="L148">    return null;</span>
+<span class="fc" id="L176">    return null;</span>
   }
 
   private static boolean isSmartCropDefinitionValid(@NotNull String name, @NotNull MetadataResponse.SmartCrop smartCop) {
-<span class="pc bpc" id="L152" title="4 of 10 branches missed.">    return StringUtils.isNotBlank(name)</span>
+<span class="pc bpc" id="L180" title="4 of 10 branches missed.">    return StringUtils.isNotBlank(name)</span>
         &amp;&amp; smartCop.normalizedWidth &gt; 0
         &amp;&amp; smartCop.normalizedHeight &gt; 0
         &amp;&amp; smartCop.left &gt;= 0
