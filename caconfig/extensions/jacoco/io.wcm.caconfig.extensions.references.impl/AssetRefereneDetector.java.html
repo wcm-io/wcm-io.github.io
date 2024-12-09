@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AssetRefereneDetector.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Context-Aware Configuration Extensions for AEM</a> &gt; <a href="index.source.html" class="el_package">io.wcm.caconfig.extensions.references.impl</a> &gt; <span class="el_source">AssetRefereneDetector.java</span></div><h1>AssetRefereneDetector.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2024 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.caconfig.extensions.references.impl;
+
+import static com.day.cq.dam.api.DamConstants.MOUNTPOINT_ASSETS;
+
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ValueMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.day.cq.dam.api.Asset;
+import com.day.cq.wcm.api.Page;
+
+/**
+ * Recursively scans all string and string array properties in all resources of the given configuration page
+ * to check for asset references.
+ */
+class AssetRefereneDetector {
+
+  private final Page configPage;
+  private final Resource configResource;
+  private final ResourceResolver resourceResolver;
+<span class="fc" id="L52">  private final List&lt;Asset&gt; assets = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L54">  private static final Pattern ASSET_PATH = Pattern.compile(&quot;^&quot; + MOUNTPOINT_ASSETS + &quot;/.*$&quot;);</span>
+<span class="fc" id="L55">  private static final Logger log = LoggerFactory.getLogger(AssetRefereneDetector.class);</span>
+
+  /**
+   * @param configPage Configuration page (must have a content resource).
+   */
+<span class="fc" id="L60">  AssetRefereneDetector(@NotNull Page configPage) {</span>
+<span class="fc" id="L61">    this.configPage = configPage;</span>
+<span class="fc" id="L62">    this.configResource = configPage.getContentResource();</span>
+<span class="fc" id="L63">    this.resourceResolver = configResource.getResourceResolver();</span>
+<span class="fc" id="L64">  }</span>
+
+  /**
+   * @return List of all assets referenced in the configuration page.
+   */
+  List&lt;Asset&gt; getReferencedAssets() {
+<span class="fc" id="L70">    assets.clear();</span>
+<span class="fc" id="L71">    findAssetReferencesRecursively(configResource);</span>
+<span class="fc" id="L72">    return assets;</span>
+  }
+
+  /**
+   * Recurse through all child resources of the given resource.
+   * @param resource Resource
+   */
+  private void findAssetReferencesRecursively(@NotNull Resource resource) {
+<span class="fc" id="L80">    findAssetReferences(resource);</span>
+<span class="fc" id="L81">    resource.getChildren().forEach(this::findAssetReferencesRecursively);</span>
+<span class="fc" id="L82">  }</span>
+
+  /**
+   * Find asset references in all properties of the given resource.
+   * @param resource Resource
+   */
+  private void findAssetReferences(@NotNull Resource resource) {
+<span class="fc" id="L89">    ValueMap props = resource.getValueMap();</span>
+<span class="fc" id="L90">    assets.addAll(props.values().stream()</span>
+<span class="fc" id="L91">        .flatMap(this::getAssetsIfAssetReference)</span>
+<span class="fc" id="L92">        .collect(Collectors.toList()));</span>
+<span class="fc" id="L93">  }</span>
+
+  /**
+   * Checks if the value is string which might be asset reference, or an array containing a string asset reference.
+   * @param value Value
+   * @return Found referenced assets
+   */
+  private Stream&lt;Asset&gt; getAssetsIfAssetReference(@Nullable Object value) {
+<span class="fc" id="L101">    List&lt;Asset&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">    if (value instanceof String) {</span>
+<span class="fc" id="L103">      getAssetIfAssetReference((String)value).ifPresent(result::add);</span>
+    }
+<span class="fc bfc" id="L105" title="All 4 branches covered.">    else if (value != null &amp;&amp; value.getClass().isArray()) {</span>
+<span class="fc" id="L106">      int length = Array.getLength(value);</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">      for (int i = 0; i &lt; length; i++) {</span>
+<span class="fc" id="L108">        Object itemValue = Array.get(value, i);</span>
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">        if (itemValue instanceof String) {</span>
+<span class="fc" id="L110">          getAssetIfAssetReference((String)itemValue).ifPresent(result::add);</span>
+        }
+      }
+    }
+<span class="fc" id="L114">    return result.stream();</span>
+  }
+
+  /**
+   * Checks if the given string points to an asset.
+   * @param value String value
+   * @return Asset if string is a valid asset reference.
+   */
+  private Optional&lt;Asset&gt; getAssetIfAssetReference(@NotNull String value) {
+<span class="fc bfc" id="L123" title="All 2 branches covered.">    if (isAssetReference(value)) {</span>
+<span class="fc" id="L124">      Resource resource = resourceResolver.getResource(value);</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">      if (resource != null) {</span>
+<span class="fc" id="L126">        Asset asset = resource.adaptTo(Asset.class);</span>
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">        if (asset != null) {</span>
+<span class="fc" id="L128">          log.trace(&quot;Found asset reference {} for resource {}&quot;, configPage.getPath(), resource.getPath());</span>
+<span class="fc" id="L129">          return Optional.of(asset);</span>
+        }
+      }
+    }
+<span class="fc" id="L133">    return Optional.empty();</span>
+  }
+
+  static boolean isAssetReference(@NotNull String value) {
+<span class="fc" id="L137">    return ASSET_PATH.matcher(value).matches();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
