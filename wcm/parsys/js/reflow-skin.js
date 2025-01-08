@@ -16,9 +16,7 @@
     // Note: only run if `hljs` exists
     if (typeof hljs != 'undefined')
     {
-      // classic encoding with <div class="source"><pre></pre></div>
-      // and HTML5 version with <pre><code></code></pre>
-      $('div.source pre code').each(function(i, e) {hljs.highlightElement(e)});
+      $('pre code').each(function(i, e) {hljs.highlightElement(e)});
     }
 
   })
