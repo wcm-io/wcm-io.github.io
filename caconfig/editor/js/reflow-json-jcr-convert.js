@@ -3,7 +3,7 @@
  * - FileVault XML view of the snippet (derived from the JSON)
  * - original JSON view of the snippet
  */
-document.querySelectorAll('div.source pre code.language-json-jcr').forEach((code) => {  
+document.querySelectorAll('pre code.language-json-jcr').forEach((code) => {  
   const jsonCode = code.innerText;
   const fileVaultXmlCode = jsonToFileVaultXml(jsonCode);
   if (!fileVaultXmlCode) {
