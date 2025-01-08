@@ -16,7 +16,7 @@
     // Note: only run if `hljs` exists
     if (typeof hljs != 'undefined')
     {
-      $('pre > code').each(function(i, e) {hljs.highlightElement(e)});
+      $('pre code').each(function(i, e) {hljs.highlightElement(e)});
     }
 
   })
