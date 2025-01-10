@@ -13,7 +13,7 @@ document.querySelectorAll('pre code.language-json-jcr').forEach((code) => {
     return;
   }
 
-  const source = code.parentElement.parentElement;
+  const source = code.parentElement;
   const parent = source.parentElement;
 
   // instead, add a tab container with both FileVault XML and JSON views
