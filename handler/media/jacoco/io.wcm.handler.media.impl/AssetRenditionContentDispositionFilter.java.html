@@ -54,6 +54,7 @@ import org.osgi.service.component.annotations.Component;
  * It re-used the configuration of the &quot;Dam Safe Binary Filter&quot;
  * (com.day.cq.dam.core.impl.servlet.DamContentDispositionFilter),
  * so both filters have the same result.
+ *
  * &lt;p&gt;
  * Unlike for Asset paths where the &quot;Dam Safe Binary Filter&quot; applies for rendition paths the
  * &quot;Sling Content Disposition Filter&quot; is applied first which adds a &quot;attachment&quot; content disposition header for all
@@ -68,7 +69,7 @@ import org.osgi.service.component.annotations.Component;
         &quot;sling.filter.pattern=/content/dam/.*/(jcr:content|_jcr_content)/renditions/.*&quot;,
         &quot;service.ranking=-25001&quot;
 })
-<span class="fc" id="L71">public final class AssetRenditionContentDispositionFilter implements Filter {</span>
+<span class="fc" id="L72">public final class AssetRenditionContentDispositionFilter implements Filter {</span>
 
   static final String BLACK_LIST_MIME_TYPE_CONFIG = &quot;cq.mime.type.blacklist&quot;;
   static final String ALLOW_EMPTY_MIME = &quot;cq.dam.empty.mime&quot;;
@@ -78,46 +79,46 @@ import org.osgi.service.component.annotations.Component;
 
   @Activate
   private void activate(Map&lt;String, Object&gt; config) {
-<span class="fc" id="L81">    String[] mimetypeBlacklistArray = PropertiesUtil.toStringArray(config.get(BLACK_LIST_MIME_TYPE_CONFIG));</span>
-<span class="pc bpc" id="L82" title="1 of 2 branches missed.">    if (mimetypeBlacklistArray != null) {</span>
-<span class="fc" id="L83">      mimetypeBlacklist = Arrays.stream(mimetypeBlacklistArray)</span>
-<span class="fc" id="L84">          .map(StringUtils::lowerCase)</span>
-<span class="fc" id="L85">          .collect(Collectors.toSet());</span>
+<span class="fc" id="L82">    String[] mimetypeBlacklistArray = PropertiesUtil.toStringArray(config.get(BLACK_LIST_MIME_TYPE_CONFIG));</span>
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">    if (mimetypeBlacklistArray != null) {</span>
+<span class="fc" id="L84">      mimetypeBlacklist = Arrays.stream(mimetypeBlacklistArray)</span>
+<span class="fc" id="L85">          .map(StringUtils::lowerCase)</span>
+<span class="fc" id="L86">          .collect(Collectors.toSet());</span>
     }
     else {
-<span class="nc" id="L88">      mimetypeBlacklist = Collections.emptySet();</span>
+<span class="nc" id="L89">      mimetypeBlacklist = Collections.emptySet();</span>
     }
-<span class="fc" id="L90">    allowEmptyMime = PropertiesUtil.toBoolean(config.get(ALLOW_EMPTY_MIME), false);</span>
-<span class="fc" id="L91">  }</span>
+<span class="fc" id="L91">    allowEmptyMime = PropertiesUtil.toBoolean(config.get(ALLOW_EMPTY_MIME), false);</span>
+<span class="fc" id="L92">  }</span>
 
   @Override
   public void init(FilterConfig filterConfig) throws ServletException {
     // do nothing
-<span class="nc" id="L96">  }</span>
+<span class="nc" id="L97">  }</span>
 
   @Override
   public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
-<span class="fc" id="L100">    SlingHttpServletRequest slingRequest = (SlingHttpServletRequest)request;</span>
-<span class="fc" id="L101">    SlingHttpServletResponse slingResponse = (SlingHttpServletResponse)response;</span>
-<span class="fc bfc" id="L102" title="All 2 branches covered.">    if (accepts(slingRequest)) {</span>
-<span class="fc" id="L103">      setContentDisposition(slingRequest, slingResponse);</span>
+<span class="fc" id="L101">    SlingHttpServletRequest slingRequest = (SlingHttpServletRequest)request;</span>
+<span class="fc" id="L102">    SlingHttpServletResponse slingResponse = (SlingHttpServletResponse)response;</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">    if (accepts(slingRequest)) {</span>
+<span class="fc" id="L104">      setContentDisposition(slingRequest, slingResponse);</span>
     }
-<span class="fc" id="L105">    filterChain.doFilter(request, response);</span>
-<span class="fc" id="L106">  }</span>
+<span class="fc" id="L106">    filterChain.doFilter(request, response);</span>
+<span class="fc" id="L107">  }</span>
 
   @SuppressWarnings(&quot;null&quot;)
   private void setContentDisposition(SlingHttpServletRequest request, SlingHttpServletResponse response) {
-<span class="fc" id="L110">    Resource resource = request.getResource();</span>
+<span class="fc" id="L111">    Resource resource = request.getResource();</span>
 
     // get mimetype from nt:file resource
-<span class="fc" id="L113">    String mimeType = resource.getValueMap().get(JCR_CONTENT + &quot;/&quot; + JCR_MIMETYPE, String.class);</span>
+<span class="fc" id="L114">    String mimeType = resource.getValueMap().get(JCR_CONTENT + &quot;/&quot; + JCR_MIMETYPE, String.class);</span>
 
     // if mimetype is not blacklisted, or empty (and this is allowed) send &quot;inline&quot; content disposition header
-<span class="pc bpc" id="L116" title="1 of 4 branches missed.">    if ((StringUtils.isNotBlank(mimeType) &amp;&amp; !mimetypeBlacklist.contains(mimeType.toLowerCase()))</span>
-<span class="pc bpc" id="L117" title="3 of 4 branches missed.">        || (StringUtils.isBlank(mimeType) &amp;&amp; allowEmptyMime)) {</span>
-<span class="fc" id="L118">      response.setHeader(HEADER_CONTENT_DISPOSITION, &quot;inline&quot;);</span>
+<span class="pc bpc" id="L117" title="1 of 4 branches missed.">    if ((StringUtils.isNotBlank(mimeType) &amp;&amp; !mimetypeBlacklist.contains(mimeType.toLowerCase()))</span>
+<span class="pc bpc" id="L118" title="3 of 4 branches missed.">        || (StringUtils.isBlank(mimeType) &amp;&amp; allowEmptyMime)) {</span>
+<span class="fc" id="L119">      response.setHeader(HEADER_CONTENT_DISPOSITION, &quot;inline&quot;);</span>
     }
-<span class="fc" id="L120">  }</span>
+<span class="fc" id="L121">  }</span>
 
   /**
    * This filter only processes GET requests that targets a nt:file resource.
@@ -126,15 +127,15 @@ import org.osgi.service.component.annotations.Component;
    */
   @SuppressWarnings(&quot;null&quot;)
   private boolean accepts(SlingHttpServletRequest request) {
-<span class="pc bpc" id="L129" title="1 of 2 branches missed.">    return StringUtils.equalsIgnoreCase(request.getMethod(), METHOD_GET)</span>
-<span class="pc bpc" id="L130" title="1 of 2 branches missed.">        &amp;&amp; request.getResource() != null</span>
-<span class="fc bfc" id="L131" title="All 2 branches covered.">        &amp;&amp; StringUtils.equals(request.getResource().getValueMap().get(JCR_PRIMARYTYPE, String.class), NT_FILE);</span>
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">    return StringUtils.equalsIgnoreCase(request.getMethod(), METHOD_GET)</span>
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">        &amp;&amp; request.getResource() != null</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        &amp;&amp; StringUtils.equals(request.getResource().getValueMap().get(JCR_PRIMARYTYPE, String.class), NT_FILE);</span>
   }
 
   @Override
   public void destroy() {
     // do nothing
-<span class="nc" id="L137">  }</span>
+<span class="nc" id="L138">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
