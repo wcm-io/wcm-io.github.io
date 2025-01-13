@@ -79,6 +79,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
         description = &quot;Resource type for configuration pages.&quot;)
     String resourceType();
 
+    @AttributeDefinition(name = &quot;Collection: Mark all items updated&quot;,
+        description = &quot;When modifying a single collection item, mark all items in the collection as updated. This is a workaround for a problem publishing collections in AEMaaCS.&quot;)
+    boolean collectionMarkAllItemsUpdated() default true;
+
     @AttributeDefinition(name = &quot;Service Ranking&quot;,
         description = &quot;Priority of persistence strategy (higher = higher priority).&quot;)
     int service_ranking() default 1500;
@@ -94,159 +98,161 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
   private boolean enabled;
   private String resourceType;
+  private boolean collectionMarkAllItemsUpdated;
 
   @Activate
-  void activate(Config value) {
-<span class="fc" id="L100">    this.enabled = value.enabled();</span>
-<span class="fc" id="L101">    this.resourceType = value.resourceType();</span>
-<span class="fc" id="L102">  }</span>
+  void activate(Config config) {
+<span class="fc" id="L105">    this.enabled = config.enabled();</span>
+<span class="fc" id="L106">    this.resourceType = config.resourceType();</span>
+<span class="fc" id="L107">    this.collectionMarkAllItemsUpdated = config.collectionMarkAllItemsUpdated();</span>
+<span class="fc" id="L108">  }</span>
 
   @Override
   public Resource getResource(@NotNull Resource resource) {
-<span class="fc bfc" id="L106" title="All 2 branches covered.">    if (!enabled) {</span>
-<span class="fc" id="L107">      return null;</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (!enabled) {</span>
+<span class="fc" id="L113">      return null;</span>
     }
-<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (containsJcrContent(resource.getPath())) {</span>
-<span class="fc" id="L110">      return resource;</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">    if (containsJcrContent(resource.getPath())) {</span>
+<span class="fc" id="L116">      return resource;</span>
     }
-<span class="fc" id="L112">    return resource.getChild(JCR_CONTENT);</span>
+<span class="fc" id="L118">    return resource.getChild(JCR_CONTENT);</span>
   }
 
   @Override
   public Resource getCollectionParentResource(@NotNull Resource resource) {
-<span class="nc bnc" id="L117" title="All 2 branches missed.">    if (!enabled) {</span>
-<span class="nc" id="L118">      return null;</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">    if (!enabled) {</span>
+<span class="nc" id="L124">      return null;</span>
     }
-<span class="nc" id="L120">    return resource;</span>
+<span class="nc" id="L126">    return resource;</span>
   }
 
   @Override
   public Resource getCollectionItemResource(@NotNull Resource resource) {
-<span class="fc" id="L125">    return getResource(resource);</span>
+<span class="fc" id="L131">    return getResource(resource);</span>
   }
 
   @Override
   public String getResourcePath(@NotNull String resourcePath) {
-<span class="pc bpc" id="L130" title="1 of 2 branches missed.">    if (!enabled) {</span>
-<span class="nc" id="L131">      return null;</span>
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">    if (!enabled) {</span>
+<span class="nc" id="L137">      return null;</span>
     }
-<span class="fc bfc" id="L133" title="All 2 branches covered.">    if (containsJcrContent(resourcePath)) {</span>
-<span class="fc" id="L134">      return resourcePath;</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">    if (containsJcrContent(resourcePath)) {</span>
+<span class="fc" id="L140">      return resourcePath;</span>
     }
-<span class="fc" id="L136">    return resourcePath + &quot;/&quot; + JCR_CONTENT;</span>
+<span class="fc" id="L142">    return resourcePath + &quot;/&quot; + JCR_CONTENT;</span>
   }
 
   @Override
   public String getCollectionParentResourcePath(@NotNull String resourcePath) {
-<span class="pc bpc" id="L141" title="1 of 2 branches missed.">    if (!enabled) {</span>
-<span class="nc" id="L142">      return null;</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">    if (!enabled) {</span>
+<span class="nc" id="L148">      return null;</span>
     }
-<span class="fc" id="L144">    return resourcePath;</span>
+<span class="fc" id="L150">    return resourcePath;</span>
   }
 
   @Override
   public String getCollectionItemResourcePath(@NotNull String resourcePath) {
-<span class="fc" id="L149">    return getResourcePath(resourcePath);</span>
+<span class="fc" id="L155">    return getResourcePath(resourcePath);</span>
   }
 
   @Override
   public String getConfigName(@NotNull String configName, @Nullable String relatedConfigPath) {
-<span class="pc bpc" id="L154" title="1 of 2 branches missed.">    if (!enabled) {</span>
-<span class="nc" id="L155">      return null;</span>
+<span class="pc bpc" id="L160" title="1 of 2 branches missed.">    if (!enabled) {</span>
+<span class="nc" id="L161">      return null;</span>
     }
-<span class="fc bfc" id="L157" title="All 2 branches covered.">    if (containsJcrContent(configName)) {</span>
-<span class="fc" id="L158">      return configName;</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">    if (containsJcrContent(configName)) {</span>
+<span class="fc" id="L164">      return configName;</span>
     }
-<span class="fc" id="L160">    return configName + &quot;/&quot; + JCR_CONTENT;</span>
+<span class="fc" id="L166">    return configName + &quot;/&quot; + JCR_CONTENT;</span>
   }
 
   @Override
   public String getCollectionParentConfigName(@NotNull String configName, @Nullable String relatedConfigPath) {
-<span class="pc bpc" id="L165" title="1 of 2 branches missed.">    if (!enabled) {</span>
-<span class="nc" id="L166">      return null;</span>
+<span class="pc bpc" id="L171" title="1 of 2 branches missed.">    if (!enabled) {</span>
+<span class="nc" id="L172">      return null;</span>
     }
-<span class="fc" id="L168">    return configName;</span>
+<span class="fc" id="L174">    return configName;</span>
   }
 
   @Override
   public String getCollectionItemConfigName(@NotNull String configName, @Nullable String relatedConfigPath) {
-<span class="fc" id="L173">    return getConfigName(configName, relatedConfigPath);</span>
+<span class="fc" id="L179">    return getConfigName(configName, relatedConfigPath);</span>
   }
 
   @Override
   @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
   public boolean persistConfiguration(@NotNull ResourceResolver resolver, @NotNull String configResourcePath, @NotNull ConfigurationPersistData data) {
-<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (!enabled) {</span>
-<span class="fc" id="L180">      return false;</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">    if (!enabled) {</span>
+<span class="fc" id="L186">      return false;</span>
     }
-<span class="fc" id="L182">    String path = getResourcePath(configResourcePath);</span>
-<span class="fc" id="L183">    ensureContainingPage(resolver, path, resourceType, configurationManagementSettings);</span>
+<span class="fc" id="L188">    String path = getResourcePath(configResourcePath);</span>
+<span class="fc" id="L189">    ensureContainingPage(resolver, path, resourceType, configurationManagementSettings);</span>
 
-<span class="fc" id="L185">    getOrCreateResource(resolver, path, DEFAULT_CONFIG_NODE_TYPE, data.getProperties(), configurationManagementSettings);</span>
+<span class="fc" id="L191">    getOrCreateResource(resolver, path, DEFAULT_CONFIG_NODE_TYPE, data.getProperties(), configurationManagementSettings);</span>
 
-<span class="fc" id="L187">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
-<span class="fc" id="L188">    updatePageLastMod(resolver, pageManager, path);</span>
-<span class="fc" id="L189">    commit(resolver, configResourcePath);</span>
-<span class="fc" id="L190">    return true;</span>
+<span class="fc" id="L193">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
+<span class="fc" id="L194">    updatePageLastMod(resolver, pageManager, path);</span>
+<span class="fc" id="L195">    commit(resolver, configResourcePath);</span>
+<span class="fc" id="L196">    return true;</span>
   }
 
   @Override
   @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
   public boolean persistConfigurationCollection(@NotNull ResourceResolver resolver, @NotNull String configResourceCollectionParentPath,
       @NotNull ConfigurationCollectionPersistData data) {
-<span class="pc bpc" id="L197" title="1 of 2 branches missed.">    if (!enabled) {</span>
-<span class="nc" id="L198">      return false;</span>
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">    if (!enabled) {</span>
+<span class="nc" id="L204">      return false;</span>
     }
 
-<span class="fc" id="L201">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
+<span class="fc" id="L207">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
 
     // create page for collection parent
-<span class="fc" id="L204">    String parentPath = getCollectionParentResourcePath(configResourceCollectionParentPath);</span>
-<span class="fc" id="L205">    ensurePageIfNotContainingPage(resolver, parentPath, resourceType, configurationManagementSettings);</span>
-<span class="fc" id="L206">    Resource configResourceParent = getOrCreateResource(resolver, parentPath, DEFAULT_CONFIG_NODE_TYPE, ValueMap.EMPTY, configurationManagementSettings);</span>
-<span class="fc" id="L207">    updatePageLastMod(resolver, pageManager, parentPath);</span>
+<span class="fc" id="L210">    String parentPath = getCollectionParentResourcePath(configResourceCollectionParentPath);</span>
+<span class="fc" id="L211">    ensurePageIfNotContainingPage(resolver, parentPath, resourceType, configurationManagementSettings);</span>
+<span class="fc" id="L212">    Resource configResourceParent = getOrCreateResource(resolver, parentPath, DEFAULT_CONFIG_NODE_TYPE, ValueMap.EMPTY, configurationManagementSettings);</span>
+<span class="fc" id="L213">    updatePageLastMod(resolver, pageManager, parentPath);</span>
 
     // delete existing children no longer in the list
-<span class="fc" id="L210">    deleteChildrenNotInCollection(configResourceParent, data);</span>
+<span class="fc" id="L216">    deleteChildrenNotInCollection(configResourceParent, data);</span>
 
     // create new or overwrite existing children
-<span class="fc bfc" id="L213" title="All 2 branches covered.">    for (ConfigurationPersistData item : data.getItems()) {</span>
-<span class="fc" id="L214">      String path = getCollectionItemResourcePath(parentPath + &quot;/&quot; + item.getCollectionItemName());</span>
-<span class="fc bfc" id="L215" title="All 2 branches covered.">      if (isItemModifiedOrNewlyAdded(resolver, path, item, configurationManagementSettings)) {</span>
-<span class="fc" id="L216">        ensureContainingPage(resolver, path, resourceType, configurationManagementSettings);</span>
-<span class="fc" id="L217">        getOrCreateResource(resolver, path, DEFAULT_CONFIG_NODE_TYPE, item.getProperties(), configurationManagementSettings);</span>
-<span class="fc" id="L218">        updatePageLastMod(resolver, pageManager, path);</span>
+<span class="fc bfc" id="L219" title="All 2 branches covered.">    for (ConfigurationPersistData item : data.getItems()) {</span>
+<span class="fc" id="L220">      String path = getCollectionItemResourcePath(parentPath + &quot;/&quot; + item.getCollectionItemName());</span>
+<span class="fc bfc" id="L221" title="All 4 branches covered.">      if (collectionMarkAllItemsUpdated || isItemModifiedOrNewlyAdded(resolver, path, item, configurationManagementSettings)) {</span>
+<span class="fc" id="L222">        ensureContainingPage(resolver, path, resourceType, configurationManagementSettings);</span>
+<span class="fc" id="L223">        getOrCreateResource(resolver, path, DEFAULT_CONFIG_NODE_TYPE, item.getProperties(), configurationManagementSettings);</span>
+<span class="fc" id="L224">        updatePageLastMod(resolver, pageManager, path);</span>
       }
-<span class="fc" id="L220">    }</span>
+<span class="fc" id="L226">    }</span>
 
     // if resource collection parent properties are given replace them as well
-<span class="fc bfc" id="L223" title="All 2 branches covered.">    if (data.getProperties() != null) {</span>
-<span class="fc" id="L224">      Page parentPage = configResourceParent.adaptTo(Page.class);</span>
-<span class="pc bpc" id="L225" title="1 of 2 branches missed.">      if (parentPage != null) {</span>
-<span class="fc" id="L226">        replaceProperties(parentPage.getContentResource(), data.getProperties(), configurationManagementSettings);</span>
+<span class="fc bfc" id="L229" title="All 2 branches covered.">    if (data.getProperties() != null) {</span>
+<span class="fc" id="L230">      Page parentPage = configResourceParent.adaptTo(Page.class);</span>
+<span class="pc bpc" id="L231" title="1 of 2 branches missed.">      if (parentPage != null) {</span>
+<span class="fc" id="L232">        replaceProperties(parentPage.getContentResource(), data.getProperties(), configurationManagementSettings);</span>
       }
       else {
-<span class="nc" id="L229">        replaceProperties(configResourceParent, data.getProperties(), configurationManagementSettings);</span>
+<span class="nc" id="L235">        replaceProperties(configResourceParent, data.getProperties(), configurationManagementSettings);</span>
       }
     }
 
-<span class="fc" id="L233">    commit(resolver, configResourceCollectionParentPath);</span>
-<span class="fc" id="L234">    return true;</span>
+<span class="fc" id="L239">    commit(resolver, configResourceCollectionParentPath);</span>
+<span class="fc" id="L240">    return true;</span>
   }
 
   @Override
   public boolean deleteConfiguration(@NotNull ResourceResolver resolver, @NotNull String configResourcePath) {
-<span class="pc bpc" id="L239" title="1 of 2 branches missed.">    if (!enabled) {</span>
-<span class="nc" id="L240">      return false;</span>
+<span class="pc bpc" id="L245" title="1 of 2 branches missed.">    if (!enabled) {</span>
+<span class="nc" id="L246">      return false;</span>
     }
-<span class="fc" id="L242">    Resource configResource = resolver.getResource(configResourcePath);</span>
-<span class="pc bpc" id="L243" title="1 of 2 branches missed.">    if (configResource != null) {</span>
-<span class="fc" id="L244">      deletePageOrResource(configResource);</span>
+<span class="fc" id="L248">    Resource configResource = resolver.getResource(configResourcePath);</span>
+<span class="pc bpc" id="L249" title="1 of 2 branches missed.">    if (configResource != null) {</span>
+<span class="fc" id="L250">      deletePageOrResource(configResource);</span>
     }
-<span class="fc" id="L246">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
-<span class="fc" id="L247">    updatePageLastMod(resolver, pageManager, configResourcePath);</span>
-<span class="fc" id="L248">    commit(resolver, configResourcePath);</span>
-<span class="fc" id="L249">    return true;</span>
+<span class="fc" id="L252">    PageManager pageManager = pageManagerFactory.getPageManager(resolver);</span>
+<span class="fc" id="L253">    updatePageLastMod(resolver, pageManager, configResourcePath);</span>
+<span class="fc" id="L254">    commit(resolver, configResourcePath);</span>
+<span class="fc" id="L255">    return true;</span>
   }
 
 }
