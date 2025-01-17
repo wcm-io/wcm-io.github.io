@@ -20,23 +20,24 @@
 package io.wcm.handler.media.ui;
 
 import java.util.Arrays;
+import java.util.Optional;
 
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.wcm.handler.media.MediaArgs;
 import io.wcm.handler.media.MediaArgs.PictureSource;
+import io.wcm.handler.media.MediaArgs.WidthOption;
 import io.wcm.handler.media.MediaBuilder;
 import io.wcm.handler.media.format.MediaFormat;
 import io.wcm.handler.media.format.MediaFormatHandler;
+import io.wcm.handler.media.impl.WidthUtils;
 
 final class ImageUtils {
 
-<span class="fc" id="L39">  private static final Logger LOG = LoggerFactory.getLogger(ImageUtils.class);</span>
+<span class="fc" id="L40">  private static final Logger LOG = LoggerFactory.getLogger(ImageUtils.class);</span>
 
   private ImageUtils() {
     // private constructor as this is a utils class
@@ -53,26 +54,26 @@ final class ImageUtils {
    */
   public static void applyPictureSources(@NotNull MediaFormatHandler mediaFormatHandler, @NotNull MediaBuilder builder,
       String @NotNull [] mediaFormatNames, String @NotNull [] medias, String @NotNull [] widths) {
-<span class="pc bpc" id="L56" title="2 of 6 branches missed.">    for (int i = 0; i &lt; mediaFormatNames.length &amp;&amp; i &lt; medias.length &amp;&amp; i &lt; widths.length; i++) {</span>
-<span class="fc" id="L57">      MediaFormat mediaFormat = mediaFormatHandler.getMediaFormat(mediaFormatNames[i]);</span>
-<span class="pc bpc" id="L58" title="1 of 2 branches missed.">      if (mediaFormat != null) {</span>
-<span class="fc" id="L59">        String media = medias[i];</span>
-<span class="fc" id="L60">        long[] widthsArray = toWidthsArray(widths[i]);</span>
-<span class="pc bpc" id="L61" title="1 of 2 branches missed.">        if (widthsArray.length &gt; 0) {</span>
+<span class="pc bpc" id="L57" title="2 of 6 branches missed.">    for (int i = 0; i &lt; mediaFormatNames.length &amp;&amp; i &lt; medias.length &amp;&amp; i &lt; widths.length; i++) {</span>
+<span class="fc" id="L58">      MediaFormat mediaFormat = mediaFormatHandler.getMediaFormat(mediaFormatNames[i]);</span>
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">      if (mediaFormat != null) {</span>
+<span class="fc" id="L60">        String media = medias[i];</span>
+<span class="fc" id="L61">        WidthOption[] widthOptions = toWidthOptionArray(widths[i]);</span>
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">        if (widthOptions.length &gt; 0) {</span>
 
-<span class="fc" id="L63">          PictureSource pictureSource = new PictureSource(mediaFormat);</span>
-<span class="fc" id="L64">          pictureSource.widths(widthsArray);</span>
-<span class="fc bfc" id="L65" title="All 2 branches covered.">          if (StringUtils.isNotBlank(media)) {</span>
-<span class="fc" id="L66">            pictureSource.media(media);</span>
+<span class="fc" id="L64">          PictureSource pictureSource = new PictureSource(mediaFormat);</span>
+<span class="fc" id="L65">          pictureSource.widthOptions(widthOptions);</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">          if (StringUtils.isNotBlank(media)) {</span>
+<span class="fc" id="L67">            pictureSource.media(media);</span>
           }
-<span class="fc" id="L68">          builder.pictureSource(pictureSource);</span>
+<span class="fc" id="L69">          builder.pictureSource(pictureSource);</span>
         }
-<span class="fc" id="L70">      }</span>
+<span class="fc" id="L71">      }</span>
       else {
-<span class="nc" id="L72">        LOG.warn(&quot;Ignoring invalid media format: {}&quot;, mediaFormatNames[i]);</span>
+<span class="nc" id="L73">        LOG.warn(&quot;Ignoring invalid media format: {}&quot;, mediaFormatNames[i]);</span>
       }
     }
-<span class="fc" id="L75">  }</span>
+<span class="fc" id="L76">  }</span>
 
   /**
    * Convert widths string to long array and ignore invalid numbers, sort values descending.
@@ -80,36 +81,27 @@ final class ImageUtils {
    * @param widths Widths string
    * @return Widths array
    */
-  public static long[] toWidthsArray(@NotNull String widths) {
-<span class="pc bpc" id="L84" title="1 of 2 branches missed.">    if (StringUtils.isBlank(widths)) {</span>
-<span class="nc" id="L85">      return new long[0];</span>
+  public static long @NotNull[] toWidthsArray(@NotNull String widths) {
+<span class="nc bnc" id="L85" title="All 2 branches missed.">    if (StringUtils.isBlank(widths)) {</span>
+<span class="nc" id="L86">      return new long[0];</span>
     }
-<span class="fc" id="L87">    return Arrays.stream(StringUtils.split(widths, &quot;,&quot;))</span>
-<span class="fc" id="L88">        .map(NumberUtils::toLong)</span>
-<span class="pc bpc" id="L89" title="1 of 2 branches missed.">        .filter(width -&gt; width &gt; 0)</span>
-<span class="fc" id="L90">        .sorted((l1, l2) -&gt; Long.compare(l2, l1))</span>
-<span class="fc" id="L91">        .mapToLong(Long::longValue)</span>
-<span class="fc" id="L92">        .toArray();</span>
+<span class="nc" id="L88">    return Arrays.stream(StringUtils.split(widths, &quot;,&quot;))</span>
+<span class="nc" id="L89">        .map(NumberUtils::toLong)</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        .filter(width -&gt; width &gt; 0)</span>
+<span class="nc" id="L91">        .sorted((l1, l2) -&gt; Long.compare(l2, l1))</span>
+<span class="nc" id="L92">        .mapToLong(Long::longValue)</span>
+<span class="nc" id="L93">        .toArray();</span>
   }
 
   /**
-   * Convert width options string to MediaArgs.WidthOption array and ignore invalid numbers and invalid format, sort
-   * values descending.
+   * Convert width options string to WidthOption array and ignore invalid numbers and invalid format.
    * @param widthOptions Width options string
    * @return Widths array which is empty in case given widthOptions is blank
    */
-  public static MediaArgs.WidthOption[] toWidthOptionArray(@NotNull String widthOptions) {
-<span class="nc bnc" id="L102" title="All 2 branches missed.">    if (StringUtils.isBlank(widthOptions)) {</span>
-<span class="nc" id="L103">      return new MediaArgs.WidthOption[0];</span>
-    }
-<span class="nc" id="L105">    return Arrays.stream(StringUtils.split(widthOptions, &quot;,&quot;))</span>
-<span class="nc" id="L106">        .filter(StringUtils::isNotBlank)</span>
-<span class="nc" id="L107">        .map(widthOption -&gt; StringUtils.split(widthOption, &quot;:&quot;))</span>
-<span class="nc bnc" id="L108" title="All 2 branches missed.">        .filter(widthOptionArray -&gt; widthOptionArray.length == 2)</span>
-<span class="nc" id="L109">        .map(widthOptionArray -&gt; new MediaArgs.WidthOption(NumberUtils.toLong(widthOptionArray[0]), BooleanUtils.toBoolean(widthOptionArray[1])))</span>
-<span class="nc bnc" id="L110" title="All 2 branches missed.">        .filter(widthOption -&gt; widthOption.getWidth() &gt; 0)</span>
-<span class="nc" id="L111">        .sorted((wo1, wo2) -&gt; Long.compare(wo2.getWidth(), wo1.getWidth()))</span>
-<span class="nc" id="L112">        .toArray(MediaArgs.WidthOption[]::new);</span>
+  @SuppressWarnings(&quot;null&quot;)
+  public static @NotNull WidthOption @NotNull[] toWidthOptionArray(@NotNull String widthOptions) {
+<span class="fc" id="L103">    return Optional.ofNullable(WidthUtils.parseWidths(widthOptions))</span>
+<span class="fc" id="L104">            .orElse(new WidthOption[0]);</span>
   }
 
 }

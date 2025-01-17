@@ -21,6 +21,7 @@ package io.wcm.handler.media.ui;
 
 import static io.wcm.handler.media.MediaNameConstants.PROP_CSS_CLASS;
 import static io.wcm.handler.media.impl.WidthUtils.parseWidths;
+import static io.wcm.handler.media.impl.WidthUtils.hasDensityDescriptor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,14 +69,15 @@ import io.wcm.handler.media.format.MediaFormatHandler;
  * {@value io.wcm.handler.media.MediaNameConstants#PN_COMPONENT_MEDIA_AUTOCROP}.&lt;/li&gt;
  * &lt;li&gt;&lt;code&gt;imageWidths&lt;/code&gt;: Responsive rendition widths for image. Example:
  * &quot;{@literal 2560?,1920,?1280,640,320}&quot;.&lt;br&gt;
- * Appending the suffix &quot;{@literal ?}&quot; makes the width optional, eg. &quot;1440?&quot;&lt;br&gt;
- * Use always 'imageWidths' together with 'imageSizes' property.&lt;br&gt;
+ * Appending the suffix &quot;{@literal ?}&quot; makes the width optional, e.g. &quot;1440?&quot;&lt;br&gt;
+ * Pixel density descriptors can be added with a colon separator, e.g. &quot;1440:2x?&quot;. Default density is 1x.&lt;br&gt;
+ * Use always 'imageWidths' together with 'imageSizes' property unless you add pixel density descriptors.&lt;br&gt;
  * Cannot be used together with the picture source parameters.&lt;/li&gt;
  * &lt;li&gt;&lt;code&gt;imageSizes&lt;/code&gt;: &quot;Sizes&quot; string for img element. Example:
  * &quot;{@literal (min-width: 400px) 400px, 100vw}&quot;.&lt;br&gt;
  * Cannot be used together with the picture source parameters.&lt;/li&gt;
  * &lt;li&gt;&lt;code&gt;pictureSourceMediaFormat&lt;/code&gt;: List of media formats for the picture source elements. Example:
- * &quot;{@literal ['mf_16_9']}&quot;&lt;br&gt;
+ * &quot;{@literal ['mf_16_9','mf_4_3']}&quot;&lt;br&gt;
  * You have to define the same number of array items in all pictureSource* properties.&lt;br&gt;
  * Cannot be used together with image sizes.&lt;/li&gt;
  * &lt;li&gt;&lt;code&gt;pictureSourceMedia&lt;/code&gt;: List of media expressions for the picture source elements.
@@ -83,18 +85,19 @@ import io.wcm.handler.media.format.MediaFormatHandler;
  * You have to define the same number of array items in all pictureSource* properties.&lt;br&gt;
  * Cannot be used together with image sizes.&lt;/li&gt;
  * &lt;li&gt;&lt;code&gt;pictureSourceWidths&lt;/code&gt;: List of widths for the picture source elements.
- * Example: &quot;{@literal 479,719,959,1279,1439?,1440?}&quot;.&lt;br&gt;
- * Appending the suffix &quot;{@literal ?}&quot; makes the width optional, eg. &quot;1440?&quot;&lt;br&gt;
+ * Example: &quot;{@literal ['479,719,959,1279,1439?,1440?','640,1200:2x?']}&quot;.&lt;br&gt;
+ * Appending the suffix &quot;{@literal ?}&quot; makes the width optional, e.g. &quot;1440?&quot;&lt;br&gt;
+ * Pixel density descriptors can be added with a colon separator, e.g. &quot;1440:2x?&quot;. Default density is 1x.&lt;br&gt;
  * You have to define the same number of array items in all pictureSource* properties.&lt;br&gt;
  * Cannot be used together with image sizes.&lt;/li&gt;
  * &lt;li&gt;&lt;code&gt;property:&amp;lt;propertyname&amp;gt;&lt;/code&gt;: Custom properties for MediaArgs can be added with the name prefix
  * {@value #RA_PROPERTY_PREFIX},
- * e.g. {@literal &quot;property:myprop1&quot;=&quot;value1&quot;} which adds property {@literal &quot;myprop1&quot;} to the the MediaArgs. Custom
+ * e.g. {@literal &quot;property:myprop1&quot;=&quot;value1&quot;} which adds property {@literal &quot;myprop1&quot;} to the MediaArgs. Custom
  * properties with null value will be ignored.&lt;/li&gt;
  * &lt;/ul&gt;
  */
 @Model(adaptables = SlingHttpServletRequest.class)
-<span class="fc" id="L97">public class ResourceMedia {</span>
+<span class="fc" id="L100">public class ResourceMedia {</span>
 
   /**
    * Name prefix for request attributes that will be put into the media builder properties
@@ -104,11 +107,11 @@ import io.wcm.handler.media.format.MediaFormatHandler;
   /**
    * Regex pattern that matches request attribute names with the prefix {@value #RA_PROPERTY_PREFIX}
    */
-<span class="fc" id="L107">  private static final Pattern PROPERTY_NAME_PATTERN = Pattern.compile(&quot;^&quot; + RA_PROPERTY_PREFIX + &quot;.+$&quot;);</span>
+<span class="fc" id="L110">  private static final Pattern PROPERTY_NAME_PATTERN = Pattern.compile(&quot;^&quot; + RA_PROPERTY_PREFIX + &quot;.+$&quot;);</span>
 
   /**
    * Optional: Media format to be used.
-   * By default the media formats are read from the component properties of the component and this
+   * By default, the media formats are read from the component properties of the component and this
    * parameter should not be set. But for components that allow to choose one from the allowed media
    * formats via their edit dialog the format can be set here.
    * To be used together with 'imageSizes' and 'widths'.&lt;br&gt;
@@ -136,7 +139,10 @@ import io.wcm.handler.media.format.MediaFormatHandler;
    * Defines responsive rendition widths for image.
    * To be used together with 'imageSizes' property.
    * Example: &quot;{@literal 2560?,1920,?1280,640,320}&quot; &lt;br&gt;
+   * Example with density descriptor: &quot;{@literal 100,200:1.5x,200:2x?}&quot;&lt;br&gt;
    * Widths are by default required. To declare an optional width append the &quot;{@literal ?}&quot; suffix, eg. &quot;1440?&quot;&lt;br&gt;
+   * Density descriptor is separated by a colon e.g. &quot;1440:2x?&quot;. You can eliminate 1x descriptor. Density descriptors
+   * are considered when at least one width has a density descriptor and image sizes is not set.&lt;br&gt;
    * Cannot be used together with the picture source parameters.
    */
   @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
@@ -171,8 +177,11 @@ import io.wcm.handler.media.format.MediaFormatHandler;
   /**
    * List of widths for the picture source elements.
    * Example: &quot;{@literal 479,719,959,1279,1439?,1440?}&quot;&lt;br&gt;
+   * Example with density descriptor: &quot;{@literal 100,200:1.5x,200:2x?}&quot;&lt;br&gt;
    * You have to define the same number of array items in all pictureSource* properties.
    * Widths are by default required. To declare an optional width append the &quot;{@literal ?}&quot; suffix, eg. &quot;1440?&quot;&lt;br&gt;
+   * Density descriptor is separated by a colon e.g. &quot;1440:2x?&quot;. You can eliminate 1x descriptor. Density descriptors
+   * are considered when at least one width has a density descriptor and image sizes is not set.&lt;br&gt;
    * Cannot be used together with image sizes.
    */
   @RequestAttribute(injectionStrategy = InjectionStrategy.OPTIONAL)
@@ -192,54 +201,55 @@ import io.wcm.handler.media.format.MediaFormatHandler;
   @PostConstruct
   @SuppressWarnings(&quot;null&quot;)
   private void activate() {
-<span class="fc" id="L195">    MediaBuilder builder = mediaHandler.get(resource);</span>
+<span class="fc" id="L204">    MediaBuilder builder = mediaHandler.get(resource);</span>
 
-<span class="fc bfc" id="L197" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(mediaFormat)) {</span>
-<span class="fc" id="L198">      builder.mediaFormatName(mediaFormat);</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(mediaFormat)) {</span>
+<span class="fc" id="L207">      builder.mediaFormatName(mediaFormat);</span>
     }
-<span class="fc bfc" id="L200" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(refProperty)) {</span>
-<span class="fc" id="L201">      builder.refProperty(refProperty);</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(refProperty)) {</span>
+<span class="fc" id="L210">      builder.refProperty(refProperty);</span>
     }
-<span class="fc bfc" id="L203" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(cropProperty)) {</span>
-<span class="fc" id="L204">      builder.cropProperty(cropProperty);</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(cropProperty)) {</span>
+<span class="fc" id="L213">      builder.cropProperty(cropProperty);</span>
     }
-<span class="fc bfc" id="L206" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(rotationProperty)) {</span>
-<span class="fc" id="L207">      builder.rotationProperty(rotationProperty);</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(rotationProperty)) {</span>
+<span class="fc" id="L216">      builder.rotationProperty(rotationProperty);</span>
     }
-<span class="fc bfc" id="L209" title="All 2 branches covered.">    if (autoCrop != null) {</span>
-<span class="fc" id="L210">      builder.autoCrop(autoCrop);</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">    if (autoCrop != null) {</span>
+<span class="fc" id="L219">      builder.autoCrop(autoCrop);</span>
     }
-<span class="fc bfc" id="L212" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(cssClass)) {</span>
-<span class="fc" id="L213">      builder.property(PROP_CSS_CLASS, cssClass);</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(cssClass)) {</span>
+<span class="fc" id="L222">      builder.property(PROP_CSS_CLASS, cssClass);</span>
     }
 
     // apply responsive image handling - either via image sizes or picture sources
-<span class="fc bfc" id="L217" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(imageSizes)) {</span>
-<span class="fc" id="L218">      WidthOption[] widthOptionsArray = parseWidths(imageWidths);</span>
-<span class="pc bpc" id="L219" title="1 of 2 branches missed.">      if (widthOptionsArray != null) {</span>
-<span class="fc" id="L220">        builder.imageSizes(imageSizes, widthOptionsArray);</span>
+    // image sizes is applied when sizes is configured ot if image widths contain density descriptors (separated by &quot;:&quot;)
+<span class="fc bfc" id="L227" title="All 4 branches covered.">    if (StringUtils.isNotEmpty(imageSizes) || hasDensityDescriptor(imageWidths)) {</span>
+<span class="fc" id="L228">      WidthOption[] widthOptionsArray = parseWidths(imageWidths);</span>
+<span class="pc bpc" id="L229" title="1 of 2 branches missed.">      if (widthOptionsArray != null) {</span>
+<span class="fc" id="L230">        builder.imageSizes(StringUtils.defaultString(imageSizes), widthOptionsArray);</span>
       }
-<span class="fc" id="L222">    }</span>
-<span class="pc bpc" id="L223" title="2 of 6 branches missed.">    else if (pictureSourceMediaFormat != null &amp;&amp; pictureSourceMedia != null &amp;&amp; pictureSourceWidths != null) {</span>
-<span class="fc" id="L224">      ImageUtils.applyPictureSources(mediaFormatHandler, builder,</span>
-<span class="fc" id="L225">          toStringArray(pictureSourceMediaFormat),</span>
-<span class="fc" id="L226">          toStringArray(pictureSourceMedia),</span>
-<span class="fc" id="L227">          toStringArray(pictureSourceWidths));</span>
+<span class="fc" id="L232">    }</span>
+<span class="pc bpc" id="L233" title="2 of 6 branches missed.">    else if (pictureSourceMediaFormat != null &amp;&amp; pictureSourceMedia != null &amp;&amp; pictureSourceWidths != null) {</span>
+<span class="fc" id="L234">      ImageUtils.applyPictureSources(mediaFormatHandler, builder,</span>
+<span class="fc" id="L235">          toStringArray(pictureSourceMediaFormat),</span>
+<span class="fc" id="L236">          toStringArray(pictureSourceMedia),</span>
+<span class="fc" id="L237">          toStringArray(pictureSourceWidths));</span>
     }
 
-<span class="fc" id="L230">    setCustomProperties(builder);</span>
+<span class="fc" id="L240">    setCustomProperties(builder);</span>
 
-<span class="fc" id="L232">    media = builder.build();</span>
-<span class="fc" id="L233">  }</span>
+<span class="fc" id="L242">    media = builder.build();</span>
+<span class="fc" id="L243">  }</span>
 
   /**
    * Puts all request attributes that their name starts with the prefix {@value #RA_PROPERTY_PREFIX} into the properties of the media builder
    * @param builder Media builder
    */
   private void setCustomProperties(MediaBuilder builder) {
-<span class="fc" id="L240">    getCustomPropertiesFromRequestAttributes()</span>
-<span class="fc" id="L241">        .forEach(builder::property);</span>
-<span class="fc" id="L242">  }</span>
+<span class="fc" id="L250">    getCustomPropertiesFromRequestAttributes()</span>
+<span class="fc" id="L251">        .forEach(builder::property);</span>
+<span class="fc" id="L252">  }</span>
 
   /**
    * Gathers all request attributes whose name begins with the prefix {@value #RA_PROPERTY_PREFIX}, strips the prefix to get the property name
@@ -248,36 +258,36 @@ import io.wcm.handler.media.format.MediaFormatHandler;
    */
   @NotNull
   private Map&lt;String, Object&gt; getCustomPropertiesFromRequestAttributes() {
-<span class="fc" id="L251">    return enumToList(request.getAttributeNames()).stream()</span>
-<span class="fc" id="L252">        .filter(this::isMediaPropAttribute)</span>
-<span class="fc" id="L253">        .filter(this::attributeValueIsNotNull)</span>
-<span class="fc" id="L254">        .collect(Collectors.toMap(this::toPropertyName, request::getAttribute));</span>
+<span class="fc" id="L261">    return enumToList(request.getAttributeNames()).stream()</span>
+<span class="fc" id="L262">        .filter(this::isMediaPropAttribute)</span>
+<span class="fc" id="L263">        .filter(this::attributeValueIsNotNull)</span>
+<span class="fc" id="L264">        .collect(Collectors.toMap(this::toPropertyName, request::getAttribute));</span>
   }
 
   @NotNull
   private List&lt;String&gt; enumToList(@Nullable Enumeration&lt;?&gt; enumeration) {
-<span class="fc" id="L259">    List&lt;String&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L269">    List&lt;String&gt; list = new ArrayList&lt;&gt;();</span>
 
-<span class="pc bpc" id="L261" title="1 of 2 branches missed.">    if (enumeration != null) {</span>
-<span class="fc bfc" id="L262" title="All 2 branches covered.">      while (enumeration.hasMoreElements()) {</span>
-<span class="fc" id="L263">        list.add(String.valueOf(enumeration.nextElement()));</span>
+<span class="pc bpc" id="L271" title="1 of 2 branches missed.">    if (enumeration != null) {</span>
+<span class="fc bfc" id="L272" title="All 2 branches covered.">      while (enumeration.hasMoreElements()) {</span>
+<span class="fc" id="L273">        list.add(String.valueOf(enumeration.nextElement()));</span>
       }
     }
 
-<span class="fc" id="L267">    return list;</span>
+<span class="fc" id="L277">    return list;</span>
   }
 
   private boolean isMediaPropAttribute(@NotNull String requestAttributeName) {
-<span class="fc" id="L271">    return PROPERTY_NAME_PATTERN.matcher(requestAttributeName).matches();</span>
+<span class="fc" id="L281">    return PROPERTY_NAME_PATTERN.matcher(requestAttributeName).matches();</span>
   }
 
   private boolean attributeValueIsNotNull(String attributeName) {
-<span class="fc" id="L275">    return Objects.nonNull(request.getAttribute(attributeName));</span>
+<span class="fc" id="L285">    return Objects.nonNull(request.getAttribute(attributeName));</span>
   }
 
   @NotNull
   private String toPropertyName(@NotNull String requestAttributeName) {
-<span class="fc" id="L280">    return StringUtils.substringAfter(requestAttributeName, RA_PROPERTY_PREFIX);</span>
+<span class="fc" id="L290">    return StringUtils.substringAfter(requestAttributeName, RA_PROPERTY_PREFIX);</span>
   }
 
   /**
@@ -288,9 +298,9 @@ import io.wcm.handler.media.format.MediaFormatHandler;
    * @return Array with objects converted to strings
    */
   private static String[] toStringArray(Object... objectArray) {
-<span class="fc" id="L291">    return Arrays.stream(objectArray)</span>
-<span class="pc bpc" id="L292" title="1 of 2 branches missed.">        .map(obj -&gt; obj == null ? &quot;&quot; : obj.toString())</span>
-<span class="fc" id="L293">        .toArray(String[]::new);</span>
+<span class="fc" id="L301">    return Arrays.stream(objectArray)</span>
+<span class="pc bpc" id="L302" title="1 of 2 branches missed.">        .map(obj -&gt; obj == null ? &quot;&quot; : obj.toString())</span>
+<span class="fc" id="L303">        .toArray(String[]::new);</span>
   }
 
   /**
@@ -299,7 +309,7 @@ import io.wcm.handler.media.format.MediaFormatHandler;
    * @return Media
    */
   public @NotNull Media getMetadata() {
-<span class="fc" id="L302">    return media;</span>
+<span class="fc" id="L312">    return media;</span>
   }
 
   /**
@@ -307,7 +317,7 @@ import io.wcm.handler.media.format.MediaFormatHandler;
    * @return Media is valid
    */
   public boolean isValid() {
-<span class="fc" id="L310">    return media.isValid();</span>
+<span class="fc" id="L320">    return media.isValid();</span>
   }
 
   /**
@@ -316,7 +326,7 @@ import io.wcm.handler.media.format.MediaFormatHandler;
    * @return Media markup
    */
   public @Nullable String getMarkup() {
-<span class="nc" id="L319">    return media.getMarkup();</span>
+<span class="nc" id="L329">    return media.getMarkup();</span>
   }
 
 }

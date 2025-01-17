@@ -20,6 +20,8 @@
 package io.wcm.handler.media.impl;
 
 import java.util.Arrays;
+import java.util.Objects;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
@@ -27,6 +29,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.wcm.handler.media.MediaArgs.WidthOption;
 
 /**
@@ -35,43 +38,75 @@ import io.wcm.handler.media.MediaArgs.WidthOption;
 public final class WidthUtils {
 
   // example values:
+  // 800        &lt;- width=800px, mandatory
+  // 800?       &lt;- width=800px, optional
+  // 800:1.5x   &lt;- width=800px, density 1.5x, mandatory
+  // 800:1.5x?  &lt;- width=800px, density 1.5x, optional
+  static final String WIDTH_OPTION = &quot;\\d+(:\\d+(\\.\\d+)?x)?\\??&quot;;
+<span class="fc" id="L46">  static final Pattern WIDTH_OPTION_PATTERN = Pattern.compile(&quot;(?&lt;width&gt;\\d+)(:(?&lt;density&gt;\\d+(\\.\\d+)?x))?(?&lt;optional&gt;\\?)?&quot;);</span>
+
+  // comma-separated width options; tolerates whitespaces between options.
+  // example values:
   // 800,1024,2048
   // 800,1024?,2048?   &lt;- last two are optional
-<span class="fc" id="L40">  static final Pattern WIDTHS_PATTERN = Pattern.compile(&quot;^\\s*\\d+\\??\\s*(,\\s*\\d+\\??\\s*)*+$&quot;);</span>
+<span class="fc" id="L52">  static final Pattern WIDTHS_PATTERN = Pattern.compile(&quot;^\\s*&quot; + WIDTH_OPTION + &quot;\\s*(,\\s*&quot; + WIDTH_OPTION + &quot;\\s*)*+$&quot;);</span>
 
   private WidthUtils() {
     // static methods only
   }
 
   /**
-   * Parse width string.
-   * @param widths Width string
+   * Parse widths string. The string should contain a comma-separated list of width options.
+   * Whitespaces between options are tolerated.&lt;br&gt;
+   * Examples:
+   * &lt;ul&gt;
+   *   &lt;li&gt;{@literal 100, 200? , 300?} returns three width options, the last two ones are optional&lt;/li&gt;
+   *   &lt;li&gt;{@literal 100, 200:1.5x, 300:2x?} returns three options with pixel densities, last options is optional&lt;/li&gt;
+   * &lt;/ul&gt;
+   * @param widths Widths string
    * @return Width options
    */
-  public static @Nullable WidthOption @Nullable [] parseWidths(@Nullable String widths) {
-<span class="fc bfc" id="L52" title="All 2 branches covered.">    if (StringUtils.isBlank(widths)) {</span>
-<span class="fc" id="L53">      return null;</span>
+  @SuppressFBWarnings(&quot;NP_NONNULL_RETURN_VIOLATION&quot;)
+  public static @NotNull WidthOption @Nullable [] parseWidths(@Nullable String widths) {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">    if (StringUtils.isBlank(widths)) {</span>
+<span class="fc" id="L72">      return null;</span>
     }
-<span class="fc bfc" id="L55" title="All 2 branches covered.">    if (!WIDTHS_PATTERN.matcher(widths).matches()) {</span>
-<span class="fc" id="L56">      return null;</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">    if (!WIDTHS_PATTERN.matcher(widths).matches()) {</span>
+<span class="fc" id="L75">      return null;</span>
     }
-<span class="fc" id="L58">    String[] widthItems = StringUtils.split(widths, &quot;,&quot;);</span>
-<span class="fc" id="L59">    return Arrays.stream(widthItems)</span>
-<span class="fc" id="L60">        .map(StringUtils::trim)</span>
-<span class="fc" id="L61">        .map(WidthUtils::toWidthOption)</span>
-<span class="fc" id="L62">        .toArray(size -&gt; new WidthOption[size]);</span>
+<span class="fc" id="L77">    String[] widthItems = StringUtils.split(widths, &quot;,&quot;);</span>
+<span class="fc" id="L78">    return Arrays.stream(widthItems)</span>
+<span class="fc" id="L79">        .map(StringUtils::trim)</span>
+<span class="fc" id="L80">        .map(WidthUtils::toWidthOption)</span>
+<span class="fc" id="L81">        .filter(Objects::nonNull)</span>
+<span class="fc" id="L82">        .toArray(WidthOption[]::new);</span>
   }
 
-  private static @NotNull WidthOption toWidthOption(String width) {
-<span class="fc" id="L66">    boolean optional = StringUtils.endsWith(width, &quot;?&quot;);</span>
-    String widthValue;
-<span class="fc bfc" id="L68" title="All 2 branches covered.">    if (optional) {</span>
-<span class="fc" id="L69">      widthValue = StringUtils.substringBefore(width, &quot;?&quot;);</span>
+  private static @Nullable WidthOption toWidthOption(@NotNull String widthOptionString) {
+<span class="fc" id="L86">    Matcher widthOptionMatcher = WIDTH_OPTION_PATTERN.matcher(widthOptionString);</span>
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">    if (!widthOptionMatcher.matches()) {</span>
+      // this should never happen because we already checked against this pattern in the caller method,
+      // but we have to call matches() anyway
+<span class="nc" id="L90">      return null;</span>
     }
-    else {
-<span class="fc" id="L72">      widthValue = width;</span>
+
+<span class="fc" id="L93">    long width = NumberUtils.toLong(widthOptionMatcher.group(&quot;width&quot;));</span>
+<span class="fc" id="L94">    String density = widthOptionMatcher.group(&quot;density&quot;);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">    boolean mandatory = widthOptionMatcher.group(&quot;optional&quot;) == null;</span>
+<span class="fc" id="L96">    return new WidthOption(width, density, mandatory);</span>
+  }
+
+  /**
+   * @param widths Widths string
+   * @return true if the widths string is valid and contains density descriptor &quot;:&quot;
+   */
+  public static boolean hasDensityDescriptor(@Nullable String widths) {
+    // first make sure the widths string is valid
+<span class="pc bpc" id="L105" title="1 of 4 branches missed.">    if (StringUtils.isBlank(widths) || !WIDTHS_PATTERN.matcher(widths).matches()) {</span>
+<span class="fc" id="L106">      return false;</span>
     }
-<span class="fc bfc" id="L74" title="All 2 branches covered.">    return new WidthOption(NumberUtils.toLong(widthValue), !optional);</span>
+    // now check if the valid string contains a density separator
+<span class="fc" id="L109">    return StringUtils.contains(widths, &quot;:&quot;);</span>
   }
 
 }

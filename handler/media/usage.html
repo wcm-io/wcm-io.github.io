@@ -353,6 +353,37 @@ public class MediaHandlerConfigImpl extends MediaHandlerConfig {
   &lt;img src="/path/mymedia.jpg"&gt;
 &lt;/picture&gt;
 </code></pre>
+   <section>
+    <a id="Using_density_descriptors"></a>
+    <h4 id="using_density_descriptors">Using density descriptors</h4>
+    <p>By default <code>srcset</code> attribute is generated using width descriptors, e.g. <code>800w</code>. This fits well when you need different sizes of image in different media conditions. But if you prefer using same size with different pixel densities depending on the client's device capabilities, you should use density descriptors instead. For example <code>2x</code> for retina displays.<br><em>Note:</em> Density descriptor cannot be used together with <code>sizes</code>.</p>
+    <pre><code class="language-java">import io.wcm.handler.media.MediaArgs;
+
+Media media = mediaHandler.get(resource)
+        .mediaFormat(MF_16_9)
+        .imageSizes("", new WidthOption(800, "1x"), new WidthOption(1600, "2x"))
+        .build();
+</code></pre>
+    <p>This results in a markup like this:</p>
+    <pre><code class="language-html">&lt;img src="/path/mymedia.jpg"
+    srcset="/path/mymedia.800.500.jpg, /path/mymedia.jpg 2x"&gt;
+</code></pre>
+    <p>Alternatively you can generate a picture element:</p>
+    <pre><code class="language-java">Media media = mediaHandler.get(resource)
+    .mediaFormat(MF_16_9)
+    .pictureSource(new PictureSource(MF_16_9).media("(min-width: 1024px)").widthOptions(new WidthOption(800, "1x"), new WidthOption(1600, "2x")))
+    .pictureSource(new PictureSource(MF_4_3).widthOptions(new WidthOption(400), new WidthOption(800, "2x")))
+    .build();
+</code></pre>
+    <p>This results in a markup like this:</p>
+    <pre><code class="language-html">&lt;picture&gt;
+  &lt;source media="(min-width: 1024px)" srcset="/path/mymedia.800.500.jpg, /path/mymedia.jpg 2x"&gt;
+  &lt;source srcset="/path/mymedia.400.300.jpg, /path/mymedia.800.600.jpg 2x"&gt;
+  &lt;img src="/path/mymedia.jpg"&gt;
+&lt;/picture&gt;
+</code></pre>
+    <p>Picture element can also mix sources with width descriptor and sources with density descriptor.</p>
+   </section>
   </section>
  </section>
 </section>
@@ -371,8 +402,12 @@ public class MediaHandlerConfigImpl extends MediaHandlerConfig {
     <li><a href="#using_media_in_htlsightly_template" title="Using media in HTL/Sightly template">Using media in HTL/Sightly template</a>
     <li><a href="#cropping_and_image_rotation" title="Cropping and Image Rotation">Cropping and Image Rotation</a>
     <li><a href="#configuring_and_tailoring_the_media_resolving_proc" title="Configuring and tailoring the media resolving process">Configuring and tailoring the media resolving process</a>
-    <li><a href="#responsive_images" title="Responsive Images">Responsive Images</a>
+    <li class="dropdown"><a href="#responsive_images" title="Responsive Images">Responsive Images <b class="caret"></b></a>
+      <ul class="nav nav-list">
+    <li><a href="#using_density_descriptors" title="Using density descriptors">Using density descriptors</a>
         <li class="divider"></li>
+      </ul>
+    </li>
       </ul>
     </li>
           </ul>
