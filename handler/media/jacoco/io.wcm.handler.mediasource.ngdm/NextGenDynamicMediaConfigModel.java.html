@@ -26,6 +26,7 @@ import javax.annotation.PostConstruct;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
 import org.apache.sling.models.annotations.injectorspecific.OSGiService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -43,12 +44,12 @@ import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaConfigService;
  */
 @Model(adaptables = SlingHttpServletRequest.class)
 @ProviderType
-<span class="fc" id="L46">public final class NextGenDynamicMediaConfigModel {</span>
+<span class="fc" id="L47">public final class NextGenDynamicMediaConfigModel {</span>
 
-<span class="fc" id="L48">  private static final JsonMapper MAPPER = JsonMapper.builder().build();</span>
-<span class="fc" id="L49">  private static final Logger log = LoggerFactory.getLogger(NextGenDynamicMediaConfigModel.class);</span>
+<span class="fc" id="L49">  private static final JsonMapper MAPPER = JsonMapper.builder().build();</span>
+<span class="fc" id="L50">  private static final Logger log = LoggerFactory.getLogger(NextGenDynamicMediaConfigModel.class);</span>
 
-  @OSGiService
+  @OSGiService(injectionStrategy = InjectionStrategy.OPTIONAL)
   private NextGenDynamicMediaConfigService config;
 
   private boolean enabled;
@@ -57,22 +58,24 @@ import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaConfigService;
 
   @PostConstruct
   private void activate() {
-<span class="fc" id="L60">    enabled = config.isEnabledRemoteAssets();</span>
-<span class="fc" id="L61">    assetSelectorsJsUrl = config.getAssetSelectorsJsUrl();</span>
-<span class="fc" id="L62">    configJson = buildConfigJsonString(config);</span>
-<span class="fc" id="L63">  }</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">    if (config != null) {</span>
+<span class="fc" id="L62">      enabled = config.isEnabledRemoteAssets();</span>
+<span class="fc" id="L63">      assetSelectorsJsUrl = config.getAssetSelectorsJsUrl();</span>
+<span class="fc" id="L64">      configJson = buildConfigJsonString(config);</span>
+    }
+<span class="fc" id="L66">  }</span>
 
   private static String buildConfigJsonString(@NotNull NextGenDynamicMediaConfigService config) {
-<span class="fc" id="L66">    Map&lt;String, Object&gt; map = new TreeMap&lt;&gt;();</span>
-<span class="fc" id="L67">    map.put(&quot;repositoryId&quot;, config.getRemoteAssetsRepositoryId());</span>
-<span class="fc" id="L68">    map.put(&quot;apiKey&quot;, config.getApiKey());</span>
-<span class="fc" id="L69">    map.put(&quot;env&quot;, config.getEnv());</span>
+<span class="fc" id="L69">    Map&lt;String, Object&gt; map = new TreeMap&lt;&gt;();</span>
+<span class="fc" id="L70">    map.put(&quot;repositoryId&quot;, config.getRemoteAssetsRepositoryId());</span>
+<span class="fc" id="L71">    map.put(&quot;apiKey&quot;, config.getApiKey());</span>
+<span class="fc" id="L72">    map.put(&quot;env&quot;, config.getEnv());</span>
     try {
-<span class="fc" id="L71">      return MAPPER.writeValueAsString(map);</span>
+<span class="fc" id="L74">      return MAPPER.writeValueAsString(map);</span>
     }
-<span class="nc" id="L73">    catch (JsonProcessingException ex) {</span>
-<span class="nc" id="L74">      log.warn(&quot;Unable to serialize Dynamic Media with OpenAPI config to JSON.&quot;, ex);</span>
-<span class="nc" id="L75">      return &quot;{}&quot;;</span>
+<span class="nc" id="L76">    catch (JsonProcessingException ex) {</span>
+<span class="nc" id="L77">      log.warn(&quot;Unable to serialize Dynamic Media with OpenAPI config to JSON.&quot;, ex);</span>
+<span class="nc" id="L78">      return &quot;{}&quot;;</span>
     }
   }
 
@@ -80,21 +83,21 @@ import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaConfigService;
    * @return true if Dynamic Media with OpenAPI for remote assets is available and enabled.
    */
   public boolean isEnabled() {
-<span class="fc" id="L83">    return this.enabled;</span>
+<span class="fc" id="L86">    return this.enabled;</span>
   }
 
   /**
    * @return Asset Selectors URL
    */
   public @Nullable String getAssetSelectorsJsUrl() {
-<span class="fc" id="L90">    return this.assetSelectorsJsUrl;</span>
+<span class="fc" id="L93">    return this.assetSelectorsJsUrl;</span>
   }
 
   /**
    * @return JSON string with configuration data required on the client-side.
    */
   public @Nullable String getConfigJson() {
-<span class="fc" id="L97">    return this.configJson;</span>
+<span class="fc" id="L100">    return this.configJson;</span>
   }
 
 }

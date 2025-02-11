@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
@@ -38,9 +39,9 @@ import com.adobe.cq.ui.wcm.commons.config.NextGenDynamicMediaConfig;
 /**
  * Wraps access to NextGenDynamicMediaConfig - which is deployed but not accessible on AEM 6.5.
  */
-@Component(service = NextGenDynamicMediaConfigService.class, immediate = true)
+@Component(service = NextGenDynamicMediaConfigService.class, immediate = true, configurationPolicy = ConfigurationPolicy.REQUIRE)
 @Designate(ocd = NextGenDynamicMediaConfigServiceImpl.Config.class)
-<span class="fc" id="L43">public class NextGenDynamicMediaConfigServiceImpl implements NextGenDynamicMediaConfigService {</span>
+<span class="fc" id="L44">public class NextGenDynamicMediaConfigServiceImpl implements NextGenDynamicMediaConfigService {</span>
 
   @ObjectClassDefinition(
       name = &quot;wcm.io Media Handler Dynamic Media with OpenAPI Support&quot;,
@@ -93,7 +94,7 @@ import com.adobe.cq.ui.wcm.commons.config.NextGenDynamicMediaConfig;
   }
 
   private static final String ADOBE_ASSETS_PREFIX = &quot;/adobe/assets/&quot;;
-<span class="fc" id="L96">  private static final Logger log = LoggerFactory.getLogger(NextGenDynamicMediaConfigServiceImpl.class);</span>
+<span class="fc" id="L97">  private static final Logger log = LoggerFactory.getLogger(NextGenDynamicMediaConfigServiceImpl.class);</span>
 
   private boolean enabledRemoteAssets;
   private boolean enabledLocalAssets;
@@ -108,99 +109,99 @@ import com.adobe.cq.ui.wcm.commons.config.NextGenDynamicMediaConfig;
 
   @Activate
   private void activate(Config config) {
-<span class="fc" id="L111">    enabledRemoteAssets = config.enabledRemoteAssets();</span>
-<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (enabledRemoteAssets) {</span>
-<span class="pc bpc" id="L113" title="1 of 2 branches missed.">      if (nextGenDynamicMediaConfig == null) {</span>
-<span class="nc" id="L114">        log.debug(&quot;NextGenDynamicMediaConfig service is not available, disable remote assets.&quot;);</span>
-<span class="nc" id="L115">        enabledRemoteAssets = false;</span>
+<span class="fc" id="L112">    enabledRemoteAssets = config.enabledRemoteAssets();</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">    if (enabledRemoteAssets) {</span>
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">      if (nextGenDynamicMediaConfig == null) {</span>
+<span class="nc" id="L115">        log.debug(&quot;NextGenDynamicMediaConfig service is not available, disable remote assets.&quot;);</span>
+<span class="nc" id="L116">        enabledRemoteAssets = false;</span>
       }
       else {
-<span class="fc" id="L118">        log.debug(&quot;NextGenDynamicMediaConfig: enabled={}, repositoryId={}, apiKey={}, env={}, imsClient={}&quot;,</span>
-<span class="fc" id="L119">            nextGenDynamicMediaConfig.enabled(), nextGenDynamicMediaConfig.getRepositoryId(),</span>
-<span class="fc" id="L120">            nextGenDynamicMediaConfig.getApiKey(), nextGenDynamicMediaConfig.getEnv(), nextGenDynamicMediaConfig.getImsClient());</span>
+<span class="fc" id="L119">        log.debug(&quot;NextGenDynamicMediaConfig: enabled={}, repositoryId={}, apiKey={}, env={}, imsClient={}&quot;,</span>
+<span class="fc" id="L120">            nextGenDynamicMediaConfig.enabled(), nextGenDynamicMediaConfig.getRepositoryId(),</span>
+<span class="fc" id="L121">            nextGenDynamicMediaConfig.getApiKey(), nextGenDynamicMediaConfig.getEnv(), nextGenDynamicMediaConfig.getImsClient());</span>
       }
     }
 
-<span class="fc" id="L124">    imageDeliveryBasePath = StringUtils.defaultIfBlank(config.imageDeliveryBasePath(),</span>
-<span class="fc bfc" id="L125" title="All 2 branches covered.">        nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getImageDeliveryBasePath() : null);</span>
-<span class="fc" id="L126">    assetOriginalBinaryDeliveryPath = StringUtils.defaultIfBlank(config.assetOriginalBinaryDeliveryPath(),</span>
-<span class="fc bfc" id="L127" title="All 2 branches covered.">        nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getAssetOriginalBinaryDeliveryPath() : null);</span>
-<span class="fc" id="L128">    assetMetadataPath = StringUtils.defaultIfBlank(config.assetMetadataPath(),</span>
-<span class="fc bfc" id="L129" title="All 2 branches covered.">        nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getAssetMetadataPath() : null);</span>
+<span class="fc" id="L125">    imageDeliveryBasePath = StringUtils.defaultIfBlank(config.imageDeliveryBasePath(),</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getImageDeliveryBasePath() : null);</span>
+<span class="fc" id="L127">    assetOriginalBinaryDeliveryPath = StringUtils.defaultIfBlank(config.assetOriginalBinaryDeliveryPath(),</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getAssetOriginalBinaryDeliveryPath() : null);</span>
+<span class="fc" id="L129">    assetMetadataPath = StringUtils.defaultIfBlank(config.assetMetadataPath(),</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getAssetMetadataPath() : null);</span>
 
-<span class="fc" id="L131">    enabledLocalAssets = config.enabledLocalAssets();</span>
-<span class="fc" id="L132">    localAssetsRepositoryId = config.localAssetsRepositoryId();</span>
-<span class="pc bpc" id="L133" title="1 of 4 branches missed.">    if (enabledLocalAssets &amp;&amp; StringUtils.isBlank(localAssetsRepositoryId)) {</span>
-<span class="nc" id="L134">      log.debug(&quot;localAssetsRepositoryId is not configured, disable local assets.&quot;);</span>
-<span class="nc" id="L135">      enabledLocalAssets = false;</span>
+<span class="fc" id="L132">    enabledLocalAssets = config.enabledLocalAssets();</span>
+<span class="fc" id="L133">    localAssetsRepositoryId = config.localAssetsRepositoryId();</span>
+<span class="pc bpc" id="L134" title="1 of 4 branches missed.">    if (enabledLocalAssets &amp;&amp; StringUtils.isBlank(localAssetsRepositoryId)) {</span>
+<span class="nc" id="L135">      log.debug(&quot;localAssetsRepositoryId is not configured, disable local assets.&quot;);</span>
+<span class="nc" id="L136">      enabledLocalAssets = false;</span>
     }
 
-<span class="fc" id="L138">    imageWidthHeightDefault = config.imageWidthHeightDefault();</span>
-<span class="fc" id="L139">  }</span>
+<span class="fc" id="L139">    imageWidthHeightDefault = config.imageWidthHeightDefault();</span>
+<span class="fc" id="L140">  }</span>
 
   @Override
   public boolean isEnabledRemoteAssets() {
-<span class="pc bpc" id="L143" title="1 of 6 branches missed.">    return enabledRemoteAssets &amp;&amp; nextGenDynamicMediaConfig != null &amp;&amp; nextGenDynamicMediaConfig.enabled();</span>
+<span class="pc bpc" id="L144" title="1 of 6 branches missed.">    return enabledRemoteAssets &amp;&amp; nextGenDynamicMediaConfig != null &amp;&amp; nextGenDynamicMediaConfig.enabled();</span>
   }
 
   @Override
   public boolean isEnabledLocalAssets() {
-<span class="fc" id="L148">    return enabledLocalAssets;</span>
+<span class="fc" id="L149">    return enabledLocalAssets;</span>
   }
 
   @Override
   public @Nullable String getAssetSelectorsJsUrl() {
-<span class="fc bfc" id="L153" title="All 2 branches covered.">    return nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getAssetSelectorsJsUrl() : null;</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">    return nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getAssetSelectorsJsUrl() : null;</span>
   }
 
   @Override
   public @Nullable String getImageDeliveryBasePath() {
-<span class="fc" id="L158">    return imageDeliveryBasePath;</span>
+<span class="fc" id="L159">    return imageDeliveryBasePath;</span>
   }
 
   @Override
   public @Nullable String getVideoDeliveryPath() {
-<span class="fc bfc" id="L163" title="All 2 branches covered.">    return nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getVideoDeliveryPath() : null;</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">    return nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getVideoDeliveryPath() : null;</span>
   }
 
   @Override
   public @Nullable String getAssetOriginalBinaryDeliveryPath() {
-<span class="fc" id="L168">    return assetOriginalBinaryDeliveryPath;</span>
+<span class="fc" id="L169">    return assetOriginalBinaryDeliveryPath;</span>
   }
 
   @Override
   public @Nullable String getAssetMetadataPath() {
-<span class="fc" id="L173">    return assetMetadataPath;</span>
+<span class="fc" id="L174">    return assetMetadataPath;</span>
   }
 
   @Override
   public @Nullable String getRemoteAssetsRepositoryId() {
-<span class="fc bfc" id="L178" title="All 2 branches covered.">    return nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getRepositoryId() : null;</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">    return nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getRepositoryId() : null;</span>
   }
 
   @Override
   public @Nullable String getLocalAssetsRepositoryId() {
-<span class="fc" id="L183">    return localAssetsRepositoryId;</span>
+<span class="fc" id="L184">    return localAssetsRepositoryId;</span>
   }
 
   @Override
   public @Nullable String getApiKey() {
-<span class="fc bfc" id="L188" title="All 2 branches covered.">    return nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getApiKey() : null;</span>
+<span class="fc bfc" id="L189" title="All 2 branches covered.">    return nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getApiKey() : null;</span>
   }
 
   @Override
   public @Nullable String getEnv() {
-<span class="fc bfc" id="L193" title="All 2 branches covered.">    return nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getEnv() : null;</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">    return nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getEnv() : null;</span>
   }
 
   @Override
   public @Nullable String getImsClient() {
-<span class="fc bfc" id="L198" title="All 2 branches covered.">    return nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getImsClient() : null;</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">    return nextGenDynamicMediaConfig != null ? nextGenDynamicMediaConfig.getImsClient() : null;</span>
   }
 
   @Override
   public long getImageWidthHeightDefault() {
-<span class="fc" id="L203">    return imageWidthHeightDefault;</span>
+<span class="fc" id="L204">    return imageWidthHeightDefault;</span>
   }
 
 }
