@@ -252,7 +252,8 @@ class RenditionMetadata extends SlingAdaptable implements Comparable&lt;Renditio
   }
 
   /**
-   * Checks if this rendition matches the given width/height/ration restrictions.
+   * Checks if this rendition matches the given width/height/ratio restrictions.
+   * For vector images, min. width/height restrictions are ignored.
    * @param minWidth Min. width
    * @param minHeight Min. height
    * @param maxWidth Max. width
@@ -261,134 +262,137 @@ class RenditionMetadata extends SlingAdaptable implements Comparable&lt;Renditio
    * @param ratio Ratio
    * @return true if matches
    */
+  @SuppressWarnings(&quot;java:S3776&quot;) // ignore complexity
   public boolean matches(long minWidth, long minHeight, long maxWidth, long maxHeight, long minWidthHeight, double ratio) {
-<span class="pc bpc" id="L265" title="1 of 6 branches missed.">    if (minWidthHeight &gt; 0 &amp;&amp; (getWidth() &lt; minWidthHeight &amp;&amp; getHeight() &lt; minWidthHeight)) {</span>
-<span class="fc" id="L266">      return false;</span>
-    }
-<span class="fc bfc" id="L268" title="All 4 branches covered.">    if (minWidth &gt; 0 &amp;&amp; getWidth() &lt; minWidth) {</span>
-<span class="fc" id="L269">      return false;</span>
-    }
-<span class="fc bfc" id="L271" title="All 4 branches covered.">    if (minHeight &gt; 0 &amp;&amp; getHeight() &lt; minHeight) {</span>
-<span class="fc" id="L272">      return false;</span>
-    }
-<span class="fc bfc" id="L274" title="All 4 branches covered.">    if (maxWidth &gt; 0 &amp;&amp; getWidth() &gt; maxWidth) {</span>
-<span class="fc" id="L275">      return false;</span>
-    }
-<span class="fc bfc" id="L277" title="All 4 branches covered.">    if (maxHeight &gt; 0 &amp;&amp; getHeight() &gt; maxHeight) {</span>
-<span class="fc" id="L278">      return false;</span>
-    }
-<span class="fc bfc" id="L280" title="All 2 branches covered.">    if (ratio &gt; 0) {</span>
-<span class="fc" id="L281">      double renditionRatio = Ratio.get(getWidth(), getHeight());</span>
-<span class="fc bfc" id="L282" title="All 2 branches covered.">      if (!Ratio.matches(renditionRatio, ratio)) {</span>
-<span class="fc" id="L283">        return false;</span>
+<span class="fc bfc" id="L267" title="All 2 branches covered.">    if (!isVectorImage()) {</span>
+<span class="pc bpc" id="L268" title="1 of 6 branches missed.">      if (minWidthHeight &gt; 0 &amp;&amp; (getWidth() &lt; minWidthHeight &amp;&amp; getHeight() &lt; minWidthHeight)) {</span>
+<span class="fc" id="L269">        return false;</span>
+      }
+<span class="fc bfc" id="L271" title="All 4 branches covered.">      if (minWidth &gt; 0 &amp;&amp; getWidth() &lt; minWidth) {</span>
+<span class="fc" id="L272">        return false;</span>
+      }
+<span class="fc bfc" id="L274" title="All 4 branches covered.">      if (minHeight &gt; 0 &amp;&amp; getHeight() &lt; minHeight) {</span>
+<span class="fc" id="L275">        return false;</span>
+      }
+<span class="fc bfc" id="L277" title="All 4 branches covered.">      if (maxWidth &gt; 0 &amp;&amp; getWidth() &gt; maxWidth) {</span>
+<span class="fc" id="L278">        return false;</span>
+      }
+<span class="fc bfc" id="L280" title="All 4 branches covered.">      if (maxHeight &gt; 0 &amp;&amp; getHeight() &gt; maxHeight) {</span>
+<span class="fc" id="L281">        return false;</span>
       }
     }
-<span class="fc" id="L286">    return true;</span>
+<span class="fc bfc" id="L284" title="All 2 branches covered.">    if (ratio &gt; 0) {</span>
+<span class="fc" id="L285">      double renditionRatio = Ratio.get(getWidth(), getHeight());</span>
+<span class="fc bfc" id="L286" title="All 2 branches covered.">      if (!Ratio.matches(renditionRatio, ratio)) {</span>
+<span class="fc" id="L287">        return false;</span>
+      }
+    }
+<span class="fc" id="L290">    return true;</span>
   }
 
   @Override
   public int hashCode() {
-<span class="nc" id="L291">    return new HashCodeBuilder()</span>
-<span class="nc" id="L292">        .append(this.rendition.getPath())</span>
-<span class="nc" id="L293">        .hashCode();</span>
+<span class="nc" id="L295">    return new HashCodeBuilder()</span>
+<span class="nc" id="L296">        .append(this.rendition.getPath())</span>
+<span class="nc" id="L297">        .hashCode();</span>
   }
 
   @Override
   public boolean equals(Object obj) {
-<span class="pc bpc" id="L298" title="2 of 4 branches missed.">    if (obj == null || obj.getClass() != this.getClass()) {</span>
-<span class="nc" id="L299">      return false;</span>
+<span class="pc bpc" id="L302" title="2 of 4 branches missed.">    if (obj == null || obj.getClass() != this.getClass()) {</span>
+<span class="nc" id="L303">      return false;</span>
     }
-<span class="fc" id="L301">    RenditionMetadata other = (RenditionMetadata)obj;</span>
-<span class="fc" id="L302">    return new EqualsBuilder()</span>
-<span class="fc" id="L303">        .append(this.rendition.getPath(), other.rendition.getPath())</span>
-<span class="fc" id="L304">        .build();</span>
+<span class="fc" id="L305">    RenditionMetadata other = (RenditionMetadata)obj;</span>
+<span class="fc" id="L306">    return new EqualsBuilder()</span>
+<span class="fc" id="L307">        .append(this.rendition.getPath(), other.rendition.getPath())</span>
+<span class="fc" id="L308">        .build();</span>
   }
 
   @Override
   @SuppressWarnings(&quot;java:S3776&quot;) // ignore complexity
   public int compareTo(RenditionMetadata obj) {
     // always prefer the virtual rendition
-<span class="fc" id="L311">    boolean thisIsVirtualRendition = this instanceof VirtualTransformedRenditionMetadata;</span>
-<span class="fc" id="L312">    boolean otherIsVirtualRendition = obj instanceof VirtualTransformedRenditionMetadata;</span>
-<span class="fc bfc" id="L313" title="All 4 branches covered.">    if (thisIsVirtualRendition &amp;&amp; !otherIsVirtualRendition) {</span>
-<span class="fc" id="L314">      return -2;</span>
+<span class="fc" id="L315">    boolean thisIsVirtualRendition = this instanceof VirtualTransformedRenditionMetadata;</span>
+<span class="fc" id="L316">    boolean otherIsVirtualRendition = obj instanceof VirtualTransformedRenditionMetadata;</span>
+<span class="fc bfc" id="L317" title="All 4 branches covered.">    if (thisIsVirtualRendition &amp;&amp; !otherIsVirtualRendition) {</span>
+<span class="fc" id="L318">      return -2;</span>
     }
-<span class="fc bfc" id="L316" title="All 4 branches covered.">    else if (otherIsVirtualRendition &amp;&amp; !thisIsVirtualRendition) {</span>
-<span class="fc" id="L317">      return 2;</span>
+<span class="fc bfc" id="L320" title="All 4 branches covered.">    else if (otherIsVirtualRendition &amp;&amp; !thisIsVirtualRendition) {</span>
+<span class="fc" id="L321">      return 2;</span>
     }
 
     // always prefer original rendition
-<span class="fc" id="L321">    boolean thisIsOriginalRendition = AssetRendition.isOriginal(getRendition());</span>
-<span class="fc" id="L322">    boolean otherIsOriginalRendition = AssetRendition.isOriginal(obj.getRendition());</span>
-<span class="fc bfc" id="L323" title="All 4 branches covered.">    if (thisIsOriginalRendition &amp;&amp; !otherIsOriginalRendition) {</span>
-<span class="fc" id="L324">      return -1;</span>
+<span class="fc" id="L325">    boolean thisIsOriginalRendition = AssetRendition.isOriginal(getRendition());</span>
+<span class="fc" id="L326">    boolean otherIsOriginalRendition = AssetRendition.isOriginal(obj.getRendition());</span>
+<span class="fc bfc" id="L327" title="All 4 branches covered.">    if (thisIsOriginalRendition &amp;&amp; !otherIsOriginalRendition) {</span>
+<span class="fc" id="L328">      return -1;</span>
     }
-<span class="fc bfc" id="L326" title="All 4 branches covered.">    else if (otherIsOriginalRendition &amp;&amp; !thisIsOriginalRendition) {</span>
-<span class="fc" id="L327">      return 1;</span>
+<span class="fc bfc" id="L330" title="All 4 branches covered.">    else if (otherIsOriginalRendition &amp;&amp; !thisIsOriginalRendition) {</span>
+<span class="fc" id="L331">      return 1;</span>
     }
 
     // order by width, height, rendition path
-<span class="fc" id="L331">    Long thisWidth = getWidth();</span>
-<span class="fc" id="L332">    Long otherWidth = obj.getWidth();</span>
-<span class="fc bfc" id="L333" title="All 2 branches covered.">    if (thisWidth.equals(otherWidth)) {</span>
-<span class="fc" id="L334">      Long thisHeight = getHeight();</span>
-<span class="fc" id="L335">      Long otherHeight = obj.getHeight();</span>
-<span class="fc bfc" id="L336" title="All 2 branches covered.">      if (thisHeight.equals(otherHeight)) {</span>
-<span class="fc" id="L337">        String thisPath = getRendition().getPath();</span>
-<span class="fc" id="L338">        String otherPath = obj.getRendition().getPath();</span>
-<span class="fc bfc" id="L339" title="All 2 branches covered.">        if (!StringUtils.equals(thisPath, otherPath)) {</span>
+<span class="fc" id="L335">    Long thisWidth = getWidth();</span>
+<span class="fc" id="L336">    Long otherWidth = obj.getWidth();</span>
+<span class="fc bfc" id="L337" title="All 2 branches covered.">    if (thisWidth.equals(otherWidth)) {</span>
+<span class="fc" id="L338">      Long thisHeight = getHeight();</span>
+<span class="fc" id="L339">      Long otherHeight = obj.getHeight();</span>
+<span class="fc bfc" id="L340" title="All 2 branches covered.">      if (thisHeight.equals(otherHeight)) {</span>
+<span class="fc" id="L341">        String thisPath = getRendition().getPath();</span>
+<span class="fc" id="L342">        String otherPath = obj.getRendition().getPath();</span>
+<span class="fc bfc" id="L343" title="All 2 branches covered.">        if (!StringUtils.equals(thisPath, otherPath)) {</span>
           // same width/height - compare paths as last resort
-<span class="fc" id="L341">          return thisPath.compareTo(otherPath);</span>
+<span class="fc" id="L345">          return thisPath.compareTo(otherPath);</span>
         }
         else {
-<span class="fc" id="L344">          return 0;</span>
+<span class="fc" id="L348">          return 0;</span>
         }
       }
       else {
-<span class="fc" id="L348">        return thisHeight.compareTo(otherHeight);</span>
+<span class="fc" id="L352">        return thisHeight.compareTo(otherHeight);</span>
       }
     }
     else {
-<span class="fc" id="L352">      return thisWidth.compareTo(otherWidth);</span>
+<span class="fc" id="L356">      return thisWidth.compareTo(otherWidth);</span>
     }
   }
 
   @SuppressWarnings(&quot;null&quot;)
   @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
   protected Layer getLayer() {
-<span class="pc bpc" id="L359" title="1 of 2 branches missed.">    if (MediaFileType.isImage(getFileExtension())) {</span>
-<span class="fc" id="L360">      return this.rendition.adaptTo(Resource.class).adaptTo(Layer.class);</span>
+<span class="pc bpc" id="L363" title="1 of 2 branches missed.">    if (MediaFileType.isImage(getFileExtension())) {</span>
+<span class="fc" id="L364">      return this.rendition.adaptTo(Resource.class).adaptTo(Layer.class);</span>
     }
     else {
-<span class="nc" id="L363">      return null;</span>
+<span class="nc" id="L367">      return null;</span>
     }
   }
 
   @SuppressWarnings(&quot;null&quot;)
   @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
   protected InputStream getInputStream() {
-<span class="fc" id="L370">    return this.rendition.adaptTo(Resource.class).adaptTo(InputStream.class);</span>
+<span class="fc" id="L374">    return this.rendition.adaptTo(Resource.class).adaptTo(InputStream.class);</span>
   }
 
   public @NotNull UriTemplate getUriTemplate(@NotNull UriTemplateType type, @NotNull DamContext damContext) {
-<span class="pc bpc" id="L374" title="2 of 4 branches missed.">    if (!isImage() || isVectorImage()) {</span>
-<span class="nc" id="L375">      throw new UnsupportedOperationException(&quot;Unable to build URI template for rendition: &quot; + getRendition().getPath());</span>
+<span class="pc bpc" id="L378" title="2 of 4 branches missed.">    if (!isImage() || isVectorImage()) {</span>
+<span class="nc" id="L379">      throw new UnsupportedOperationException(&quot;Unable to build URI template for rendition: &quot; + getRendition().getPath());</span>
     }
-<span class="fc" id="L377">    Dimension dimension = AssetRendition.getDimension(getRendition());</span>
-<span class="pc bpc" id="L378" title="1 of 2 branches missed.">    if (dimension == null) {</span>
-<span class="nc" id="L379">      throw new IllegalArgumentException(&quot;Unable to get dimension for rendition: &quot; + getRendition().getPath());</span>
+<span class="fc" id="L381">    Dimension dimension = AssetRendition.getDimension(getRendition());</span>
+<span class="pc bpc" id="L382" title="1 of 2 branches missed.">    if (dimension == null) {</span>
+<span class="nc" id="L383">      throw new IllegalArgumentException(&quot;Unable to get dimension for rendition: &quot; + getRendition().getPath());</span>
     }
-<span class="fc" id="L381">    return new DamUriTemplate(type, dimension, rendition, null, null, Ratio.get(dimension), damContext);</span>
+<span class="fc" id="L385">    return new DamUriTemplate(type, dimension, rendition, null, null, Ratio.get(dimension), damContext);</span>
   }
 
   @Override
   public String toString() {
-<span class="nc" id="L386">    StringBuilder sb = new StringBuilder();</span>
-<span class="nc" id="L387">    sb.append(this.rendition.getPath());</span>
-<span class="nc bnc" id="L388" title="All 4 branches missed.">    if (getWidth() &gt; 0 || getHeight() &gt; 0) {</span>
-<span class="nc" id="L389">      sb.append(&quot; (&quot;).append(Long.toString(getWidth())).append(&quot;x&quot;).append(Long.toString(getHeight())).append(&quot;)&quot;);</span>
+<span class="nc" id="L390">    StringBuilder sb = new StringBuilder();</span>
+<span class="nc" id="L391">    sb.append(this.rendition.getPath());</span>
+<span class="nc bnc" id="L392" title="All 4 branches missed.">    if (getWidth() &gt; 0 || getHeight() &gt; 0) {</span>
+<span class="nc" id="L393">      sb.append(&quot; (&quot;).append(Long.toString(getWidth())).append(&quot;x&quot;).append(Long.toString(getHeight())).append(&quot;)&quot;);</span>
     }
-<span class="nc" id="L391">    return sb.toString();</span>
+<span class="nc" id="L395">    return sb.toString();</span>
   }
 
   /**
@@ -398,25 +402,25 @@ class RenditionMetadata extends SlingAdaptable implements Comparable&lt;Renditio
    * @return Media path and suffix
    */
   static String buildMediaPath(String mediaPath, String suffix) {
-<span class="fc" id="L401">    return mediaPath + &quot;/&quot; + suffix;</span>
+<span class="fc" id="L405">    return mediaPath + &quot;/&quot; + suffix;</span>
   }
 
   @Override
   @SuppressWarnings(&quot;unchecked&quot;)
   public &lt;AdapterType&gt; AdapterType adaptTo(Class&lt;AdapterType&gt; type) {
-<span class="fc bfc" id="L407" title="All 2 branches covered.">    if (type == Rendition.class) {</span>
-<span class="fc" id="L408">      return (AdapterType)this.rendition;</span>
+<span class="fc bfc" id="L411" title="All 2 branches covered.">    if (type == Rendition.class) {</span>
+<span class="fc" id="L412">      return (AdapterType)this.rendition;</span>
     }
-<span class="fc bfc" id="L410" title="All 2 branches covered.">    if (type == Resource.class) {</span>
-<span class="fc" id="L411">      return (AdapterType)this.rendition.adaptTo(Resource.class);</span>
+<span class="fc bfc" id="L414" title="All 2 branches covered.">    if (type == Resource.class) {</span>
+<span class="fc" id="L415">      return (AdapterType)this.rendition.adaptTo(Resource.class);</span>
     }
-<span class="fc bfc" id="L413" title="All 2 branches covered.">    else if (type == Layer.class) {</span>
-<span class="fc" id="L414">      return (AdapterType)getLayer();</span>
+<span class="fc bfc" id="L417" title="All 2 branches covered.">    else if (type == Layer.class) {</span>
+<span class="fc" id="L418">      return (AdapterType)getLayer();</span>
     }
-<span class="pc bpc" id="L416" title="1 of 2 branches missed.">    else if (type == InputStream.class) {</span>
-<span class="fc" id="L417">      return (AdapterType)getInputStream();</span>
+<span class="pc bpc" id="L420" title="1 of 2 branches missed.">    else if (type == InputStream.class) {</span>
+<span class="fc" id="L421">      return (AdapterType)getInputStream();</span>
     }
-<span class="nc" id="L419">    return super.adaptTo(type);</span>
+<span class="nc" id="L423">    return super.adaptTo(type);</span>
   }
 
   /**
@@ -427,7 +431,7 @@ class RenditionMetadata extends SlingAdaptable implements Comparable&lt;Renditio
   @Deprecated(since = &quot;2.0.0&quot;)
   protected final void finalize() {
     // do nothing
-<span class="fc" id="L430">  }</span>
+<span class="fc" id="L434">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
