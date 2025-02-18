@@ -56,7 +56,7 @@ public class ComponentFeatureImageResolver {
   private final MediaHandler mediaHandler;
 <span class="fc" id="L57">  private final Map&lt;String, Object&gt; mediaHandlerProperties = new HashMap&lt;&gt;();</span>
 
-  private boolean imageFromPageImage;
+  private final Boolean imageFromPageImage;
   private final boolean altValueFromPageImage;
   private boolean altValueFromDam;
   private final boolean isDecorative;
@@ -78,7 +78,7 @@ public class ComponentFeatureImageResolver {
 
     // component properties
 <span class="fc" id="L80">    ValueMap props = componentResource.getValueMap();</span>
-<span class="fc" id="L81">    this.imageFromPageImage = props.get(PN_IMAGE_FROM_PAGE_IMAGE, false);</span>
+<span class="fc" id="L81">    this.imageFromPageImage = props.get(PN_IMAGE_FROM_PAGE_IMAGE, Boolean.class);</span>
 <span class="fc" id="L82">    this.altValueFromPageImage = props.get(PN_ALT_VALUE_FROM_PAGE_IMAGE, false);</span>
 <span class="fc" id="L83">    this.altValueFromDam = props.get(PN_ALT_VALUE_FROM_DAM, false);</span>
 <span class="fc" id="L84">    this.isDecorative = props.get(PN_IS_DECORATIVE, currentStyle.get(PN_IS_DECORATIVE, false));</span>
@@ -107,21 +107,12 @@ public class ComponentFeatureImageResolver {
   }
 
   /**
-   * @param value Image from page image
-   * @return self
-   */
-  public ComponentFeatureImageResolver imageFromPageImage(boolean value) {
-<span class="nc" id="L114">    this.imageFromPageImage = value;</span>
-<span class="nc" id="L115">    return this;</span>
-  }
-
-  /**
    * @param value Alt Value from DAM
    * @return self
    */
   public ComponentFeatureImageResolver altValueFromDam(boolean value) {
-<span class="fc" id="L123">    this.altValueFromDam = value;</span>
-<span class="fc" id="L124">    return this;</span>
+<span class="fc" id="L114">    this.altValueFromDam = value;</span>
+<span class="fc" id="L115">    return this;</span>
   }
 
   /**
@@ -129,34 +120,35 @@ public class ComponentFeatureImageResolver {
    * @return Media
    */
   public @NotNull Media buildMedia() {
-<span class="fc" id="L132">    Media media = mediaHandler.invalid();</span>
+<span class="fc" id="L123">    Media media = mediaHandler.invalid();</span>
 
-<span class="fc bfc" id="L134" title="All 2 branches covered.">    if (!imageFromPageImage) {</span>
+<span class="fc bfc" id="L125" title="All 4 branches covered.">    boolean useImageFromPageImage = imageFromPageImage != null &amp;&amp; imageFromPageImage;</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">    if (imageFromPageImage == null) {</span>
       // image from resource properties
-<span class="fc" id="L136">      media = buildMedia(componentResource);</span>
-<span class="fc bfc" id="L137" title="All 4 branches covered.">      if (!media.isValid() &amp;&amp; media.getMediaInvalidReason() == MediaInvalidReason.MEDIA_REFERENCE_MISSING) {</span>
-        // fallback to image from page if no reference was given
-<span class="fc" id="L139">        imageFromPageImage = true;</span>
+<span class="fc" id="L128">      media = buildMedia(componentResource);</span>
+<span class="fc bfc" id="L129" title="All 4 branches covered.">      if (!media.isValid() &amp;&amp; media.getMediaInvalidReason() == MediaInvalidReason.MEDIA_REFERENCE_MISSING) {</span>
+        // fallback to image from page if no reference was given and imageFromPageImage is neither enabled nor disabled
+<span class="fc" id="L131">        useImageFromPageImage = true;</span>
       }
     }
 
-<span class="fc bfc" id="L143" title="All 2 branches covered.">    if (imageFromPageImage) {</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">    if (useImageFromPageImage) {</span>
       // try to get feature image from target page
-<span class="fc bfc" id="L145" title="All 2 branches covered.">      if (targetPage != null) {</span>
-<span class="fc" id="L146">        Resource featuredImageResource = ComponentUtils.getFeaturedImage(targetPage);</span>
-<span class="fc" id="L147">        media = buildMedia(wrapFeatureImageResource(featuredImageResource));</span>
-<span class="fc" id="L148">      }</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">      if (targetPage != null) {</span>
+<span class="fc" id="L138">        Resource featuredImageResource = ComponentUtils.getFeaturedImage(targetPage);</span>
+<span class="fc" id="L139">        media = buildMedia(wrapFeatureImageResource(featuredImageResource));</span>
+<span class="fc" id="L140">      }</span>
       else {
-<span class="fc" id="L150">        media = mediaHandler.invalid();</span>
+<span class="fc" id="L142">        media = mediaHandler.invalid();</span>
       }
       // if target page is not present or has not valid feature image, try to get it from current page
-<span class="fc bfc" id="L153" title="All 4 branches covered.">      if (!media.isValid() &amp;&amp; isComponentInCurrentPage()) {</span>
-<span class="fc" id="L154">        Resource featuredImageResource = ComponentUtils.getFeaturedImage(currentPage);</span>
-<span class="fc" id="L155">        media = buildMedia(wrapFeatureImageResource(featuredImageResource));</span>
+<span class="fc bfc" id="L145" title="All 4 branches covered.">      if (!media.isValid() &amp;&amp; isComponentInCurrentPage()) {</span>
+<span class="fc" id="L146">        Resource featuredImageResource = ComponentUtils.getFeaturedImage(currentPage);</span>
+<span class="fc" id="L147">        media = buildMedia(wrapFeatureImageResource(featuredImageResource));</span>
       }
     }
 
-<span class="fc" id="L159">    return media;</span>
+<span class="fc" id="L151">    return media;</span>
   }
 
   /**
@@ -165,10 +157,10 @@ public class ComponentFeatureImageResolver {
    * @return Wrapped resource
    */
   private @Nullable Resource wrapFeatureImageResource(@Nullable Resource resource) {
-<span class="fc bfc" id="L168" title="All 2 branches covered.">    if (resource == null) {</span>
-<span class="fc" id="L169">      return null;</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">    if (resource == null) {</span>
+<span class="fc" id="L161">      return null;</span>
     }
-<span class="fc" id="L171">    return new CoreResourceWrapper(resource, HandlerUnwrapper.getResourceType(componentResource));</span>
+<span class="fc" id="L163">    return new CoreResourceWrapper(resource, HandlerUnwrapper.getResourceType(componentResource));</span>
   }
 
   /**
@@ -177,26 +169,26 @@ public class ComponentFeatureImageResolver {
    * @return Media
    */
   private @NotNull Media buildMedia(@Nullable Resource mediaResource) {
-<span class="fc bfc" id="L180" title="All 2 branches covered.">    if (mediaResource == null) {</span>
-<span class="fc" id="L181">      return mediaHandler.invalid();</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">    if (mediaResource == null) {</span>
+<span class="fc" id="L173">      return mediaHandler.invalid();</span>
     }
-<span class="fc" id="L183">    MediaBuilder builder = HandlerUnwrapper.get(mediaHandler, mediaResource);</span>
+<span class="fc" id="L175">    MediaBuilder builder = HandlerUnwrapper.get(mediaHandler, mediaResource);</span>
 
-<span class="fc bfc" id="L185" title="All 2 branches covered.">    if (isDecorative) {</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">    if (isDecorative) {</span>
       // skip all text. text if image is decorative
-<span class="fc" id="L187">      builder.decorative(true);</span>
+<span class="fc" id="L179">      builder.decorative(true);</span>
     }
-<span class="fc bfc" id="L189" title="All 4 branches covered.">    else if (!(altValueFromPageImage || altValueFromDam)) {</span>
+<span class="fc bfc" id="L181" title="All 4 branches covered.">    else if (!(altValueFromPageImage || altValueFromDam)) {</span>
       // explicitly apply alt. text from component if none of the &quot;automatic features&quot; is activated
       // otherwise rely to default media handler behavior
-<span class="fc" id="L192">      builder.altText(componentAltText);</span>
+<span class="fc" id="L184">      builder.altText(componentAltText);</span>
     }
-<span class="fc" id="L194">    builder.forceAltValueFromAsset(altValueFromDam);</span>
+<span class="fc" id="L186">    builder.forceAltValueFromAsset(altValueFromDam);</span>
 
     // apply custom media handling properties
-<span class="fc" id="L197">    mediaHandlerProperties.entrySet().forEach(entry -&gt; builder.property(entry.getKey(), entry.getValue()));</span>
+<span class="fc" id="L189">    mediaHandlerProperties.entrySet().forEach(entry -&gt; builder.property(entry.getKey(), entry.getValue()));</span>
 
-<span class="fc" id="L199">    return builder.build();</span>
+<span class="fc" id="L191">    return builder.build();</span>
   }
 
   /**
@@ -205,16 +197,16 @@ public class ComponentFeatureImageResolver {
    * @return true if component in current page
    */
   private boolean isComponentInCurrentPage() {
-<span class="fc" id="L208">    String pageContentPath = currentPage.getContentResource().getPath();</span>
-<span class="fc" id="L209">    String templatePath = currentPage.getProperties().get(NameConstants.PN_TEMPLATE, String.class);</span>
-<span class="pc bpc" id="L210" title="1 of 4 branches missed.">    return isChildResource(pageContentPath) || isChildResource(templatePath);</span>
+<span class="fc" id="L200">    String pageContentPath = currentPage.getContentResource().getPath();</span>
+<span class="fc" id="L201">    String templatePath = currentPage.getProperties().get(NameConstants.PN_TEMPLATE, String.class);</span>
+<span class="pc bpc" id="L202" title="1 of 4 branches missed.">    return isChildResource(pageContentPath) || isChildResource(templatePath);</span>
   }
 
   private boolean isChildResource(@Nullable String parentPath) {
-<span class="pc bpc" id="L214" title="1 of 2 branches missed.">    if (parentPath == null) {</span>
-<span class="nc" id="L215">      return false;</span>
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">    if (parentPath == null) {</span>
+<span class="nc" id="L207">      return false;</span>
     }
-<span class="fc" id="L217">    return StringUtils.startsWith(componentResource.getPath(), parentPath + &quot;/&quot;);</span>
+<span class="fc" id="L209">    return StringUtils.startsWith(componentResource.getPath(), parentPath + &quot;/&quot;);</span>
   }
 
 }
