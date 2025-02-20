@@ -42,65 +42,74 @@ import com.adobe.cq.export.json.ExporterConstants;
 @Exporter(name = ExporterConstants.SLING_MODEL_EXPORTER_NAME, extensions = ExporterConstants.SLING_MODEL_EXTENSION)
 public final class CoreResourceWrapper extends ResourceWrapper {
 
-  private ValueMap valueMap;
-  private String overriddenResourceType;
+  private final String path;
+  private final ValueMap valueMap;
+  private final String overriddenResourceType;
 
   /**
    * @param resource Target resource
+   * @param path Path of wrapped resource
    * @param overriddenResourceType New resource type
    */
-  public CoreResourceWrapper(@NotNull Resource resource, @NotNull String overriddenResourceType) {
-<span class="fc" id="L53">    this(resource, overriddenResourceType, null, null);</span>
-<span class="fc" id="L54">  }</span>
+  public CoreResourceWrapper(@NotNull Resource resource, @NotNull String path, @NotNull String overriddenResourceType) {
+<span class="fc" id="L55">    this(resource, path, overriddenResourceType, null, null);</span>
+<span class="fc" id="L56">  }</span>
 
   /**
    * @param resource Target resource
+   * @param path Path of wrapped resource
    * @param overriddenResourceType New resource type
    * @param overriddenProperties Properties to add/overwrite in value map
    * @param hiddenProperties Properties to hide from value map
    */
-  public CoreResourceWrapper(@NotNull Resource resource, @NotNull String overriddenResourceType,
+  public CoreResourceWrapper(@NotNull Resource resource, @NotNull String path, @NotNull String overriddenResourceType,
       @Nullable Map&lt;String, Object&gt; overriddenProperties, @Nullable Set&lt;String&gt; hiddenProperties) {
-<span class="fc" id="L64">    super(resource);</span>
-<span class="fc bfc" id="L65" title="All 2 branches covered.">    if (StringUtils.isEmpty(overriddenResourceType)) {</span>
-<span class="fc" id="L66">      throw new IllegalArgumentException(&quot;The &quot; + CoreResourceWrapper.class.getName() + &quot; needs to override the resource type of &quot; +</span>
+<span class="fc" id="L67">    super(resource);</span>
+<span class="fc" id="L68">    this.path = path;</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">    if (StringUtils.isEmpty(overriddenResourceType)) {</span>
+<span class="fc" id="L70">      throw new IllegalArgumentException(&quot;The &quot; + CoreResourceWrapper.class.getName() + &quot; needs to override the resource type of &quot; +</span>
           &quot;the wrapped resource, but the resourceType argument was null or empty.&quot;);
     }
-<span class="fc" id="L69">    this.overriddenResourceType = overriddenResourceType;</span>
-<span class="fc" id="L70">    valueMap = new ValueMapDecorator(new HashMap&lt;&gt;(resource.getValueMap()));</span>
-<span class="fc" id="L71">    valueMap.put(ResourceResolver.PROPERTY_RESOURCE_TYPE, overriddenResourceType);</span>
-<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (overriddenProperties != null) {</span>
-<span class="fc" id="L73">      valueMap.putAll(overriddenProperties);</span>
+<span class="fc" id="L73">    this.overriddenResourceType = overriddenResourceType;</span>
+<span class="fc" id="L74">    valueMap = new ValueMapDecorator(new HashMap&lt;&gt;(resource.getValueMap()));</span>
+<span class="fc" id="L75">    valueMap.put(ResourceResolver.PROPERTY_RESOURCE_TYPE, overriddenResourceType);</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">    if (overriddenProperties != null) {</span>
+<span class="fc" id="L77">      valueMap.putAll(overriddenProperties);</span>
     }
-<span class="fc bfc" id="L75" title="All 2 branches covered.">    if (hiddenProperties != null) {</span>
-<span class="fc" id="L76">      hiddenProperties.forEach(valueMap::remove);</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    if (hiddenProperties != null) {</span>
+<span class="fc" id="L80">      hiddenProperties.forEach(valueMap::remove);</span>
     }
-<span class="fc" id="L78">  }</span>
+<span class="fc" id="L82">  }</span>
+
+  @Override
+  public String getPath() {
+<span class="fc" id="L86">    return path;</span>
+  }
 
   @Override
   @SuppressWarnings(&quot;unchecked&quot;)
   public &lt;AdapterType&gt; AdapterType adaptTo(Class&lt;AdapterType&gt; type) {
-<span class="fc bfc" id="L83" title="All 2 branches covered.">    if (type == ValueMap.class) {</span>
-<span class="fc" id="L84">      return (AdapterType)valueMap;</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">    if (type == ValueMap.class) {</span>
+<span class="fc" id="L93">      return (AdapterType)valueMap;</span>
     }
-<span class="fc" id="L86">    return super.adaptTo(type);</span>
+<span class="fc" id="L95">    return super.adaptTo(type);</span>
   }
 
   @Override
   @NotNull
   public ValueMap getValueMap() {
-<span class="fc" id="L92">    return valueMap;</span>
+<span class="fc" id="L101">    return valueMap;</span>
   }
 
   @Override
   @NotNull
   public String getResourceType() {
-<span class="fc" id="L98">    return overriddenResourceType;</span>
+<span class="fc" id="L107">    return overriddenResourceType;</span>
   }
 
   @Override
   public boolean isResourceType(String resourceType) {
-<span class="fc" id="L103">    return this.getResourceResolver().isResourceType(this, resourceType);</span>
+<span class="fc" id="L112">    return this.getResourceResolver().isResourceType(this, resourceType);</span>
   }
 
 }
