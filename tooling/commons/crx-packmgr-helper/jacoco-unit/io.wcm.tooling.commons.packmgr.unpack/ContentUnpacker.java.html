@@ -323,144 +323,145 @@ public final class ContentUnpacker {
 <span class="fc" id="L323">    return path.toString();</span>
   }
 
+  @SuppressWarnings(&quot;PMD.EmptyControlStatement&quot;)
   private void applyXmlExcludes(Element element, String parentPath, Set&lt;String&gt; namespacePrefixesActuallyUsed,
       boolean insideReplicationElement) {
-<span class="fc" id="L328">    String path = buildElementPath(element, parentPath);</span>
-<span class="fc bfc" id="L329" title="All 2 branches covered.">    if (matches(path, this.excludeNodes, false)) {</span>
-<span class="fc" id="L330">      element.detach();</span>
-<span class="fc" id="L331">      return;</span>
+<span class="fc" id="L329">    String path = buildElementPath(element, parentPath);</span>
+<span class="fc bfc" id="L330" title="All 2 branches covered.">    if (matches(path, this.excludeNodes, false)) {</span>
+<span class="fc" id="L331">      element.detach();</span>
+<span class="fc" id="L332">      return;</span>
     }
-<span class="fc" id="L333">    collectNamespacePrefix(namespacePrefixesActuallyUsed, element.getNamespacePrefix());</span>
+<span class="fc" id="L334">    collectNamespacePrefix(namespacePrefixesActuallyUsed, element.getNamespacePrefix());</span>
 
-<span class="fc" id="L335">    String jcrPrimaryType = element.getAttributeValue(&quot;primaryType&quot;, JCR_NAMESPACE);</span>
-<span class="pc bpc" id="L336" title="2 of 4 branches missed.">    boolean isRepositoryUserGroup = StringUtils.equals(jcrPrimaryType, &quot;rep:User&quot;) || StringUtils.equals(jcrPrimaryType, &quot;rep:Group&quot;);</span>
-<span class="fc bfc" id="L337" title="All 2 branches covered.">    boolean isReplicationElement = StringUtils.equals(jcrPrimaryType, &quot;cq:Page&quot;)</span>
-<span class="pc bpc" id="L338" title="1 of 2 branches missed.">        || StringUtils.equals(jcrPrimaryType, &quot;dam:Asset&quot;)</span>
-<span class="pc bpc" id="L339" title="1 of 2 branches missed.">        || StringUtils.equals(jcrPrimaryType, &quot;cq:Template&quot;);</span>
-<span class="fc bfc" id="L340" title="All 4 branches covered.">    boolean isContent = insideReplicationElement &amp;&amp; StringUtils.equals(element.getQualifiedName(), &quot;jcr:content&quot;);</span>
-<span class="fc bfc" id="L341" title="All 4 branches covered.">    boolean setReplicationAttributes = isContent &amp;&amp; markReplicationActivated;</span>
+<span class="fc" id="L336">    String jcrPrimaryType = element.getAttributeValue(&quot;primaryType&quot;, JCR_NAMESPACE);</span>
+<span class="pc bpc" id="L337" title="2 of 4 branches missed.">    boolean isRepositoryUserGroup = StringUtils.equals(jcrPrimaryType, &quot;rep:User&quot;) || StringUtils.equals(jcrPrimaryType, &quot;rep:Group&quot;);</span>
+<span class="fc bfc" id="L338" title="All 2 branches covered.">    boolean isReplicationElement = StringUtils.equals(jcrPrimaryType, &quot;cq:Page&quot;)</span>
+<span class="pc bpc" id="L339" title="1 of 2 branches missed.">        || StringUtils.equals(jcrPrimaryType, &quot;dam:Asset&quot;)</span>
+<span class="pc bpc" id="L340" title="1 of 2 branches missed.">        || StringUtils.equals(jcrPrimaryType, &quot;cq:Template&quot;);</span>
+<span class="fc bfc" id="L341" title="All 4 branches covered.">    boolean isContent = insideReplicationElement &amp;&amp; StringUtils.equals(element.getQualifiedName(), &quot;jcr:content&quot;);</span>
+<span class="fc bfc" id="L342" title="All 4 branches covered.">    boolean setReplicationAttributes = isContent &amp;&amp; markReplicationActivated;</span>
 
-<span class="fc" id="L343">    List&lt;Attribute&gt; attributes = new ArrayList&lt;&gt;(element.getAttributes());</span>
-<span class="fc bfc" id="L344" title="All 2 branches covered.">    for (Attribute attribute : attributes) {</span>
-<span class="fc" id="L345">      boolean excluded = false;</span>
-<span class="fc bfc" id="L346" title="All 2 branches covered.">      if (matches(attribute.getQualifiedName(), this.excludeProperties, false)) {</span>
-<span class="pc bpc" id="L347" title="3 of 4 branches missed.">        if (isRepositoryUserGroup &amp;&amp; StringUtils.equals(attribute.getQualifiedName(), JcrConstants.JCR_UUID)) {</span>
+<span class="fc" id="L344">    List&lt;Attribute&gt; attributes = new ArrayList&lt;&gt;(element.getAttributes());</span>
+<span class="fc bfc" id="L345" title="All 2 branches covered.">    for (Attribute attribute : attributes) {</span>
+<span class="fc" id="L346">      boolean excluded = false;</span>
+<span class="fc bfc" id="L347" title="All 2 branches covered.">      if (matches(attribute.getQualifiedName(), this.excludeProperties, false)) {</span>
+<span class="pc bpc" id="L348" title="3 of 4 branches missed.">        if (isRepositoryUserGroup &amp;&amp; StringUtils.equals(attribute.getQualifiedName(), JcrConstants.JCR_UUID)) {</span>
           // keep jcr:uuid property for groups and users, otherwise they cannot be imported again
         }
         else {
-<span class="fc" id="L351">          attribute.detach();</span>
-<span class="fc" id="L352">          excluded = true;</span>
+<span class="fc" id="L352">          attribute.detach();</span>
+<span class="fc" id="L353">          excluded = true;</span>
         }
       }
-<span class="fc bfc" id="L355" title="All 2 branches covered.">      else if (StringUtils.equals(attribute.getQualifiedName(), PRIMARYTYPE_PROPERTY)) {</span>
-<span class="fc" id="L356">        String namespacePrefix = StringUtils.substringBefore(attribute.getValue(), &quot;:&quot;);</span>
-<span class="fc" id="L357">        collectNamespacePrefix(namespacePrefixesActuallyUsed, namespacePrefix);</span>
-<span class="fc" id="L358">      }</span>
-<span class="fc bfc" id="L359" title="All 2 branches covered.">      else if (StringUtils.equals(attribute.getQualifiedName(), MIXINS_PROPERTY)) {</span>
-<span class="fc" id="L360">        String filteredValue = filterMixinsPropertyValue(attribute.getValue(), namespacePrefixesActuallyUsed);</span>
-<span class="pc bpc" id="L361" title="1 of 2 branches missed.">        if (StringUtils.isBlank(filteredValue)) {</span>
-<span class="nc" id="L362">          attribute.detach();</span>
+<span class="fc bfc" id="L356" title="All 2 branches covered.">      else if (StringUtils.equals(attribute.getQualifiedName(), PRIMARYTYPE_PROPERTY)) {</span>
+<span class="fc" id="L357">        String namespacePrefix = StringUtils.substringBefore(attribute.getValue(), &quot;:&quot;);</span>
+<span class="fc" id="L358">        collectNamespacePrefix(namespacePrefixesActuallyUsed, namespacePrefix);</span>
+<span class="fc" id="L359">      }</span>
+<span class="fc bfc" id="L360" title="All 2 branches covered.">      else if (StringUtils.equals(attribute.getQualifiedName(), MIXINS_PROPERTY)) {</span>
+<span class="fc" id="L361">        String filteredValue = filterMixinsPropertyValue(attribute.getValue(), namespacePrefixesActuallyUsed);</span>
+<span class="pc bpc" id="L362" title="1 of 2 branches missed.">        if (StringUtils.isBlank(filteredValue)) {</span>
+<span class="nc" id="L363">          attribute.detach();</span>
         }
         else {
-<span class="fc" id="L365">          attribute.setValue(filteredValue);</span>
+<span class="fc" id="L366">          attribute.setValue(filteredValue);</span>
         }
-<span class="fc" id="L367">      }</span>
-<span class="pc bpc" id="L368" title="1 of 2 branches missed.">      else if (StringUtils.startsWith(attribute.getValue(), &quot;{Name}&quot;)) {</span>
-<span class="nc" id="L369">        collectNamespacePrefixNameArray(namespacePrefixesActuallyUsed, attribute.getQualifiedName(), attribute.getValue());</span>
+<span class="fc" id="L368">      }</span>
+<span class="pc bpc" id="L369" title="1 of 2 branches missed.">      else if (StringUtils.startsWith(attribute.getValue(), &quot;{Name}&quot;)) {</span>
+<span class="nc" id="L370">        collectNamespacePrefixNameArray(namespacePrefixesActuallyUsed, attribute.getQualifiedName(), attribute.getValue());</span>
         // alphabetically sort name values
-<span class="nc" id="L371">        attribute.setValue(sortReferenceValues(attribute.getQualifiedName(), attribute.getValue(), PropertyType.NAME));</span>
+<span class="nc" id="L372">        attribute.setValue(sortReferenceValues(attribute.getQualifiedName(), attribute.getValue(), PropertyType.NAME));</span>
       }
-<span class="pc bpc" id="L373" title="1 of 2 branches missed.">      else if (StringUtils.startsWith(attribute.getValue(), &quot;{WeakReference}&quot;)) {</span>
+<span class="pc bpc" id="L374" title="1 of 2 branches missed.">      else if (StringUtils.startsWith(attribute.getValue(), &quot;{WeakReference}&quot;)) {</span>
         // alphabetically sort weak reference values
-<span class="nc" id="L375">        attribute.setValue(sortReferenceValues(attribute.getQualifiedName(), attribute.getValue(), PropertyType.WEAKREFERENCE));</span>
+<span class="nc" id="L376">        attribute.setValue(sortReferenceValues(attribute.getQualifiedName(), attribute.getValue(), PropertyType.WEAKREFERENCE));</span>
       }
-<span class="fc bfc" id="L377" title="All 2 branches covered.">      if (!excluded) {</span>
-<span class="fc" id="L378">        collectNamespacePrefix(namespacePrefixesActuallyUsed, attribute.getNamespacePrefix());</span>
+<span class="fc bfc" id="L378" title="All 2 branches covered.">      if (!excluded) {</span>
+<span class="fc" id="L379">        collectNamespacePrefix(namespacePrefixesActuallyUsed, attribute.getNamespacePrefix());</span>
       }
-<span class="fc" id="L380">    }</span>
+<span class="fc" id="L381">    }</span>
 
     // set replication status for jcr:content nodes inside cq:Page nodes
-<span class="fc bfc" id="L383" title="All 4 branches covered.">    if (setReplicationAttributes &amp;&amp; matches(path, markReplicationActivatedIncludeNodes, true)) {</span>
-<span class="fc" id="L384">      addMixin(element, &quot;cq:ReplicationStatus&quot;);</span>
-<span class="fc" id="L385">      element.setAttribute(&quot;lastReplicated&quot;, &quot;{Date}&quot; + dateLastReplicated, CQ_NAMESPACE);</span>
-<span class="fc" id="L386">      element.setAttribute(&quot;lastReplicationAction&quot;, &quot;Activate&quot;, CQ_NAMESPACE);</span>
-<span class="fc" id="L387">      collectNamespacePrefix(namespacePrefixesActuallyUsed, CQ_NAMESPACE.getPrefix());</span>
+<span class="fc bfc" id="L384" title="All 4 branches covered.">    if (setReplicationAttributes &amp;&amp; matches(path, markReplicationActivatedIncludeNodes, true)) {</span>
+<span class="fc" id="L385">      addMixin(element, &quot;cq:ReplicationStatus&quot;);</span>
+<span class="fc" id="L386">      element.setAttribute(&quot;lastReplicated&quot;, &quot;{Date}&quot; + dateLastReplicated, CQ_NAMESPACE);</span>
+<span class="fc" id="L387">      element.setAttribute(&quot;lastReplicationAction&quot;, &quot;Activate&quot;, CQ_NAMESPACE);</span>
+<span class="fc" id="L388">      collectNamespacePrefix(namespacePrefixesActuallyUsed, CQ_NAMESPACE.getPrefix());</span>
     }
 
-<span class="fc" id="L390">    List&lt;Element&gt; children = new ArrayList&lt;&gt;(element.getChildren());</span>
-<span class="fc bfc" id="L391" title="All 2 branches covered.">    for (Element child : children) {</span>
-<span class="fc bfc" id="L392" title="All 6 branches covered.">      applyXmlExcludes(child, path, namespacePrefixesActuallyUsed, (insideReplicationElement || isReplicationElement) &amp;&amp; !isContent);</span>
-<span class="fc" id="L393">    }</span>
-<span class="fc" id="L394">  }</span>
+<span class="fc" id="L391">    List&lt;Element&gt; children = new ArrayList&lt;&gt;(element.getChildren());</span>
+<span class="fc bfc" id="L392" title="All 2 branches covered.">    for (Element child : children) {</span>
+<span class="fc bfc" id="L393" title="All 6 branches covered.">      applyXmlExcludes(child, path, namespacePrefixesActuallyUsed, (insideReplicationElement || isReplicationElement) &amp;&amp; !isContent);</span>
+<span class="fc" id="L394">    }</span>
+<span class="fc" id="L395">  }</span>
 
   private String filterMixinsPropertyValue(String value, Set&lt;String&gt; namespacePrefixesActuallyUsed) {
-<span class="pc bpc" id="L397" title="3 of 4 branches missed.">    if (this.excludeMixins.length == 0 || StringUtils.isBlank(value)) {</span>
-<span class="fc" id="L398">      return value;</span>
+<span class="pc bpc" id="L398" title="3 of 4 branches missed.">    if (this.excludeMixins.length == 0 || StringUtils.isBlank(value)) {</span>
+<span class="fc" id="L399">      return value;</span>
     }
 
-<span class="nc" id="L401">    DocViewProperty prop = DocViewProperty.parse(MIXINS_PROPERTY, value);</span>
-<span class="nc" id="L402">    List&lt;Value&gt; mixins = new ArrayList&lt;&gt;();</span>
-<span class="nc bnc" id="L403" title="All 2 branches missed.">    for (int i = 0; i &lt; prop.values.length; i++) {</span>
-<span class="nc" id="L404">      String mixin = prop.values[i];</span>
-<span class="nc bnc" id="L405" title="All 2 branches missed.">      if (!matches(mixin, this.excludeMixins, false)) {</span>
-<span class="nc" id="L406">        String namespacePrefix = StringUtils.substringBefore(mixin, &quot;:&quot;);</span>
-<span class="nc" id="L407">        collectNamespacePrefix(namespacePrefixesActuallyUsed, namespacePrefix);</span>
-<span class="nc" id="L408">        mixins.add(new MockValue(mixin, PropertyType.STRING));</span>
+<span class="nc" id="L402">    DocViewProperty prop = DocViewProperty.parse(MIXINS_PROPERTY, value);</span>
+<span class="nc" id="L403">    List&lt;Value&gt; mixins = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L404" title="All 2 branches missed.">    for (int i = 0; i &lt; prop.values.length; i++) {</span>
+<span class="nc" id="L405">      String mixin = prop.values[i];</span>
+<span class="nc bnc" id="L406" title="All 2 branches missed.">      if (!matches(mixin, this.excludeMixins, false)) {</span>
+<span class="nc" id="L407">        String namespacePrefix = StringUtils.substringBefore(mixin, &quot;:&quot;);</span>
+<span class="nc" id="L408">        collectNamespacePrefix(namespacePrefixesActuallyUsed, namespacePrefix);</span>
+<span class="nc" id="L409">        mixins.add(new MockValue(mixin, PropertyType.STRING));</span>
       }
     }
 
-<span class="nc bnc" id="L412" title="All 2 branches missed.">    if (mixins.isEmpty()) {</span>
-<span class="nc" id="L413">      return null;</span>
+<span class="nc bnc" id="L413" title="All 2 branches missed.">    if (mixins.isEmpty()) {</span>
+<span class="nc" id="L414">      return null;</span>
     }
 
     try {
-<span class="nc" id="L417">      return DocViewProperty.format(new MockProperty(MIXINS_PROPERTY, true, mixins.toArray(new Value[0])));</span>
+<span class="nc" id="L418">      return DocViewProperty.format(new MockProperty(MIXINS_PROPERTY, true, mixins.toArray(new Value[0])));</span>
     }
-<span class="nc" id="L419">    catch (RepositoryException ex) {</span>
-<span class="nc" id="L420">      throw new RuntimeException(&quot;Unable to format value for &quot; + MIXINS_PROPERTY, ex);</span>
+<span class="nc" id="L420">    catch (RepositoryException ex) {</span>
+<span class="nc" id="L421">      throw new RuntimeException(&quot;Unable to format value for &quot; + MIXINS_PROPERTY, ex);</span>
     }
   }
 
   private void addMixin(Element element, String mixin) {
-<span class="fc" id="L425">    String mixinsString = element.getAttributeValue(&quot;mixinTypes&quot;, JCR_NAMESPACE);</span>
+<span class="fc" id="L426">    String mixinsString = element.getAttributeValue(&quot;mixinTypes&quot;, JCR_NAMESPACE);</span>
 
-<span class="fc" id="L427">    List&lt;String&gt; mixins = new ArrayList&lt;&gt;();</span>
-<span class="pc bpc" id="L428" title="1 of 2 branches missed.">    if (!StringUtils.isBlank(mixinsString)) {</span>
-<span class="nc" id="L429">      DocViewProperty prop = DocViewProperty.parse(MIXINS_PROPERTY, mixinsString);</span>
-<span class="nc bnc" id="L430" title="All 2 branches missed.">      for (int i = 0; i &lt; prop.values.length; i++) {</span>
-<span class="nc" id="L431">        mixins.add(prop.values[i]);</span>
+<span class="fc" id="L428">    List&lt;String&gt; mixins = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L429" title="1 of 2 branches missed.">    if (!StringUtils.isBlank(mixinsString)) {</span>
+<span class="nc" id="L430">      DocViewProperty prop = DocViewProperty.parse(MIXINS_PROPERTY, mixinsString);</span>
+<span class="nc bnc" id="L431" title="All 2 branches missed.">      for (int i = 0; i &lt; prop.values.length; i++) {</span>
+<span class="nc" id="L432">        mixins.add(prop.values[i]);</span>
       }
     }
-<span class="pc bpc" id="L434" title="1 of 2 branches missed.">    if (!mixins.contains(mixin)) {</span>
-<span class="fc" id="L435">      mixins.add(mixin);</span>
+<span class="pc bpc" id="L435" title="1 of 2 branches missed.">    if (!mixins.contains(mixin)) {</span>
+<span class="fc" id="L436">      mixins.add(mixin);</span>
     }
 
     try {
-<span class="fc" id="L439">      Value[] values = mixins.stream()</span>
-<span class="fc" id="L440">          .map(item -&gt; new MockValue(item, PropertyType.STRING))</span>
-<span class="fc" id="L441">          .toArray(size -&gt; new Value[size]);</span>
-<span class="fc" id="L442">      mixinsString = DocViewProperty.format(new MockProperty(MIXINS_PROPERTY, true, values));</span>
-<span class="fc" id="L443">      element.setAttribute(&quot;mixinTypes&quot;, mixinsString, JCR_NAMESPACE);</span>
+<span class="fc" id="L440">      Value[] values = mixins.stream()</span>
+<span class="fc" id="L441">          .map(item -&gt; new MockValue(item, PropertyType.STRING))</span>
+<span class="fc" id="L442">          .toArray(size -&gt; new Value[size]);</span>
+<span class="fc" id="L443">      mixinsString = DocViewProperty.format(new MockProperty(MIXINS_PROPERTY, true, values));</span>
+<span class="fc" id="L444">      element.setAttribute(&quot;mixinTypes&quot;, mixinsString, JCR_NAMESPACE);</span>
     }
-<span class="nc" id="L445">    catch (RepositoryException ex) {</span>
-<span class="nc" id="L446">      throw new RuntimeException(&quot;Unable to format value for &quot; + MIXINS_PROPERTY, ex);</span>
-<span class="fc" id="L447">    }</span>
-<span class="fc" id="L448">  }</span>
+<span class="nc" id="L446">    catch (RepositoryException ex) {</span>
+<span class="nc" id="L447">      throw new RuntimeException(&quot;Unable to format value for &quot; + MIXINS_PROPERTY, ex);</span>
+<span class="fc" id="L448">    }</span>
+<span class="fc" id="L449">  }</span>
 
   private void collectNamespacePrefix(Set&lt;String&gt; prefixes, String prefix) {
-<span class="fc bfc" id="L451" title="All 2 branches covered.">    if (StringUtils.isNotBlank(prefix)) {</span>
-<span class="fc" id="L452">      prefixes.add(prefix);</span>
+<span class="fc bfc" id="L452" title="All 2 branches covered.">    if (StringUtils.isNotBlank(prefix)) {</span>
+<span class="fc" id="L453">      prefixes.add(prefix);</span>
     }
-<span class="fc" id="L454">  }</span>
+<span class="fc" id="L455">  }</span>
 
   private void collectNamespacePrefixNameArray(Set&lt;String&gt; prefixes, String name, String value) {
-<span class="nc" id="L457">    DocViewProperty prop = DocViewProperty.parse(name, value);</span>
-<span class="nc bnc" id="L458" title="All 2 branches missed.">    for (int i = 0; i &lt; prop.values.length; i++) {</span>
-<span class="nc" id="L459">      String item = prop.values[i];</span>
-<span class="nc" id="L460">      String namespacePrefix = StringUtils.substringBefore(item, &quot;:&quot;);</span>
-<span class="nc" id="L461">      collectNamespacePrefix(prefixes, namespacePrefix);</span>
+<span class="nc" id="L458">    DocViewProperty prop = DocViewProperty.parse(name, value);</span>
+<span class="nc bnc" id="L459" title="All 2 branches missed.">    for (int i = 0; i &lt; prop.values.length; i++) {</span>
+<span class="nc" id="L460">      String item = prop.values[i];</span>
+<span class="nc" id="L461">      String namespacePrefix = StringUtils.substringBefore(item, &quot;:&quot;);</span>
+<span class="nc" id="L462">      collectNamespacePrefix(prefixes, namespacePrefix);</span>
     }
-<span class="nc" id="L463">  }</span>
+<span class="nc" id="L464">  }</span>
 
   /**
    * Sort weak reference values alphabetically to ensure consistent ordering.
@@ -470,20 +471,20 @@ public final class ContentUnpacker {
    * @return Property value with sorted references
    */
   private String sortReferenceValues(String name, String value, int propertyType) {
-<span class="nc" id="L473">    Set&lt;String&gt; refs = new TreeSet&lt;&gt;();</span>
-<span class="nc" id="L474">    DocViewProperty prop = DocViewProperty.parse(name, value);</span>
-<span class="nc bnc" id="L475" title="All 2 branches missed.">    for (int i = 0; i &lt; prop.values.length; i++) {</span>
-<span class="nc" id="L476">      refs.add(prop.values[i]);</span>
+<span class="nc" id="L474">    Set&lt;String&gt; refs = new TreeSet&lt;&gt;();</span>
+<span class="nc" id="L475">    DocViewProperty prop = DocViewProperty.parse(name, value);</span>
+<span class="nc bnc" id="L476" title="All 2 branches missed.">    for (int i = 0; i &lt; prop.values.length; i++) {</span>
+<span class="nc" id="L477">      refs.add(prop.values[i]);</span>
     }
-<span class="nc" id="L478">    List&lt;Value&gt; values = new ArrayList&lt;&gt;();</span>
-<span class="nc bnc" id="L479" title="All 2 branches missed.">    for (String ref : refs) {</span>
-<span class="nc" id="L480">      values.add(new MockValue(ref, propertyType));</span>
-<span class="nc" id="L481">    }</span>
+<span class="nc" id="L479">    List&lt;Value&gt; values = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L480" title="All 2 branches missed.">    for (String ref : refs) {</span>
+<span class="nc" id="L481">      values.add(new MockValue(ref, propertyType));</span>
+<span class="nc" id="L482">    }</span>
     try {
-<span class="nc" id="L483">      return DocViewProperty.format(new MockProperty(name, true, values.toArray(new Value[0])));</span>
+<span class="nc" id="L484">      return DocViewProperty.format(new MockProperty(name, true, values.toArray(new Value[0])));</span>
     }
-<span class="nc" id="L485">    catch (RepositoryException ex) {</span>
-<span class="nc" id="L486">      throw new RuntimeException(&quot;Unable to format value for &quot; + name, ex);</span>
+<span class="nc" id="L486">    catch (RepositoryException ex) {</span>
+<span class="nc" id="L487">      throw new RuntimeException(&quot;Unable to format value for &quot; + name, ex);</span>
     }
   }
 
@@ -497,49 +498,49 @@ public final class ContentUnpacker {
     private final boolean multiple;
     private final Value[] values;
 
-<span class="fc" id="L500">    MockProperty(String name, boolean multiple, Value[] values) {</span>
-<span class="fc" id="L501">      this.name = name;</span>
-<span class="fc" id="L502">      this.multiple = multiple;</span>
-<span class="fc" id="L503">      this.values = values;</span>
-<span class="fc" id="L504">    }</span>
+<span class="fc" id="L501">    MockProperty(String name, boolean multiple, Value[] values) {</span>
+<span class="fc" id="L502">      this.name = name;</span>
+<span class="fc" id="L503">      this.multiple = multiple;</span>
+<span class="fc" id="L504">      this.values = values;</span>
+<span class="fc" id="L505">    }</span>
 
     @Override
     public String getName() {
-<span class="fc" id="L508">      return name;</span>
+<span class="fc" id="L509">      return name;</span>
     }
 
     @Override
     public int getType() {
-<span class="pc bpc" id="L513" title="1 of 2 branches missed.">      if (values.length &gt; 0) {</span>
-<span class="fc" id="L514">        return values[0].getType();</span>
+<span class="pc bpc" id="L514" title="1 of 2 branches missed.">      if (values.length &gt; 0) {</span>
+<span class="fc" id="L515">        return values[0].getType();</span>
       }
-<span class="nc" id="L516">      return PropertyType.UNDEFINED;</span>
+<span class="nc" id="L517">      return PropertyType.UNDEFINED;</span>
     }
 
     @Override
     public boolean isMultiple() {
-<span class="fc" id="L521">      return multiple;</span>
+<span class="fc" id="L522">      return multiple;</span>
     }
 
     @Override
     public Value getValue() throws ValueFormatException {
-<span class="nc bnc" id="L526" title="All 2 branches missed.">      if (multiple) {</span>
-<span class="nc" id="L527">        throw new ValueFormatException(&quot;Property is multiple.&quot;);</span>
+<span class="nc bnc" id="L527" title="All 2 branches missed.">      if (multiple) {</span>
+<span class="nc" id="L528">        throw new ValueFormatException(&quot;Property is multiple.&quot;);</span>
       }
-<span class="nc" id="L529">      return values[0];</span>
+<span class="nc" id="L530">      return values[0];</span>
     }
 
     @Override
     public Value[] getValues() throws ValueFormatException {
-<span class="pc bpc" id="L534" title="1 of 2 branches missed.">      if (!multiple) {</span>
-<span class="nc" id="L535">        throw new ValueFormatException(&quot;Property is not multiple.&quot;);</span>
+<span class="pc bpc" id="L535" title="1 of 2 branches missed.">      if (!multiple) {</span>
+<span class="nc" id="L536">        throw new ValueFormatException(&quot;Property is not multiple.&quot;);</span>
       }
-<span class="fc" id="L537">      return values;</span>
+<span class="fc" id="L538">      return values;</span>
     }
 
     @Override
     public PropertyDefinition getDefinition() {
-<span class="fc" id="L542">      return this;</span>
+<span class="fc" id="L543">      return this;</span>
     }
 
 
@@ -547,242 +548,242 @@ public final class ContentUnpacker {
 
     @Override
     public String getPath() {
-<span class="nc" id="L550">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L551">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public Item getAncestor(int depth) {
-<span class="nc" id="L555">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L556">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public Node getParent() {
-<span class="nc" id="L560">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L561">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public int getDepth() {
-<span class="nc" id="L565">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L566">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public Session getSession() {
-<span class="nc" id="L570">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L571">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public boolean isNode() {
-<span class="nc" id="L575">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L576">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public boolean isNew() {
-<span class="nc" id="L580">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L581">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public boolean isModified() {
-<span class="nc" id="L585">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L586">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public boolean isSame(Item otherItem) {
-<span class="nc" id="L590">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L591">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void accept(ItemVisitor visitor) {
-<span class="nc" id="L595">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L596">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void save() {
-<span class="nc" id="L600">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L601">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void refresh(boolean keepChanges) {
-<span class="nc" id="L605">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L606">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void remove() {
-<span class="nc" id="L610">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L611">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void setValue(Value value) {
-<span class="nc" id="L615">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L616">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void setValue(Value[] value) {
-<span class="nc" id="L620">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L621">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void setValue(String value) {
-<span class="nc" id="L625">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L626">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void setValue(String[] value) {
-<span class="nc" id="L630">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L631">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void setValue(InputStream value) {
-<span class="nc" id="L635">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L636">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void setValue(Binary value) {
-<span class="nc" id="L640">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L641">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void setValue(long value) {
-<span class="nc" id="L645">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L646">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void setValue(double value) {
-<span class="nc" id="L650">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L651">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void setValue(BigDecimal value) {
-<span class="nc" id="L655">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L656">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void setValue(Calendar value) {
-<span class="nc" id="L660">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L661">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void setValue(boolean value) {
-<span class="nc" id="L665">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L666">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public void setValue(Node value) {
-<span class="nc" id="L670">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L671">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public String getString() {
-<span class="nc" id="L675">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L676">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public InputStream getStream() {
-<span class="nc" id="L680">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L681">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public Binary getBinary() {
-<span class="nc" id="L685">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L686">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public long getLong() {
-<span class="nc" id="L690">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L691">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public double getDouble() {
-<span class="nc" id="L695">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L696">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public BigDecimal getDecimal() {
-<span class="nc" id="L700">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L701">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public Calendar getDate() {
-<span class="nc" id="L705">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L706">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public boolean getBoolean() {
-<span class="nc" id="L710">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L711">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public Node getNode() {
-<span class="nc" id="L715">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L716">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public Property getProperty() {
-<span class="nc" id="L720">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L721">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public long getLength() {
-<span class="nc" id="L725">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L726">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public long[] getLengths() {
-<span class="nc" id="L730">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L731">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public NodeType getDeclaringNodeType() {
-<span class="nc" id="L735">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L736">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public boolean isAutoCreated() {
-<span class="nc" id="L740">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L741">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public boolean isMandatory() {
-<span class="nc" id="L745">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L746">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public int getOnParentVersion() {
-<span class="nc" id="L750">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L751">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public boolean isProtected() {
-<span class="nc" id="L755">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L756">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public int getRequiredType() {
-<span class="nc" id="L760">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L761">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public String[] getValueConstraints() {
-<span class="nc" id="L765">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L766">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public Value[] getDefaultValues() {
-<span class="nc" id="L770">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L771">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public String[] getAvailableQueryOperators() {
-<span class="nc" id="L775">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L776">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public boolean isFullTextSearchable() {
-<span class="nc" id="L780">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L781">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public boolean isQueryOrderable() {
-<span class="nc" id="L785">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L786">      throw new UnsupportedOperationException();</span>
     }
 
   }
@@ -792,19 +793,19 @@ public final class ContentUnpacker {
     private final String value;
     private final int type;
 
-<span class="fc" id="L795">    MockValue(String value, int type) {</span>
-<span class="fc" id="L796">      this.value = value;</span>
-<span class="fc" id="L797">      this.type = type;</span>
-<span class="fc" id="L798">    }</span>
+<span class="fc" id="L796">    MockValue(String value, int type) {</span>
+<span class="fc" id="L797">      this.value = value;</span>
+<span class="fc" id="L798">      this.type = type;</span>
+<span class="fc" id="L799">    }</span>
 
     @Override
     public String getString() {
-<span class="fc" id="L802">      return value;</span>
+<span class="fc" id="L803">      return value;</span>
     }
 
     @Override
     public int getType() {
-<span class="fc" id="L807">      return type;</span>
+<span class="fc" id="L808">      return type;</span>
     }
 
 
@@ -812,37 +813,37 @@ public final class ContentUnpacker {
 
     @Override
     public InputStream getStream() {
-<span class="nc" id="L815">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L816">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public Binary getBinary() {
-<span class="nc" id="L820">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L821">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public long getLong() {
-<span class="nc" id="L825">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L826">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public double getDouble() {
-<span class="nc" id="L830">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L831">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public BigDecimal getDecimal() {
-<span class="nc" id="L835">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L836">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public Calendar getDate() {
-<span class="nc" id="L840">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L841">      throw new UnsupportedOperationException();</span>
     }
 
     @Override
     public boolean getBoolean() {
-<span class="nc" id="L845">      throw new UnsupportedOperationException();</span>
+<span class="nc" id="L846">      throw new UnsupportedOperationException();</span>
     }
 
   }
