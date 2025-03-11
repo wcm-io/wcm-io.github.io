@@ -386,80 +386,83 @@
 <a class="jxr_linenumber" name="L378" href="#L378">378</a>     <em class="jxr_comment">// if current element is a replication element, but the jcr:content node to set the replication attributes to is missing, add it</em>
 <a class="jxr_linenumber" name="L379" href="#L379">379</a>     <strong class="jxr_keyword">if</strong> (isReplicationElement &amp;&amp; element.getChild(<span class="jxr_string">"content"</span>, JCR_NAMESPACE) == <strong class="jxr_keyword">null</strong>
 <a class="jxr_linenumber" name="L380" href="#L380">380</a>         &amp;&amp; matches(path + <span class="jxr_string">"/jcr:content"</span>, markReplicationActivatedIncludeNodes, <strong class="jxr_keyword">true</strong>)) {
-<a class="jxr_linenumber" name="L381" href="#L381">381</a>       element.addContent(<strong class="jxr_keyword">new</strong> Element(<span class="jxr_string">"content"</span>, JCR_NAMESPACE));
-<a class="jxr_linenumber" name="L382" href="#L382">382</a>     }
-<a class="jxr_linenumber" name="L383" href="#L383">383</a> 
-<a class="jxr_linenumber" name="L384" href="#L384">384</a>     List&lt;Element&gt; children = <strong class="jxr_keyword">new</strong> ArrayList&lt;&gt;(element.getChildren());
-<a class="jxr_linenumber" name="L385" href="#L385">385</a>     <strong class="jxr_keyword">for</strong> (Element child : children) {
-<a class="jxr_linenumber" name="L386" href="#L386">386</a>       applyXmlExcludes(child, path, namespacePrefixesActuallyUsed, (insideReplicationElement || isReplicationElement) &amp;&amp; !isContent);
-<a class="jxr_linenumber" name="L387" href="#L387">387</a>     }
-<a class="jxr_linenumber" name="L388" href="#L388">388</a>   }
-<a class="jxr_linenumber" name="L389" href="#L389">389</a> 
-<a class="jxr_linenumber" name="L390" href="#L390">390</a>   <strong class="jxr_keyword">private</strong> String filterMixinsPropertyValue(String value, Set&lt;String&gt; namespacePrefixesActuallyUsed) {
-<a class="jxr_linenumber" name="L391" href="#L391">391</a>     <strong class="jxr_keyword">if</strong> (<strong class="jxr_keyword">this</strong>.excludeMixins.length == 0 || StringUtils.isBlank(value)) {
-<a class="jxr_linenumber" name="L392" href="#L392">392</a>       <strong class="jxr_keyword">return</strong> value;
-<a class="jxr_linenumber" name="L393" href="#L393">393</a>     }
-<a class="jxr_linenumber" name="L394" href="#L394">394</a> 
-<a class="jxr_linenumber" name="L395" href="#L395">395</a>     List&lt;String&gt; mixins = <strong class="jxr_keyword">new</strong> ArrayList&lt;&gt;();
-<a class="jxr_linenumber" name="L396" href="#L396">396</a>     <strong class="jxr_keyword">for</strong> (String mixin : DocViewUtil.parseValues(value)) {
-<a class="jxr_linenumber" name="L397" href="#L397">397</a>       <strong class="jxr_keyword">if</strong> (!matches(mixin, <strong class="jxr_keyword">this</strong>.excludeMixins, false)) {
-<a class="jxr_linenumber" name="L398" href="#L398">398</a>         String namespacePrefix = StringUtils.substringBefore(mixin, <span class="jxr_string">":"</span>);
-<a class="jxr_linenumber" name="L399" href="#L399">399</a>         collectNamespacePrefix(namespacePrefixesActuallyUsed, namespacePrefix);
-<a class="jxr_linenumber" name="L400" href="#L400">400</a>         mixins.add(mixin);
-<a class="jxr_linenumber" name="L401" href="#L401">401</a>       }
-<a class="jxr_linenumber" name="L402" href="#L402">402</a>     }
-<a class="jxr_linenumber" name="L403" href="#L403">403</a> 
-<a class="jxr_linenumber" name="L404" href="#L404">404</a>     <strong class="jxr_keyword">if</strong> (mixins.isEmpty()) {
-<a class="jxr_linenumber" name="L405" href="#L405">405</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
-<a class="jxr_linenumber" name="L406" href="#L406">406</a>     }
-<a class="jxr_linenumber" name="L407" href="#L407">407</a> 
-<a class="jxr_linenumber" name="L408" href="#L408">408</a>     <strong class="jxr_keyword">return</strong> DocViewUtil.formatValues(mixins);
-<a class="jxr_linenumber" name="L409" href="#L409">409</a>   }
+<a class="jxr_linenumber" name="L381" href="#L381">381</a>       Element contentNode = <strong class="jxr_keyword">new</strong> Element(<span class="jxr_string">"content"</span>, JCR_NAMESPACE);
+<a class="jxr_linenumber" name="L382" href="#L382">382</a>       String jcrContentPrimaryType = StringUtils.equals(jcrPrimaryType, <span class="jxr_string">"cq:Template"</span>) ? <span class="jxr_string">"cq:PageContent"</span> : jcrPrimaryType + <span class="jxr_string">"Content"</span>;
+<a class="jxr_linenumber" name="L383" href="#L383">383</a>       contentNode.setAttribute(<span class="jxr_string">"primaryType"</span>, jcrContentPrimaryType, JCR_NAMESPACE);
+<a class="jxr_linenumber" name="L384" href="#L384">384</a>       element.addContent(contentNode);
+<a class="jxr_linenumber" name="L385" href="#L385">385</a>     }
+<a class="jxr_linenumber" name="L386" href="#L386">386</a> 
+<a class="jxr_linenumber" name="L387" href="#L387">387</a>     List&lt;Element&gt; children = <strong class="jxr_keyword">new</strong> ArrayList&lt;&gt;(element.getChildren());
+<a class="jxr_linenumber" name="L388" href="#L388">388</a>     <strong class="jxr_keyword">for</strong> (Element child : children) {
+<a class="jxr_linenumber" name="L389" href="#L389">389</a>       applyXmlExcludes(child, path, namespacePrefixesActuallyUsed, (insideReplicationElement || isReplicationElement) &amp;&amp; !isContent);
+<a class="jxr_linenumber" name="L390" href="#L390">390</a>     }
+<a class="jxr_linenumber" name="L391" href="#L391">391</a>   }
+<a class="jxr_linenumber" name="L392" href="#L392">392</a> 
+<a class="jxr_linenumber" name="L393" href="#L393">393</a>   <strong class="jxr_keyword">private</strong> String filterMixinsPropertyValue(String value, Set&lt;String&gt; namespacePrefixesActuallyUsed) {
+<a class="jxr_linenumber" name="L394" href="#L394">394</a>     <strong class="jxr_keyword">if</strong> (<strong class="jxr_keyword">this</strong>.excludeMixins.length == 0 || StringUtils.isBlank(value)) {
+<a class="jxr_linenumber" name="L395" href="#L395">395</a>       <strong class="jxr_keyword">return</strong> value;
+<a class="jxr_linenumber" name="L396" href="#L396">396</a>     }
+<a class="jxr_linenumber" name="L397" href="#L397">397</a> 
+<a class="jxr_linenumber" name="L398" href="#L398">398</a>     List&lt;String&gt; mixins = <strong class="jxr_keyword">new</strong> ArrayList&lt;&gt;();
+<a class="jxr_linenumber" name="L399" href="#L399">399</a>     <strong class="jxr_keyword">for</strong> (String mixin : DocViewUtil.parseValues(value)) {
+<a class="jxr_linenumber" name="L400" href="#L400">400</a>       <strong class="jxr_keyword">if</strong> (!matches(mixin, <strong class="jxr_keyword">this</strong>.excludeMixins, false)) {
+<a class="jxr_linenumber" name="L401" href="#L401">401</a>         String namespacePrefix = StringUtils.substringBefore(mixin, <span class="jxr_string">":"</span>);
+<a class="jxr_linenumber" name="L402" href="#L402">402</a>         collectNamespacePrefix(namespacePrefixesActuallyUsed, namespacePrefix);
+<a class="jxr_linenumber" name="L403" href="#L403">403</a>         mixins.add(mixin);
+<a class="jxr_linenumber" name="L404" href="#L404">404</a>       }
+<a class="jxr_linenumber" name="L405" href="#L405">405</a>     }
+<a class="jxr_linenumber" name="L406" href="#L406">406</a> 
+<a class="jxr_linenumber" name="L407" href="#L407">407</a>     <strong class="jxr_keyword">if</strong> (mixins.isEmpty()) {
+<a class="jxr_linenumber" name="L408" href="#L408">408</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="L409" href="#L409">409</a>     }
 <a class="jxr_linenumber" name="L410" href="#L410">410</a> 
-<a class="jxr_linenumber" name="L411" href="#L411">411</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> addMixin(Element element, String mixin) {
-<a class="jxr_linenumber" name="L412" href="#L412">412</a>     String mixinsString = element.getAttributeValue(<span class="jxr_string">"mixinTypes"</span>, JCR_NAMESPACE);
+<a class="jxr_linenumber" name="L411" href="#L411">411</a>     <strong class="jxr_keyword">return</strong> DocViewUtil.formatValues(mixins);
+<a class="jxr_linenumber" name="L412" href="#L412">412</a>   }
 <a class="jxr_linenumber" name="L413" href="#L413">413</a> 
-<a class="jxr_linenumber" name="L414" href="#L414">414</a>     List&lt;String&gt; mixins = <strong class="jxr_keyword">new</strong> ArrayList&lt;&gt;();
-<a class="jxr_linenumber" name="L415" href="#L415">415</a>     <strong class="jxr_keyword">if</strong> (!StringUtils.isBlank(mixinsString)) {
-<a class="jxr_linenumber" name="L416" href="#L416">416</a>       <strong class="jxr_keyword">for</strong> (String item : DocViewUtil.parseValues(mixinsString)) {
-<a class="jxr_linenumber" name="L417" href="#L417">417</a>         mixins.add(item);
-<a class="jxr_linenumber" name="L418" href="#L418">418</a>       }
-<a class="jxr_linenumber" name="L419" href="#L419">419</a>     }
-<a class="jxr_linenumber" name="L420" href="#L420">420</a>     <strong class="jxr_keyword">if</strong> (!mixins.contains(mixin)) {
-<a class="jxr_linenumber" name="L421" href="#L421">421</a>       mixins.add(mixin);
+<a class="jxr_linenumber" name="L414" href="#L414">414</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> addMixin(Element element, String mixin) {
+<a class="jxr_linenumber" name="L415" href="#L415">415</a>     String mixinsString = element.getAttributeValue(<span class="jxr_string">"mixinTypes"</span>, JCR_NAMESPACE);
+<a class="jxr_linenumber" name="L416" href="#L416">416</a> 
+<a class="jxr_linenumber" name="L417" href="#L417">417</a>     List&lt;String&gt; mixins = <strong class="jxr_keyword">new</strong> ArrayList&lt;&gt;();
+<a class="jxr_linenumber" name="L418" href="#L418">418</a>     <strong class="jxr_keyword">if</strong> (!StringUtils.isBlank(mixinsString)) {
+<a class="jxr_linenumber" name="L419" href="#L419">419</a>       <strong class="jxr_keyword">for</strong> (String item : DocViewUtil.parseValues(mixinsString)) {
+<a class="jxr_linenumber" name="L420" href="#L420">420</a>         mixins.add(item);
+<a class="jxr_linenumber" name="L421" href="#L421">421</a>       }
 <a class="jxr_linenumber" name="L422" href="#L422">422</a>     }
-<a class="jxr_linenumber" name="L423" href="#L423">423</a> 
-<a class="jxr_linenumber" name="L424" href="#L424">424</a>     element.setAttribute(<span class="jxr_string">"mixinTypes"</span>, DocViewUtil.formatValues(mixins), JCR_NAMESPACE);
-<a class="jxr_linenumber" name="L425" href="#L425">425</a>   }
+<a class="jxr_linenumber" name="L423" href="#L423">423</a>     <strong class="jxr_keyword">if</strong> (!mixins.contains(mixin)) {
+<a class="jxr_linenumber" name="L424" href="#L424">424</a>       mixins.add(mixin);
+<a class="jxr_linenumber" name="L425" href="#L425">425</a>     }
 <a class="jxr_linenumber" name="L426" href="#L426">426</a> 
-<a class="jxr_linenumber" name="L427" href="#L427">427</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> collectNamespacePrefix(Set&lt;String&gt; prefixes, String prefix) {
-<a class="jxr_linenumber" name="L428" href="#L428">428</a>     <strong class="jxr_keyword">if</strong> (StringUtils.isNotBlank(prefix)) {
-<a class="jxr_linenumber" name="L429" href="#L429">429</a>       prefixes.add(prefix);
-<a class="jxr_linenumber" name="L430" href="#L430">430</a>     }
-<a class="jxr_linenumber" name="L431" href="#L431">431</a>   }
-<a class="jxr_linenumber" name="L432" href="#L432">432</a> 
-<a class="jxr_linenumber" name="L433" href="#L433">433</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> collectNamespacePrefixNameArray(Set&lt;String&gt; prefixes, String value) {
-<a class="jxr_linenumber" name="L434" href="#L434">434</a>     <strong class="jxr_keyword">for</strong> (String item : DocViewUtil.parseValues(value)) {
-<a class="jxr_linenumber" name="L435" href="#L435">435</a>       String namespacePrefix = StringUtils.substringBefore(item, <span class="jxr_string">":"</span>);
-<a class="jxr_linenumber" name="L436" href="#L436">436</a>       collectNamespacePrefix(prefixes, namespacePrefix);
-<a class="jxr_linenumber" name="L437" href="#L437">437</a>     }
-<a class="jxr_linenumber" name="L438" href="#L438">438</a>   }
-<a class="jxr_linenumber" name="L439" href="#L439">439</a> 
-<a class="jxr_linenumber" name="L440" href="#L440">440</a>   <em class="jxr_javadoccomment">/**</em>
-<a class="jxr_linenumber" name="L441" href="#L441">441</a> <em class="jxr_javadoccomment">   * Sort weak reference values alphabetically to ensure consistent ordering.</em>
-<a class="jxr_linenumber" name="L442" href="#L442">442</a> <em class="jxr_javadoccomment">   * @param value Property value</em>
-<a class="jxr_linenumber" name="L443" href="#L443">443</a> <em class="jxr_javadoccomment">   * @param propertyType Property type from {@link PropertyType}</em>
-<a class="jxr_linenumber" name="L444" href="#L444">444</a> <em class="jxr_javadoccomment">   * @return Property value with sorted references</em>
-<a class="jxr_linenumber" name="L445" href="#L445">445</a> <em class="jxr_javadoccomment">   */</em>
-<a class="jxr_linenumber" name="L446" href="#L446">446</a>   <strong class="jxr_keyword">private</strong> String sortReferenceValues(String value, <strong class="jxr_keyword">int</strong> propertyType) {
-<a class="jxr_linenumber" name="L447" href="#L447">447</a>     Set&lt;String&gt; refs = <strong class="jxr_keyword">new</strong> TreeSet&lt;&gt;();
-<a class="jxr_linenumber" name="L448" href="#L448">448</a>     <strong class="jxr_keyword">for</strong> (String item : DocViewUtil.parseValues(value)) {
-<a class="jxr_linenumber" name="L449" href="#L449">449</a>       refs.add(item);
-<a class="jxr_linenumber" name="L450" href="#L450">450</a>     }
-<a class="jxr_linenumber" name="L451" href="#L451">451</a>     <strong class="jxr_keyword">return</strong> DocViewUtil.formatValues(<strong class="jxr_keyword">new</strong> ArrayList&lt;&gt;(refs), propertyType);
-<a class="jxr_linenumber" name="L452" href="#L452">452</a>   }
-<a class="jxr_linenumber" name="L453" href="#L453">453</a> 
-<a class="jxr_linenumber" name="L454" href="#L454">454</a> }
+<a class="jxr_linenumber" name="L427" href="#L427">427</a>     element.setAttribute(<span class="jxr_string">"mixinTypes"</span>, DocViewUtil.formatValues(mixins), JCR_NAMESPACE);
+<a class="jxr_linenumber" name="L428" href="#L428">428</a>   }
+<a class="jxr_linenumber" name="L429" href="#L429">429</a> 
+<a class="jxr_linenumber" name="L430" href="#L430">430</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> collectNamespacePrefix(Set&lt;String&gt; prefixes, String prefix) {
+<a class="jxr_linenumber" name="L431" href="#L431">431</a>     <strong class="jxr_keyword">if</strong> (StringUtils.isNotBlank(prefix)) {
+<a class="jxr_linenumber" name="L432" href="#L432">432</a>       prefixes.add(prefix);
+<a class="jxr_linenumber" name="L433" href="#L433">433</a>     }
+<a class="jxr_linenumber" name="L434" href="#L434">434</a>   }
+<a class="jxr_linenumber" name="L435" href="#L435">435</a> 
+<a class="jxr_linenumber" name="L436" href="#L436">436</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> collectNamespacePrefixNameArray(Set&lt;String&gt; prefixes, String value) {
+<a class="jxr_linenumber" name="L437" href="#L437">437</a>     <strong class="jxr_keyword">for</strong> (String item : DocViewUtil.parseValues(value)) {
+<a class="jxr_linenumber" name="L438" href="#L438">438</a>       String namespacePrefix = StringUtils.substringBefore(item, <span class="jxr_string">":"</span>);
+<a class="jxr_linenumber" name="L439" href="#L439">439</a>       collectNamespacePrefix(prefixes, namespacePrefix);
+<a class="jxr_linenumber" name="L440" href="#L440">440</a>     }
+<a class="jxr_linenumber" name="L441" href="#L441">441</a>   }
+<a class="jxr_linenumber" name="L442" href="#L442">442</a> 
+<a class="jxr_linenumber" name="L443" href="#L443">443</a>   <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L444" href="#L444">444</a> <em class="jxr_javadoccomment">   * Sort weak reference values alphabetically to ensure consistent ordering.</em>
+<a class="jxr_linenumber" name="L445" href="#L445">445</a> <em class="jxr_javadoccomment">   * @param value Property value</em>
+<a class="jxr_linenumber" name="L446" href="#L446">446</a> <em class="jxr_javadoccomment">   * @param propertyType Property type from {@link PropertyType}</em>
+<a class="jxr_linenumber" name="L447" href="#L447">447</a> <em class="jxr_javadoccomment">   * @return Property value with sorted references</em>
+<a class="jxr_linenumber" name="L448" href="#L448">448</a> <em class="jxr_javadoccomment">   */</em>
+<a class="jxr_linenumber" name="L449" href="#L449">449</a>   <strong class="jxr_keyword">private</strong> String sortReferenceValues(String value, <strong class="jxr_keyword">int</strong> propertyType) {
+<a class="jxr_linenumber" name="L450" href="#L450">450</a>     Set&lt;String&gt; refs = <strong class="jxr_keyword">new</strong> TreeSet&lt;&gt;();
+<a class="jxr_linenumber" name="L451" href="#L451">451</a>     <strong class="jxr_keyword">for</strong> (String item : DocViewUtil.parseValues(value)) {
+<a class="jxr_linenumber" name="L452" href="#L452">452</a>       refs.add(item);
+<a class="jxr_linenumber" name="L453" href="#L453">453</a>     }
+<a class="jxr_linenumber" name="L454" href="#L454">454</a>     <strong class="jxr_keyword">return</strong> DocViewUtil.formatValues(<strong class="jxr_keyword">new</strong> ArrayList&lt;&gt;(refs), propertyType);
+<a class="jxr_linenumber" name="L455" href="#L455">455</a>   }
+<a class="jxr_linenumber" name="L456" href="#L456">456</a> 
+<a class="jxr_linenumber" name="L457" href="#L457">457</a> }
 </pre>
 <hr/>
 <div id="footer">© 2014–2025 <a href="https://wcm.io">wcm.io</a></div>
