@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NamspaceOrderedXmlProcessor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CRX Package Manager Helper</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.packmgr.unpack</a> &gt; <span class="el_source">NamspaceOrderedXmlProcessor.java</span></div><h1>NamspaceOrderedXmlProcessor.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2025 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.packmgr.unpack;
+
+import java.io.IOException;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jdom2.Attribute;
+import org.jdom2.Content;
+import org.jdom2.Element;
+import org.jdom2.Namespace;
+import org.jdom2.output.Format.TextMode;
+import org.jdom2.output.support.AbstractXMLOutputProcessor;
+import org.jdom2.output.support.FormatStack;
+import org.jdom2.output.support.Walker;
+import org.jdom2.util.NamespaceStack;
+
+/**
+ * XML output processor that prints namespaces in the exact given order.
+ */
+class NamspaceOrderedXmlProcessor extends AbstractXMLOutputProcessor {
+
+  private final Set&lt;String&gt; namespacePrefixes;
+  private final Set&lt;String&gt; namespacePrefixesActuallyUsed;
+
+<span class="fc" id="L47">  NamspaceOrderedXmlProcessor(Set&lt;String&gt; namespacePrefixes, Set&lt;String&gt; namespacePrefixesActuallyUsed) {</span>
+<span class="fc" id="L48">    this.namespacePrefixes = namespacePrefixes;</span>
+<span class="fc" id="L49">    this.namespacePrefixesActuallyUsed = namespacePrefixesActuallyUsed;</span>
+<span class="fc" id="L50">  }</span>
+
+  /**
+   * This will handle printing of an {@link Element}.
+   *
+   * &lt;p&gt;
+   * This method arranges for outputting the Element infrastructure including
+   * Namespace Declarations and Attributes.
+   * &lt;/p&gt;
+   * @param out
+   *          &lt;code&gt;Writer&lt;/code&gt; to use.
+   * @param fstack
+   *          the FormatStack
+   * @param nstack
+   *          the NamespaceStack
+   * @param element
+   *          &lt;code&gt;Element&lt;/code&gt; to write.
+   * @throws IOException
+   *           if the destination Writer fails
+   */
+  @Override
+  protected void printElement(final Writer out, final FormatStack fstack,
+      final NamespaceStack nstack, final Element element) throws IOException {
+
+<span class="fc" id="L74">    nstack.push(element);</span>
+    try {
+<span class="fc" id="L76">      final List&lt;Content&gt; content = element.getContent();</span>
+
+      // Print the beginning of the tag plus attributes and any
+      // necessary namespace declarations
+<span class="fc" id="L80">      write(out, &quot;&lt;&quot;);</span>
+
+<span class="fc" id="L82">      write(out, element.getQualifiedName());</span>
+
+      // Print the element's namespace, if appropriate - try to keep order from given namespacePrefixes set
+<span class="fc" id="L85">      List&lt;Namespace&gt; definedNamespaces = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">      for (final Namespace ns : nstack.addedForward()) {</span>
+<span class="fc" id="L87">        definedNamespaces.add(ns);</span>
+<span class="fc" id="L88">      }</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">      for (String prefix : namespacePrefixes) {</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        for (int i = 0; i &lt; definedNamespaces.size(); i++) {</span>
+<span class="fc" id="L91">          Namespace ns = definedNamespaces.get(i);</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">          if (StringUtils.equals(prefix, ns.getPrefix())) {</span>
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">            if (namespacePrefixesActuallyUsed.contains(ns.getPrefix())) {</span>
+<span class="fc" id="L94">              printNamespace(out, fstack, ns);</span>
+            }
+<span class="fc" id="L96">            definedNamespaces.remove(i);</span>
+<span class="fc" id="L97">            break;</span>
+          }
+        }
+<span class="fc" id="L100">      }</span>
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">      for (Namespace ns : definedNamespaces) {</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">        if (namespacePrefixesActuallyUsed.contains(ns.getPrefix())) {</span>
+<span class="nc" id="L103">          printNamespace(out, fstack, ns);</span>
+        }
+<span class="nc" id="L105">      }</span>
+
+      // Print out attributes
+<span class="fc bfc" id="L108" title="All 2 branches covered.">      if (element.hasAttributes()) {</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">        for (final Attribute attribute : element.getAttributes()) {</span>
+<span class="fc" id="L110">          printAttribute(out, fstack, attribute);</span>
+<span class="fc" id="L111">        }</span>
+      }
+
+<span class="fc bfc" id="L114" title="All 2 branches covered.">      if (content.isEmpty()) {</span>
+        // Case content is empty
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">        if (fstack.isExpandEmptyElements()) {</span>
+<span class="nc" id="L117">          write(out, &quot;&gt;&lt;/&quot;);</span>
+<span class="nc" id="L118">          write(out, element.getQualifiedName());</span>
+<span class="nc" id="L119">          write(out, &quot;&gt;&quot;);</span>
+        }
+        else {
+<span class="fc" id="L122">          write(out, &quot; /&gt;&quot;);</span>
+        }
+        // nothing more to do.
+<span class="fc" id="L125">        return;</span>
+      }
+
+      // OK, we have real content to push.
+<span class="fc" id="L129">      fstack.push();</span>
+      try {
+
+        // Check for xml:space and adjust format settings
+<span class="fc" id="L133">        final String space = element.getAttributeValue(&quot;space&quot;,</span>
+            Namespace.XML_NAMESPACE);
+
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">        if (&quot;default&quot;.equals(space)) {</span>
+<span class="nc" id="L137">          fstack.setTextMode(fstack.getDefaultMode());</span>
+        }
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">        else if (&quot;preserve&quot;.equals(space)) {</span>
+<span class="nc" id="L140">          fstack.setTextMode(TextMode.PRESERVE);</span>
+        }
+
+        // note we ensure the FStack is right before creating the walker
+<span class="fc" id="L144">        Walker walker = buildWalker(fstack, content, true);</span>
+
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">        if (!walker.hasNext()) {</span>
+          // the walker has formatted out whatever content we had
+<span class="nc bnc" id="L148" title="All 2 branches missed.">          if (fstack.isExpandEmptyElements()) {</span>
+<span class="nc" id="L149">            write(out, &quot;&gt;&lt;/&quot;);</span>
+<span class="nc" id="L150">            write(out, element.getQualifiedName());</span>
+<span class="nc" id="L151">            write(out, &quot;&gt;&quot;);</span>
+          }
+          else {
+<span class="nc" id="L154">            write(out, &quot; /&gt;&quot;);</span>
+          }
+          // nothing more to do.
+<span class="nc" id="L157">          return;</span>
+        }
+        // we have some content.
+<span class="fc" id="L160">        write(out, &quot;&gt;&quot;);</span>
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">        if (!walker.isAllText()) {</span>
+          // we need to newline/indent
+<span class="fc" id="L163">          textRaw(out, fstack.getPadBetween());</span>
+        }
+
+<span class="fc" id="L166">        printContent(out, fstack, nstack, walker);</span>
+
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">        if (!walker.isAllText()) {</span>
+          // we need to newline/indent
+<span class="fc" id="L170">          textRaw(out, fstack.getPadLast());</span>
+        }
+<span class="fc" id="L172">        write(out, &quot;&lt;/&quot;);</span>
+<span class="fc" id="L173">        write(out, element.getQualifiedName());</span>
+<span class="fc" id="L174">        write(out, &quot;&gt;&quot;);</span>
+
+      }
+      finally {
+<span class="fc" id="L178">        fstack.pop();</span>
+      }
+    }
+    finally {
+<span class="fc" id="L182">      nstack.pop();</span>
+    }
+
+<span class="fc" id="L185">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
