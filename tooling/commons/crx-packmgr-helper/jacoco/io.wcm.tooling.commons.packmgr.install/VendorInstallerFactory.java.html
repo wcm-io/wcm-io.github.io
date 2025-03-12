@@ -23,6 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.wcm.tooling.commons.packmgr.PackageManagerException;
+import io.wcm.tooling.commons.packmgr.download.VendorPackageDownloader;
+import io.wcm.tooling.commons.packmgr.download.composum.ComposumPackageDownloader;
+import io.wcm.tooling.commons.packmgr.download.crx.CrxPackageDownloader;
 import io.wcm.tooling.commons.packmgr.install.composum.ComposumPackageInstaller;
 import io.wcm.tooling.commons.packmgr.install.crx.CrxPackageInstaller;
 
@@ -45,25 +48,25 @@ public final class VendorInstallerFactory {
   /**
    * Pagckage manager services
    */
-<span class="nc" id="L48">  public enum Service {</span>
+<span class="nc" id="L51">  public enum Service {</span>
 
     /**
      * CRX
      */
-<span class="nc" id="L53">    CRX,</span>
+<span class="nc" id="L56">    CRX,</span>
 
     /**
      * Composum
      */
-<span class="nc" id="L58">    COMPOSUM,</span>
+<span class="nc" id="L61">    COMPOSUM,</span>
 
     /**
      * Unsupported
      */
-<span class="nc" id="L63">    UNSUPPORTED</span>
+<span class="nc" id="L66">    UNSUPPORTED</span>
   }
 
-<span class="nc" id="L66">  private static final Logger log = LoggerFactory.getLogger(VendorInstallerFactory.class);</span>
+<span class="nc" id="L69">  private static final Logger log = LoggerFactory.getLogger(VendorInstallerFactory.class);</span>
 
   private VendorInstallerFactory() {
     // static methods only
@@ -75,18 +78,18 @@ public final class VendorInstallerFactory {
    * @return Service Enum found or unsupported
    */
   public static Service identify(String url) {
-<span class="nc" id="L78">    Service answer = Service.UNSUPPORTED;</span>
-<span class="nc" id="L79">    int index = url.indexOf(COMPOSUM_URL);</span>
-<span class="nc bnc" id="L80" title="All 2 branches missed.">    if (index &gt; 0) {</span>
-<span class="nc" id="L81">      answer = Service.COMPOSUM;</span>
+<span class="nc" id="L81">    Service answer = Service.UNSUPPORTED;</span>
+<span class="nc" id="L82">    int index = url.indexOf(COMPOSUM_URL);</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">    if (index &gt; 0) {</span>
+<span class="nc" id="L84">      answer = Service.COMPOSUM;</span>
     }
     else {
-<span class="nc" id="L84">      index = url.indexOf(CRX_URL);</span>
-<span class="nc bnc" id="L85" title="All 2 branches missed.">      if (index &gt; 0) {</span>
-<span class="nc" id="L86">        answer = Service.CRX;</span>
+<span class="nc" id="L87">      index = url.indexOf(CRX_URL);</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">      if (index &gt; 0) {</span>
+<span class="nc" id="L89">        answer = Service.CRX;</span>
       }
     }
-<span class="nc" id="L89">    return answer;</span>
+<span class="nc" id="L92">    return answer;</span>
   }
 
   /**
@@ -97,19 +100,19 @@ public final class VendorInstallerFactory {
    */
   @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
   public static String getBaseUrl(String url) {
-<span class="nc" id="L100">    String answer = url;</span>
-<span class="nc bnc" id="L101" title="All 3 branches missed.">    switch (identify(url)) {</span>
+<span class="nc" id="L103">    String answer = url;</span>
+<span class="nc bnc" id="L104" title="All 3 branches missed.">    switch (identify(url)) {</span>
       case COMPOSUM:
-<span class="nc" id="L103">        answer = url.substring(0, url.indexOf(COMPOSUM_URL));</span>
-<span class="nc" id="L104">        break;</span>
-      case CRX:
-<span class="nc" id="L106">        answer = url.substring(0, url.indexOf(CRX_URL));</span>
+<span class="nc" id="L106">        answer = url.substring(0, url.indexOf(COMPOSUM_URL));</span>
 <span class="nc" id="L107">        break;</span>
+      case CRX:
+<span class="nc" id="L109">        answer = url.substring(0, url.indexOf(CRX_URL));</span>
+<span class="nc" id="L110">        break;</span>
       default:
-<span class="nc" id="L109">        log.error(&quot;Given URL is not supported: {}&quot;, url);</span>
+<span class="nc" id="L112">        log.error(&quot;Given URL is not supported: {}&quot;, url);</span>
         break;
     }
-<span class="nc" id="L112">    return answer;</span>
+<span class="nc" id="L115">    return answer;</span>
   }
 
   /**
@@ -120,18 +123,39 @@ public final class VendorInstallerFactory {
    */
   public static VendorPackageInstaller getPackageInstaller(String url) throws PackageManagerException {
     VendorPackageInstaller answer;
-<span class="nc bnc" id="L123" title="All 3 branches missed.">    switch (identify(url)) {</span>
+<span class="nc bnc" id="L126" title="All 3 branches missed.">    switch (identify(url)) {</span>
       case COMPOSUM:
-<span class="nc" id="L125">        answer = new ComposumPackageInstaller(url);</span>
-<span class="nc" id="L126">        break;</span>
-      case CRX:
-<span class="nc" id="L128">        answer = new CrxPackageInstaller(url);</span>
+<span class="nc" id="L128">        answer = new ComposumPackageInstaller(url);</span>
 <span class="nc" id="L129">        break;</span>
+      case CRX:
+<span class="nc" id="L131">        answer = new CrxPackageInstaller(url);</span>
+<span class="nc" id="L132">        break;</span>
       default:
-<span class="nc" id="L131">        throw new PackageManagerException(&quot;Given URL is not supported: &quot; + url);</span>
+<span class="nc" id="L134">        throw new PackageManagerException(&quot;Given URL is not supported: &quot; + url);</span>
     }
-<span class="nc" id="L133">    return answer;</span>
+<span class="nc" id="L136">    return answer;</span>
   }
 
+  /**
+   * Provides the Installer of the Service Vendor
+   * @param url Base URL of the service
+   * @return Installer if URL is supported otherwise null
+   * @throws PackageManagerException Package manager exception
+   */
+  public static VendorPackageDownloader getPackageDownloader(String url) throws PackageManagerException {
+    VendorPackageDownloader answer;
+<span class="nc bnc" id="L147" title="All 3 branches missed.">    switch (identify(url)) {</span>
+      case COMPOSUM:
+<span class="nc" id="L149">        answer = new ComposumPackageDownloader();</span>
+<span class="nc" id="L150">        break;</span>
+      case CRX:
+<span class="nc" id="L152">        answer = new CrxPackageDownloader();</span>
+<span class="nc" id="L153">        break;</span>
+      default:
+<span class="nc" id="L155">        throw new PackageManagerException(&quot;Given URL is not supported: &quot; + url);</span>
+    }
+<span class="nc" id="L157">    return answer;</span>
+  }
+  
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

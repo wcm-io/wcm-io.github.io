@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CrxPackageDownloader.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CRX Package Manager Helper</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.packmgr.download.crx</a> &gt; <span class="el_source">CrxPackageDownloader.java</span></div><h1>CrxPackageDownloader.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2025 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.packmgr.download.crx;
+
+import static io.wcm.tooling.commons.packmgr.PackageManagerHelper.CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX;
+
+import java.io.File;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.json.JSONObject;
+
+import io.wcm.tooling.commons.packmgr.PackageManagerException;
+import io.wcm.tooling.commons.packmgr.PackageManagerHelper;
+import io.wcm.tooling.commons.packmgr.download.VendorPackageDownloader;
+import io.wcm.tooling.commons.packmgr.install.VendorInstallerFactory;
+
+/**
+ * Vendor Downloader for AEM's CRX Package Manager
+ */
+<span class="nc" id="L39">public class CrxPackageDownloader implements VendorPackageDownloader {</span>
+
+  @Override
+  public String uploadPackageDefinition(String packageManagerUrl, File file, PackageManagerHelper pkgmgr) {
+<span class="nc" id="L43">    HttpPost post = new HttpPost(packageManagerUrl + &quot;/.json?cmd=upload&quot;);</span>
+<span class="nc" id="L44">    MultipartEntityBuilder entity = MultipartEntityBuilder.create()</span>
+<span class="nc" id="L45">        .addBinaryBody(&quot;package&quot;, file)</span>
+<span class="nc" id="L46">        .addTextBody(&quot;force&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L47">    post.setEntity(entity.build());</span>
+<span class="nc" id="L48">    JSONObject jsonResponse = pkgmgr.executePackageManagerMethodJson(pkgmgr.getHttpClient(), pkgmgr.getPackageManagerHttpClientContext(), post);</span>
+<span class="nc" id="L49">    boolean success = jsonResponse.optBoolean(&quot;success&quot;, false);</span>
+<span class="nc" id="L50">    String msg = jsonResponse.optString(&quot;msg&quot;, null);</span>
+<span class="nc" id="L51">    String packagePath = jsonResponse.optString(&quot;path&quot;, null);</span>
+    // package already exists - get path from error message and continue
+<span class="nc bnc" id="L53" title="All 6 branches missed.">    if (!success &amp;&amp; StringUtils.startsWith(msg, CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX) &amp;&amp; StringUtils.isEmpty(packagePath)) {</span>
+<span class="nc" id="L54">      packagePath = StringUtils.substringAfter(msg, CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX);</span>
+<span class="nc" id="L55">      success = true;</span>
+    }
+<span class="nc bnc" id="L57" title="All 2 branches missed.">    if (!success) {</span>
+<span class="nc" id="L58">      throw new PackageManagerException(&quot;Package path detection failed: &quot; + msg);</span>
+    }
+
+<span class="nc" id="L61">    return packagePath;</span>
+  }
+
+  @Override
+  public HttpPost createRebuildMethod(String packagePath, String packageManagerUrl) {
+<span class="nc" id="L66">    return new HttpPost(packageManagerUrl + &quot;/console.html&quot; + packagePath + &quot;?cmd=build&quot;);</span>
+  }
+
+  @Override
+  public String createDownloadZipBaseUrl(String packageManagerUrl) {
+<span class="nc" id="L71">    return VendorInstallerFactory.getBaseUrl(packageManagerUrl);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -19,8 +19,6 @@
  */
 package io.wcm.tooling.commons.packmgr.download;
 
-import static io.wcm.tooling.commons.packmgr.PackageManagerHelper.CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX;
-
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -28,16 +26,13 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,16 +51,16 @@ public final class PackageDownloader implements Closeable {
   private final PackageManagerHelper pkgmgr;
   private final CloseableHttpClient httpClient;
 
-<span class="nc" id="L59">  private static final Logger log = LoggerFactory.getLogger(PackageDownloader.class);</span>
+<span class="nc" id="L54">  private static final Logger log = LoggerFactory.getLogger(PackageDownloader.class);</span>
 
   /**
    * @param props Package manager configuration properties.
    */
-<span class="nc" id="L64">  public PackageDownloader(PackageManagerProperties props) {</span>
-<span class="nc" id="L65">    this.props = props;</span>
-<span class="nc" id="L66">    this.pkgmgr = new PackageManagerHelper(props);</span>
-<span class="nc" id="L67">    this.httpClient = pkgmgr.getHttpClient();</span>
-<span class="nc" id="L68">  }</span>
+<span class="nc" id="L59">  public PackageDownloader(PackageManagerProperties props) {</span>
+<span class="nc" id="L60">    this.props = props;</span>
+<span class="nc" id="L61">    this.pkgmgr = new PackageManagerHelper(props);</span>
+<span class="nc" id="L62">    this.httpClient = pkgmgr.getHttpClient();</span>
+<span class="nc" id="L63">  }</span>
 
   /**
    * Upload the given local package definition (without actually installing it).
@@ -73,33 +68,16 @@ public final class PackageDownloader implements Closeable {
    * @return Package path
    */
   public String uploadPackageDefinition(File file) {
-<span class="nc" id="L76">    HttpClientContext httpClientContext = pkgmgr.getPackageManagerHttpClientContext();</span>
 
-<span class="nc bnc" id="L78" title="All 2 branches missed.">    if (!file.exists()) {</span>
-<span class="nc" id="L79">      throw new PackageManagerException(&quot;File not found: &quot; + file.getAbsolutePath());</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">    if (!file.exists()) {</span>
+<span class="nc" id="L73">      throw new PackageManagerException(&quot;File not found: &quot; + file.getAbsolutePath());</span>
     }
+<span class="nc" id="L75">    String packageManagerUrl = props.getPackageManagerUrl();</span>
 
     // try upload to get path of package - or otherwise make sure package def exists (no install!)
-<span class="nc" id="L83">    log.info(&quot;Upload package definition for {} to {} ...&quot;, file.getName(), props.getPackageManagerUrl());</span>
-<span class="nc" id="L84">    HttpPost post = new HttpPost(props.getPackageManagerUrl() + &quot;/.json?cmd=upload&quot;);</span>
-<span class="nc" id="L85">    MultipartEntityBuilder entity = MultipartEntityBuilder.create()</span>
-<span class="nc" id="L86">        .addBinaryBody(&quot;package&quot;, file)</span>
-<span class="nc" id="L87">        .addTextBody(&quot;force&quot;, &quot;true&quot;);</span>
-<span class="nc" id="L88">    post.setEntity(entity.build());</span>
-<span class="nc" id="L89">    JSONObject jsonResponse = pkgmgr.executePackageManagerMethodJson(httpClient, httpClientContext, post);</span>
-<span class="nc" id="L90">    boolean success = jsonResponse.optBoolean(&quot;success&quot;, false);</span>
-<span class="nc" id="L91">    String msg = jsonResponse.optString(&quot;msg&quot;, null);</span>
-<span class="nc" id="L92">    String packagePath = jsonResponse.optString(&quot;path&quot;, null);</span>
-    // package already exists - get path from error message and continue
-<span class="nc bnc" id="L94" title="All 6 branches missed.">    if (!success &amp;&amp; StringUtils.startsWith(msg, CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX) &amp;&amp; StringUtils.isEmpty(packagePath)) {</span>
-<span class="nc" id="L95">      packagePath = StringUtils.substringAfter(msg, CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX);</span>
-<span class="nc" id="L96">      success = true;</span>
-    }
-<span class="nc bnc" id="L98" title="All 2 branches missed.">    if (!success) {</span>
-<span class="nc" id="L99">      throw new PackageManagerException(&quot;Package path detection failed: &quot; + msg);</span>
-    }
-
-<span class="nc" id="L102">    return packagePath;</span>
+<span class="nc" id="L78">    log.info(&quot;Upload package definition for {} to {} ...&quot;, file.getName(), packageManagerUrl);</span>
+<span class="nc" id="L79">    VendorPackageDownloader downloader = VendorInstallerFactory.getPackageDownloader(packageManagerUrl);</span>
+<span class="nc" id="L80">    return downloader.uploadPackageDefinition(packageManagerUrl, file, pkgmgr);</span>
   }
 
   /**
@@ -113,71 +91,74 @@ public final class PackageDownloader implements Closeable {
   @SuppressFBWarnings(&quot;RV_RETURN_VALUE_IGNORED_BAD_PRACTICE&quot;)
   public File downloadContentPackage(String packagePath, String ouputFilePath, boolean rebuildPackage) {
     try {
-<span class="nc" id="L116">      HttpClientContext httpClientContext = pkgmgr.getPackageManagerHttpClientContext();</span>
+<span class="nc" id="L94">      HttpClientContext httpClientContext = pkgmgr.getPackageManagerHttpClientContext();</span>
+<span class="nc" id="L95">      String packageManagerUrl = props.getPackageManagerUrl();</span>
+<span class="nc" id="L96">      VendorPackageDownloader downloader = VendorInstallerFactory.getPackageDownloader(packageManagerUrl);</span>
 
       // (Re-)build package
-<span class="nc bnc" id="L119" title="All 2 branches missed.">      if (rebuildPackage) {</span>
-<span class="nc" id="L120">        log.info(&quot;Rebuilding package {} ...&quot;, packagePath);</span>
-<span class="nc" id="L121">        HttpPost buildMethod = new HttpPost(props.getPackageManagerUrl() + &quot;/console.html&quot; + packagePath + &quot;?cmd=build&quot;);</span>
-<span class="nc" id="L122">        pkgmgr.executePackageManagerMethodHtmlOutputResponse(httpClient, httpClientContext, buildMethod);</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">      if (rebuildPackage) {</span>
+<span class="nc" id="L100">        log.info(&quot;Rebuilding package {} ...&quot;, packagePath);</span>
+<span class="nc" id="L101">        HttpPost buildMethod = downloader.createRebuildMethod(packagePath, packageManagerUrl);</span>
+<span class="nc" id="L102">        pkgmgr.executePackageManagerMethodHtmlOutputResponse(httpClient, httpClientContext, buildMethod);</span>
       }
 
       // Download package
-<span class="nc" id="L126">      log.info(&quot;Downloading package {} from {} ...&quot;, packagePath, props.getPackageManagerUrl());</span>
-<span class="nc" id="L127">      String baseUrl = VendorInstallerFactory.getBaseUrl(props.getPackageManagerUrl());</span>
-<span class="nc" id="L128">      HttpGet downloadMethod = new HttpGet(baseUrl + packagePath);</span>
+<span class="nc" id="L106">      String baseUrl = downloader.createDownloadZipBaseUrl(packageManagerUrl);</span>
+<span class="nc" id="L107">      log.info(&quot;Downloading package {} from {} ...&quot;, packagePath, baseUrl);</span>
+
+<span class="nc" id="L109">      HttpGet downloadMethod = new HttpGet(baseUrl + packagePath);</span>
 
       // execute download
-<span class="nc" id="L131">      CloseableHttpResponse response = httpClient.execute(downloadMethod, httpClientContext);</span>
+<span class="nc" id="L112">      CloseableHttpResponse response = httpClient.execute(downloadMethod, httpClientContext);</span>
       try {
-<span class="nc bnc" id="L133" title="All 2 branches missed.">        if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {</span>
 
           // get response stream
-<span class="nc" id="L136">          InputStream responseStream = response.getEntity().getContent();</span>
+<span class="nc" id="L117">          InputStream responseStream = response.getEntity().getContent();</span>
 
           // delete existing file
-<span class="nc" id="L139">          File outputFileObject = new File(ouputFilePath);</span>
-<span class="nc bnc" id="L140" title="All 2 branches missed.">          if (outputFileObject.exists()) {</span>
-<span class="nc" id="L141">            outputFileObject.delete();</span>
+<span class="nc" id="L120">          File outputFileObject = new File(ouputFilePath);</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">          if (outputFileObject.exists()) {</span>
+<span class="nc" id="L122">            outputFileObject.delete();</span>
           }
 
           // write response file
-<span class="nc" id="L145">          try (FileOutputStream fos = new FileOutputStream(outputFileObject)) {</span>
-<span class="nc" id="L146">            IOUtils.copy(responseStream, fos);</span>
-<span class="nc" id="L147">            fos.flush();</span>
-<span class="nc" id="L148">            responseStream.close();</span>
+<span class="nc" id="L126">          try (FileOutputStream fos = new FileOutputStream(outputFileObject)) {</span>
+<span class="nc" id="L127">            IOUtils.copy(responseStream, fos);</span>
+<span class="nc" id="L128">            fos.flush();</span>
+<span class="nc" id="L129">            responseStream.close();</span>
           }
 
-<span class="nc" id="L151">          log.info(&quot;Package downloaded to {}&quot;, outputFileObject.getAbsolutePath());</span>
+<span class="nc" id="L132">          log.info(&quot;Package downloaded to {}&quot;, outputFileObject.getAbsolutePath());</span>
 
-<span class="nc" id="L153">          return outputFileObject;</span>
+<span class="nc" id="L134">          return outputFileObject;</span>
         }
         else {
-<span class="nc" id="L156">          throw new PackageManagerException(&quot;Package download failed:\n&quot;</span>
-<span class="nc" id="L157">              + EntityUtils.toString(response.getEntity()));</span>
+<span class="nc" id="L137">          throw new PackageManagerException(&quot;Package download failed:\n&quot;</span>
+<span class="nc" id="L138">              + EntityUtils.toString(response.getEntity()));</span>
         }
       }
       finally {
-<span class="nc bnc" id="L161" title="All 2 branches missed.">        if (response != null) {</span>
-<span class="nc" id="L162">          EntityUtils.consumeQuietly(response.getEntity());</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        if (response != null) {</span>
+<span class="nc" id="L143">          EntityUtils.consumeQuietly(response.getEntity());</span>
           try {
-<span class="nc" id="L164">            response.close();</span>
+<span class="nc" id="L145">            response.close();</span>
           }
-<span class="nc" id="L166">          catch (IOException ex) {</span>
+<span class="nc" id="L147">          catch (IOException ex) {</span>
             // ignore
-<span class="nc" id="L168">          }</span>
+<span class="nc" id="L149">          }</span>
         }
       }
     }
-<span class="nc" id="L172">    catch (IOException ex) {</span>
-<span class="nc" id="L173">      throw new PackageManagerException(&quot;Download operation failed.&quot;, ex);</span>
+<span class="nc" id="L153">    catch (IOException ex) {</span>
+<span class="nc" id="L154">      throw new PackageManagerException(&quot;Download operation failed.&quot;, ex);</span>
     }
   }
 
   @Override
   public void close() throws IOException {
-<span class="nc" id="L179">    httpClient.close();</span>
-<span class="nc" id="L180">  }</span>
+<span class="nc" id="L160">    httpClient.close();</span>
+<span class="nc" id="L161">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
