@@ -71,30 +71,33 @@ public final class RootPathResolver {
 <span class="fc" id="L71">  private String fallbackRootPath = DEFAULT_FALLBACK_ROOT_PATH;</span>
 
   /**
+   * Creates a new RootPathResolver instance.
    * @param cmp Component helper
    * @param request Request
    */
-<span class="fc" id="L77">  public RootPathResolver(@NotNull ComponentHelper cmp, @NotNull SlingHttpServletRequest request) {</span>
-<span class="fc" id="L78">    this.cmp = cmp;</span>
-<span class="fc" id="L79">    this.cfg = cmp.getConfig();</span>
-<span class="fc" id="L80">    this.ex = cmp.getExpressionHelper();</span>
-<span class="fc" id="L81">    this.request = request;</span>
-<span class="fc" id="L82">    this.resourceResolver = request.getResourceResolver();</span>
-<span class="fc" id="L83">  }</span>
+<span class="fc" id="L78">  public RootPathResolver(@NotNull ComponentHelper cmp, @NotNull SlingHttpServletRequest request) {</span>
+<span class="fc" id="L79">    this.cmp = cmp;</span>
+<span class="fc" id="L80">    this.cfg = cmp.getConfig();</span>
+<span class="fc" id="L81">    this.ex = cmp.getExpressionHelper();</span>
+<span class="fc" id="L82">    this.request = request;</span>
+<span class="fc" id="L83">    this.resourceResolver = request.getResourceResolver();</span>
+<span class="fc" id="L84">  }</span>
 
   /**
+   * Sets the root path detector implementation to detect root path from context.
    * @param rootPathDetector For detecting root path from context
    */
   public void setRootPathDetector(@NotNull RootPathDetector rootPathDetector) {
-<span class="fc" id="L89">    this.rootPathDetector = rootPathDetector;</span>
-<span class="fc" id="L90">  }</span>
+<span class="fc" id="L91">    this.rootPathDetector = rootPathDetector;</span>
+<span class="fc" id="L92">  }</span>
 
   /**
+   * Sets the fallback root path to be used if none is configured.
    * @param fallbackRootPath Fallback root path that is used if none is configured
    */
   public void setFallbackRootPath(@NotNull String fallbackRootPath) {
-<span class="fc" id="L96">    this.fallbackRootPath = fallbackRootPath;</span>
-<span class="fc" id="L97">  }</span>
+<span class="fc" id="L99">    this.fallbackRootPath = fallbackRootPath;</span>
+<span class="fc" id="L100">  }</span>
 
   /**
    * Get the resolved and validated root path.
@@ -102,13 +105,13 @@ public final class RootPathResolver {
    */
   public @NotNull String get() {
     // get configured or detected or fallback root path
-<span class="fc" id="L105">    String rootPath = getRootPath();</span>
+<span class="fc" id="L108">    String rootPath = getRootPath();</span>
 
     // append path if configured
-<span class="fc" id="L108">    rootPath = appendPath(rootPath);</span>
+<span class="fc" id="L111">    rootPath = appendPath(rootPath);</span>
 
     // resolve to existing path
-<span class="fc" id="L111">    return getExistingPath(rootPath);</span>
+<span class="fc" id="L114">    return getExistingPath(rootPath);</span>
   }
 
   /**
@@ -116,11 +119,11 @@ public final class RootPathResolver {
    * @return Path properties
    */
   public Map&lt;String, Object&gt; getOverrideProperties() {
-<span class="fc" id="L119">    Map&lt;String, Object&gt; props = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L120">    props.put(PN_ROOT_PATH, get());</span>
-<span class="fc" id="L121">    props.put(PN_APPEND_PATH, &quot;&quot;);</span>
-<span class="fc" id="L122">    props.put(PN_FALLBACK_PATH, &quot;&quot;);</span>
-<span class="fc" id="L123">    return props;</span>
+<span class="fc" id="L122">    Map&lt;String, Object&gt; props = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L123">    props.put(PN_ROOT_PATH, get());</span>
+<span class="fc" id="L124">    props.put(PN_APPEND_PATH, &quot;&quot;);</span>
+<span class="fc" id="L125">    props.put(PN_FALLBACK_PATH, &quot;&quot;);</span>
+<span class="fc" id="L126">    return props;</span>
   }
 
   /**
@@ -129,27 +132,27 @@ public final class RootPathResolver {
   private @NotNull String getRootPath() {
 
     // check for configured root path
-<span class="fc" id="L132">    String rootPath = ex.getString(cfg.get(PN_ROOT_PATH, String.class));</span>
-<span class="fc bfc" id="L133" title="All 2 branches covered.">    if (StringUtils.isNotBlank(rootPath)) {</span>
-<span class="fc" id="L134">      return rootPath;</span>
+<span class="fc" id="L135">    String rootPath = ex.getString(cfg.get(PN_ROOT_PATH, String.class));</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">    if (StringUtils.isNotBlank(rootPath)) {</span>
+<span class="fc" id="L137">      return rootPath;</span>
     }
 
     // call root path detector
-<span class="fc bfc" id="L138" title="All 2 branches covered.">    if (rootPathDetector != null) {</span>
-<span class="fc" id="L139">      rootPath = rootPathDetector.detectRootPath(cmp, request);</span>
-<span class="pc bpc" id="L140" title="2 of 4 branches missed.">      if (rootPath != null &amp;&amp; StringUtils.isNotBlank(rootPath)) {</span>
-<span class="fc" id="L141">        return rootPath;</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">    if (rootPathDetector != null) {</span>
+<span class="fc" id="L142">      rootPath = rootPathDetector.detectRootPath(cmp, request);</span>
+<span class="pc bpc" id="L143" title="2 of 4 branches missed.">      if (rootPath != null &amp;&amp; StringUtils.isNotBlank(rootPath)) {</span>
+<span class="fc" id="L144">        return rootPath;</span>
       }
     }
 
     // check for configured fallback path
-<span class="fc" id="L146">    rootPath = ex.getString(cfg.get(PN_FALLBACK_PATH, String.class));</span>
-<span class="fc bfc" id="L147" title="All 2 branches covered.">    if (StringUtils.isNotBlank(rootPath)) {</span>
-<span class="fc" id="L148">      return rootPath;</span>
+<span class="fc" id="L149">    rootPath = ex.getString(cfg.get(PN_FALLBACK_PATH, String.class));</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">    if (StringUtils.isNotBlank(rootPath)) {</span>
+<span class="fc" id="L151">      return rootPath;</span>
     }
 
     // fallback to default fallback path
-<span class="fc" id="L152">    return fallbackRootPath;</span>
+<span class="fc" id="L155">    return fallbackRootPath;</span>
   }
 
   /**
@@ -158,16 +161,16 @@ public final class RootPathResolver {
    * @return Path with appendix
    */
   private @NotNull String appendPath(@NotNull String rootPath) {
-<span class="fc" id="L161">    String appendPath = ex.getString(cfg.get(PN_APPEND_PATH, String.class));</span>
-<span class="fc bfc" id="L162" title="All 2 branches covered.">    if (StringUtils.isBlank(appendPath)) {</span>
-<span class="fc" id="L163">      return rootPath;</span>
+<span class="fc" id="L164">    String appendPath = ex.getString(cfg.get(PN_APPEND_PATH, String.class));</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">    if (StringUtils.isBlank(appendPath)) {</span>
+<span class="fc" id="L166">      return rootPath;</span>
     }
-<span class="fc" id="L165">    StringBuilder combinedPath = new StringBuilder(rootPath);</span>
-<span class="fc bfc" id="L166" title="All 2 branches covered.">    if (!StringUtils.startsWith(appendPath, &quot;/&quot;)) {</span>
-<span class="fc" id="L167">      combinedPath.append(&quot;/&quot;);</span>
+<span class="fc" id="L168">    StringBuilder combinedPath = new StringBuilder(rootPath);</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">    if (!StringUtils.startsWith(appendPath, &quot;/&quot;)) {</span>
+<span class="fc" id="L170">      combinedPath.append(&quot;/&quot;);</span>
     }
-<span class="fc" id="L169">    combinedPath.append(appendPath);</span>
-<span class="fc" id="L170">    return combinedPath.toString();</span>
+<span class="fc" id="L172">    combinedPath.append(appendPath);</span>
+<span class="fc" id="L173">    return combinedPath.toString();</span>
   }
 
   /**
@@ -176,15 +179,15 @@ public final class RootPathResolver {
    */
   @NotNull
   String getExistingPath(@NotNull String rootPath) {
-<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (resourceResolver.getResource(rootPath) == null) {</span>
-<span class="fc" id="L180">      String parentPath = Text.getRelativeParent(rootPath, 1);</span>
-<span class="fc bfc" id="L181" title="All 2 branches covered.">      if (StringUtils.isBlank(parentPath)) {</span>
-<span class="fc" id="L182">        return DEFAULT_FALLBACK_ROOT_PATH;</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">    if (resourceResolver.getResource(rootPath) == null) {</span>
+<span class="fc" id="L183">      String parentPath = Text.getRelativeParent(rootPath, 1);</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">      if (StringUtils.isBlank(parentPath)) {</span>
+<span class="fc" id="L185">        return DEFAULT_FALLBACK_ROOT_PATH;</span>
       }
-<span class="fc" id="L184">      return getExistingPath(parentPath);</span>
+<span class="fc" id="L187">      return getExistingPath(parentPath);</span>
     }
     else {
-<span class="fc" id="L187">      return rootPath;</span>
+<span class="fc" id="L190">      return rootPath;</span>
     }
   }
 
