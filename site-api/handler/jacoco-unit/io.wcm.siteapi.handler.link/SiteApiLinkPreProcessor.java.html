@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SiteApiLinkPreProcessor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Handler Extensions</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.handler.link</a> &gt; <span class="el_source">SiteApiLinkPreProcessor.java</span></div><h1>SiteApiLinkPreProcessor.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2022 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.handler.link;
+
+import static io.wcm.siteapi.processor.ProcessorConstants.PROCESSOR_CONTENT;
+import static io.wcm.siteapi.processor.util.SiteApiRequest.isSiteApiRequest;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
+import org.apache.sling.models.annotations.injectorspecific.OSGiService;
+import org.apache.sling.models.annotations.injectorspecific.SlingObject;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
+
+import io.wcm.handler.link.Link;
+import io.wcm.handler.link.LinkArgs;
+import io.wcm.handler.link.spi.LinkProcessor;
+import io.wcm.handler.link.type.InternalLinkType;
+import io.wcm.siteapi.processor.url.JsonSuffix;
+import io.wcm.siteapi.processor.url.SiteApiConfiguration;
+
+/**
+ * Adapts link handling within Site API requests: Links to internal pages are rewritten to Site API &quot;content&quot; links.
+ */
+@ProviderType
+@Model(adaptables = { SlingHttpServletRequest.class, Resource.class },
+    adapters = LinkProcessor.class)
+<span class="fc" id="L47">public final class SiteApiLinkPreProcessor implements LinkProcessor {</span>
+
+  /**
+   * Link handler property to define the suffix of the processor to link upon.
+   */
+  public static final String SUFFIX_PROPERTY = &quot;siteapi:suffix&quot;;
+
+  /**
+   * Link handler property to define a suffix extension (optional).
+   */
+  public static final String SUFFIX_EXTENSION_PROPERTY = &quot;siteapi:suffixExtension&quot;;
+
+  @SlingObject(injectionStrategy = InjectionStrategy.OPTIONAL)
+  private SlingHttpServletRequest request;
+  @OSGiService
+  private SiteApiConfiguration siteApiConfiguration;
+
+  @Override
+  public @NotNull Link process(@NotNull Link link) {
+<span class="fc bfc" id="L66" title="All 4 branches covered.">    if (isSiteApiRequest(request, siteApiConfiguration) &amp;&amp; isInternalLink(link)) {</span>
+<span class="fc" id="L67">      processInternalLink(link);</span>
+    }
+<span class="fc" id="L69">    return link;</span>
+  }
+
+  private boolean isInternalLink(@NotNull Link link) {
+<span class="fc" id="L73">    return link.getLinkType() instanceof InternalLinkType;</span>
+  }
+
+  private void processInternalLink(@NotNull Link link) {
+<span class="fc" id="L77">    LinkArgs linkArgs = link.getLinkRequest().getLinkArgs();</span>
+
+    // disable &quot;suffix&quot; selector
+<span class="fc" id="L80">    linkArgs.disableSuffixSelector(true);</span>
+
+    // add Site API selector and extension
+<span class="fc" id="L83">    linkArgs.selectors(siteApiConfiguration.getSelector());</span>
+<span class="fc" id="L84">    linkArgs.extension(siteApiConfiguration.getExtension());</span>
+
+    // Processor suffix can be specified via property, defaults to &quot;content&quot;
+<span class="fc" id="L87">    String suffix = linkArgs.getProperties().get(SUFFIX_PROPERTY, PROCESSOR_CONTENT);</span>
+<span class="fc" id="L88">    String suffixExtension = linkArgs.getProperties().get(SUFFIX_EXTENSION_PROPERTY, String.class);</span>
+<span class="fc" id="L89">    linkArgs.suffix(JsonSuffix.build(suffix, suffixExtension));</span>
+<span class="fc" id="L90">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AnchorAttribute.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Handler Extensions</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.handler.link.impl</a> &gt; <span class="el_source">AnchorAttribute.java</span></div><h1>AnchorAttribute.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2022 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.handler.link.impl;
+
+import static io.wcm.siteapi.handler.link.impl.PropertyName.toKebabCase;
+
+import java.util.Set;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import io.wcm.siteapi.handler.link.SiteApiLinkMarkupBuilder;
+
+/**
+ * Represents an anchor attribute set by {@link SiteApiLinkMarkupBuilder}.
+ */
+public class AnchorAttribute implements Comparable&lt;AnchorAttribute&gt; {
+
+  // properties which are implicitly set on anchor and do not need to be set again, or should be otherwise ignored
+<span class="fc" id="L39">  private static final Pattern IGNORE_ANCHOR_ATTRIBUTE_PATTERN = Pattern.compile(&quot;^(url|href|:.*)$&quot;);</span>
+
+  // possible names for standard &quot;target&quot; attribute
+<span class="fc" id="L42">  private static final Set&lt;String&gt; TARGET_ANCHOR_ATTRIBUTES = Set.of(&quot;target&quot;, &quot;windowTarget&quot;);</span>
+
+  private final String name;
+  private final String value;
+  private final boolean ignore;
+
+  /**
+   * @param name Property name
+   * @param value Property value
+   */
+<span class="fc" id="L52">  public AnchorAttribute(@NotNull String name, @NotNull Object value) {</span>
+<span class="fc" id="L53">    this.value = value.toString();</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">    if (isTargetAttribute(name)) {</span>
+<span class="fc" id="L55">      this.name = &quot;target&quot;;</span>
+<span class="fc" id="L56">      this.ignore = isTargetSelf(this.value);</span>
+    }
+    else {
+<span class="fc" id="L59">      this.name = &quot;data-&quot; + toKebabCase(name);</span>
+<span class="fc" id="L60">      this.ignore = IGNORE_ANCHOR_ATTRIBUTE_PATTERN.matcher(name).matches();</span>
+    }
+<span class="fc" id="L62">  }</span>
+
+  public @NotNull String getName() {
+<span class="fc" id="L65">    return this.name;</span>
+  }
+
+  public @NotNull String getValue() {
+<span class="fc" id="L69">    return this.value;</span>
+  }
+
+  public boolean isIgnore() {
+<span class="fc" id="L73">    return ignore;</span>
+  }
+
+  @Override
+  public int compareTo(AnchorAttribute other) {
+<span class="fc" id="L78">    return name.compareTo(other.name);</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="nc" id="L83">    return name.hashCode();</span>
+  }
+
+  @Override
+  public boolean equals(Object other) {
+<span class="nc bnc" id="L88" title="All 2 branches missed.">    if (other instanceof AnchorAttribute) {</span>
+<span class="nc" id="L89">      return name.equals(((AnchorAttribute)other).name);</span>
+    }
+<span class="nc" id="L91">    return false;</span>
+  }
+
+  private static boolean isTargetAttribute(@NotNull String name) {
+<span class="fc" id="L95">    return TARGET_ANCHOR_ATTRIBUTES.contains(name);</span>
+  }
+
+  private static boolean isTargetSelf(@Nullable String value) {
+<span class="fc" id="L99">    return StringUtils.equals(value, &quot;_self&quot;);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
