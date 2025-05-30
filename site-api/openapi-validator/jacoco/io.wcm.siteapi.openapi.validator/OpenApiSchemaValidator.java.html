@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenApiSchemaValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Open API Validator</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.openapi.validator</a> &gt; <span class="el_source">OpenApiSchemaValidator.java</span></div><h1>OpenApiSchemaValidator.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2023 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.openapi.validator;
+
+import java.util.stream.Collectors;
+
+import org.jetbrains.annotations.NotNull;
+import org.openapi4j.core.util.TreeUtil;
+import org.openapi4j.core.validation.ValidationResults.ValidationItem;
+import org.openapi4j.schema.validator.ValidationData;
+import org.openapi4j.schema.validator.v3.SchemaValidator;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+
+/**
+ * Validates JSON response for a given path definition and suffix against the JSON.
+ * Create instance via {@link OpenApiSpec} class.
+ */
+public final class OpenApiSchemaValidator {
+
+  private final String suffix;
+  private final SchemaValidator schemaValidator;
+
+<span class="fc" id="L42">  OpenApiSchemaValidator(@NotNull String suffix, @NotNull SchemaValidator schemaValidator) {</span>
+<span class="fc" id="L43">    this.suffix = suffix;</span>
+<span class="fc" id="L44">    this.schemaValidator = schemaValidator;</span>
+<span class="fc" id="L45">  }</span>
+
+  /**
+   * @return Suffix
+   */
+  public @NotNull String getSuffix() {
+<span class="nc" id="L51">    return this.suffix;</span>
+  }
+
+  /**
+   * Validate the given JSON response against the operation's JSON schema.
+   * @param jsonValue JSON response
+   * @throws ContentValidationException Validation failed
+   */
+  public void validate(@NotNull String jsonValue) throws ContentValidationException {
+<span class="fc" id="L60">    JsonNode node = readJson(jsonValue);</span>
+<span class="fc" id="L61">    validateAgainstSchema(node);</span>
+<span class="fc" id="L62">  }</span>
+
+  private JsonNode readJson(@NotNull String jsonValue) throws ContentValidationException {
+    try {
+<span class="fc" id="L66">      return TreeUtil.json.readTree(jsonValue);</span>
+    }
+<span class="fc" id="L68">    catch (JsonProcessingException ex) {</span>
+<span class="fc" id="L69">      throw new ContentValidationException(&quot;Unable to parse JSON:\n&quot; + jsonValue, ex);</span>
+    }
+  }
+
+  private void validateAgainstSchema(@NotNull JsonNode node) throws ContentValidationException {
+<span class="fc" id="L74">    ValidationData&lt;Void&gt; validation = new ValidationData&lt;&gt;();</span>
+<span class="fc" id="L75">    schemaValidator.validate(node, validation);</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">    if (validation.isValid()) {</span>
+<span class="fc" id="L77">      return;</span>
+    }
+<span class="fc" id="L79">    String message = &quot;JSON invalid for suffix '&quot; + suffix + &quot;': &quot; + validation.results().items().stream()</span>
+<span class="fc" id="L80">        .map(ValidationItem::toString)</span>
+<span class="fc" id="L81">        .collect(Collectors.joining(&quot;\n&quot;));</span>
+<span class="fc" id="L82">    throw new ContentValidationException(message);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
