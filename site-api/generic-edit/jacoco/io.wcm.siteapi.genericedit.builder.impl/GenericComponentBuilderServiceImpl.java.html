@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GenericComponentBuilderServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Generic Edit</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.genericedit.builder.impl</a> &gt; <span class="el_source">GenericComponentBuilderServiceImpl.java</span></div><h1>GenericComponentBuilderServiceImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2023 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.genericedit.builder.impl;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.stream.Collectors;
+
+import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.framework.ServiceReference;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.FieldOption;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+
+import com.adobe.cq.export.json.ComponentExporter;
+
+import io.wcm.siteapi.genericedit.builder.ComponentValidatorService;
+import io.wcm.siteapi.genericedit.builder.GenericComponentBuilderService;
+import io.wcm.siteapi.genericedit.builder.ValueInspectorService;
+import io.wcm.siteapi.genericedit.builder.impl.util.PatternList;
+import io.wcm.siteapi.genericedit.builder.impl.util.PropertyIntrospector;
+import io.wcm.siteapi.genericedit.builder.impl.util.PropertyNameBeautifier;
+import io.wcm.siteapi.genericedit.component.GenericComponent;
+import io.wcm.sling.commons.caservice.ContextAwareServiceCollectionResolver;
+import io.wcm.sling.commons.caservice.ContextAwareServiceResolver;
+
+/**
+ * Maps a sling model instance to generic component view.
+ */
+@Component(service = GenericComponentBuilderService.class, immediate = true)
+@Designate(ocd = GenericComponentBuilderServiceImpl.Config.class)
+<span class="fc" id="L61">public class GenericComponentBuilderServiceImpl implements GenericComponentBuilderService {</span>
+
+  @ObjectClassDefinition(
+      name = &quot;wcm.io Site API Generic Edit Component Builder Service&quot;,
+      description = &quot;Configures the process of building component views in generic edit mode.&quot;)
+  @interface Config {
+
+    @AttributeDefinition(
+        name = &quot;Ignore Property Patterns&quot;,
+        description = &quot;List of regular expressions to match property names that should be ignored.&quot;)
+    String[] ignorePropertyPatterns() default {
+        &quot;^:.+$&quot;,
+        &quot;^(id|uuid)$&quot;,
+        &quot;^elementsOrder$&quot;,
+        &quot;^appliedCssClassNames$&quot;,
+        &quot;^richText$&quot;,
+        &quot;wcmio:(link|media)Valid&quot;
+    };
+
+    @AttributeDefinition(
+        name = &quot;Beautify Property Names&quot;,
+        description = &quot;Converts property names in a better human-readable format.&quot;)
+    boolean beautifyPropertyNames() default true;
+
+  }
+
+  @Reference
+  private ContextAwareServiceResolver serviceResolver;
+
+<span class="fc" id="L90">  @Reference(cardinality = ReferenceCardinality.MULTIPLE, fieldOption = FieldOption.UPDATE,</span>
+      policy = ReferencePolicy.DYNAMIC, policyOption = ReferencePolicyOption.GREEDY)
+<span class="fc" id="L92">  private SortedSet&lt;ServiceReference&lt;ValueInspectorService&lt;?&gt;&gt;&gt; inspectors = new ConcurrentSkipListSet&lt;&gt;(Collections.reverseOrder());</span>
+  private ContextAwareServiceCollectionResolver&lt;ValueInspectorService&lt;?&gt;, Void&gt; inspectorResolver;
+
+<span class="fc" id="L95">  @Reference(cardinality = ReferenceCardinality.MULTIPLE, fieldOption = FieldOption.UPDATE,</span>
+      policy = ReferencePolicy.DYNAMIC, policyOption = ReferencePolicyOption.GREEDY)
+<span class="fc" id="L97">  private SortedSet&lt;ServiceReference&lt;ComponentValidatorService&gt;&gt; validators = new ConcurrentSkipListSet&lt;&gt;(Collections.reverseOrder());</span>
+  private ContextAwareServiceCollectionResolver&lt;ComponentValidatorService, Void&gt; validatorResolver;
+
+  private PatternList ignorePropertyPatterns;
+  private boolean beautifyPropertyNames;
+
+  @Activate
+  private void activate(Config config) {
+<span class="fc" id="L105">    this.inspectorResolver = serviceResolver.getCollectionResolver(this.inspectors);</span>
+<span class="fc" id="L106">    this.validatorResolver = serviceResolver.getCollectionResolver(this.validators);</span>
+<span class="fc" id="L107">    this.ignorePropertyPatterns = new PatternList(config.ignorePropertyPatterns());</span>
+<span class="fc" id="L108">    this.beautifyPropertyNames = config.beautifyPropertyNames();</span>
+<span class="fc" id="L109">  }</span>
+
+  @Deactivate
+  private void deactivate() {
+<span class="fc" id="L113">    this.inspectorResolver.close();</span>
+<span class="fc" id="L114">    this.validatorResolver.close();</span>
+<span class="fc" id="L115">  }</span>
+
+  @Override
+  public @NotNull GenericComponent build(@NotNull Object modelInstance, @NotNull Resource resource) {
+<span class="fc" id="L119">    PropertyIntrospector propertyIntrospector = PropertyIntrospector.from(modelInstance);</span>
+<span class="fc" id="L120">    Map&lt;String, List&lt;Object&gt;&gt; rawProperties = propertyIntrospector.getPropertiesMap();</span>
+
+<span class="fc" id="L122">    List&lt;GenericPropertyImpl&lt;?&gt;&gt; properties = rawProperties.entrySet().stream()</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        .filter(entry -&gt; !ignorePropertyPatterns.matches(entry.getKey()))</span>
+<span class="fc" id="L124">        .map(entry -&gt; processProperty(entry.getKey(), entry.getValue(), modelInstance, resource))</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">        .filter(property -&gt; !property.getValues().isEmpty())</span>
+<span class="fc" id="L126">        .collect(Collectors.toList());</span>
+
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">    if (this.beautifyPropertyNames) {</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">      for (GenericPropertyImpl&lt;?&gt; property : properties) {</span>
+<span class="fc" id="L130">        property.setLabel(PropertyNameBeautifier.apply(property.getName()));</span>
+<span class="fc" id="L131">      }</span>
+    }
+
+    // check if any component validator detects an invalid component - otherwise assume validness
+<span class="fc" id="L135">    boolean isValid = validatorResolver.resolveAll(resource)</span>
+<span class="fc" id="L136">        .map(validator -&gt; validator.isValid(modelInstance))</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">        .filter(valid -&gt; !valid)</span>
+<span class="fc" id="L138">        .findFirst().orElse(true);</span>
+
+<span class="fc" id="L140">    return new GenericComponentImpl(modelInstance, properties, isValid);</span>
+  }
+
+  /**
+   * Processes a raw property and converts it into a properly typed generic property.
+   * @param key Property name
+   * @param rawValues Property raw values
+   * @param modelInstance Model instance
+   * @param resource Related resource
+   * @return Generic property
+   */
+  @SuppressWarnings({
+      &quot;null&quot;, &quot;unchecked&quot;,
+      &quot;java:S3740&quot; // ignore usage of generic type for return value
+  })
+  private GenericPropertyImpl&lt;?&gt; processProperty(@NotNull String key, @NotNull List&lt;Object&gt; rawValues,
+      @NotNull Object modelInstance, @NotNull Resource resource) {
+
+    // check all inspectors if given value is a special value
+<span class="fc" id="L159">    List&lt;?&gt; values = inspectorResolver.resolveAll(resource)</span>
+<span class="fc" id="L160">        .map(inspector -&gt; inspector.inspect(key, rawValues, modelInstance))</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">        .filter(resultValues -&gt; !resultValues.isEmpty())</span>
+<span class="fc" id="L162">        .findFirst().orElse(List.of());</span>
+
+    // no matching inspector found, check for nested components, otherwise transform to simple values
+<span class="fc bfc" id="L165" title="All 2 branches covered.">    if (values.isEmpty()) {</span>
+<span class="fc" id="L166">      boolean isNestedComponents = rawValues.stream().allMatch(ComponentExporter.class::isInstance);</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">      if (isNestedComponents) {</span>
+<span class="fc" id="L168">        values = rawValues.stream()</span>
+<span class="fc" id="L169">            .map(instance -&gt; new ComponentValueImpl(build(instance, resource)))</span>
+<span class="fc" id="L170">            .collect(Collectors.toList());</span>
+      }
+      else {
+<span class="fc" id="L173">        values = rawValues.stream()</span>
+<span class="fc" id="L174">            .map(SimpleValueImpl::new)</span>
+<span class="fc" id="L175">            .collect(Collectors.toList());</span>
+      }
+    }
+
+<span class="fc" id="L179">    return new GenericPropertyImpl(key, values);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
