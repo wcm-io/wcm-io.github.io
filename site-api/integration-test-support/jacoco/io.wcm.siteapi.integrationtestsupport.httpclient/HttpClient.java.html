@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HttpClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Integration Test Support</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.integrationtestsupport.httpclient</a> &gt; <span class="el_source">HttpClient.java</span></div><h1>HttpClient.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2023 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.integrationtestsupport.httpclient;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient.Redirect;
+import java.net.http.HttpClient.Version;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.time.Duration;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+
+import io.wcm.siteapi.integrationtestsupport.IntegrationTestContextBuilder;
+
+/**
+ * Simple HTTP client wrapper to execute HTTP requests during integration tests.
+ * Uses &lt;code&gt;java.net.http&lt;/code&gt; HTTP client internally.
+ */
+public final class HttpClient {
+
+  private final java.net.http.HttpClient delegateHttpClient;
+  private final Duration requestTimeout;
+
+  /**
+   * @param builder Integration test context builder.
+   */
+<span class="fc" id="L47">  public HttpClient(IntegrationTestContextBuilder builder) {</span>
+<span class="fc" id="L48">    this.delegateHttpClient = java.net.http.HttpClient.newBuilder()</span>
+        // stick with HTTP 1.1 for AEMaaCS CM integration tests
+<span class="fc" id="L50">        .version(Version.HTTP_1_1)</span>
+<span class="fc" id="L51">        .followRedirects(Redirect.NORMAL)</span>
+<span class="fc" id="L52">        .connectTimeout(builder.getHttpConnectTimeout())</span>
+<span class="fc" id="L53">        .build();</span>
+<span class="fc" id="L54">    this.requestTimeout = builder.getHttpRequestTimeout();</span>
+<span class="fc" id="L55">  }</span>
+
+  /**
+   * Fetch HTTP content. Check status code of response for success.
+   * @param url URL
+   * @return HTTP response.
+   */
+  @SuppressWarnings(&quot;CQRules:CWE-676&quot;)
+  public @NotNull HttpResponse&lt;String&gt; get(@NotNull String url) {
+<span class="fc" id="L64">    String urlWithTimestamp = appendTimestamp(url);</span>
+<span class="fc" id="L65">    HttpRequest request = HttpRequest.newBuilder()</span>
+<span class="fc" id="L66">        .uri(URI.create(urlWithTimestamp))</span>
+<span class="fc" id="L67">        .timeout(requestTimeout)</span>
+<span class="fc" id="L68">        .build();</span>
+    try {
+<span class="fc" id="L70">      return new StringHttpResponse(delegateHttpClient.send(request, BodyHandlers.ofString()));</span>
+    }
+<span class="fc" id="L72">    catch (IOException ex) {</span>
+<span class="fc" id="L73">      throw new HttpRequestFailedException(&quot;Unable to fetch &quot; + urlWithTimestamp + &quot;: &quot; + ex.getMessage(), ex);</span>
+    }
+<span class="nc" id="L75">    catch (InterruptedException ex) {</span>
+<span class="nc" id="L76">      Thread.currentThread().interrupt();</span>
+<span class="nc" id="L77">      throw new IllegalStateException(ex);</span>
+    }
+  }
+
+  /**
+   * Fetch HTTP content. Fails with exception when request does not return successfully.
+   * @param url URL
+   * @return Body string.
+   */
+  public @NotNull String getBody(@NotNull String url) {
+<span class="fc" id="L87">    String urlWithTimestamp = appendTimestamp(url);</span>
+<span class="fc" id="L88">    HttpResponse&lt;String&gt; response = get(urlWithTimestamp);</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">    if (response.statusCode() == 200) {</span>
+<span class="fc" id="L90">      return response.body();</span>
+    }
+    else {
+<span class="fc" id="L93">      throw new HttpRequestFailedException(urlWithTimestamp + &quot; returned HTTP &quot; + response.statusCode());</span>
+    }
+  }
+
+  /**
+   * Attach timestamp to skip CDN and dispatcher cache layers
+   * @param url URL with or without timestamp parameter.
+   * @return URL with timestamp parameter.
+   */
+  private String appendTimestamp(String url) {
+<span class="fc bfc" id="L103" title="All 2 branches covered.">    if (!StringUtils.contains(url, &quot;?timestamp=&quot;)) {</span>
+<span class="fc" id="L104">      return url + &quot;?timestamp=&quot; + System.currentTimeMillis();</span>
+    }
+<span class="fc" id="L106">    return url;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
