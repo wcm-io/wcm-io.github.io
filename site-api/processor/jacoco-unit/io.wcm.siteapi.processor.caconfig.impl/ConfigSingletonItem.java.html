@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfigSingletonItem.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Processor</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.processor.caconfig.impl</a> &gt; <span class="el_source">ConfigSingletonItem.java</span></div><h1>ConfigSingletonItem.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2022 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.processor.caconfig.impl;
+
+import static java.util.function.Predicate.not;
+
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Context-Aware configuration singleton item. May contain nested context-aware configurations.
+ */
+<span class="fc" id="L38">class ConfigSingletonItem implements ConfigItem&lt;SortedMap&lt;String, Object&gt;&gt; {</span>
+
+<span class="fc" id="L40">  private final SortedMap&lt;String, Object&gt; data = new TreeMap&lt;&gt;();</span>
+<span class="fc" id="L41">  private final Set&lt;String&gt; requiredPropertyNames = new HashSet&lt;&gt;();</span>
+
+  /**
+   * Add configuration property
+   * @param key Key
+   * @param value Value
+   */
+  public void put(@NotNull String key, @NotNull Object value) {
+<span class="fc" id="L49">    this.data.put(key, value);</span>
+<span class="fc" id="L50">  }</span>
+
+  /**
+   * Add property name that is marked as mandatory.
+   * @param key Key
+   */
+  public void addRequiredPropertyName(@NotNull String key) {
+<span class="fc" id="L57">    this.requiredPropertyNames.add(key);</span>
+<span class="fc" id="L58">  }</span>
+
+  @Override
+  public boolean isEmpty() {
+<span class="fc" id="L62">    return data.isEmpty();</span>
+  }
+
+  @Override
+  public boolean isValid() {
+    // ensure all mandatory properties are set
+<span class="fc bfc" id="L68" title="All 2 branches covered.">    if (requiredPropertyNames.stream().anyMatch(this::isValueMissing)) {</span>
+<span class="fc" id="L69">      return false;</span>
+    }
+
+    // ensure all nested configurations are valid
+<span class="fc" id="L73">    return this.data.values().stream()</span>
+<span class="fc" id="L74">        .filter(ConfigItem.class::isInstance)</span>
+<span class="fc" id="L75">        .map(ConfigItem.class::cast)</span>
+<span class="fc" id="L76">        .noneMatch(not(ConfigItem::isValid));</span>
+  }
+
+  private boolean isValueMissing(@NotNull String propertyName) {
+<span class="fc" id="L80">    Object value = data.get(propertyName);</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">    if (value instanceof String) {</span>
+<span class="fc" id="L82">      return StringUtils.isEmpty((String)value);</span>
+    }
+<span class="fc bfc" id="L84" title="All 2 branches covered.">    return value == null;</span>
+  }
+
+
+  @Override
+  public @Nullable SortedMap&lt;String, Object&gt; toJsonObject() {
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">    if (!isValid()) {</span>
+      // skip invalid items
+<span class="nc" id="L92">      return null;</span>
+    }
+<span class="fc" id="L94">    return data.entrySet().stream()</span>
+<span class="fc" id="L95">        .map(entry -&gt; {</span>
+          // transform nested ConfigItems to JSON data structures
+<span class="fc bfc" id="L97" title="All 2 branches covered.">          if (entry.getValue() instanceof ConfigItem) {</span>
+<span class="fc" id="L98">            return Map.entry(entry.getKey(), ((ConfigItem)entry.getValue()).toJsonObject());</span>
+          }
+<span class="fc" id="L100">          return entry;</span>
+        })
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">        .filter(entry -&gt; entry.getValue() != null)</span>
+<span class="pc" id="L103">        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -&gt; a, TreeMap::new));</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

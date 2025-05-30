@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JsonSuffix.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Processor</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.processor.url</a> &gt; <span class="el_source">JsonSuffix.java</span></div><h1>JsonSuffix.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2022 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.processor.url;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+/**
+ * Validates and parses suffix with '.json' extension.
+ *
+ * &lt;p&gt;
+ * The suffix string is split in two parts:
+ * &lt;/p&gt;
+ * &lt;ul&gt;
+ * &lt;li&gt;The main suffix part which is matched with the processor (e.g. 'content', 'caconfig')&lt;/li&gt;
+ * &lt;li&gt;Optional: A suffix extension separated by / (e.g. context-aware configuration name)&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;
+ * Suffix string Examples:
+ * &lt;/p&gt;
+ * &lt;ul&gt;
+ * &lt;li&gt;&lt;code&gt;/content.json&lt;/code&gt; -&amp;gt; suffix=content&lt;/li&gt;
+ * &lt;li&gt;&lt;code&gt;/caconfig/MyConfig.json&lt;/code&gt; -&amp;gt; suffix=content, suffix extension=MyConfig&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@ProviderType
+public final class JsonSuffix {
+
+<span class="fc" id="L52">  private static final Pattern SUFFIX_AND_EXTENSION = Pattern.compile(&quot;^/([^/]+)(/(.*))?\\.json$&quot;);</span>
+  private static final int GROUP_SUFFIX = 1;
+  private static final int GROUP_SUFFIX_EXTENSION = 3;
+
+  private final String suffix;
+  private final String suffixExtension;
+
+<span class="fc" id="L59">  private JsonSuffix(@NotNull String suffix, @Nullable String suffixExtension) {</span>
+<span class="fc" id="L60">    this.suffix = suffix;</span>
+<span class="fc" id="L61">    this.suffixExtension = suffixExtension;</span>
+<span class="fc" id="L62">  }</span>
+
+  /**
+   * @return Suffix
+   */
+  public @NotNull String getSuffix() {
+<span class="fc" id="L68">    return this.suffix;</span>
+  }
+
+  /**
+   * @return Suffix extension
+   */
+  public @Nullable String getSuffixExtension() {
+<span class="fc" id="L75">    return this.suffixExtension;</span>
+  }
+
+  /**
+   * Ensure suffix ends with &quot;.json&quot;. Returns suffix without slash and extension.
+   * @param suffixString Suffix string
+   * @return Suffix or null if suffix string is invalid
+   */
+  public static @Nullable JsonSuffix parse(@Nullable String suffixString) {
+<span class="fc bfc" id="L84" title="All 2 branches covered.">    if (suffixString != null) {</span>
+<span class="fc" id="L85">      Matcher matcher = SUFFIX_AND_EXTENSION.matcher(suffixString);</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">      if (matcher.matches()) {</span>
+<span class="fc" id="L87">        String suffix = matcher.group(GROUP_SUFFIX);</span>
+<span class="fc" id="L88">        String suffixExtension = matcher.group(GROUP_SUFFIX_EXTENSION);</span>
+<span class="fc" id="L89">        return new JsonSuffix(suffix, suffixExtension);</span>
+      }
+    }
+<span class="fc" id="L92">    return null;</span>
+  }
+
+  /**
+   * Build suffix with JSON extension.
+   * @param suffix Suffix
+   * @return Suffix with slash and extension.
+   */
+  public static @NotNull String build(@NotNull String suffix) {
+<span class="fc" id="L101">    return build(suffix, null);</span>
+  }
+
+  /**
+   * Build suffix with JSON extension.
+   * @param suffix Suffix
+   * @param suffixExtension Suffix extension
+   * @return Suffix with slash and extension.
+   */
+  public static @NotNull String build(@NotNull String suffix, @Nullable String suffixExtension) {
+<span class="fc" id="L111">    StringBuilder sb = new StringBuilder();</span>
+<span class="fc" id="L112">    sb.append('/').append(suffix);</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(suffixExtension)) {</span>
+<span class="fc" id="L114">      sb.append('/').append(suffixExtension);</span>
+    }
+<span class="fc" id="L116">    sb.append(&quot;.json&quot;);</span>
+<span class="fc" id="L117">    return sb.toString();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

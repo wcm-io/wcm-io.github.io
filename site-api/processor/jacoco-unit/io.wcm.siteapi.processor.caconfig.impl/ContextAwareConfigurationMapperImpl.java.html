@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContextAwareConfigurationMapperImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Processor</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.processor.caconfig.impl</a> &gt; <span class="el_source">ContextAwareConfigurationMapperImpl.java</span></div><h1>ContextAwareConfigurationMapperImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2022 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.processor.caconfig.impl;
+
+import static java.util.function.Predicate.not;
+
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.SortedSet;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.caconfig.management.ConfigurationCollectionData;
+import org.apache.sling.caconfig.management.ConfigurationData;
+import org.apache.sling.caconfig.management.ConfigurationManager;
+import org.apache.sling.caconfig.spi.metadata.ConfigurationMetadata;
+import org.apache.sling.caconfig.spi.metadata.PropertyMetadata;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.framework.ServiceReference;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.FieldOption;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
+
+import io.wcm.siteapi.processor.caconfig.ContextAwareConfigurationMapper;
+import io.wcm.siteapi.processor.caconfig.ContextAwareConfigurationPropertyMapper;
+import io.wcm.sling.commons.caservice.ContextAwareServiceCollectionResolver;
+import io.wcm.sling.commons.caservice.ContextAwareServiceResolver;
+
+/**
+ * Implements {@link ContextAwareConfigurationMapper},
+ */
+@Component(service = ContextAwareConfigurationMapper.class)
+<span class="fc" id="L65">public class ContextAwareConfigurationMapperImpl implements ContextAwareConfigurationMapper {</span>
+
+  // ignore property names with namespaces sling/jcr/cq
+<span class="fc" id="L68">  private static final Pattern IGNORED_SYSTEM_PROPERTY_NAMES = Pattern.compile(&quot;^(sling|jcr|cq):.*$&quot;);</span>
+
+  @Reference
+  private ConfigurationManager configManager;
+
+<span class="fc" id="L73">  @Reference(cardinality = ReferenceCardinality.MULTIPLE, fieldOption = FieldOption.UPDATE,</span>
+      policy = ReferencePolicy.DYNAMIC, policyOption = ReferencePolicyOption.GREEDY)
+  private SortedSet&lt;ServiceReference&lt;ContextAwareConfigurationPropertyMapper&lt;Object&gt;&gt;&gt; propertyMapper = new ConcurrentSkipListSet&lt;&gt;(
+<span class="fc" id="L76">      Collections.reverseOrder());</span>
+
+  @Reference
+  private ContextAwareServiceResolver serviceResolver;
+  private ContextAwareServiceCollectionResolver&lt;ContextAwareConfigurationPropertyMapper&lt;Object&gt;, Void&gt; propertyMapperResolver;
+
+  @Activate
+  private void activate() {
+<span class="fc" id="L84">    this.propertyMapperResolver = serviceResolver.getCollectionResolver(this.propertyMapper);</span>
+<span class="fc" id="L85">  }</span>
+
+  @Deactivate
+  private void deactivate() {
+<span class="fc" id="L89">    this.propertyMapperResolver.close();</span>
+<span class="fc" id="L90">  }</span>
+
+
+  @Override
+  public @Nullable Object get(@NotNull String configName, @NotNull SlingHttpServletRequest request) {
+<span class="fc" id="L95">    ConfigurationMetadata metadata = configManager.getConfigurationMetadata(configName);</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">    if (metadata != null) {</span>
+<span class="fc" id="L97">      return build(metadata, request);</span>
+    }
+<span class="fc" id="L99">    return null;</span>
+  }
+
+  /**
+   * Build JSON representation of context-aware configuration.
+   * @param metadata Configuration Metadata
+   * @return Map/List with configuration data, or null if configuration or metadata is not present.
+   */
+  @Nullable
+  private Object build(@NotNull ConfigurationMetadata metadata, @NotNull SlingHttpServletRequest request) {
+<span class="fc" id="L109">    Resource contextResource = request.getResource();</span>
+
+    // get property mappers
+<span class="fc" id="L112">    Collection&lt;ContextAwareConfigurationPropertyMapper&lt;Object&gt;&gt; mappers = propertyMapperResolver</span>
+<span class="fc" id="L113">        .resolveAll(contextResource).collect(Collectors.toList());</span>
+
+    // singleton caconfig
+<span class="fc bfc" id="L116" title="All 2 branches covered.">    if (metadata.isSingleton()) {</span>
+<span class="fc" id="L117">      ConfigurationData configData = configManager.getConfiguration(</span>
+<span class="fc" id="L118">          contextResource, metadata.getName());</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">      if (configData != null) {</span>
+<span class="fc" id="L120">        ConfigSingletonItem item = toSingletonItem(configData, request, mappers);</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (!item.isEmpty()) {</span>
+<span class="fc" id="L122">          return item.toJsonObject();</span>
+        }
+      }
+<span class="fc" id="L125">    }</span>
+
+    // collection caconfig
+    else {
+<span class="fc" id="L129">      ConfigurationCollectionData configCollectionData = configManager.getConfigurationCollection(</span>
+<span class="fc" id="L130">          contextResource, metadata.getName());</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">      if (!configCollectionData.getItems().isEmpty()) {</span>
+<span class="fc" id="L132">        ConfigCollectionItem item = toCollectionItem(configCollectionData.getItems(), request, mappers);</span>
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">        if (!item.isEmpty()) {</span>
+<span class="fc" id="L134">          return item.toJsonObject();</span>
+        }
+      }
+    }
+
+<span class="fc" id="L139">    return null;</span>
+  }
+
+  /**
+   * Generate collection item for all configuration values.
+   */
+  private @NotNull ConfigCollectionItem toCollectionItem(@NotNull Collection&lt;ConfigurationData&gt; configurationDatas,
+      @NotNull SlingHttpServletRequest request,
+      @NotNull Collection&lt;ContextAwareConfigurationPropertyMapper&lt;Object&gt;&gt; mappers) {
+<span class="fc" id="L148">    ConfigCollectionItem collectionItem = new ConfigCollectionItem();</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">    for (ConfigurationData configData : configurationDatas) {</span>
+<span class="fc" id="L150">      collectionItem.addItem(toSingletonItem(configData, request, mappers));</span>
+<span class="fc" id="L151">    }</span>
+<span class="fc" id="L152">    return collectionItem;</span>
+  }
+
+  /**
+   * Generate singleton item for all configuration values.
+   */
+  private @NotNull ConfigSingletonItem toSingletonItem(@NotNull ConfigurationData configData,
+      @NotNull SlingHttpServletRequest request,
+      @NotNull Collection&lt;ContextAwareConfigurationPropertyMapper&lt;Object&gt;&gt; mappers) {
+<span class="fc" id="L161">    ConfigSingletonItem item = new ConfigSingletonItem();</span>
+
+<span class="fc" id="L163">    getExportedProperties(configData).forEach(property -&gt; {</span>
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">      if (property.isRequired()) {</span>
+        // mark required property
+<span class="nc" id="L166">        item.addRequiredPropertyName(property.getName());</span>
+      }
+<span class="fc" id="L168">      Object value = property.getValue();</span>
+<span class="fc" id="L169">      PropertyMetadata&lt;?&gt; metadata = property.getMetadata();</span>
+<span class="pc bpc" id="L170" title="1 of 4 branches missed.">      if (value != null &amp;&amp; metadata != null) {</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">        if (property.isNestedConfiguration()) {</span>
+          // special handling for nested configurations
+<span class="fc" id="L173">          value = mapNestedConfiguration(value, metadata, request, mappers);</span>
+        }
+        else {
+          // map property value to target structure
+<span class="fc" id="L177">          ContextAwareConfigurationPropertyMapper&lt;Object&gt; mapper = getMatchingMapper(value, metadata, request, mappers);</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">          if (mapper != null) {</span>
+<span class="fc" id="L179">            value = mapValue(value, metadata, request, mapper);</span>
+          }
+        }
+      }
+<span class="fc bfc" id="L183" title="All 2 branches covered.">      if (value != null) {</span>
+<span class="fc" id="L184">        item.put(property.getName(), value);</span>
+      }
+<span class="fc" id="L186">    });</span>
+
+<span class="fc" id="L188">    return item;</span>
+  }
+
+  /**
+   * Calls property mapper. In case of object array, the mapper is called for each individual value.
+   */
+  private @Nullable Object mapValue(@NotNull Object value, @NotNull PropertyMetadata&lt;?&gt; metadata,
+      @NotNull SlingHttpServletRequest request,
+      @NotNull ContextAwareConfigurationPropertyMapper&lt;Object&gt; mapper) {
+<span class="fc bfc" id="L197" title="All 2 branches covered.">    if (value.getClass().isArray()) {</span>
+<span class="fc" id="L198">      List&lt;Object&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L199">      int arrayLength = Array.getLength(value);</span>
+<span class="fc bfc" id="L200" title="All 2 branches covered.">      for (int i = 0; i &lt; arrayLength; i++) {</span>
+<span class="fc" id="L201">        Object valueItem = Array.get(value, i);</span>
+<span class="fc" id="L202">        Object mappedItem = mapper.map(valueItem, metadata, request);</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">        if (mappedItem != null) {</span>
+<span class="fc" id="L204">          result.add(mappedItem);</span>
+        }
+      }
+<span class="pc bpc" id="L207" title="1 of 2 branches missed.">      if (result.isEmpty()) {</span>
+<span class="nc" id="L208">        return null;</span>
+      }
+      else {
+<span class="fc" id="L211">        return result;</span>
+      }
+    }
+    else {
+<span class="fc" id="L215">      return mapper.map(value, metadata, request);</span>
+    }
+  }
+
+  /**
+   * Get all properties to be exported.
+   * Ignore system and hidden properties.
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  private @NotNull Stream&lt;PropertyInfo&gt; getExportedProperties(@NotNull ConfigurationData configData) {
+<span class="fc" id="L225">    return configData.getPropertyNames().stream()</span>
+<span class="fc bfc" id="L226" title="All 2 branches covered.">        .filter(propertyName -&gt; !IGNORED_SYSTEM_PROPERTY_NAMES.matcher(propertyName).matches())</span>
+<span class="fc" id="L227">        .map(configData::getValueInfo)</span>
+<span class="fc" id="L228">        .filter(Objects::nonNull)</span>
+<span class="fc" id="L229">        .map(PropertyInfo::new)</span>
+<span class="fc" id="L230">        .filter(not(PropertyInfo::isHidden));</span>
+  }
+
+  /**
+   * Get property mapper that matches for this property.
+   */
+  private @Nullable ContextAwareConfigurationPropertyMapper&lt;Object&gt; getMatchingMapper(@NotNull Object value,
+      @NotNull PropertyMetadata&lt;?&gt; metadata,
+      @NotNull SlingHttpServletRequest request,
+      @NotNull Collection&lt;ContextAwareConfigurationPropertyMapper&lt;Object&gt;&gt; mappers) {
+<span class="fc" id="L240">    return mappers.stream()</span>
+<span class="fc" id="L241">        .filter(mapper -&gt; mapper.accept(value, metadata, request))</span>
+<span class="fc" id="L242">        .findFirst().orElse(null);</span>
+  }
+
+  /**
+   * Special handling for nested configs or nested config collections
+   */
+  private @Nullable Object mapNestedConfiguration(@NotNull Object value,
+      @NotNull PropertyMetadata&lt;?&gt; metadata,
+      @NotNull SlingHttpServletRequest request,
+      @NotNull Collection&lt;ContextAwareConfigurationPropertyMapper&lt;Object&gt;&gt; mappers) {
+
+<span class="fc bfc" id="L253" title="All 2 branches covered.">    if (metadata.getType().isArray()) {</span>
+<span class="fc" id="L254">      ConfigurationData[] configDatas = (ConfigurationData[])value;</span>
+<span class="fc bfc" id="L255" title="All 2 branches covered.">      if (configDatas.length == 0) {</span>
+<span class="fc" id="L256">        return null;</span>
+      }
+<span class="fc" id="L258">      return toCollectionItem(Arrays.asList(configDatas), request, mappers);</span>
+    }
+    else {
+<span class="fc" id="L261">      ConfigurationData configData = (ConfigurationData)value;</span>
+<span class="fc" id="L262">      return toSingletonItem(configData, request, mappers);</span>
+    }
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

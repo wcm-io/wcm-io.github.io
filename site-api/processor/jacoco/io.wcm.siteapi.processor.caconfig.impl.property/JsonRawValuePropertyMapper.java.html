@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JsonRawValuePropertyMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Processor</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.processor.caconfig.impl.property</a> &gt; <span class="el_source">JsonRawValuePropertyMapper.java</span></div><h1>JsonRawValuePropertyMapper.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2022 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.processor.caconfig.impl.property;
+
+import static io.wcm.siteapi.processor.caconfig.ContextAwareConfigurationProperties.PROPERTY_JSON_RAW_VALUE;
+
+import java.io.IOException;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.caconfig.spi.metadata.PropertyMetadata;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.propertytypes.ServiceRanking;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.wcm.siteapi.processor.caconfig.ContextAwareConfigurationProperties;
+import io.wcm.siteapi.processor.caconfig.ContextAwareConfigurationPropertyMapper;
+import io.wcm.siteapi.processor.caconfig.impl.ConfigurationMetadataUtil;
+import io.wcm.siteapi.processor.util.JsonObjectMapper;
+
+/**
+ * Checks if the given property value is a string value and the property is marked with
+ * {@link ContextAwareConfigurationProperties#PROPERTY_JSON_RAW_VALUE}. If that is the case
+ * the string value is expected to be a JSON String and converted to data structure that can be
+ * serialized as JSON. If the value is invalid, no value is returned.
+ */
+@Component(service = ContextAwareConfigurationPropertyMapper.class)
+@ServiceRanking(-500)
+<span class="fc" id="L51">public class JsonRawValuePropertyMapper implements ContextAwareConfigurationPropertyMapper&lt;Map&lt;String, Object&gt;&gt; {</span>
+
+<span class="fc" id="L53">  private static final Logger log = LoggerFactory.getLogger(JsonRawValuePropertyMapper.class);</span>
+
+  @Reference
+  private JsonObjectMapper jsonObjectMapper;
+
+  @Override
+  public boolean accept(@NotNull Object value,
+      @NotNull PropertyMetadata&lt;?&gt; metadata, @NotNull SlingHttpServletRequest request) {
+<span class="fc" id="L61">    return ConfigurationMetadataUtil.isBoolean(metadata, PROPERTY_JSON_RAW_VALUE, false);</span>
+  }
+
+  @Override
+  public @Nullable Map&lt;String, Object&gt; map(@NotNull Object value,
+      @NotNull PropertyMetadata&lt;?&gt; metadata, @NotNull SlingHttpServletRequest request) {
+<span class="fc" id="L67">    return parseJson(value);</span>
+  }
+
+  @SuppressWarnings(&quot;CQRules:CQBP-44---WrongLogLevelInCatchBlock&quot;)
+  private @Nullable Map&lt;String, Object&gt; parseJson(@NotNull Object value) {
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">    if (value instanceof String) {</span>
+<span class="fc" id="L73">      String stringValue = (String)value;</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">      if (StringUtils.isNotBlank(stringValue)) {</span>
+        try {
+<span class="fc" id="L76">          return jsonObjectMapper.parseToMap(stringValue);</span>
+        }
+<span class="fc" id="L78">        catch (IOException ex) {</span>
+<span class="fc" id="L79">          log.debug(&quot;Failed to parse JSON value: {}&quot;, value, ex);</span>
+        }
+      }
+    }
+<span class="fc" id="L83">    return null;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProcessorManagerImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Site API Processor</a> &gt; <a href="index.source.html" class="el_package">io.wcm.siteapi.processor.impl</a> &gt; <span class="el_source">ProcessorManagerImpl.java</span></div><h1>ProcessorManagerImpl.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2022 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.siteapi.processor.impl;
+
+import java.util.Collections;
+import java.util.SortedSet;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.stream.Stream;
+
+import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.framework.ServiceReference;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.FieldOption;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
+
+import io.wcm.siteapi.processor.Processor;
+import io.wcm.siteapi.processor.ProcessorManager;
+import io.wcm.siteapi.processor.ProcessorMetadata;
+import io.wcm.siteapi.processor.SlingHttpServletProcessor;
+import io.wcm.sling.commons.caservice.ContextAwareServiceCollectionResolver;
+import io.wcm.sling.commons.caservice.ContextAwareServiceResolver;
+
+/**
+ * Collects all {@link SlingHttpServletProcessor} services and allows to get the matching processor for a given suffix.
+ */
+@Component(service = ProcessorManager.class)
+<span class="fc" id="L51">public class ProcessorManagerImpl implements ProcessorManager {</span>
+
+  @Reference
+  private ContextAwareServiceResolver serviceResolver;
+
+<span class="fc" id="L56">  @Reference(cardinality = ReferenceCardinality.MULTIPLE, fieldOption = FieldOption.UPDATE,</span>
+      policy = ReferencePolicy.DYNAMIC, policyOption = ReferencePolicyOption.GREEDY)
+<span class="fc" id="L58">  private SortedSet&lt;ServiceReference&lt;Processor&gt;&gt; processors = new ConcurrentSkipListSet&lt;&gt;(Collections.reverseOrder());</span>
+
+  private ContextAwareServiceCollectionResolver&lt;Processor, ProcessorData&gt; serviceCollectionResolver;
+
+  @Activate
+  private void activate() {
+<span class="fc" id="L64">    this.serviceCollectionResolver = serviceResolver.getCollectionResolver(</span>
+        this.processors, ProcessorData::new);
+<span class="fc" id="L66">  }</span>
+
+  @Deactivate
+  private void deactivate() {
+<span class="fc" id="L70">    this.serviceCollectionResolver.close();</span>
+<span class="fc" id="L71">  }</span>
+
+  /**
+   * Get processor matching for suffix.
+   * @param suffix Suffix
+   * @return Processor or null of no matching was found
+   */
+  @Override
+  public @Nullable Processor getMatching(@NotNull String suffix, @NotNull Resource contextResource) {
+<span class="fc" id="L80">    return serviceCollectionResolver.resolveAllDecorated(contextResource)</span>
+<span class="fc" id="L81">        .filter(ProcessorData::isValid)</span>
+<span class="fc" id="L82">        .filter(processor -&gt; processor.matches(suffix))</span>
+<span class="fc" id="L83">        .map(ProcessorData::getProcessor)</span>
+<span class="fc" id="L84">        .findFirst().orElse(null);</span>
+  }
+
+  @Override
+  @SuppressWarnings(&quot;null&quot;)
+  public @NotNull Stream&lt;ProcessorMetadata&gt; getAll(@NotNull Resource contextResource) {
+<span class="fc" id="L90">    return serviceCollectionResolver.resolveAllDecorated(contextResource)</span>
+<span class="fc" id="L91">        .filter(ProcessorData::isValid)</span>
+<span class="fc" id="L92">        .map(ProcessorMetadata.class::cast);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
