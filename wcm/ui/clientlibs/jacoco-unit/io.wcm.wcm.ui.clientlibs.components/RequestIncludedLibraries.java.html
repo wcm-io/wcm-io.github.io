@@ -26,10 +26,10 @@ import java.util.function.Function;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.adobe.granite.ui.clientlibs.HtmlLibraryManager;
-import com.drew.lang.annotations.NotNull;
 
 class RequestIncludedLibraries {
 
