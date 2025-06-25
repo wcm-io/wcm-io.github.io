@@ -39,7 +39,6 @@ import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.wcm.sling.commons.request.RequestPath;
 import io.wcm.wcm.commons.caching.CacheHeader;
 import io.wcm.wcm.commons.contenttype.ContentType;
@@ -48,36 +47,35 @@ import io.wcm.wcm.commons.contenttype.ContentType;
  * Stream binary data stored in a nt:file or nt:resource node.
  * Optional support for Content-Disposition header (&quot;download_attachment&quot;).
  */
-<span class="fc" id="L51">abstract class AbstractMediaFileServlet extends SlingSafeMethodsServlet {</span>
+<span class="fc" id="L50">abstract class AbstractMediaFileServlet extends SlingSafeMethodsServlet {</span>
   private static final long serialVersionUID = 1L;
 
   @Override
-  @SuppressFBWarnings(&quot;RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE&quot;)
   protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
 
     // get binary data resource
-<span class="fc" id="L59">    Resource resource = getBinaryDataResource(request);</span>
-<span class="fc bfc" id="L60" title="All 2 branches covered.">    if (resource == null) {</span>
-<span class="fc" id="L61">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
-<span class="fc" id="L62">      return;</span>
+<span class="fc" id="L57">    Resource resource = getBinaryDataResource(request);</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">    if (resource == null) {</span>
+<span class="fc" id="L59">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="fc" id="L60">      return;</span>
     }
 
     // check if the resource was modified since last request
-<span class="pc bpc" id="L66" title="1 of 2 branches missed.">    if (isNotModified(resource, request, response)) {</span>
-<span class="nc" id="L67">      return;</span>
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">    if (isNotModified(resource, request, response)) {</span>
+<span class="nc" id="L65">      return;</span>
     }
 
     // get binary data and send to client
-<span class="fc" id="L71">    byte[] binaryData = getBinaryData(resource, request);</span>
-<span class="pc bpc" id="L72" title="1 of 4 branches missed.">    if (binaryData == null || binaryData.length == 0) {</span>
-<span class="fc" id="L73">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="fc" id="L69">    byte[] binaryData = getBinaryData(resource, request);</span>
+<span class="pc bpc" id="L70" title="1 of 4 branches missed.">    if (binaryData == null || binaryData.length == 0) {</span>
+<span class="fc" id="L71">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
     }
     else {
-<span class="fc" id="L76">      String contentType = getContentType(resource, request);</span>
-<span class="fc" id="L77">      sendBinaryData(binaryData, contentType, request, response);</span>
+<span class="fc" id="L74">      String contentType = getContentType(resource, request);</span>
+<span class="fc" id="L75">      sendBinaryData(binaryData, contentType, request, response);</span>
     }
 
-<span class="fc" id="L80">  }</span>
+<span class="fc" id="L78">  }</span>
 
   /**
    * Get resource containing the binary data to deliver.
@@ -85,7 +83,7 @@ import io.wcm.wcm.commons.contenttype.ContentType;
    * @return Resource pointing to nt:file or nt:resource node
    */
   protected @Nullable Resource getBinaryDataResource(SlingHttpServletRequest request) {
-<span class="fc" id="L88">    return request.getResource();</span>
+<span class="fc" id="L86">    return request.getResource();</span>
   }
 
   /**
@@ -100,7 +98,7 @@ import io.wcm.wcm.commons.contenttype.ContentType;
     // check resource's modification date against the If-Modified-Since header and send 304 if resource wasn't modified
     // never send expires header on author or publish instance (performance optimization - if medialib items changes
     // users have to refresh browsers cache)
-<span class="fc" id="L103">    return CacheHeader.isNotModified(resource, request, response, false);</span>
+<span class="fc" id="L101">    return CacheHeader.isNotModified(resource, request, response, false);</span>
   }
 
   /**
@@ -110,15 +108,15 @@ import io.wcm.wcm.commons.contenttype.ContentType;
    */
   protected byte @Nullable [] getBinaryData(@NotNull Resource resource,
       @SuppressWarnings({ &quot;unused&quot;, &quot;java:S1172&quot; }) @NotNull SlingHttpServletRequest request) throws IOException {
-<span class="fc" id="L113">    InputStream is = resource.adaptTo(InputStream.class);</span>
-<span class="fc bfc" id="L114" title="All 2 branches covered.">    if (is == null) {</span>
-<span class="fc" id="L115">      return null;</span>
+<span class="fc" id="L111">    InputStream is = resource.adaptTo(InputStream.class);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (is == null) {</span>
+<span class="fc" id="L113">      return null;</span>
     }
     try {
-<span class="fc" id="L118">      return IOUtils.toByteArray(is);</span>
+<span class="fc" id="L116">      return IOUtils.toByteArray(is);</span>
     }
     finally {
-<span class="fc" id="L121">      is.close();</span>
+<span class="fc" id="L119">      is.close();</span>
     }
   }
 
@@ -129,11 +127,11 @@ import io.wcm.wcm.commons.contenttype.ContentType;
    */
   protected @NotNull String getContentType(@NotNull Resource resource,
       @SuppressWarnings({ &quot;unused&quot;, &quot;java:S1172&quot; }) @NotNull SlingHttpServletRequest request) {
-<span class="fc" id="L132">    String mimeType = JcrBinary.getMimeType(resource);</span>
-<span class="pc bpc" id="L133" title="1 of 2 branches missed.">    if (StringUtils.isEmpty(mimeType)) {</span>
-<span class="nc" id="L134">      mimeType = ContentType.OCTET_STREAM;</span>
+<span class="fc" id="L130">    String mimeType = JcrBinary.getMimeType(resource);</span>
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">    if (StringUtils.isEmpty(mimeType)) {</span>
+<span class="nc" id="L132">      mimeType = ContentType.OCTET_STREAM;</span>
     }
-<span class="fc" id="L136">    return mimeType;</span>
+<span class="fc" id="L134">    return mimeType;</span>
   }
 
   /**
@@ -147,44 +145,44 @@ import io.wcm.wcm.commons.contenttype.ContentType;
       @NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws IOException {
 
     // set content type and length
-<span class="fc" id="L150">    response.setContentType(contentType);</span>
-<span class="fc" id="L151">    response.setContentLength(binaryData.length);</span>
+<span class="fc" id="L148">    response.setContentType(contentType);</span>
+<span class="fc" id="L149">    response.setContentLength(binaryData.length);</span>
 
     // Handling of the &quot;force download&quot; selector
-<span class="fc bfc" id="L154" title="All 2 branches covered.">    if (RequestPath.hasSelector(request, SELECTOR_DOWNLOAD)) {</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">    if (RequestPath.hasSelector(request, SELECTOR_DOWNLOAD)) {</span>
       // Overwrite MIME type with one suited for downloads
-<span class="fc" id="L156">      response.setContentType(ContentType.DOWNLOAD);</span>
+<span class="fc" id="L154">      response.setContentType(ContentType.DOWNLOAD);</span>
 
       // set content disposition header to file name from suffix
-<span class="fc" id="L159">      setContentDispositionAttachmentHeader(request, response);</span>
+<span class="fc" id="L157">      setContentDispositionAttachmentHeader(request, response);</span>
     }
 
     // special handling for SVG images which are not treated as download:
     // set content security policy to prevent stored XSS attack with malicious JavaScript in SVG file
-<span class="fc bfc" id="L164" title="All 2 branches covered.">    if (StringUtils.equals(contentType, ContentType.SVG)) {</span>
-<span class="fc" id="L165">      setSVGContentSecurityPolicy(response);</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">    if (StringUtils.equals(contentType, ContentType.SVG)) {</span>
+<span class="fc" id="L163">      setSVGContentSecurityPolicy(response);</span>
     }
 
     // write binary data
-<span class="fc" id="L169">    OutputStream out = response.getOutputStream();</span>
-<span class="fc" id="L170">    out.write(binaryData);</span>
-<span class="fc" id="L171">    out.flush();</span>
-<span class="fc" id="L172">  }</span>
+<span class="fc" id="L167">    OutputStream out = response.getOutputStream();</span>
+<span class="fc" id="L168">    out.write(binaryData);</span>
+<span class="fc" id="L169">    out.flush();</span>
+<span class="fc" id="L170">  }</span>
 
   private void setContentDispositionAttachmentHeader(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) {
     // Construct disposition header
-<span class="fc" id="L176">    StringBuilder dispositionHeader = new StringBuilder(&quot;attachment;&quot;);</span>
-<span class="fc" id="L177">    String suffix = request.getRequestPathInfo().getSuffix();</span>
-<span class="fc" id="L178">    suffix = StringUtils.stripStart(suffix, &quot;/&quot;);</span>
-<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(suffix)) {</span>
-<span class="fc" id="L180">      dispositionHeader.append(&quot;filename=\&quot;&quot;).append(suffix).append('\&quot;');</span>
+<span class="fc" id="L174">    StringBuilder dispositionHeader = new StringBuilder(&quot;attachment;&quot;);</span>
+<span class="fc" id="L175">    String suffix = request.getRequestPathInfo().getSuffix();</span>
+<span class="fc" id="L176">    suffix = StringUtils.stripStart(suffix, &quot;/&quot;);</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(suffix)) {</span>
+<span class="fc" id="L178">      dispositionHeader.append(&quot;filename=\&quot;&quot;).append(suffix).append('\&quot;');</span>
     }
-<span class="fc" id="L182">    response.setHeader(HEADER_CONTENT_DISPOSITION, dispositionHeader.toString());</span>
-<span class="fc" id="L183">  }</span>
+<span class="fc" id="L180">    response.setHeader(HEADER_CONTENT_DISPOSITION, dispositionHeader.toString());</span>
+<span class="fc" id="L181">  }</span>
 
   protected void setSVGContentSecurityPolicy(@NotNull SlingHttpServletResponse response) {
-<span class="fc" id="L186">    response.setHeader(HEADER_CONTENT_SECURITY_POLICY, &quot;sandbox&quot;);</span>
-<span class="fc" id="L187">  }</span>
+<span class="fc" id="L184">    response.setHeader(HEADER_CONTENT_SECURITY_POLICY, &quot;sandbox&quot;);</span>
+<span class="fc" id="L185">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
