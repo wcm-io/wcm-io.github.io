@@ -22,8 +22,6 @@ package io.wcm.handler.url.rewriter.impl;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
-import org.apache.cocoon.xml.sax.AbstractSAXPipe;
-import org.apache.cocoon.xml.sax.AttributesImpl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.rewriter.ProcessingComponentConfiguration;
 import org.apache.sling.rewriter.ProcessingContext;
@@ -31,101 +29,162 @@ import org.apache.sling.rewriter.Transformer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
+import org.xml.sax.ContentHandler;
+import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
+import org.xml.sax.helpers.DefaultHandler;
 
 import io.wcm.handler.url.UrlHandler;
 
 /**
  * HTML transformer that rewrites URLs in certain HTML element attributes.
  */
-<span class="fc" id="L41">class UrlExternalizerTransformer extends AbstractSAXPipe implements Transformer {</span>
+<span class="fc" id="L43">class UrlExternalizerTransformer implements Transformer {</span>
 
   private UrlExternalizerTransformerConfig transformerConfig;
+<span class="fc" id="L46">  private ContentHandler contentHandler = EMPTY_CONTENT_HANDLER;</span>
   private UrlHandler urlHandler;
 
-<span class="fc" id="L46">  private static final Logger log = LoggerFactory.getLogger(UrlExternalizerTransformer.class.getName());</span>
+<span class="fc" id="L49">  private static final Logger log = LoggerFactory.getLogger(UrlExternalizerTransformer.class.getName());</span>
+<span class="fc" id="L50">  private static final ContentHandler EMPTY_CONTENT_HANDLER = new DefaultHandler();</span>
 
   @Override
   public void init(ProcessingContext pipelineContext, ProcessingComponentConfiguration config) {
-<span class="fc" id="L50">    log.trace(&quot;Initialize UrlExternalizerTransformer with config: {}&quot;, config.getConfiguration());</span>
-<span class="fc" id="L51">    transformerConfig = new UrlExternalizerTransformerConfig(config.getConfiguration());</span>
-<span class="fc" id="L52">    urlHandler = pipelineContext.getRequest().adaptTo(UrlHandler.class);</span>
-<span class="fc" id="L53">  }</span>
+<span class="fc" id="L54">    log.trace(&quot;Initialize UrlExternalizerTransformer with config: {}&quot;, config.getConfiguration());</span>
+<span class="fc" id="L55">    transformerConfig = new UrlExternalizerTransformerConfig(config.getConfiguration());</span>
+<span class="fc" id="L56">    urlHandler = pipelineContext.getRequest().adaptTo(UrlHandler.class);</span>
+<span class="fc" id="L57">  }</span>
+
+  @Override
+  public void setContentHandler(ContentHandler contentHandler) {
+<span class="fc" id="L61">    this.contentHandler = contentHandler;</span>
+<span class="fc" id="L62">  }</span>
 
   @Override
   @SuppressWarnings(&quot;PMD.UseStringBufferForStringAppends&quot;)
   public void startElement(String nsUri, String name, String raw, Attributes attrs) throws SAXException {
 
     // check if for this element an attribute for rewriting is configured
-<span class="fc" id="L60">    String rewriteAttr = transformerConfig.getElementAttributeNames().get(name);</span>
-<span class="fc bfc" id="L61" title="All 2 branches covered.">    if (rewriteAttr == null) {</span>
-<span class="fc" id="L62">      log.trace(&quot;Rewrite element {}: Skip - No rewrite attribute configured.&quot;, name);</span>
-<span class="fc" id="L63">      super.startElement(nsUri, name, raw, attrs);</span>
-<span class="fc" id="L64">      return;</span>
+<span class="fc" id="L69">    String rewriteAttr = transformerConfig.getElementAttributeNames().get(name);</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (rewriteAttr == null) {</span>
+<span class="fc" id="L71">      log.trace(&quot;Rewrite element {}: Skip - No rewrite attribute configured.&quot;, name);</span>
+<span class="fc" id="L72">      contentHandler.startElement(nsUri, name, raw, attrs);</span>
+<span class="fc" id="L73">      return;</span>
     }
 
     // validate URL handler
-<span class="pc bpc" id="L68" title="1 of 2 branches missed.">    if (urlHandler == null) {</span>
-<span class="nc" id="L69">      log.warn(&quot;Rewrite element {}: Skip - Unable to get URL handler/Integrator handler instance.&quot;, name);</span>
-<span class="nc" id="L70">      super.startElement(nsUri, name, raw, attrs);</span>
-<span class="nc" id="L71">      return;</span>
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">    if (urlHandler == null) {</span>
+<span class="nc" id="L78">      log.warn(&quot;Rewrite element {}: Skip - Unable to get URL handler/Integrator handler instance.&quot;, name);</span>
+<span class="nc" id="L79">      contentHandler.startElement(nsUri, name, raw, attrs);</span>
+<span class="nc" id="L80">      return;</span>
     }
 
     // check if attribute exists
-<span class="fc" id="L75">    int attributeIndex = attrs.getIndex(rewriteAttr);</span>
-<span class="fc bfc" id="L76" title="All 2 branches covered.">    if (attributeIndex &lt; 0) {</span>
-<span class="fc" id="L77">      log.trace(&quot;Rewrite element {}: Skip - Attribute does not exist: {}&quot;, name, rewriteAttr);</span>
-<span class="fc" id="L78">      super.startElement(nsUri, name, raw, attrs);</span>
-<span class="fc" id="L79">      return;</span>
+<span class="fc" id="L84">    int attributeIndex = attrs.getIndex(rewriteAttr);</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">    if (attributeIndex &lt; 0) {</span>
+<span class="fc" id="L86">      log.trace(&quot;Rewrite element {}: Skip - Attribute does not exist: {}&quot;, name, rewriteAttr);</span>
+<span class="fc" id="L87">      contentHandler.startElement(nsUri, name, raw, attrs);</span>
+<span class="fc" id="L88">      return;</span>
     }
 
     // rewrite URL
-<span class="fc" id="L83">    String url = attrs.getValue(attributeIndex);</span>
-<span class="fc bfc" id="L84" title="All 2 branches covered.">    if (StringUtils.isEmpty(url)) {</span>
-<span class="fc" id="L85">      log.trace(&quot;Rewrite element {}: Skip - URL is empty.&quot;, name);</span>
-<span class="fc" id="L86">      super.startElement(nsUri, name, raw, attrs);</span>
-<span class="fc" id="L87">      return;</span>
+<span class="fc" id="L92">    String url = attrs.getValue(attributeIndex);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">    if (StringUtils.isEmpty(url)) {</span>
+<span class="fc" id="L94">      log.trace(&quot;Rewrite element {}: Skip - URL is empty.&quot;, name);</span>
+<span class="fc" id="L95">      contentHandler.startElement(nsUri, name, raw, attrs);</span>
+<span class="fc" id="L96">      return;</span>
     }
 
     // split off query string or fragment that may be appended to the URL
-<span class="fc" id="L91">    String urlRemainder = null;</span>
-<span class="fc" id="L92">    int urlRemainderPos = StringUtils.indexOfAny(url, '?', '#');</span>
-<span class="fc bfc" id="L93" title="All 2 branches covered.">    if (urlRemainderPos &gt;= 0) {</span>
-<span class="fc" id="L94">      urlRemainder = url.substring(urlRemainderPos);</span>
-<span class="fc" id="L95">      url = url.substring(0, urlRemainderPos);</span>
+<span class="fc" id="L100">    String urlRemainder = null;</span>
+<span class="fc" id="L101">    int urlRemainderPos = StringUtils.indexOfAny(url, '?', '#');</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">    if (urlRemainderPos &gt;= 0) {</span>
+<span class="fc" id="L103">      urlRemainder = url.substring(urlRemainderPos);</span>
+<span class="fc" id="L104">      url = url.substring(0, urlRemainderPos);</span>
     }
 
     // decode URL (without URL remainder)
-<span class="fc" id="L99">    url = URLDecoder.decode(url, StandardCharsets.UTF_8);</span>
+<span class="fc" id="L108">    url = URLDecoder.decode(url, StandardCharsets.UTF_8);</span>
 
     // externalize URL (if it is not already externalized)
-<span class="fc" id="L102">    String rewrittenUrl = urlHandler.get(url).buildExternalResourceUrl();</span>
-<span class="fc bfc" id="L103" title="All 2 branches covered.">    if (urlRemainder != null) {</span>
-<span class="fc bfc" id="L104" title="All 2 branches covered.">      if (rewrittenUrl == null) {</span>
-<span class="fc" id="L105">        rewrittenUrl = urlRemainder;</span>
+<span class="fc" id="L111">    String rewrittenUrl = urlHandler.get(url).buildExternalResourceUrl();</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (urlRemainder != null) {</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">      if (rewrittenUrl == null) {</span>
+<span class="fc" id="L114">        rewrittenUrl = urlRemainder;</span>
       }
       else {
-<span class="fc" id="L108">        rewrittenUrl += urlRemainder;</span>
+<span class="fc" id="L117">        rewrittenUrl += urlRemainder;</span>
       }
     }
 
-<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (StringUtils.equals(url, rewrittenUrl)) {</span>
-<span class="fc" id="L113">      log.debug(&quot;Rewrite element {}: Skip - URL is already externalized: {}&quot;, name, url);</span>
-<span class="fc" id="L114">      super.startElement(nsUri, name, raw, attrs);</span>
-<span class="fc" id="L115">      return;</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">    if (StringUtils.equals(url, rewrittenUrl)) {</span>
+<span class="fc" id="L122">      log.debug(&quot;Rewrite element {}: Skip - URL is already externalized: {}&quot;, name, url);</span>
+<span class="fc" id="L123">      contentHandler.startElement(nsUri, name, raw, attrs);</span>
+<span class="fc" id="L124">      return;</span>
     }
 
     // set new attribute value
-<span class="fc" id="L119">    log.debug(&quot;Rewrite element {}: Rewrite URL {} to {}&quot;, name, url, rewrittenUrl);</span>
-<span class="fc" id="L120">    AttributesImpl newAttrs = new AttributesImpl(attrs);</span>
-<span class="fc" id="L121">    newAttrs.setValue(attributeIndex, rewrittenUrl);</span>
-<span class="fc" id="L122">    super.startElement(nsUri, name, raw, newAttrs);</span>
-<span class="fc" id="L123">  }</span>
+<span class="fc" id="L128">    log.debug(&quot;Rewrite element {}: Rewrite URL {} to {}&quot;, name, url, rewrittenUrl);</span>
+<span class="fc" id="L129">    AttributesImpl newAttrs = new AttributesImpl(attrs);</span>
+<span class="fc" id="L130">    newAttrs.setValue(attributeIndex, rewrittenUrl);</span>
+<span class="fc" id="L131">    contentHandler.startElement(nsUri, name, raw, newAttrs);</span>
+<span class="fc" id="L132">  }</span>
+
+  @Override
+  public void setDocumentLocator(Locator locator) {
+<span class="nc" id="L136">    this.contentHandler.setDocumentLocator(locator);</span>
+<span class="nc" id="L137">  }</span>
+
+  @Override
+  public void startDocument() throws SAXException {
+<span class="nc" id="L141">    this.contentHandler.startDocument();</span>
+<span class="nc" id="L142">  }</span>
+
+  @Override
+  public void endDocument() throws SAXException {
+<span class="nc" id="L146">    this.contentHandler.endDocument();</span>
+<span class="nc" id="L147">  }</span>
+
+  @Override
+  public void startPrefixMapping(String prefix, String uri) throws SAXException {
+<span class="nc" id="L151">    this.contentHandler.startPrefixMapping(prefix, uri);</span>
+<span class="nc" id="L152">  }</span>
+
+  @Override
+  public void endPrefixMapping(String prefix) throws SAXException {
+<span class="nc" id="L156">    this.contentHandler.endPrefixMapping(prefix);</span>
+<span class="nc" id="L157">  }</span>
+
+  @Override
+  public void endElement(String uri, String localName, String qName) throws SAXException {
+<span class="nc" id="L161">    this.contentHandler.endElement(uri, localName, qName);</span>
+<span class="nc" id="L162">  }</span>
+
+  @Override
+  public void characters(char[] ch, int start, int length) throws SAXException {
+<span class="nc" id="L166">    this.contentHandler.characters(ch, start, length);</span>
+<span class="nc" id="L167">  }</span>
+
+  @Override
+  public void ignorableWhitespace(char[] ch, int start, int length) throws SAXException {
+<span class="nc" id="L171">    this.contentHandler.ignorableWhitespace(ch, start, length);</span>
+<span class="nc" id="L172">  }</span>
+
+  @Override
+  public void processingInstruction(String target, String data) throws SAXException {
+<span class="nc" id="L176">    this.contentHandler.processingInstruction(target, data);</span>
+<span class="nc" id="L177">  }</span>
+
+  @Override
+  public void skippedEntity(String name) throws SAXException {
+<span class="nc" id="L181">    this.contentHandler.skippedEntity(name);</span>
+<span class="nc" id="L182">  }</span>
 
   @Override
   public void dispose() {
     // nothing to do
-<span class="fc" id="L128">  }</span>
+<span class="fc" id="L187">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
