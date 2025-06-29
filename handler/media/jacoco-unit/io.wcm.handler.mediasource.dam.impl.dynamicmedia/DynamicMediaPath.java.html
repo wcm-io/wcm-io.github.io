@@ -147,25 +147,34 @@ public final class DynamicMediaPath {
   }
 
   private static void appendWidthHeigtFormatQuality(@NotNull StringBuilder result, @NotNull Dimension dimension, @NotNull DamContext damContext) {
-<span class="fc" id="L150">    result.append(&quot;wid=&quot;).append(dimension.getWidth()).append(&quot;&amp;&quot;)</span>
-<span class="fc" id="L151">        .append(&quot;hei=&quot;).append(dimension.getHeight()).append(&quot;&amp;&quot;)</span>
+<span class="fc" id="L150">    result.append(&quot;wid=&quot;).append(dimension.getWidth())</span>
+<span class="fc" id="L151">        .append(&quot;&amp;hei=&quot;).append(dimension.getHeight())</span>
         // cropping/width/height is pre-calculated to fit with original ratio, make sure there are no 1px background lines visible
-<span class="fc" id="L153">        .append(&quot;fit=stretch&quot;);</span>
-<span class="fc bfc" id="L154" title="All 2 branches covered.">    if (isPNG(damContext)) {</span>
-      // if original image is PNG image, make sure alpha channel is preserved
-<span class="fc" id="L156">      result.append(&quot;&amp;fmt=png-alpha&quot;);</span>
+<span class="fc" id="L153">        .append(&quot;&amp;fit=stretch&quot;);</span>
+    // if original image may have an alpha channel, make sure it's preserved in the output format
+<span class="fc bfc" id="L155" title="All 2 branches covered.">    if (mayHaveAlphaChannel(damContext)) {</span>
+<span class="fc" id="L156">      applyFmt(result, damContext.getDynamicMediaDefaultFmtAlpha());</span>
     }
-<span class="fc bfc" id="L158" title="All 2 branches covered.">    else if (damContext.isDynamicMediaSetImageQuality()) {</span>
+    else {
+<span class="fc" id="L159">      applyFmt(result, damContext.getDynamicMediaDefaultFmt());</span>
+    }
+<span class="fc bfc" id="L161" title="All 4 branches covered.">    if (damContext.isDynamicMediaSetImageQuality() &amp;&amp; !isLosslessImageFormat(damContext)) {</span>
       // it not PNG lossy format is used, apply image quality setting
-<span class="fc" id="L160">      result.append(&quot;&amp;qlt=&quot;).append(ImageQualityPercentage.getAsInteger(damContext.getMediaArgs(), damContext.getMediaHandlerConfig()));</span>
+<span class="fc" id="L163">      result.append(&quot;&amp;qlt=&quot;).append(ImageQualityPercentage.getAsInteger(damContext.getMediaArgs(), damContext.getMediaHandlerConfig()));</span>
     }
-<span class="fc" id="L162">  }</span>
+<span class="fc" id="L165">  }</span>
+
+  private static void applyFmt(@NotNull StringBuilder result, @NotNull String fmt) {
+<span class="fc bfc" id="L168" title="All 2 branches covered.">    if (StringUtils.isNotBlank(fmt)) {</span>
+<span class="fc" id="L169">      result.append(&quot;&amp;fmt=&quot;).append(fmt);</span>
+    }
+<span class="fc" id="L171">  }</span>
 
   private static void logResult(@NotNull DamContext damContext, @NotNull CharSequence result) {
-<span class="pc bpc" id="L165" title="1 of 2 branches missed.">    if (log.isTraceEnabled()) {</span>
-<span class="nc" id="L166">      log.trace(&quot;Build dynamic media path for {}: {}&quot;, damContext.getAsset().getPath(), result);</span>
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">    if (log.isTraceEnabled()) {</span>
+<span class="nc" id="L175">      log.trace(&quot;Build dynamic media path for {}: {}&quot;, damContext.getAsset().getPath(), result);</span>
     }
-<span class="fc" id="L168">  }</span>
+<span class="fc" id="L177">  }</span>
 
   /**
    * Checks if width or height is bigger than the allowed max. width/height.
@@ -175,20 +184,20 @@ public final class DynamicMediaPath {
    * @return Dimension with capped width/height
    */
   private static Dimension calcWidthHeight(@NotNull DamContext damContext, long width, long height) {
-<span class="fc" id="L178">    Dimension sizeLimit = damContext.getDynamicMediaImageSizeLimit();</span>
-<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (width &gt; sizeLimit.getWidth()) {</span>
-<span class="fc" id="L180">      double ratio = Ratio.get(width, height);</span>
-<span class="fc" id="L181">      long newWidth = sizeLimit.getWidth();</span>
-<span class="fc" id="L182">      long newHeight = Math.round(newWidth / ratio);</span>
-<span class="fc" id="L183">      return calcWidthHeight(damContext, newWidth, newHeight);</span>
+<span class="fc" id="L187">    Dimension sizeLimit = damContext.getDynamicMediaImageSizeLimit();</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">    if (width &gt; sizeLimit.getWidth()) {</span>
+<span class="fc" id="L189">      double ratio = Ratio.get(width, height);</span>
+<span class="fc" id="L190">      long newWidth = sizeLimit.getWidth();</span>
+<span class="fc" id="L191">      long newHeight = Math.round(newWidth / ratio);</span>
+<span class="fc" id="L192">      return calcWidthHeight(damContext, newWidth, newHeight);</span>
     }
-<span class="fc bfc" id="L185" title="All 2 branches covered.">    if (height &gt; sizeLimit.getHeight()) {</span>
-<span class="fc" id="L186">      double ratio = Ratio.get(width, height);</span>
-<span class="fc" id="L187">      long newHeight = sizeLimit.getHeight();</span>
-<span class="fc" id="L188">      long newWidth = Math.round(newHeight * ratio);</span>
-<span class="fc" id="L189">      return new Dimension(newWidth, newHeight);</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">    if (height &gt; sizeLimit.getHeight()) {</span>
+<span class="fc" id="L195">      double ratio = Ratio.get(width, height);</span>
+<span class="fc" id="L196">      long newHeight = sizeLimit.getHeight();</span>
+<span class="fc" id="L197">      long newWidth = Math.round(newHeight * ratio);</span>
+<span class="fc" id="L198">      return new Dimension(newWidth, newHeight);</span>
     }
-<span class="fc" id="L191">    return new Dimension(width, height);</span>
+<span class="fc" id="L200">    return new Dimension(width, height);</span>
   }
 
   /**
@@ -197,17 +206,33 @@ public final class DynamicMediaPath {
    * @return Encoded path
    */
   private static String encodeDynamicMediaObject(@NotNull DamContext damContext) {
-<span class="fc" id="L200">    String[] pathParts = StringUtils.split(damContext.getDynamicMediaObject(), &quot;/&quot;);</span>
-<span class="fc bfc" id="L201" title="All 2 branches covered.">    for (int i = 0; i &lt; pathParts.length; i++) {</span>
-<span class="fc" id="L202">      pathParts[i] = URLEncoder.encode(pathParts[i], StandardCharsets.UTF_8);</span>
+<span class="fc" id="L209">    String[] pathParts = StringUtils.split(damContext.getDynamicMediaObject(), &quot;/&quot;);</span>
+<span class="fc bfc" id="L210" title="All 2 branches covered.">    for (int i = 0; i &lt; pathParts.length; i++) {</span>
+<span class="fc" id="L211">      pathParts[i] = URLEncoder.encode(pathParts[i], StandardCharsets.UTF_8);</span>
       // replace &quot;+&quot; with %20 in URL paths
-<span class="fc" id="L204">      pathParts[i] = StringUtils.replace(pathParts[i], &quot;+&quot;, &quot;%20&quot;);</span>
+<span class="fc" id="L213">      pathParts[i] = StringUtils.replace(pathParts[i], &quot;+&quot;, &quot;%20&quot;);</span>
     }
-<span class="fc" id="L206">    return StringUtils.join(pathParts, &quot;/&quot;);</span>
+<span class="fc" id="L215">    return StringUtils.join(pathParts, &quot;/&quot;);</span>
   }
 
-  private static boolean isPNG(@NotNull DamContext damContext) {
-<span class="fc" id="L210">    return StringUtils.equals(damContext.getAsset().getMimeType(), ContentType.PNG);</span>
+  /**
+   * Checks if the asset is an image format that may have an alpha channel.
+   * @param damContext DAM context
+   * @return true if the asset may have an alpha channel
+   */
+  private static boolean mayHaveAlphaChannel(@NotNull DamContext damContext) {
+<span class="fc" id="L224">    String mimeType = damContext.getAsset().getMimeType();</span>
+<span class="fc" id="L225">    return StringUtils.equalsAny(mimeType, ContentType.PNG, ContentType.WEBP);</span>
+  }
+
+  /**
+   * Checks if the asset is a lossless image format.
+   * @param damContext DAM context
+   * @return true if the asset has a lossless image format
+   */
+  private static boolean isLosslessImageFormat(@NotNull DamContext damContext) {
+<span class="fc" id="L234">    String mimeType = damContext.getAsset().getMimeType();</span>
+<span class="fc" id="L235">    return StringUtils.equals(mimeType, ContentType.PNG);</span>
   }
 
 }

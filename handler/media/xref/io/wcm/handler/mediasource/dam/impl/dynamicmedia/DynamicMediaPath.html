@@ -155,70 +155,95 @@
 <a class="jxr_linenumber" name="L147" href="#L147">147</a>   }
 <a class="jxr_linenumber" name="L148" href="#L148">148</a> 
 <a class="jxr_linenumber" name="L149" href="#L149">149</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> appendWidthHeigtFormatQuality(@NotNull StringBuilder result, @NotNull <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a> dimension, @NotNull <a name="DamContext" href="../../../../../../../io/wcm/handler/mediasource/dam/impl/DamContext.html#DamContext">DamContext</a> damContext) {
-<a class="jxr_linenumber" name="L150" href="#L150">150</a>     result.append(<span class="jxr_string">"wid="</span>).append(dimension.getWidth()).append(<span class="jxr_string">"&amp;"</span>)
-<a class="jxr_linenumber" name="L151" href="#L151">151</a>         .append(<span class="jxr_string">"hei="</span>).append(dimension.getHeight()).append(<span class="jxr_string">"&amp;"</span>)
+<a class="jxr_linenumber" name="L150" href="#L150">150</a>     result.append(<span class="jxr_string">"wid="</span>).append(dimension.getWidth())
+<a class="jxr_linenumber" name="L151" href="#L151">151</a>         .append(<span class="jxr_string">"&amp;hei="</span>).append(dimension.getHeight())
 <a class="jxr_linenumber" name="L152" href="#L152">152</a>         <em class="jxr_comment">// cropping/width/height is pre-calculated to fit with original ratio, make sure there are no 1px background lines visible</em>
-<a class="jxr_linenumber" name="L153" href="#L153">153</a>         .append(<span class="jxr_string">"fit=stretch"</span>);
-<a class="jxr_linenumber" name="L154" href="#L154">154</a>     <strong class="jxr_keyword">if</strong> (isPNG(damContext)) {
-<a class="jxr_linenumber" name="L155" href="#L155">155</a>       <em class="jxr_comment">// if original image is PNG image, make sure alpha channel is preserved</em>
-<a class="jxr_linenumber" name="L156" href="#L156">156</a>       result.append(<span class="jxr_string">"&amp;fmt=png-alpha"</span>);
+<a class="jxr_linenumber" name="L153" href="#L153">153</a>         .append(<span class="jxr_string">"&amp;fit=stretch"</span>);
+<a class="jxr_linenumber" name="L154" href="#L154">154</a>     <em class="jxr_comment">// if original image may have an alpha channel, make sure it's preserved in the output format</em>
+<a class="jxr_linenumber" name="L155" href="#L155">155</a>     <strong class="jxr_keyword">if</strong> (mayHaveAlphaChannel(damContext)) {
+<a class="jxr_linenumber" name="L156" href="#L156">156</a>       applyFmt(result, damContext.getDynamicMediaDefaultFmtAlpha());
 <a class="jxr_linenumber" name="L157" href="#L157">157</a>     }
-<a class="jxr_linenumber" name="L158" href="#L158">158</a>     <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (damContext.isDynamicMediaSetImageQuality()) {
-<a class="jxr_linenumber" name="L159" href="#L159">159</a>       <em class="jxr_comment">// it not PNG lossy format is used, apply image quality setting</em>
-<a class="jxr_linenumber" name="L160" href="#L160">160</a>       result.append(<span class="jxr_string">"&amp;qlt="</span>).append(ImageQualityPercentage.getAsInteger(damContext.getMediaArgs(), damContext.getMediaHandlerConfig()));
-<a class="jxr_linenumber" name="L161" href="#L161">161</a>     }
-<a class="jxr_linenumber" name="L162" href="#L162">162</a>   }
-<a class="jxr_linenumber" name="L163" href="#L163">163</a> 
-<a class="jxr_linenumber" name="L164" href="#L164">164</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> logResult(@NotNull <a name="DamContext" href="../../../../../../../io/wcm/handler/mediasource/dam/impl/DamContext.html#DamContext">DamContext</a> damContext, @NotNull CharSequence result) {
-<a class="jxr_linenumber" name="L165" href="#L165">165</a>     <strong class="jxr_keyword">if</strong> (log.isTraceEnabled()) {
-<a class="jxr_linenumber" name="L166" href="#L166">166</a>       log.trace(<span class="jxr_string">"Build dynamic media path for {}: {}"</span>, damContext.getAsset().getPath(), result);
-<a class="jxr_linenumber" name="L167" href="#L167">167</a>     }
-<a class="jxr_linenumber" name="L168" href="#L168">168</a>   }
-<a class="jxr_linenumber" name="L169" href="#L169">169</a> 
-<a class="jxr_linenumber" name="L170" href="#L170">170</a>   <em class="jxr_javadoccomment">/**</em>
-<a class="jxr_linenumber" name="L171" href="#L171">171</a> <em class="jxr_javadoccomment">   * Checks if width or height is bigger than the allowed max. width/height.</em>
-<a class="jxr_linenumber" name="L172" href="#L172">172</a> <em class="jxr_javadoccomment">   * Reduces both to the max limit keeping aspect ration is required.</em>
-<a class="jxr_linenumber" name="L173" href="#L173">173</a> <em class="jxr_javadoccomment">   * @param width With</em>
-<a class="jxr_linenumber" name="L174" href="#L174">174</a> <em class="jxr_javadoccomment">   * @param height Height</em>
-<a class="jxr_linenumber" name="L175" href="#L175">175</a> <em class="jxr_javadoccomment">   * @return Dimension with capped width/height</em>
-<a class="jxr_linenumber" name="L176" href="#L176">176</a> <em class="jxr_javadoccomment">   */</em>
-<a class="jxr_linenumber" name="L177" href="#L177">177</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a> calcWidthHeight(@NotNull <a name="DamContext" href="../../../../../../../io/wcm/handler/mediasource/dam/impl/DamContext.html#DamContext">DamContext</a> damContext, <strong class="jxr_keyword">long</strong> width, <strong class="jxr_keyword">long</strong> height) {
-<a class="jxr_linenumber" name="L178" href="#L178">178</a>     <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a> sizeLimit = damContext.getDynamicMediaImageSizeLimit();
-<a class="jxr_linenumber" name="L179" href="#L179">179</a>     <strong class="jxr_keyword">if</strong> (width &gt; sizeLimit.getWidth()) {
-<a class="jxr_linenumber" name="L180" href="#L180">180</a>       <strong class="jxr_keyword">double</strong> ratio = Ratio.get(width, height);
-<a class="jxr_linenumber" name="L181" href="#L181">181</a>       <strong class="jxr_keyword">long</strong> newWidth = sizeLimit.getWidth();
-<a class="jxr_linenumber" name="L182" href="#L182">182</a>       <strong class="jxr_keyword">long</strong> newHeight = Math.round(newWidth / ratio);
-<a class="jxr_linenumber" name="L183" href="#L183">183</a>       <strong class="jxr_keyword">return</strong> calcWidthHeight(damContext, newWidth, newHeight);
-<a class="jxr_linenumber" name="L184" href="#L184">184</a>     }
-<a class="jxr_linenumber" name="L185" href="#L185">185</a>     <strong class="jxr_keyword">if</strong> (height &gt; sizeLimit.getHeight()) {
-<a class="jxr_linenumber" name="L186" href="#L186">186</a>       <strong class="jxr_keyword">double</strong> ratio = Ratio.get(width, height);
-<a class="jxr_linenumber" name="L187" href="#L187">187</a>       <strong class="jxr_keyword">long</strong> newHeight = sizeLimit.getHeight();
-<a class="jxr_linenumber" name="L188" href="#L188">188</a>       <strong class="jxr_keyword">long</strong> newWidth = Math.round(newHeight * ratio);
-<a class="jxr_linenumber" name="L189" href="#L189">189</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">new</strong> <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a>(newWidth, newHeight);
-<a class="jxr_linenumber" name="L190" href="#L190">190</a>     }
-<a class="jxr_linenumber" name="L191" href="#L191">191</a>     <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">new</strong> <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a>(width, height);
-<a class="jxr_linenumber" name="L192" href="#L192">192</a>   }
-<a class="jxr_linenumber" name="L193" href="#L193">193</a> 
-<a class="jxr_linenumber" name="L194" href="#L194">194</a>   <em class="jxr_javadoccomment">/**</em>
-<a class="jxr_linenumber" name="L195" href="#L195">195</a> <em class="jxr_javadoccomment">   * Splits dynamic media folder and file name and URL-encodes them separately (may contain spaces or special chars).</em>
-<a class="jxr_linenumber" name="L196" href="#L196">196</a> <em class="jxr_javadoccomment">   * @param damContext DAM context</em>
-<a class="jxr_linenumber" name="L197" href="#L197">197</a> <em class="jxr_javadoccomment">   * @return Encoded path</em>
-<a class="jxr_linenumber" name="L198" href="#L198">198</a> <em class="jxr_javadoccomment">   */</em>
-<a class="jxr_linenumber" name="L199" href="#L199">199</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> String encodeDynamicMediaObject(@NotNull <a name="DamContext" href="../../../../../../../io/wcm/handler/mediasource/dam/impl/DamContext.html#DamContext">DamContext</a> damContext) {
-<a class="jxr_linenumber" name="L200" href="#L200">200</a>     String[] pathParts = StringUtils.split(damContext.getDynamicMediaObject(), <span class="jxr_string">"/"</span>);
-<a class="jxr_linenumber" name="L201" href="#L201">201</a>     <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> i = 0; i &lt; pathParts.length; i++) {
-<a class="jxr_linenumber" name="L202" href="#L202">202</a>       pathParts[i] = URLEncoder.encode(pathParts[i], StandardCharsets.UTF_8);
-<a class="jxr_linenumber" name="L203" href="#L203">203</a>       <em class="jxr_comment">// replace "+" with %20 in URL paths</em>
-<a class="jxr_linenumber" name="L204" href="#L204">204</a>       pathParts[i] = StringUtils.replace(pathParts[i], <span class="jxr_string">"+"</span>, <span class="jxr_string">"%20"</span>);
-<a class="jxr_linenumber" name="L205" href="#L205">205</a>     }
-<a class="jxr_linenumber" name="L206" href="#L206">206</a>     <strong class="jxr_keyword">return</strong> StringUtils.join(pathParts, <span class="jxr_string">"/"</span>);
-<a class="jxr_linenumber" name="L207" href="#L207">207</a>   }
-<a class="jxr_linenumber" name="L208" href="#L208">208</a> 
-<a class="jxr_linenumber" name="L209" href="#L209">209</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">boolean</strong> isPNG(@NotNull <a name="DamContext" href="../../../../../../../io/wcm/handler/mediasource/dam/impl/DamContext.html#DamContext">DamContext</a> damContext) {
-<a class="jxr_linenumber" name="L210" href="#L210">210</a>     <strong class="jxr_keyword">return</strong> StringUtils.equals(damContext.getAsset().getMimeType(), ContentType.PNG);
-<a class="jxr_linenumber" name="L211" href="#L211">211</a>   }
-<a class="jxr_linenumber" name="L212" href="#L212">212</a> 
-<a class="jxr_linenumber" name="L213" href="#L213">213</a> }
+<a class="jxr_linenumber" name="L158" href="#L158">158</a>     <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="L159" href="#L159">159</a>       applyFmt(result, damContext.getDynamicMediaDefaultFmt());
+<a class="jxr_linenumber" name="L160" href="#L160">160</a>     }
+<a class="jxr_linenumber" name="L161" href="#L161">161</a>     <strong class="jxr_keyword">if</strong> (damContext.isDynamicMediaSetImageQuality() &amp;&amp; !isLosslessImageFormat(damContext)) {
+<a class="jxr_linenumber" name="L162" href="#L162">162</a>       <em class="jxr_comment">// it not PNG lossy format is used, apply image quality setting</em>
+<a class="jxr_linenumber" name="L163" href="#L163">163</a>       result.append(<span class="jxr_string">"&amp;qlt="</span>).append(ImageQualityPercentage.getAsInteger(damContext.getMediaArgs(), damContext.getMediaHandlerConfig()));
+<a class="jxr_linenumber" name="L164" href="#L164">164</a>     }
+<a class="jxr_linenumber" name="L165" href="#L165">165</a>   }
+<a class="jxr_linenumber" name="L166" href="#L166">166</a> 
+<a class="jxr_linenumber" name="L167" href="#L167">167</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> applyFmt(@NotNull StringBuilder result, @NotNull String fmt) {
+<a class="jxr_linenumber" name="L168" href="#L168">168</a>     <strong class="jxr_keyword">if</strong> (StringUtils.isNotBlank(fmt)) {
+<a class="jxr_linenumber" name="L169" href="#L169">169</a>       result.append(<span class="jxr_string">"&amp;fmt="</span>).append(fmt);
+<a class="jxr_linenumber" name="L170" href="#L170">170</a>     }
+<a class="jxr_linenumber" name="L171" href="#L171">171</a>   }
+<a class="jxr_linenumber" name="L172" href="#L172">172</a> 
+<a class="jxr_linenumber" name="L173" href="#L173">173</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">void</strong> logResult(@NotNull <a name="DamContext" href="../../../../../../../io/wcm/handler/mediasource/dam/impl/DamContext.html#DamContext">DamContext</a> damContext, @NotNull CharSequence result) {
+<a class="jxr_linenumber" name="L174" href="#L174">174</a>     <strong class="jxr_keyword">if</strong> (log.isTraceEnabled()) {
+<a class="jxr_linenumber" name="L175" href="#L175">175</a>       log.trace(<span class="jxr_string">"Build dynamic media path for {}: {}"</span>, damContext.getAsset().getPath(), result);
+<a class="jxr_linenumber" name="L176" href="#L176">176</a>     }
+<a class="jxr_linenumber" name="L177" href="#L177">177</a>   }
+<a class="jxr_linenumber" name="L178" href="#L178">178</a> 
+<a class="jxr_linenumber" name="L179" href="#L179">179</a>   <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L180" href="#L180">180</a> <em class="jxr_javadoccomment">   * Checks if width or height is bigger than the allowed max. width/height.</em>
+<a class="jxr_linenumber" name="L181" href="#L181">181</a> <em class="jxr_javadoccomment">   * Reduces both to the max limit keeping aspect ration is required.</em>
+<a class="jxr_linenumber" name="L182" href="#L182">182</a> <em class="jxr_javadoccomment">   * @param width With</em>
+<a class="jxr_linenumber" name="L183" href="#L183">183</a> <em class="jxr_javadoccomment">   * @param height Height</em>
+<a class="jxr_linenumber" name="L184" href="#L184">184</a> <em class="jxr_javadoccomment">   * @return Dimension with capped width/height</em>
+<a class="jxr_linenumber" name="L185" href="#L185">185</a> <em class="jxr_javadoccomment">   */</em>
+<a class="jxr_linenumber" name="L186" href="#L186">186</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a> calcWidthHeight(@NotNull <a name="DamContext" href="../../../../../../../io/wcm/handler/mediasource/dam/impl/DamContext.html#DamContext">DamContext</a> damContext, <strong class="jxr_keyword">long</strong> width, <strong class="jxr_keyword">long</strong> height) {
+<a class="jxr_linenumber" name="L187" href="#L187">187</a>     <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a> sizeLimit = damContext.getDynamicMediaImageSizeLimit();
+<a class="jxr_linenumber" name="L188" href="#L188">188</a>     <strong class="jxr_keyword">if</strong> (width &gt; sizeLimit.getWidth()) {
+<a class="jxr_linenumber" name="L189" href="#L189">189</a>       <strong class="jxr_keyword">double</strong> ratio = Ratio.get(width, height);
+<a class="jxr_linenumber" name="L190" href="#L190">190</a>       <strong class="jxr_keyword">long</strong> newWidth = sizeLimit.getWidth();
+<a class="jxr_linenumber" name="L191" href="#L191">191</a>       <strong class="jxr_keyword">long</strong> newHeight = Math.round(newWidth / ratio);
+<a class="jxr_linenumber" name="L192" href="#L192">192</a>       <strong class="jxr_keyword">return</strong> calcWidthHeight(damContext, newWidth, newHeight);
+<a class="jxr_linenumber" name="L193" href="#L193">193</a>     }
+<a class="jxr_linenumber" name="L194" href="#L194">194</a>     <strong class="jxr_keyword">if</strong> (height &gt; sizeLimit.getHeight()) {
+<a class="jxr_linenumber" name="L195" href="#L195">195</a>       <strong class="jxr_keyword">double</strong> ratio = Ratio.get(width, height);
+<a class="jxr_linenumber" name="L196" href="#L196">196</a>       <strong class="jxr_keyword">long</strong> newHeight = sizeLimit.getHeight();
+<a class="jxr_linenumber" name="L197" href="#L197">197</a>       <strong class="jxr_keyword">long</strong> newWidth = Math.round(newHeight * ratio);
+<a class="jxr_linenumber" name="L198" href="#L198">198</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">new</strong> <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a>(newWidth, newHeight);
+<a class="jxr_linenumber" name="L199" href="#L199">199</a>     }
+<a class="jxr_linenumber" name="L200" href="#L200">200</a>     <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">new</strong> <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a>(width, height);
+<a class="jxr_linenumber" name="L201" href="#L201">201</a>   }
+<a class="jxr_linenumber" name="L202" href="#L202">202</a> 
+<a class="jxr_linenumber" name="L203" href="#L203">203</a>   <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L204" href="#L204">204</a> <em class="jxr_javadoccomment">   * Splits dynamic media folder and file name and URL-encodes them separately (may contain spaces or special chars).</em>
+<a class="jxr_linenumber" name="L205" href="#L205">205</a> <em class="jxr_javadoccomment">   * @param damContext DAM context</em>
+<a class="jxr_linenumber" name="L206" href="#L206">206</a> <em class="jxr_javadoccomment">   * @return Encoded path</em>
+<a class="jxr_linenumber" name="L207" href="#L207">207</a> <em class="jxr_javadoccomment">   */</em>
+<a class="jxr_linenumber" name="L208" href="#L208">208</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> String encodeDynamicMediaObject(@NotNull <a name="DamContext" href="../../../../../../../io/wcm/handler/mediasource/dam/impl/DamContext.html#DamContext">DamContext</a> damContext) {
+<a class="jxr_linenumber" name="L209" href="#L209">209</a>     String[] pathParts = StringUtils.split(damContext.getDynamicMediaObject(), <span class="jxr_string">"/"</span>);
+<a class="jxr_linenumber" name="L210" href="#L210">210</a>     <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> i = 0; i &lt; pathParts.length; i++) {
+<a class="jxr_linenumber" name="L211" href="#L211">211</a>       pathParts[i] = URLEncoder.encode(pathParts[i], StandardCharsets.UTF_8);
+<a class="jxr_linenumber" name="L212" href="#L212">212</a>       <em class="jxr_comment">// replace "+" with %20 in URL paths</em>
+<a class="jxr_linenumber" name="L213" href="#L213">213</a>       pathParts[i] = StringUtils.replace(pathParts[i], <span class="jxr_string">"+"</span>, <span class="jxr_string">"%20"</span>);
+<a class="jxr_linenumber" name="L214" href="#L214">214</a>     }
+<a class="jxr_linenumber" name="L215" href="#L215">215</a>     <strong class="jxr_keyword">return</strong> StringUtils.join(pathParts, <span class="jxr_string">"/"</span>);
+<a class="jxr_linenumber" name="L216" href="#L216">216</a>   }
+<a class="jxr_linenumber" name="L217" href="#L217">217</a> 
+<a class="jxr_linenumber" name="L218" href="#L218">218</a>   <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L219" href="#L219">219</a> <em class="jxr_javadoccomment">   * Checks if the asset is an image format that may have an alpha channel.</em>
+<a class="jxr_linenumber" name="L220" href="#L220">220</a> <em class="jxr_javadoccomment">   * @param damContext DAM context</em>
+<a class="jxr_linenumber" name="L221" href="#L221">221</a> <em class="jxr_javadoccomment">   * @return true if the asset may have an alpha channel</em>
+<a class="jxr_linenumber" name="L222" href="#L222">222</a> <em class="jxr_javadoccomment">   */</em>
+<a class="jxr_linenumber" name="L223" href="#L223">223</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">boolean</strong> mayHaveAlphaChannel(@NotNull <a name="DamContext" href="../../../../../../../io/wcm/handler/mediasource/dam/impl/DamContext.html#DamContext">DamContext</a> damContext) {
+<a class="jxr_linenumber" name="L224" href="#L224">224</a>     String mimeType = damContext.getAsset().getMimeType();
+<a class="jxr_linenumber" name="L225" href="#L225">225</a>     <strong class="jxr_keyword">return</strong> StringUtils.equalsAny(mimeType, ContentType.PNG, ContentType.WEBP);
+<a class="jxr_linenumber" name="L226" href="#L226">226</a>   }
+<a class="jxr_linenumber" name="L227" href="#L227">227</a> 
+<a class="jxr_linenumber" name="L228" href="#L228">228</a>   <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L229" href="#L229">229</a> <em class="jxr_javadoccomment">   * Checks if the asset is a lossless image format.</em>
+<a class="jxr_linenumber" name="L230" href="#L230">230</a> <em class="jxr_javadoccomment">   * @param damContext DAM context</em>
+<a class="jxr_linenumber" name="L231" href="#L231">231</a> <em class="jxr_javadoccomment">   * @return true if the asset has a lossless image format</em>
+<a class="jxr_linenumber" name="L232" href="#L232">232</a> <em class="jxr_javadoccomment">   */</em>
+<a class="jxr_linenumber" name="L233" href="#L233">233</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">boolean</strong> isLosslessImageFormat(@NotNull <a name="DamContext" href="../../../../../../../io/wcm/handler/mediasource/dam/impl/DamContext.html#DamContext">DamContext</a> damContext) {
+<a class="jxr_linenumber" name="L234" href="#L234">234</a>     String mimeType = damContext.getAsset().getMimeType();
+<a class="jxr_linenumber" name="L235" href="#L235">235</a>     <strong class="jxr_keyword">return</strong> StringUtils.equals(mimeType, ContentType.PNG);
+<a class="jxr_linenumber" name="L236" href="#L236">236</a>   }
+<a class="jxr_linenumber" name="L237" href="#L237">237</a> 
+<a class="jxr_linenumber" name="L238" href="#L238">238</a> }
 </pre>
 <hr/>
 <div id="footer">© 2014–2025 <a href="https://wcm.io">wcm.io</a></div>
