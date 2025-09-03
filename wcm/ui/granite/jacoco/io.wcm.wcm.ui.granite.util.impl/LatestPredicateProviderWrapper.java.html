@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LatestPredicateProviderWrapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Granite UI Extensions</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.ui.granite.util.impl</a> &gt; <span class="el_source">LatestPredicateProviderWrapper.java</span></div><h1>LatestPredicateProviderWrapper.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2025 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.ui.granite.util.impl;
+
+import org.apache.commons.collections4.Predicate;
+import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
+
+/**
+ * Wrapper for latest PredicateProvider implementation that returns java.util.function.Predicate.
+ */
+class LatestPredicateProviderWrapper extends AbstractPredicateProviderWrapper {
+
+  private static final String NODE_PREDICATE_INTERFACE = &quot;com.day.cq.commons.predicates.NodePredicate&quot;;
+
+  LatestPredicateProviderWrapper(ServiceReference&lt;?&gt; serviceReference, BundleContext bundleContext) {
+<span class="fc" id="L37">    super(serviceReference, bundleContext);</span>
+<span class="fc" id="L38">  }</span>
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  @Override
+  public @Nullable Predicate&lt;Resource&gt; getPredicate(@NotNull String name) {
+<span class="fc" id="L43">    java.util.function.Predicate&lt;Resource&gt; predicate = (java.util.function.Predicate)getPredicateInternal(name);</span>
+<span class="pc bpc" id="L44" title="1 of 2 branches missed.">    if (predicate == null) {</span>
+<span class="nc" id="L45">      return null;</span>
+    }
+<span class="fc bfc" id="L47" title="All 2 branches covered.">    if (isNodePredicate(predicate)) {</span>
+<span class="fc" id="L48">      return new NodePredicateWrapper((java.util.function.Predicate)predicate)::test;</span>
+    }
+<span class="fc" id="L50">    return predicate::test;</span>
+  }
+
+  /**
+   * Checks if the given predicate implementation implements the NodePredicate interface.
+   * @param obj Predicate implementation
+   * @return true if NodePredicate
+   */
+  private static boolean isNodePredicate(Object obj) {
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    for (Class&lt;?&gt; intf : obj.getClass().getInterfaces()) {</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">      if (NODE_PREDICATE_INTERFACE.equals(intf.getName())) {</span>
+<span class="fc" id="L61">        return true;</span>
+      }
+    }
+<span class="fc" id="L64">    return false;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

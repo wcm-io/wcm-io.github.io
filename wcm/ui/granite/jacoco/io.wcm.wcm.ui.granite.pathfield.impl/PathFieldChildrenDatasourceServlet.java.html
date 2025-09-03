@@ -21,36 +21,33 @@ package io.wcm.wcm.ui.granite.pathfield.impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 
-import org.apache.commons.collections.IteratorUtils;
-import org.apache.commons.collections.Predicate;
-import org.apache.commons.collections.PredicateUtils;
-import org.apache.commons.collections.Transformer;
-import org.apache.commons.collections.iterators.FilterIterator;
-import org.apache.commons.collections.iterators.TransformIterator;
+import org.apache.commons.collections4.IteratorUtils;
+import org.apache.commons.collections4.Predicate;
+import org.apache.commons.collections4.PredicateUtils;
+import org.apache.commons.collections4.Transformer;
+import org.apache.commons.collections4.iterators.FilterIterator;
+import org.apache.commons.collections4.iterators.TransformIterator;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
 import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.framework.BundleContext;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.adobe.granite.ui.components.Config;
 import com.adobe.granite.ui.components.ExpressionHelper;
@@ -59,10 +56,10 @@ import com.adobe.granite.ui.components.PagingIterator;
 import com.adobe.granite.ui.components.ds.AbstractDataSource;
 import com.adobe.granite.ui.components.ds.DataSource;
 import com.adobe.granite.ui.components.ds.EmptyDataSource;
-import com.day.cq.commons.predicate.PredicateProvider;
 
 import io.wcm.wcm.ui.granite.pathfield.impl.predicate.HideInternalContentPathsPredicate;
 import io.wcm.wcm.ui.granite.pathfield.impl.util.PredicatedResourceWrapper;
+import io.wcm.wcm.ui.granite.util.impl.PredicateProviderUtils;
 
 /**
  * Servlet implementing the data source for the path field widget.
@@ -70,149 +67,126 @@ import io.wcm.wcm.ui.granite.pathfield.impl.util.PredicatedResourceWrapper;
 @Component(service = Servlet.class)
 @SlingServletResourceTypes(
     resourceTypes = PathFieldChildrenDatasourceServlet.RESOURCE_TYPE)
-<span class="fc" id="L73">public class PathFieldChildrenDatasourceServlet extends SlingSafeMethodsServlet {</span>
+<span class="fc" id="L70">public class PathFieldChildrenDatasourceServlet extends SlingSafeMethodsServlet {</span>
   private static final long serialVersionUID = 1L;
 
   static final String RESOURCE_TYPE = &quot;wcm-io/wcm/ui/granite/components/form/pathfield/datasources/children&quot;;
 
+  private BundleContext bundleContext;
   @Reference
   private ExpressionResolver expressionResolver;
-  @Reference
-  private PredicateProvider predicateProvider;
 
-<span class="fc" id="L83">  private static final Logger log = LoggerFactory.getLogger(PathFieldChildrenDatasourceServlet.class);</span>
+  @Activate
+  private void activate(BundleContext bc) {
+<span class="fc" id="L81">    this.bundleContext = bc;</span>
+<span class="fc" id="L82">  }</span>
 
   @Override
   @SuppressWarnings(&quot;null&quot;)
   protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response)
       throws ServletException, IOException {
 
-<span class="fc" id="L90">    final ExpressionHelper ex = new ExpressionHelper(expressionResolver, request);</span>
-<span class="fc" id="L91">    final Config cfg = new Config(request.getResource().getChild(Config.DATASOURCE));</span>
+<span class="fc" id="L89">    final ExpressionHelper ex = new ExpressionHelper(expressionResolver, request);</span>
+<span class="fc" id="L90">    final Config cfg = new Config(request.getResource().getChild(Config.DATASOURCE));</span>
 
-<span class="fc" id="L93">    final String query = ex.getString(cfg.get(&quot;query&quot;, String.class));</span>
+<span class="fc" id="L92">    final String query = ex.getString(cfg.get(&quot;query&quot;, String.class));</span>
 
     final String parentPath;
     final String searchName;
 
-<span class="fc bfc" id="L98" title="All 2 branches covered.">    if (query != null) {</span>
-<span class="fc" id="L99">      final String rootPath = ex.getString(cfg.get(&quot;rootPath&quot;, &quot;/&quot;));</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">    if (query != null) {</span>
+<span class="fc" id="L98">      final String rootPath = ex.getString(cfg.get(&quot;rootPath&quot;, &quot;/&quot;));</span>
 
-<span class="fc" id="L101">      final int slashIndex = query.lastIndexOf('/');</span>
-<span class="pc bpc" id="L102" title="1 of 2 branches missed.">      if (slashIndex &lt; 0) {</span>
-<span class="fc" id="L103">        parentPath = rootPath;</span>
-<span class="fc" id="L104">        searchName = query.toLowerCase();</span>
+<span class="fc" id="L100">      final int slashIndex = query.lastIndexOf('/');</span>
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">      if (slashIndex &lt; 0) {</span>
+<span class="fc" id="L102">        parentPath = rootPath;</span>
+<span class="fc" id="L103">        searchName = query.toLowerCase();</span>
       }
-<span class="nc bnc" id="L106" title="All 2 branches missed.">      else if (!query.startsWith(rootPath)) {</span>
-<span class="nc" id="L107">        parentPath = rootPath;</span>
-<span class="nc" id="L108">        searchName = null;</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">      else if (!query.startsWith(rootPath)) {</span>
+<span class="nc" id="L106">        parentPath = rootPath;</span>
+<span class="nc" id="L107">        searchName = null;</span>
       }
-<span class="nc bnc" id="L110" title="All 2 branches missed.">      else if (slashIndex == query.length() - 1) {</span>
-<span class="nc" id="L111">        parentPath = query;</span>
-<span class="nc" id="L112">        searchName = null;</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">      else if (slashIndex == query.length() - 1) {</span>
+<span class="nc" id="L110">        parentPath = query;</span>
+<span class="nc" id="L111">        searchName = null;</span>
       }
       else {
-<span class="nc" id="L115">        parentPath = query.substring(0, slashIndex + 1);</span>
-<span class="nc" id="L116">        searchName = query.substring(slashIndex + 1).toLowerCase();</span>
+<span class="nc" id="L114">        parentPath = query.substring(0, slashIndex + 1);</span>
+<span class="nc" id="L115">        searchName = query.substring(slashIndex + 1).toLowerCase();</span>
       }
-<span class="fc" id="L118">    }</span>
+<span class="fc" id="L117">    }</span>
     else {
-<span class="fc" id="L120">      parentPath = ex.getString(cfg.get(&quot;path&quot;, String.class));</span>
-<span class="fc" id="L121">      searchName = null;</span>
+<span class="fc" id="L119">      parentPath = ex.getString(cfg.get(&quot;path&quot;, String.class));</span>
+<span class="fc" id="L120">      searchName = null;</span>
     }
 
-<span class="fc" id="L124">    final Resource parent = request.getResourceResolver().getResource(parentPath);</span>
+<span class="fc" id="L123">    final Resource parent = request.getResourceResolver().getResource(parentPath);</span>
 
     final DataSource ds;
-<span class="pc bpc" id="L127" title="1 of 2 branches missed.">    if (parent == null) {</span>
-<span class="nc" id="L128">      ds = EmptyDataSource.instance();</span>
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">    if (parent == null) {</span>
+<span class="nc" id="L127">      ds = EmptyDataSource.instance();</span>
     }
     else {
-<span class="fc" id="L131">      final Integer offset = ex.get(cfg.get(&quot;offset&quot;, String.class), Integer.class);</span>
-<span class="fc" id="L132">      final Integer limit = ex.get(cfg.get(&quot;limit&quot;, String.class), Integer.class);</span>
-<span class="fc" id="L133">      final String itemResourceType = cfg.get(&quot;itemResourceType&quot;, String.class);</span>
-<span class="fc" id="L134">      final String[] filter = new String[] { ex.get(cfg.get(&quot;filter&quot;, &quot;hierarchyNotFile&quot;), String.class) };</span>
+<span class="fc" id="L130">      final Integer offset = ex.get(cfg.get(&quot;offset&quot;, String.class), Integer.class);</span>
+<span class="fc" id="L131">      final Integer limit = ex.get(cfg.get(&quot;limit&quot;, String.class), Integer.class);</span>
+<span class="fc" id="L132">      final String itemResourceType = cfg.get(&quot;itemResourceType&quot;, String.class);</span>
+<span class="fc" id="L133">      final String[] filter = new String[] { ex.get(cfg.get(&quot;filter&quot;, &quot;hierarchyNotFile&quot;), String.class) };</span>
 
-<span class="fc" id="L136">      final Collection&lt;Predicate&gt; predicates = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L137">      predicates.add(new HideInternalContentPathsPredicate());</span>
-<span class="fc" id="L138">      predicates.addAll(toPredicates(filter));</span>
+<span class="fc" id="L135">      final Collection&lt;Predicate&lt;Resource&gt;&gt; predicates = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L136">      predicates.add(new HideInternalContentPathsPredicate());</span>
+<span class="fc" id="L137">      predicates.addAll(PredicateProviderUtils.toPredicates(filter, bundleContext));</span>
 
-<span class="fc bfc" id="L140" title="All 2 branches covered.">      if (searchName != null) {</span>
-<span class="fc" id="L141">        final Pattern searchNamePattern = Pattern.compile(Pattern.quote(searchName), Pattern.CASE_INSENSITIVE);</span>
-<span class="fc" id="L142">        predicates.add(obj -&gt; {</span>
-<span class="fc" id="L143">            Resource r = (Resource)obj;</span>
-<span class="fc" id="L144">            return searchNamePattern.matcher(r.getName()).lookingAt();</span>
-        });
+<span class="fc bfc" id="L139" title="All 2 branches covered.">      if (searchName != null) {</span>
+<span class="fc" id="L140">        final Pattern searchNamePattern = Pattern.compile(Pattern.quote(searchName), Pattern.CASE_INSENSITIVE);</span>
+<span class="fc" id="L141">        predicates.add(resource -&gt; searchNamePattern.matcher(resource.getName()).lookingAt());</span>
       }
 
-<span class="fc" id="L148">      final Predicate predicate = PredicateUtils.allPredicate(predicates);</span>
-<span class="fc" id="L149">      final Transformer transformer = createTransformer(itemResourceType, predicate);</span>
+<span class="fc" id="L144">      final Predicate&lt;Resource&gt; predicate = PredicateUtils.allPredicate(predicates);</span>
+<span class="fc" id="L145">      final Transformer&lt;Resource, Resource&gt; transformer = createTransformer(itemResourceType, predicate);</span>
 
-<span class="fc" id="L151">      DataSource datasource = new AbstractDataSource() {</span>
+<span class="fc" id="L147">      DataSource datasource = new AbstractDataSource() {</span>
         @Override
-        @SuppressWarnings(&quot;unchecked&quot;)
         public Iterator&lt;Resource&gt; iterator() {
-<span class="fc" id="L155">          List&lt;Resource&gt; list = IteratorUtils.toList(new FilterIterator(parent.listChildren(), predicate));</span>
+<span class="fc" id="L150">          List&lt;Resource&gt; list = IteratorUtils.toList(new FilterIterator&lt;&gt;(parent.listChildren(), predicate));</span>
 
           // sort result set alphabetically - but only if parent node does not have orderable child nodes
-<span class="fc bfc" id="L158" title="All 2 branches covered.">          if (!isOrderableChildNodes(parent)) {</span>
-<span class="fc" id="L159">            Collections.sort(list, (Resource r1, Resource r2) -&gt; r1.getName().compareTo(r2.getName()));</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">          if (!isOrderableChildNodes(parent)) {</span>
+<span class="fc" id="L154">            Collections.sort(list, (Resource r1, Resource r2) -&gt; r1.getName().compareTo(r2.getName()));</span>
           }
 
-<span class="fc" id="L162">          return new TransformIterator(new PagingIterator&lt;&gt;(list.iterator(), offset, limit), transformer);</span>
+<span class="fc" id="L157">          return new TransformIterator&lt;&gt;(new PagingIterator&lt;&gt;(list.iterator(), offset, limit), transformer);</span>
         }
       };
 
-<span class="fc" id="L166">      ds = datasource;</span>
+<span class="fc" id="L161">      ds = datasource;</span>
     }
 
-<span class="fc" id="L169">    request.setAttribute(DataSource.class.getName(), ds);</span>
-<span class="fc" id="L170">  }</span>
+<span class="fc" id="L164">    request.setAttribute(DataSource.class.getName(), ds);</span>
+<span class="fc" id="L165">  }</span>
 
-  @SuppressWarnings(&quot;java:S2583&quot;) // filter may be null
-  private List&lt;Predicate&gt; toPredicates(@NotNull String[] filter) {
-<span class="pc bpc" id="L174" title="1 of 2 branches missed.">    if (filter == null) {</span>
-<span class="nc" id="L175">      return Collections.emptyList();</span>
-    }
-<span class="fc" id="L177">    return Arrays.asList(filter).stream()</span>
-<span class="fc" id="L178">        .filter(Objects::nonNull)</span>
-<span class="fc" id="L179">        .map(item -&gt; {</span>
-<span class="fc" id="L180">          Predicate predicate = predicateProvider.getPredicate(item);</span>
-<span class="pc bpc" id="L181" title="1 of 2 branches missed.">          if (predicate != null) {</span>
-<span class="fc" id="L182">            return predicate;</span>
-          }
-          else {
-<span class="nc" id="L185">            log.warn(&quot;Unable to find predicate implementation for filter: {}&quot;, item);</span>
-<span class="nc" id="L186">            return null;</span>
-          }
-        })
-<span class="fc" id="L189">        .filter(Objects::nonNull)</span>
-<span class="fc" id="L190">        .collect(Collectors.toList());</span>
-  }
-
-  private static Transformer createTransformer(final String itemResourceType, final Predicate predicate) {
-<span class="fc" id="L194">    return r -&gt; new PredicatedResourceWrapper((Resource)r, predicate) {</span>
+  private static Transformer&lt;Resource, Resource&gt; createTransformer(final String itemResourceType, final Predicate&lt;Resource&gt; predicate) {
+<span class="fc" id="L168">    return r -&gt; new PredicatedResourceWrapper(r, predicate) {</span>
       @Override
       public String getResourceType() {
-<span class="nc bnc" id="L197" title="All 2 branches missed.">        if (itemResourceType == null) {</span>
-<span class="nc" id="L198">          return super.getResourceType();</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">        if (itemResourceType == null) {</span>
+<span class="nc" id="L172">          return super.getResourceType();</span>
         }
-<span class="nc" id="L200">        return itemResourceType;</span>
+<span class="nc" id="L174">        return itemResourceType;</span>
       }
     };
   }
 
   private static boolean isOrderableChildNodes(Resource resource) {
-<span class="fc" id="L206">    Node node = resource.adaptTo(Node.class);</span>
-<span class="pc bpc" id="L207" title="1 of 2 branches missed.">    if (node != null) {</span>
+<span class="fc" id="L180">    Node node = resource.adaptTo(Node.class);</span>
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">    if (node != null) {</span>
       try {
-<span class="fc" id="L209">        return node.getPrimaryNodeType().hasOrderableChildNodes();</span>
+<span class="fc" id="L183">        return node.getPrimaryNodeType().hasOrderableChildNodes();</span>
       }
-<span class="nc" id="L211">      catch (RepositoryException ex) {</span>
-<span class="nc" id="L212">        return false;</span>
+<span class="nc" id="L185">      catch (RepositoryException ex) {</span>
+<span class="nc" id="L186">        return false;</span>
       }
     }
-<span class="nc" id="L215">    return false;</span>
+<span class="nc" id="L189">    return false;</span>
   }
 
 }

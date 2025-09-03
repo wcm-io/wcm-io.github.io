@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PredicateProviderUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">WCM Granite UI Extensions</a> &gt; <a href="index.source.html" class="el_package">io.wcm.wcm.ui.granite.util.impl</a> &gt; <span class="el_source">PredicateProviderUtils.java</span></div><h1>PredicateProviderUtils.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2025 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.wcm.ui.granite.util.impl;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import org.apache.commons.collections4.Predicate;
+import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Gets predicate instances from AEM PredicateProvider.
+ *
+ * &lt;p&gt;
+ * Tries to get them from latest implementation from &lt;code&gt;com.day.cq.commons.predicates.PredicateProvider&lt;/code&gt;
+ * first (introduced in AEMaaCS API in 2024), and if that's not available, falls back to
+ * &lt;code&gt;com.day.cq.commons.predicate.PredicateProvider&lt;/code&gt; (also available in AEM 6.x).
+ * &lt;/p&gt;
+ */
+public final class PredicateProviderUtils {
+
+  private static final String PREDICATE_PROVIDER_CLASS_NAME_LATEST = &quot;com.day.cq.commons.predicates.PredicateProvider&quot;;
+  private static final String PREDICATE_PROVIDER_CLASS_NAME_LEGACY = &quot;com.day.cq.commons.predicate.PredicateProvider&quot;;
+
+<span class="fc" id="L51">  private static final Logger log = LoggerFactory.getLogger(PredicateProviderUtils.class);</span>
+
+  private PredicateProviderUtils() {
+    // static methods only
+  }
+
+  /**
+   * Get list of predicates for given filter names.
+   * @param filter Array of filter names
+   * @param bundleContext OSGi bundle context
+   * @return List of predicates
+   */
+  @SuppressWarnings({ &quot;java:S2583&quot;, &quot;null&quot; }) // filter may be null
+  public static @NotNull List&lt;Predicate&lt;Resource&gt;&gt; toPredicates(@NotNull String @Nullable [] filter, @NotNull BundleContext bundleContext) {
+<span class="fc bfc" id="L65" title="All 4 branches covered.">    if (filter == null || filter.length == 0) {</span>
+<span class="fc" id="L66">      return Collections.emptyList();</span>
+    }
+<span class="fc" id="L68">    try (PredicateProviderWrapper predicateProvider = getPredicateProvider(bundleContext)) {</span>
+<span class="fc" id="L69">      return Arrays.asList(filter).stream()</span>
+<span class="fc" id="L70">          .filter(Objects::nonNull)</span>
+<span class="fc" id="L71">          .map(item -&gt; {</span>
+<span class="fc" id="L72">            Predicate&lt;Resource&gt; predicate = predicateProvider.getPredicate(item);</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">            if (predicate != null) {</span>
+<span class="fc" id="L74">              return predicate;</span>
+            }
+            else {
+<span class="fc" id="L77">              log.warn(&quot;Unable to find predicate implementation for filter: {}&quot;, item);</span>
+<span class="fc" id="L78">              return null;</span>
+            }
+          })
+<span class="fc" id="L81">          .filter(Objects::nonNull)</span>
+<span class="fc" id="L82">          .collect(Collectors.toList());</span>
+    }
+<span class="nc" id="L84">    catch (Exception ex) {</span>
+<span class="nc" id="L85">      log.warn(&quot;Unable to close predicate provider.&quot;, ex);</span>
+<span class="nc" id="L86">      return Collections.emptyList();</span>
+    }
+  }
+
+  private static @NotNull PredicateProviderWrapper getPredicateProvider(@NotNull BundleContext bundleContext) {
+<span class="fc" id="L91">    ServiceReference&lt;?&gt; serviceReference = bundleContext.getServiceReference(PREDICATE_PROVIDER_CLASS_NAME_LATEST);</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">    if (serviceReference != null) {</span>
+<span class="fc" id="L93">      log.debug(&quot;Using latest PredicateProvider implementation: {}&quot;, PREDICATE_PROVIDER_CLASS_NAME_LATEST);</span>
+<span class="fc" id="L94">      return new LatestPredicateProviderWrapper(serviceReference, bundleContext);</span>
+    }
+<span class="fc" id="L96">    serviceReference = bundleContext.getServiceReference(PREDICATE_PROVIDER_CLASS_NAME_LEGACY);</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">    if (serviceReference != null) {</span>
+<span class="fc" id="L98">      log.debug(&quot;Using legacy PredicateProvider implementation: {}&quot;, PREDICATE_PROVIDER_CLASS_NAME_LEGACY);</span>
+<span class="fc" id="L99">      return new LegacyPredicateProviderWrapper(serviceReference, bundleContext);</span>
+    }
+<span class="fc" id="L101">    log.warn(&quot;No PredicateProvider implementation found.&quot;);</span>
+<span class="fc" id="L102">    return new FallbackPredicateProviderWrapper();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
