@@ -70,6 +70,8 @@ import io.wcm.tooling.commons.packmgr.httpaction.PackageManagerInstallStatusCall
 import io.wcm.tooling.commons.packmgr.httpaction.PackageManagerJsonCall;
 import io.wcm.tooling.commons.packmgr.httpaction.PackageManagerStatusCall;
 import io.wcm.tooling.commons.packmgr.httpaction.PackageManagerXmlCall;
+import io.wcm.tooling.commons.packmgr.httpaction.SystemReadyStatus;
+import io.wcm.tooling.commons.packmgr.httpaction.SystemReadyStatusCall;
 import io.wcm.tooling.commons.packmgr.util.HttpClientUtil;
 
 /**
@@ -82,64 +84,64 @@ public final class PackageManagerHelper {
    */
   public static final String CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX = &quot;Package already exists: &quot;;
 
-<span class="nc" id="L85">  private static final String HTTP_CONTEXT_ATTRIBUTE_PREEMPTIVE_AUTHENTICATION_CREDS = PackageManagerHelper.class.getName() + &quot;_PreemptiveAuthenticationCreds&quot;;</span>
-<span class="nc" id="L86">  private static final String HTTP_CONTEXT_ATTRIBUTE_OAUTH2_ACCESS_TOKEN = PackageManagerHelper.class.getName() + &quot;_oauth2AccessToken&quot;;</span>
+<span class="nc" id="L87">  private static final String HTTP_CONTEXT_ATTRIBUTE_PREEMPTIVE_AUTHENTICATION_CREDS = PackageManagerHelper.class.getName() + &quot;_PreemptiveAuthenticationCreds&quot;;</span>
+<span class="nc" id="L88">  private static final String HTTP_CONTEXT_ATTRIBUTE_OAUTH2_ACCESS_TOKEN = PackageManagerHelper.class.getName() + &quot;_oauth2AccessToken&quot;;</span>
 
   private final PackageManagerProperties props;
 
-<span class="nc" id="L90">  private static final Logger log = LoggerFactory.getLogger(PackageManagerHelper.class);</span>
+<span class="nc" id="L92">  private static final Logger log = LoggerFactory.getLogger(PackageManagerHelper.class);</span>
 
   /**
    * @param props Package manager properties
    */
-<span class="nc" id="L95">  public PackageManagerHelper(PackageManagerProperties props) {</span>
-<span class="nc" id="L96">    this.props = props;</span>
-<span class="nc" id="L97">  }</span>
+<span class="nc" id="L97">  public PackageManagerHelper(PackageManagerProperties props) {</span>
+<span class="nc" id="L98">    this.props = props;</span>
+<span class="nc" id="L99">  }</span>
 
   /**
    * Get HTTP client to be used for all communications (package manager and Felix console).
    * @return HTTP client
    */
   public @NotNull CloseableHttpClient getHttpClient() {
-<span class="nc" id="L104">    HttpClientBuilder httpClientBuilder = HttpClients.custom()</span>
+<span class="nc" id="L106">    HttpClientBuilder httpClientBuilder = HttpClients.custom()</span>
         // keep reusing connections to a minimum - may conflict when instance is restarting and responds in unexpected manner
-<span class="nc" id="L106">        .setKeepAliveStrategy((response, context) -&gt; 1)</span>
-<span class="nc" id="L107">        .addInterceptorFirst(new HttpRequestInterceptor() {</span>
+<span class="nc" id="L108">        .setKeepAliveStrategy((response, context) -&gt; 1)</span>
+<span class="nc" id="L109">        .addInterceptorFirst(new HttpRequestInterceptor() {</span>
           @Override
           public void process(HttpRequest request, HttpContext context) throws HttpException, IOException {
-<span class="nc" id="L110">            Credentials credentials = (Credentials)context.getAttribute(HTTP_CONTEXT_ATTRIBUTE_PREEMPTIVE_AUTHENTICATION_CREDS);</span>
-<span class="nc bnc" id="L111" title="All 2 branches missed.">            if (credentials != null) {</span>
+<span class="nc" id="L112">            Credentials credentials = (Credentials)context.getAttribute(HTTP_CONTEXT_ATTRIBUTE_PREEMPTIVE_AUTHENTICATION_CREDS);</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">            if (credentials != null) {</span>
               // enable preemptive authentication
-<span class="nc" id="L113">              AuthState authState = (AuthState)context.getAttribute(HttpClientContext.TARGET_AUTH_STATE);</span>
-<span class="nc" id="L114">              authState.update(new BasicScheme(), credentials);</span>
+<span class="nc" id="L115">              AuthState authState = (AuthState)context.getAttribute(HttpClientContext.TARGET_AUTH_STATE);</span>
+<span class="nc" id="L116">              authState.update(new BasicScheme(), credentials);</span>
             }
-<span class="nc" id="L116">            String oauth2AccessToken = (String)context.getAttribute(HTTP_CONTEXT_ATTRIBUTE_OAUTH2_ACCESS_TOKEN);</span>
-<span class="nc bnc" id="L117" title="All 2 branches missed.">            if (oauth2AccessToken != null) {</span>
+<span class="nc" id="L118">            String oauth2AccessToken = (String)context.getAttribute(HTTP_CONTEXT_ATTRIBUTE_OAUTH2_ACCESS_TOKEN);</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">            if (oauth2AccessToken != null) {</span>
               // send OAuth 2 bearer token
-<span class="nc" id="L119">              request.setHeader(&quot;Authorization&quot;, &quot;Bearer &quot; + oauth2AccessToken);</span>
+<span class="nc" id="L121">              request.setHeader(&quot;Authorization&quot;, &quot;Bearer &quot; + oauth2AccessToken);</span>
             }
-<span class="nc" id="L121">          }</span>
+<span class="nc" id="L123">          }</span>
         });
 
     // relaxed SSL check
-<span class="nc bnc" id="L125" title="All 2 branches missed.">    if (props.isRelaxedSSLCheck()) {</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">    if (props.isRelaxedSSLCheck()) {</span>
       try {
-<span class="nc" id="L127">        SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustSelfSignedStrategy()).build();</span>
-<span class="nc" id="L128">        SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new NoopHostnameVerifier());</span>
-<span class="nc" id="L129">        httpClientBuilder.setSSLSocketFactory(sslsf);</span>
+<span class="nc" id="L129">        SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustSelfSignedStrategy()).build();</span>
+<span class="nc" id="L130">        SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new NoopHostnameVerifier());</span>
+<span class="nc" id="L131">        httpClientBuilder.setSSLSocketFactory(sslsf);</span>
       }
-<span class="nc" id="L131">      catch (KeyManagementException | KeyStoreException | NoSuchAlgorithmException ex) {</span>
-<span class="nc" id="L132">        throw new PackageManagerException(&quot;Could not set relaxedSSLCheck&quot;, ex);</span>
-<span class="nc" id="L133">      }</span>
+<span class="nc" id="L133">      catch (KeyManagementException | KeyStoreException | NoSuchAlgorithmException ex) {</span>
+<span class="nc" id="L134">        throw new PackageManagerException(&quot;Could not set relaxedSSLCheck&quot;, ex);</span>
+<span class="nc" id="L135">      }</span>
     }
 
     // proxy support
-<span class="nc" id="L137">    Proxy proxy = getProxyForUrl(props.getPackageManagerUrl());</span>
-<span class="nc bnc" id="L138" title="All 2 branches missed.">    if (proxy != null) {</span>
-<span class="nc" id="L139">      httpClientBuilder.setProxy(new HttpHost(proxy.getHost(), proxy.getPort(), proxy.getProtocol()));</span>
+<span class="nc" id="L139">    Proxy proxy = getProxyForUrl(props.getPackageManagerUrl());</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">    if (proxy != null) {</span>
+<span class="nc" id="L141">      httpClientBuilder.setProxy(new HttpHost(proxy.getHost(), proxy.getPort(), proxy.getProtocol()));</span>
     }
 
-<span class="nc" id="L142">    return httpClientBuilder.build();</span>
+<span class="nc" id="L144">    return httpClientBuilder.build();</span>
   }
 
   /**
@@ -147,8 +149,8 @@ public final class PackageManagerHelper {
    * @return Http client context
    */
   public @NotNull HttpClientContext getPackageManagerHttpClientContext() {
-<span class="nc" id="L150">    return getHttpClientContext(props.getPackageManagerUrl(),</span>
-<span class="nc" id="L151">        props.getUserId(), props.getPassword(), props.getOAuth2AccessToken());</span>
+<span class="nc" id="L152">    return getHttpClientContext(props.getPackageManagerUrl(),</span>
+<span class="nc" id="L153">        props.getUserId(), props.getPassword(), props.getOAuth2AccessToken());</span>
   }
 
   /**
@@ -156,50 +158,50 @@ public final class PackageManagerHelper {
    * @return Http client context. May be null of bundle status URL is set to &quot;-&quot;.
    */
   public @Nullable HttpClientContext getConsoleHttpClientContext() {
-<span class="nc" id="L159">    String bundleStatusUrl = props.getBundleStatusUrl();</span>
-<span class="nc bnc" id="L160" title="All 2 branches missed.">    if (bundleStatusUrl == null) {</span>
-<span class="nc" id="L161">      return null;</span>
+<span class="nc" id="L161">    String bundleStatusUrl = props.getBundleStatusUrl();</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">    if (bundleStatusUrl == null) {</span>
+<span class="nc" id="L163">      return null;</span>
     }
-<span class="nc" id="L163">    return getHttpClientContext(bundleStatusUrl,</span>
-<span class="nc" id="L164">        props.getConsoleUserId(), props.getConsolePassword(), props.getConsoleOAuth2AccessToken());</span>
+<span class="nc" id="L165">    return getHttpClientContext(bundleStatusUrl,</span>
+<span class="nc" id="L166">        props.getConsoleUserId(), props.getConsolePassword(), props.getConsoleOAuth2AccessToken());</span>
   }
 
   private @NotNull HttpClientContext getHttpClientContext(String url, String userId, String password, String oauth2AccessToken) {
     URI uri;
     try {
-<span class="nc" id="L170">      uri = new URI(url);</span>
+<span class="nc" id="L172">      uri = new URI(url);</span>
     }
-<span class="nc" id="L172">    catch (URISyntaxException ex) {</span>
-<span class="nc" id="L173">      throw new PackageManagerException(&quot;Invalid url: &quot; + url, ex);</span>
-<span class="nc" id="L174">    }</span>
+<span class="nc" id="L174">    catch (URISyntaxException ex) {</span>
+<span class="nc" id="L175">      throw new PackageManagerException(&quot;Invalid url: &quot; + url, ex);</span>
+<span class="nc" id="L176">    }</span>
 
-<span class="nc" id="L176">    final CredentialsProvider credsProvider = new BasicCredentialsProvider();</span>
-<span class="nc" id="L177">    HttpClientContext context = new HttpClientContext();</span>
-<span class="nc" id="L178">    context.setCredentialsProvider(credsProvider);</span>
+<span class="nc" id="L178">    final CredentialsProvider credsProvider = new BasicCredentialsProvider();</span>
+<span class="nc" id="L179">    HttpClientContext context = new HttpClientContext();</span>
+<span class="nc" id="L180">    context.setCredentialsProvider(credsProvider);</span>
 
-<span class="nc bnc" id="L180" title="All 2 branches missed.">    if (StringUtils.isNotBlank(oauth2AccessToken)) {</span>
-<span class="nc" id="L181">      context.setAttribute(HTTP_CONTEXT_ATTRIBUTE_OAUTH2_ACCESS_TOKEN, oauth2AccessToken);</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">    if (StringUtils.isNotBlank(oauth2AccessToken)) {</span>
+<span class="nc" id="L183">      context.setAttribute(HTTP_CONTEXT_ATTRIBUTE_OAUTH2_ACCESS_TOKEN, oauth2AccessToken);</span>
     }
     else {
       // use basic (preemptive) authentication with username/password
-<span class="nc" id="L185">      final AuthScope authScope = new AuthScope(uri.getHost(), uri.getPort());</span>
-<span class="nc" id="L186">      final Credentials credentials = new UsernamePasswordCredentials(userId, password);</span>
-<span class="nc" id="L187">      credsProvider.setCredentials(authScope, credentials);</span>
-<span class="nc" id="L188">      context.setAttribute(HTTP_CONTEXT_ATTRIBUTE_PREEMPTIVE_AUTHENTICATION_CREDS, credentials);</span>
+<span class="nc" id="L187">      final AuthScope authScope = new AuthScope(uri.getHost(), uri.getPort());</span>
+<span class="nc" id="L188">      final Credentials credentials = new UsernamePasswordCredentials(userId, password);</span>
+<span class="nc" id="L189">      credsProvider.setCredentials(authScope, credentials);</span>
+<span class="nc" id="L190">      context.setAttribute(HTTP_CONTEXT_ATTRIBUTE_PREEMPTIVE_AUTHENTICATION_CREDS, credentials);</span>
     }
 
     // timeout settings
-<span class="nc" id="L192">    context.setRequestConfig(HttpClientUtil.buildRequestConfig(props));</span>
+<span class="nc" id="L194">    context.setRequestConfig(HttpClientUtil.buildRequestConfig(props));</span>
 
     // proxy support
-<span class="nc" id="L195">    Proxy proxy = getProxyForUrl(url);</span>
-<span class="nc bnc" id="L196" title="All 4 branches missed.">    if (proxy != null &amp;&amp; proxy.useAuthentication()) {</span>
-<span class="nc" id="L197">      AuthScope proxyAuthScope = new AuthScope(proxy.getHost(), proxy.getPort());</span>
-<span class="nc" id="L198">      Credentials proxyCredentials = new UsernamePasswordCredentials(proxy.getUsername(), proxy.getPassword());</span>
-<span class="nc" id="L199">      credsProvider.setCredentials(proxyAuthScope, proxyCredentials);</span>
+<span class="nc" id="L197">    Proxy proxy = getProxyForUrl(url);</span>
+<span class="nc bnc" id="L198" title="All 4 branches missed.">    if (proxy != null &amp;&amp; proxy.useAuthentication()) {</span>
+<span class="nc" id="L199">      AuthScope proxyAuthScope = new AuthScope(proxy.getHost(), proxy.getPort());</span>
+<span class="nc" id="L200">      Credentials proxyCredentials = new UsernamePasswordCredentials(proxy.getUsername(), proxy.getPassword());</span>
+<span class="nc" id="L201">      credsProvider.setCredentials(proxyAuthScope, proxyCredentials);</span>
     }
 
-<span class="nc" id="L202">    return context;</span>
+<span class="nc" id="L204">    return context;</span>
   }
 
   /**
@@ -208,17 +210,17 @@ public final class PackageManagerHelper {
    * @return Proxy or null if none matching found
    */
   private Proxy getProxyForUrl(String requestUrl) {
-<span class="nc" id="L211">    List&lt;Proxy&gt; proxies = props.getProxies();</span>
-<span class="nc bnc" id="L212" title="All 4 branches missed.">    if (proxies == null || proxies.isEmpty()) {</span>
-<span class="nc" id="L213">      return null;</span>
+<span class="nc" id="L213">    List&lt;Proxy&gt; proxies = props.getProxies();</span>
+<span class="nc bnc" id="L214" title="All 4 branches missed.">    if (proxies == null || proxies.isEmpty()) {</span>
+<span class="nc" id="L215">      return null;</span>
     }
-<span class="nc" id="L215">    final URI uri = URI.create(requestUrl);</span>
-<span class="nc bnc" id="L216" title="All 2 branches missed.">    for (Proxy proxy : proxies) {</span>
-<span class="nc bnc" id="L217" title="All 2 branches missed.">      if (!proxy.isNonProxyHost(uri.getHost())) {</span>
-<span class="nc" id="L218">        return proxy;</span>
+<span class="nc" id="L217">    final URI uri = URI.create(requestUrl);</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">    for (Proxy proxy : proxies) {</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">      if (!proxy.isNonProxyHost(uri.getHost())) {</span>
+<span class="nc" id="L220">        return proxy;</span>
       }
-<span class="nc" id="L220">    }</span>
-<span class="nc" id="L221">    return null;</span>
+<span class="nc" id="L222">    }</span>
+<span class="nc" id="L223">    return null;</span>
   }
 
 
@@ -230,34 +232,34 @@ public final class PackageManagerHelper {
   @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
   private &lt;T&gt; T executeHttpCallWithRetry(HttpCall&lt;T&gt; call, int runCount) {
     try {
-<span class="nc" id="L233">      return call.execute();</span>
+<span class="nc" id="L235">      return call.execute();</span>
     }
-<span class="nc" id="L235">    catch (PackageManagerHttpActionException ex) {</span>
+<span class="nc" id="L237">    catch (PackageManagerHttpActionException ex) {</span>
       // retry again if configured so...
-<span class="nc bnc" id="L237" title="All 2 branches missed.">      if (runCount &lt; props.getRetryCount()) {</span>
-<span class="nc" id="L238">        log.warn(&quot;ERROR: {}&quot;, ex.getMessage());</span>
-<span class="nc" id="L239">        log.debug(&quot;HTTP call failed.&quot;, ex);</span>
-<span class="nc" id="L240">        log.warn(&quot;---------------&quot;);</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">      if (runCount &lt; props.getRetryCount()) {</span>
+<span class="nc" id="L240">        log.warn(&quot;ERROR: {}&quot;, ex.getMessage());</span>
+<span class="nc" id="L241">        log.debug(&quot;HTTP call failed.&quot;, ex);</span>
+<span class="nc" id="L242">        log.warn(&quot;---------------&quot;);</span>
 
-<span class="nc" id="L242">        StringBuilder msg = new StringBuilder();</span>
-<span class="nc" id="L243">        msg.append(&quot;HTTP call failed, try again (&quot;).append(runCount + 1).append(&quot;/&quot;).append(props.getRetryCount()).append(&quot;)&quot;);</span>
-<span class="nc bnc" id="L244" title="All 2 branches missed.">        if (props.getRetryDelaySec() &gt; 0) {</span>
-<span class="nc" id="L245">          msg.append(&quot; after &quot;).append(props.getRetryDelaySec()).append(&quot; second(s)&quot;);</span>
+<span class="nc" id="L244">        StringBuilder msg = new StringBuilder();</span>
+<span class="nc" id="L245">        msg.append(&quot;HTTP call failed, try again (&quot;).append(runCount + 1).append(&quot;/&quot;).append(props.getRetryCount()).append(&quot;)&quot;);</span>
+<span class="nc bnc" id="L246" title="All 2 branches missed.">        if (props.getRetryDelaySec() &gt; 0) {</span>
+<span class="nc" id="L247">          msg.append(&quot; after &quot;).append(props.getRetryDelaySec()).append(&quot; second(s)&quot;);</span>
         }
-<span class="nc" id="L247">        msg.append(&quot;...&quot;);</span>
-<span class="nc" id="L248">        log.warn(msg.toString());</span>
-<span class="nc bnc" id="L249" title="All 2 branches missed.">        if (props.getRetryDelaySec() &gt; 0) {</span>
+<span class="nc" id="L249">        msg.append(&quot;...&quot;);</span>
+<span class="nc" id="L250">        log.warn(msg.toString());</span>
+<span class="nc bnc" id="L251" title="All 2 branches missed.">        if (props.getRetryDelaySec() &gt; 0) {</span>
           try {
-<span class="nc" id="L251">            Thread.sleep(props.getRetryDelaySec() * DateUtils.MILLIS_PER_SECOND);</span>
+<span class="nc" id="L253">            Thread.sleep(props.getRetryDelaySec() * DateUtils.MILLIS_PER_SECOND);</span>
           }
-<span class="nc" id="L253">          catch (InterruptedException ex1) {</span>
+<span class="nc" id="L255">          catch (InterruptedException ex1) {</span>
             // ignore
-<span class="nc" id="L255">          }</span>
+<span class="nc" id="L257">          }</span>
         }
-<span class="nc" id="L257">        return executeHttpCallWithRetry(call, runCount + 1);</span>
+<span class="nc" id="L259">        return executeHttpCallWithRetry(call, runCount + 1);</span>
       }
       else {
-<span class="nc" id="L260">        throw ex;</span>
+<span class="nc" id="L262">        throw ex;</span>
       }
     }
   }
@@ -270,8 +272,8 @@ public final class PackageManagerHelper {
    * @return JSON object
    */
   public JSONObject executePackageManagerMethodJson(CloseableHttpClient httpClient, HttpClientContext context, HttpRequestBase method) {
-<span class="nc" id="L273">    PackageManagerJsonCall call = new PackageManagerJsonCall(httpClient, context, method);</span>
-<span class="nc" id="L274">    return executeHttpCallWithRetry(call, 0);</span>
+<span class="nc" id="L275">    PackageManagerJsonCall call = new PackageManagerJsonCall(httpClient, context, method);</span>
+<span class="nc" id="L276">    return executeHttpCallWithRetry(call, 0);</span>
   }
 
   /**
@@ -282,8 +284,8 @@ public final class PackageManagerHelper {
    * @return XML document
    */
   public Document executePackageManagerMethodXml(CloseableHttpClient httpClient, HttpClientContext context, HttpRequestBase method) {
-<span class="nc" id="L285">    PackageManagerXmlCall call = new PackageManagerXmlCall(httpClient, context, method);</span>
-<span class="nc" id="L286">    return executeHttpCallWithRetry(call, 0);</span>
+<span class="nc" id="L287">    PackageManagerXmlCall call = new PackageManagerXmlCall(httpClient, context, method);</span>
+<span class="nc" id="L288">    return executeHttpCallWithRetry(call, 0);</span>
   }
 
   /**
@@ -294,8 +296,8 @@ public final class PackageManagerHelper {
    * @return Response from HTML server
    */
   public String executePackageManagerMethodHtml(CloseableHttpClient httpClient, HttpClientContext context, HttpRequestBase method) {
-<span class="nc" id="L297">    PackageManagerHtmlCall call = new PackageManagerHtmlCall(httpClient, context, method);</span>
-<span class="nc" id="L298">    return executeHttpCallWithRetry(call, 0);</span>
+<span class="nc" id="L299">    PackageManagerHtmlCall call = new PackageManagerHtmlCall(httpClient, context, method);</span>
+<span class="nc" id="L300">    return executeHttpCallWithRetry(call, 0);</span>
   }
 
   /**
@@ -305,9 +307,9 @@ public final class PackageManagerHelper {
    * @param method Get or Post method
    */
   public void executePackageManagerMethodHtmlOutputResponse(CloseableHttpClient httpClient, HttpClientContext context, HttpRequestBase method) {
-<span class="nc" id="L308">    PackageManagerHtmlMessageCall call = new PackageManagerHtmlMessageCall(httpClient, context, method, props);</span>
-<span class="nc" id="L309">    executeHttpCallWithRetry(call, 0);</span>
-<span class="nc" id="L310">  }</span>
+<span class="nc" id="L310">    PackageManagerHtmlMessageCall call = new PackageManagerHtmlMessageCall(httpClient, context, method, props);</span>
+<span class="nc" id="L311">    executeHttpCallWithRetry(call, 0);</span>
+<span class="nc" id="L312">  }</span>
 
   /**
    * Execute CRX HTTP Package manager method and checks response status. If the response status is not 200 the call
@@ -317,9 +319,9 @@ public final class PackageManagerHelper {
    * @param method Get or Post method
    */
   public void executePackageManagerMethodStatus(CloseableHttpClient httpClient, HttpClientContext context, HttpRequestBase method) {
-<span class="nc" id="L320">    PackageManagerStatusCall call = new PackageManagerStatusCall(httpClient, context, method);</span>
-<span class="nc" id="L321">    executeHttpCallWithRetry(call, 0);</span>
-<span class="nc" id="L322">  }</span>
+<span class="nc" id="L322">    PackageManagerStatusCall call = new PackageManagerStatusCall(httpClient, context, method);</span>
+<span class="nc" id="L323">    executeHttpCallWithRetry(call, 0);</span>
+<span class="nc" id="L324">  }</span>
 
   /**
    * Wait for bundles to become active.
@@ -328,50 +330,93 @@ public final class PackageManagerHelper {
    */
   @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
   public void waitForBundlesActivation(CloseableHttpClient httpClient, HttpClientContext context) {
-<span class="nc bnc" id="L331" title="All 2 branches missed.">    if (StringUtils.isBlank(props.getBundleStatusUrl())) {</span>
-<span class="nc" id="L332">      log.debug(&quot;Skipping check for bundle activation state because no bundleStatusURL is defined.&quot;);</span>
-<span class="nc" id="L333">      return;</span>
+<span class="nc bnc" id="L333" title="All 2 branches missed.">    if (StringUtils.isBlank(props.getBundleStatusUrl())) {</span>
+<span class="nc" id="L334">      log.debug(&quot;Skipping check for bundle activation state because no bundleStatusURL is defined.&quot;);</span>
+<span class="nc" id="L335">      return;</span>
     }
 
-<span class="nc" id="L336">    final int WAIT_INTERVAL_SEC = 3;</span>
-<span class="nc" id="L337">    final long CHECK_RETRY_COUNT = props.getBundleStatusWaitLimitSec() / WAIT_INTERVAL_SEC;</span>
+<span class="nc" id="L338">    final int WAIT_INTERVAL_SEC = 3;</span>
+<span class="nc" id="L339">    final long CHECK_RETRY_COUNT = props.getBundleStatusWaitLimitSec() / WAIT_INTERVAL_SEC;</span>
 
-<span class="nc" id="L339">    log.info(&quot;Check bundle activation status...&quot;);</span>
-<span class="nc bnc" id="L340" title="All 2 branches missed.">    for (int i = 1; i &lt;= CHECK_RETRY_COUNT; i++) {</span>
-<span class="nc" id="L341">      BundleStatusCall call = new BundleStatusCall(httpClient, context, props.getBundleStatusUrl(),</span>
-<span class="nc" id="L342">          props.getBundleStatusWhitelistBundleNames());</span>
-<span class="nc" id="L343">      BundleStatus bundleStatus = executeHttpCallWithRetry(call, 0);</span>
+<span class="nc" id="L341">    log.info(&quot;Check bundle activation status...&quot;);</span>
+<span class="nc bnc" id="L342" title="All 2 branches missed.">    for (int i = 1; i &lt;= CHECK_RETRY_COUNT; i++) {</span>
+<span class="nc" id="L343">      BundleStatusCall call = new BundleStatusCall(httpClient, context, props.getBundleStatusUrl(),</span>
+<span class="nc" id="L344">          props.getBundleStatusWhitelistBundleNames());</span>
+<span class="nc" id="L345">      BundleStatus bundleStatus = executeHttpCallWithRetry(call, 0);</span>
 
-<span class="nc" id="L345">      boolean instanceReady = true;</span>
+<span class="nc" id="L347">      boolean instanceReady = true;</span>
 
       // check if bundles are still stopping/staring
-<span class="nc bnc" id="L348" title="All 2 branches missed.">      if (!bundleStatus.isAllBundlesRunning()) {</span>
-<span class="nc" id="L349">        log.info(&quot;Bundles starting/stopping: {} - wait {} sec (max. {} sec) ...&quot;,</span>
-<span class="nc" id="L350">            bundleStatus.getStatusLineCompact(), WAIT_INTERVAL_SEC, props.getBundleStatusWaitLimitSec());</span>
-<span class="nc" id="L351">        sleep(WAIT_INTERVAL_SEC);</span>
-<span class="nc" id="L352">        instanceReady = false;</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">      if (!bundleStatus.isAllBundlesRunning()) {</span>
+<span class="nc" id="L351">        log.info(&quot;Bundles starting/stopping: {} - wait {} sec (max. {} sec) ...&quot;,</span>
+<span class="nc" id="L352">            bundleStatus.getStatusLineCompact(), WAIT_INTERVAL_SEC, props.getBundleStatusWaitLimitSec());</span>
+<span class="nc" id="L353">        sleep(WAIT_INTERVAL_SEC);</span>
+<span class="nc" id="L354">        instanceReady = false;</span>
       }
 
       // check if any of the blacklisted bundles is still present
-<span class="nc bnc" id="L356" title="All 2 branches missed.">      if (instanceReady) {</span>
-<span class="nc bnc" id="L357" title="All 2 branches missed.">        for (Pattern blacklistBundleNamePattern : props.getBundleStatusBlacklistBundleNames()) {</span>
-<span class="nc" id="L358">          String bundleSymbolicName = bundleStatus.getMatchingBundle(blacklistBundleNamePattern);</span>
-<span class="nc bnc" id="L359" title="All 2 branches missed.">          if (bundleSymbolicName != null) {</span>
-<span class="nc" id="L360">            log.info(&quot;Bundle '{}' is still deployed - wait {} sec (max. {} sec) ...&quot;,</span>
-<span class="nc" id="L361">                bundleSymbolicName, WAIT_INTERVAL_SEC, props.getBundleStatusWaitLimitSec());</span>
-<span class="nc" id="L362">            sleep(WAIT_INTERVAL_SEC);</span>
-<span class="nc" id="L363">            instanceReady = false;</span>
-<span class="nc" id="L364">            break;</span>
+<span class="nc bnc" id="L358" title="All 2 branches missed.">      if (instanceReady) {</span>
+<span class="nc bnc" id="L359" title="All 2 branches missed.">        for (Pattern blacklistBundleNamePattern : props.getBundleStatusBlacklistBundleNames()) {</span>
+<span class="nc" id="L360">          String bundleSymbolicName = bundleStatus.getMatchingBundle(blacklistBundleNamePattern);</span>
+<span class="nc bnc" id="L361" title="All 2 branches missed.">          if (bundleSymbolicName != null) {</span>
+<span class="nc" id="L362">            log.info(&quot;Bundle '{}' is still deployed - wait {} sec (max. {} sec) ...&quot;,</span>
+<span class="nc" id="L363">                bundleSymbolicName, WAIT_INTERVAL_SEC, props.getBundleStatusWaitLimitSec());</span>
+<span class="nc" id="L364">            sleep(WAIT_INTERVAL_SEC);</span>
+<span class="nc" id="L365">            instanceReady = false;</span>
+<span class="nc" id="L366">            break;</span>
           }
-<span class="nc" id="L366">        }</span>
+<span class="nc" id="L368">        }</span>
       }
 
       // instance is ready
-<span class="nc bnc" id="L370" title="All 2 branches missed.">      if (instanceReady) {</span>
-<span class="nc" id="L371">        break;</span>
+<span class="nc bnc" id="L372" title="All 2 branches missed.">      if (instanceReady) {</span>
+<span class="nc" id="L373">        break;</span>
       }
     }
-<span class="nc" id="L374">  }</span>
+<span class="nc" id="L376">  }</span>
+
+  /**
+   * Wait for system ready status to get OK.
+   * @param httpClient HTTP client
+   * @param context HTTP client context
+   */
+  @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
+  public void waitForSystemReady(CloseableHttpClient httpClient, HttpClientContext context) {
+<span class="nc bnc" id="L385" title="All 2 branches missed.">    if (StringUtils.isBlank(props.getSystemReadyUrl())) {</span>
+<span class="nc" id="L386">      log.debug(&quot;Skipping check for system ready because no systemReadyURL is defined.&quot;);</span>
+<span class="nc" id="L387">      return;</span>
+    }
+
+<span class="nc" id="L390">    final int WAIT_INTERVAL_SEC = 3;</span>
+<span class="nc" id="L391">    final long CHECK_RETRY_COUNT = props.getSystemReadyWaitLimitSec() / WAIT_INTERVAL_SEC;</span>
+
+<span class="nc" id="L393">    log.info(&quot;Check system ready status...&quot;);</span>
+<span class="nc" id="L394">    boolean systemReady = true;</span>
+<span class="nc bnc" id="L395" title="All 2 branches missed.">    for (int i = 1; i &lt;= CHECK_RETRY_COUNT; i++) {</span>
+<span class="nc bnc" id="L396" title="All 2 branches missed.">      boolean lastTry = (i == CHECK_RETRY_COUNT);</span>
+
+<span class="nc" id="L398">      SystemReadyStatusCall call = new SystemReadyStatusCall(httpClient, context, props.getSystemReadyUrl());</span>
+<span class="nc" id="L399">      SystemReadyStatus systemReadyStatus = executeHttpCallWithRetry(call, 0);</span>
+
+      // check if bundles are still stopping/staring
+<span class="nc bnc" id="L402" title="All 2 branches missed.">      if (!systemReadyStatus.isSystemReadyOK()) {</span>
+<span class="nc bnc" id="L403" title="All 2 branches missed.">        if (lastTry) {</span>
+<span class="nc" id="L404">          throw new PackageManagerException(&quot;System is NOT ready (&quot; + systemReadyStatus.getOverallResult() + &quot;) - package deployment failed.\n&quot;</span>
+<span class="nc" id="L405">              + systemReadyStatus.getFailureInfoString());</span>
+        }
+<span class="nc" id="L407">        log.warn(&quot;System is NOT ready ({}) - wait {} sec (max. {} sec) ...\n{}&quot;,</span>
+<span class="nc" id="L408">            systemReadyStatus.getOverallResult(), WAIT_INTERVAL_SEC, props.getSystemReadyWaitLimitSec(),</span>
+<span class="nc" id="L409">            systemReadyStatus.getFailureInfoString());</span>
+<span class="nc" id="L410">        sleep(WAIT_INTERVAL_SEC);</span>
+<span class="nc" id="L411">        systemReady = false;</span>
+      }
+
+      // instance is ready
+<span class="nc bnc" id="L415" title="All 2 branches missed.">      if (systemReady) {</span>
+<span class="nc" id="L416">        break;</span>
+      }
+    }
+<span class="nc" id="L419">  }</span>
 
   /**
    * Wait for package manager install status to become finished.
@@ -380,45 +425,45 @@ public final class PackageManagerHelper {
    */
   @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
   public void waitForPackageManagerInstallStatusFinished(CloseableHttpClient httpClient, HttpClientContext context) {
-<span class="nc bnc" id="L383" title="All 2 branches missed.">    if (StringUtils.isBlank(props.getPackageManagerInstallStatusURL())) {</span>
-<span class="nc" id="L384">      log.debug(&quot;Skipping check for package manager install state because no packageManagerInstallStatusURL is defined.&quot;);</span>
-<span class="nc" id="L385">      return;</span>
+<span class="nc bnc" id="L428" title="All 2 branches missed.">    if (StringUtils.isBlank(props.getPackageManagerInstallStatusURL())) {</span>
+<span class="nc" id="L429">      log.debug(&quot;Skipping check for package manager install state because no packageManagerInstallStatusURL is defined.&quot;);</span>
+<span class="nc" id="L430">      return;</span>
     }
 
-<span class="nc" id="L388">    final int WAIT_INTERVAL_SEC = 3;</span>
-<span class="nc" id="L389">    final long CHECK_RETRY_COUNT = props.getPackageManagerInstallStatusWaitLimitSec() / WAIT_INTERVAL_SEC;</span>
+<span class="nc" id="L433">    final int WAIT_INTERVAL_SEC = 3;</span>
+<span class="nc" id="L434">    final long CHECK_RETRY_COUNT = props.getPackageManagerInstallStatusWaitLimitSec() / WAIT_INTERVAL_SEC;</span>
 
-<span class="nc" id="L391">    log.info(&quot;Check package manager installation status...&quot;);</span>
-<span class="nc bnc" id="L392" title="All 2 branches missed.">    for (int i = 1; i &lt;= CHECK_RETRY_COUNT; i++) {</span>
-<span class="nc" id="L393">      PackageManagerInstallStatusCall call = new PackageManagerInstallStatusCall(httpClient, context,</span>
-<span class="nc" id="L394">          props.getPackageManagerInstallStatusURL());</span>
-<span class="nc" id="L395">      PackageManagerInstallStatus packageManagerStatus = executeHttpCallWithRetry(call, 0);</span>
+<span class="nc" id="L436">    log.info(&quot;Check package manager installation status...&quot;);</span>
+<span class="nc bnc" id="L437" title="All 2 branches missed.">    for (int i = 1; i &lt;= CHECK_RETRY_COUNT; i++) {</span>
+<span class="nc" id="L438">      PackageManagerInstallStatusCall call = new PackageManagerInstallStatusCall(httpClient, context,</span>
+<span class="nc" id="L439">          props.getPackageManagerInstallStatusURL());</span>
+<span class="nc" id="L440">      PackageManagerInstallStatus packageManagerStatus = executeHttpCallWithRetry(call, 0);</span>
 
-<span class="nc" id="L397">      boolean instanceReady = true;</span>
+<span class="nc" id="L442">      boolean instanceReady = true;</span>
 
       // check if package manager is still installing packages
-<span class="nc bnc" id="L400" title="All 2 branches missed.">      if (!packageManagerStatus.isFinished()) {</span>
-<span class="nc" id="L401">        log.info(&quot;Packager manager not ready: {} packages left for installation - wait {} sec (max. {} sec) ...&quot;,</span>
-<span class="nc" id="L402">            packageManagerStatus.getItemCount(), WAIT_INTERVAL_SEC, props.getPackageManagerInstallStatusWaitLimitSec());</span>
-<span class="nc" id="L403">        sleep(WAIT_INTERVAL_SEC);</span>
-<span class="nc" id="L404">        instanceReady = false;</span>
+<span class="nc bnc" id="L445" title="All 2 branches missed.">      if (!packageManagerStatus.isFinished()) {</span>
+<span class="nc" id="L446">        log.info(&quot;Packager manager not ready: {} packages left for installation - wait {} sec (max. {} sec) ...&quot;,</span>
+<span class="nc" id="L447">            packageManagerStatus.getItemCount(), WAIT_INTERVAL_SEC, props.getPackageManagerInstallStatusWaitLimitSec());</span>
+<span class="nc" id="L448">        sleep(WAIT_INTERVAL_SEC);</span>
+<span class="nc" id="L449">        instanceReady = false;</span>
       }
 
       // instance is ready
-<span class="nc bnc" id="L408" title="All 2 branches missed.">      if (instanceReady) {</span>
-<span class="nc" id="L409">        break;</span>
+<span class="nc bnc" id="L453" title="All 2 branches missed.">      if (instanceReady) {</span>
+<span class="nc" id="L454">        break;</span>
       }
     }
-<span class="nc" id="L412">  }</span>
+<span class="nc" id="L457">  }</span>
 
   private void sleep(int sec) {
     try {
-<span class="nc" id="L416">      Thread.sleep(sec * DateUtils.MILLIS_PER_SECOND);</span>
+<span class="nc" id="L461">      Thread.sleep(sec * DateUtils.MILLIS_PER_SECOND);</span>
     }
-<span class="nc" id="L418">    catch (InterruptedException e) {</span>
+<span class="nc" id="L463">    catch (InterruptedException e) {</span>
       // ignore
-<span class="nc" id="L420">    }</span>
-<span class="nc" id="L421">  }</span>
+<span class="nc" id="L465">    }</span>
+<span class="nc" id="L466">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

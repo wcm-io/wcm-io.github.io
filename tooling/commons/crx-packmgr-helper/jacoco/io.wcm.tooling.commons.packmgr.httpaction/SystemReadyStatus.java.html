@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SystemReadyStatus.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CRX Package Manager Helper</a> &gt; <a href="index.source.html" class="el_package">io.wcm.tooling.commons.packmgr.httpaction</a> &gt; <span class="el_source">SystemReadyStatus.java</span></div><h1>SystemReadyStatus.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2025 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.tooling.commons.packmgr.httpaction;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+/**
+ * POJO to map system ready JSON response to via Jackson.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+public final class SystemReadyStatus {
+
+  private final String overallResult;
+  private final List&lt;Result&gt; results;
+
+  private static final String STATUS_OK = &quot;OK&quot;;
+
+  /**
+   * Constructor.
+   * @param overallResult overall result
+   * @param results list of individual results
+   */
+  public SystemReadyStatus(@JsonProperty(&quot;overallResult&quot;) String overallResult,
+<span class="fc" id="L48">      @JsonProperty(&quot;results&quot;) List&lt;Result&gt; results) {</span>
+<span class="fc" id="L49">    this.overallResult = overallResult;</span>
+<span class="fc" id="L50">    this.results = results;</span>
+<span class="fc" id="L51">  }</span>
+
+  public String getOverallResult() {
+<span class="fc" id="L54">    return overallResult;</span>
+  }
+
+  public List&lt;Result&gt; getResults() {
+<span class="fc" id="L58">    return results;</span>
+  }
+
+  /**
+   * Checks if the overall system ready status is OK.
+   * @return true if overall status is OK
+   */
+  public boolean isSystemReadyOK() {
+<span class="fc bfc" id="L66" title="All 4 branches covered.">    return StringUtils.isBlank(overallResult) || Strings.CI.equals(overallResult, STATUS_OK);</span>
+  }
+
+  /**
+   * Returns a human-readable string with failure information if the system is not ready.
+   * If the system is ready, returns null.
+   * @return failure information string or null
+   */
+  public String getFailureInfoString() {
+<span class="fc bfc" id="L75" title="All 2 branches covered.">    if (isSystemReadyOK()) {</span>
+<span class="fc" id="L76">      return null;</span>
+    }
+<span class="fc" id="L78">    StringBuilder sb = new StringBuilder();</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    for (Result result : Optional.ofNullable(results).orElse(List.of())) {</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">      if (!Strings.CI.equals(result.getStatus(), STATUS_OK)) {</span>
+<span class="fc" id="L81">        sb.append(&quot;- &quot;).append(result.getStatus()).append(&quot;: &quot;).append(result.getName()).append(&quot;\n&quot;);</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        for (Message message : Optional.ofNullable(result.getMessages()).orElse(List.of())) {</span>
+<span class="fc" id="L83">          String notOkStatus = &quot;&quot;;</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">          if (!Strings.CI.equals(message.getStatus(), STATUS_OK)) {</span>
+<span class="fc" id="L85">            notOkStatus = message.getStatus() + &quot;: &quot;;</span>
+          }
+<span class="fc" id="L87">          sb.append(&quot;  * &quot;).append(notOkStatus).append(message.getMessage()).append(&quot;\n&quot;);</span>
+<span class="fc" id="L88">        }</span>
+      }
+<span class="fc" id="L90">    }</span>
+<span class="fc" id="L91">    return sb.toString();</span>
+  }
+
+  /**
+   * Represents a single health check result.
+   */
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static final class Result {
+
+    private final String name;
+    private final String status;
+    private final long timeInMs;
+    private final String finishedAt;
+    private final List&lt;String&gt; tags;
+    private final List&lt;Message&gt; messages;
+
+    /**
+     * Constructor.
+     * @param name name
+     * @param status status
+     * @param timeInMs time in ms
+     * @param finishedAt finished at
+     * @param tags tags
+     * @param messages messages
+     */
+    public Result(@JsonProperty(&quot;name&quot;) String name,
+        @JsonProperty(&quot;status&quot;) String status,
+        @JsonProperty(&quot;timeInMs&quot;) long timeInMs,
+        @JsonProperty(&quot;finishedAt&quot;) String finishedAt,
+        @JsonProperty(&quot;tags&quot;) List&lt;String&gt; tags,
+<span class="fc" id="L121">        @JsonProperty(&quot;messages&quot;) List&lt;Message&gt; messages) {</span>
+<span class="fc" id="L122">      this.name = name;</span>
+<span class="fc" id="L123">      this.status = status;</span>
+<span class="fc" id="L124">      this.timeInMs = timeInMs;</span>
+<span class="fc" id="L125">      this.finishedAt = finishedAt;</span>
+<span class="fc" id="L126">      this.tags = tags;</span>
+<span class="fc" id="L127">      this.messages = messages;</span>
+<span class="fc" id="L128">    }</span>
+
+    public String getName() {
+<span class="fc" id="L131">      return name;</span>
+    }
+
+    public String getStatus() {
+<span class="fc" id="L135">      return status;</span>
+    }
+
+    public long getTimeInMs() {
+<span class="nc" id="L139">      return timeInMs;</span>
+    }
+
+    public String getFinishedAt() {
+<span class="nc" id="L143">      return finishedAt;</span>
+    }
+
+    public List&lt;String&gt; getTags() {
+<span class="nc" id="L147">      return tags;</span>
+    }
+
+    public List&lt;Message&gt; getMessages() {
+<span class="fc" id="L151">      return messages;</span>
+    }
+
+  }
+
+  /**
+   * Represents a message within a health check result.
+   */
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static final class Message {
+
+    private final String status;
+    private final String message;
+
+    /**
+     * Constructor.
+     * @param status status
+     * @param message message
+     */
+    public Message(@JsonProperty(&quot;status&quot;) String status,
+<span class="fc" id="L171">        @JsonProperty(&quot;message&quot;) String message) {</span>
+<span class="fc" id="L172">      this.status = status;</span>
+<span class="fc" id="L173">      this.message = message;</span>
+<span class="fc" id="L174">    }</span>
+
+    public String getStatus() {
+<span class="fc" id="L177">      return status;</span>
+    }
+
+    public String getMessage() {
+<span class="fc" id="L181">      return message;</span>
+    }
+
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
