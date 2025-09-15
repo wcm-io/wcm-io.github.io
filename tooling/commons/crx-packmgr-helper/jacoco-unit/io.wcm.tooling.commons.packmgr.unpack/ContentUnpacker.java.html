@@ -52,6 +52,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.vault.fs.io.DocViewFormat;
@@ -79,17 +80,17 @@ public final class ContentUnpacker {
 
   private static final String MIXINS_PROPERTY = &quot;jcr:mixinTypes&quot;;
   private static final String PRIMARYTYPE_PROPERTY = &quot;jcr:primaryType&quot;;
-<span class="fc" id="L82">  private static final Namespace JCR_NAMESPACE = Namespace.getNamespace(&quot;jcr&quot;, &quot;http://www.jcp.org/jcr/1.0&quot;);</span>
-<span class="fc" id="L83">  private static final Namespace CQ_NAMESPACE = Namespace.getNamespace(&quot;cq&quot;, &quot;http://www.day.com/jcr/cq/1.0&quot;);</span>
-<span class="fc" id="L84">  private static final Pattern FILENAME_NAMESPACE_PATTERN = Pattern.compile(&quot;^([^:]+):(.+)$&quot;);</span>
+<span class="fc" id="L83">  private static final Namespace JCR_NAMESPACE = Namespace.getNamespace(&quot;jcr&quot;, &quot;http://www.jcp.org/jcr/1.0&quot;);</span>
+<span class="fc" id="L84">  private static final Namespace CQ_NAMESPACE = Namespace.getNamespace(&quot;cq&quot;, &quot;http://www.day.com/jcr/cq/1.0&quot;);</span>
+<span class="fc" id="L85">  private static final Pattern FILENAME_NAMESPACE_PATTERN = Pattern.compile(&quot;^([^:]+):(.+)$&quot;);</span>
 
   private static final SAXParserFactory SAX_PARSER_FACTORY;
   static {
-<span class="fc" id="L88">    SAX_PARSER_FACTORY = SAXParserFactory.newInstance();</span>
-<span class="fc" id="L89">    SAX_PARSER_FACTORY.setNamespaceAware(true);</span>
+<span class="fc" id="L89">    SAX_PARSER_FACTORY = SAXParserFactory.newInstance();</span>
+<span class="fc" id="L90">    SAX_PARSER_FACTORY.setNamespaceAware(true);</span>
   }
 
-<span class="fc" id="L92">  private static final DocViewFormat DOCVIEWFORMAT = new DocViewFormat();</span>
+<span class="fc" id="L93">  private static final DocViewFormat DOCVIEWFORMAT = new DocViewFormat();</span>
 
   private final Pattern[] excludeFiles;
   private final Pattern[] excludeNodes;
@@ -102,66 +103,66 @@ public final class ContentUnpacker {
   /**
    * @param properties Configuration properties
    */
-<span class="fc" id="L105">  public ContentUnpacker(ContentUnpackerProperties properties) {</span>
-<span class="fc" id="L106">    this.excludeFiles = toPatternArray(properties.getExcludeFiles());</span>
-<span class="fc" id="L107">    this.excludeNodes = toPatternArray(properties.getExcludeNodes());</span>
-<span class="fc" id="L108">    this.excludeProperties = toPatternArray(properties.getExcludeProperties());</span>
-<span class="fc" id="L109">    this.excludeMixins = toPatternArray(properties.getExcludeMixins());</span>
-<span class="fc" id="L110">    this.markReplicationActivated = properties.isMarkReplicationActivated();</span>
-<span class="fc" id="L111">    this.markReplicationActivatedIncludeNodes = toPatternArray(properties.getMarkReplicationActivatedIncludeNodes());</span>
+<span class="fc" id="L106">  public ContentUnpacker(ContentUnpackerProperties properties) {</span>
+<span class="fc" id="L107">    this.excludeFiles = toPatternArray(properties.getExcludeFiles());</span>
+<span class="fc" id="L108">    this.excludeNodes = toPatternArray(properties.getExcludeNodes());</span>
+<span class="fc" id="L109">    this.excludeProperties = toPatternArray(properties.getExcludeProperties());</span>
+<span class="fc" id="L110">    this.excludeMixins = toPatternArray(properties.getExcludeMixins());</span>
+<span class="fc" id="L111">    this.markReplicationActivated = properties.isMarkReplicationActivated();</span>
+<span class="fc" id="L112">    this.markReplicationActivatedIncludeNodes = toPatternArray(properties.getMarkReplicationActivatedIncludeNodes());</span>
 
-<span class="pc bpc" id="L113" title="1 of 2 branches missed.">    if (StringUtils.isNotBlank(properties.getDateLastReplicated())) {</span>
-<span class="nc" id="L114">      this.dateLastReplicated = properties.getDateLastReplicated();</span>
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">    if (StringUtils.isNotBlank(properties.getDateLastReplicated())) {</span>
+<span class="nc" id="L115">      this.dateLastReplicated = properties.getDateLastReplicated();</span>
     }
     else {
       // set to current date
-<span class="fc" id="L118">      Calendar cal = Calendar.getInstance();</span>
-<span class="fc" id="L119">      cal.set(Calendar.HOUR_OF_DAY, 0);</span>
-<span class="fc" id="L120">      cal.set(Calendar.MINUTE, 0);</span>
-<span class="fc" id="L121">      cal.set(Calendar.SECOND, 0);</span>
-<span class="fc" id="L122">      cal.set(Calendar.MILLISECOND, 0);</span>
-<span class="fc" id="L123">      this.dateLastReplicated = ISO8601.format(cal);</span>
+<span class="fc" id="L119">      Calendar cal = Calendar.getInstance();</span>
+<span class="fc" id="L120">      cal.set(Calendar.HOUR_OF_DAY, 0);</span>
+<span class="fc" id="L121">      cal.set(Calendar.MINUTE, 0);</span>
+<span class="fc" id="L122">      cal.set(Calendar.SECOND, 0);</span>
+<span class="fc" id="L123">      cal.set(Calendar.MILLISECOND, 0);</span>
+<span class="fc" id="L124">      this.dateLastReplicated = ISO8601.format(cal);</span>
     }
-<span class="fc" id="L125">  }</span>
+<span class="fc" id="L126">  }</span>
 
   private static Pattern[] toPatternArray(String[] patternStrings) {
-<span class="fc bfc" id="L128" title="All 2 branches covered.">    if (patternStrings == null) {</span>
-<span class="fc" id="L129">      return new Pattern[0];</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">    if (patternStrings == null) {</span>
+<span class="fc" id="L130">      return new Pattern[0];</span>
     }
-<span class="fc" id="L131">    Pattern[] patterns = new Pattern[patternStrings.length];</span>
-<span class="fc bfc" id="L132" title="All 2 branches covered.">    for (int i = 0; i &lt; patternStrings.length; i++) {</span>
+<span class="fc" id="L132">    Pattern[] patterns = new Pattern[patternStrings.length];</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">    for (int i = 0; i &lt; patternStrings.length; i++) {</span>
       try {
-<span class="fc" id="L134">        patterns[i] = Pattern.compile(patternStrings[i]);</span>
+<span class="fc" id="L135">        patterns[i] = Pattern.compile(patternStrings[i]);</span>
       }
-<span class="nc" id="L136">      catch (PatternSyntaxException ex) {</span>
-<span class="nc" id="L137">        throw new PackageManagerException(&quot;Invalid regexp pattern: &quot; + patternStrings[i], ex);</span>
-<span class="fc" id="L138">      }</span>
+<span class="nc" id="L137">      catch (PatternSyntaxException ex) {</span>
+<span class="nc" id="L138">        throw new PackageManagerException(&quot;Invalid regexp pattern: &quot; + patternStrings[i], ex);</span>
+<span class="fc" id="L139">      }</span>
     }
-<span class="fc" id="L140">    return patterns;</span>
+<span class="fc" id="L141">    return patterns;</span>
   }
 
   private static boolean matches(String name, Pattern[] patterns, boolean defaultIfNotPatternsDefined) {
-<span class="fc bfc" id="L144" title="All 2 branches covered.">    if (patterns.length == 0) {</span>
-<span class="fc" id="L145">      return defaultIfNotPatternsDefined;</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">    if (patterns.length == 0) {</span>
+<span class="fc" id="L146">      return defaultIfNotPatternsDefined;</span>
     }
-<span class="fc bfc" id="L147" title="All 2 branches covered.">    for (Pattern pattern : patterns) {</span>
-<span class="fc bfc" id="L148" title="All 2 branches covered.">      if (pattern.matcher(name).matches()) {</span>
-<span class="fc" id="L149">        return true;</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">    for (Pattern pattern : patterns) {</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">      if (pattern.matcher(name).matches()) {</span>
+<span class="fc" id="L150">        return true;</span>
       }
     }
-<span class="fc" id="L152">    return false;</span>
+<span class="fc" id="L153">    return false;</span>
   }
 
   private boolean applyXmlExcludes(String name) {
-<span class="pc bpc" id="L156" title="3 of 4 branches missed.">    if (this.excludeNodes.length == 0 &amp;&amp; this.excludeProperties.length == 0) {</span>
-<span class="nc" id="L157">      return false;</span>
+<span class="pc bpc" id="L157" title="3 of 4 branches missed.">    if (this.excludeNodes.length == 0 &amp;&amp; this.excludeProperties.length == 0) {</span>
+<span class="nc" id="L158">      return false;</span>
     }
-<span class="fc" id="L159">    return isJcrContentXmlFile(name);</span>
+<span class="fc" id="L160">    return isJcrContentXmlFile(name);</span>
   }
 
   private boolean isJcrContentXmlFile(String name) {
-<span class="pc bpc" id="L163" title="1 of 2 branches missed.">    return StringUtils.equalsIgnoreCase(FilenameUtils.getExtension(name), &quot;xml&quot;)</span>
-<span class="pc bpc" id="L164" title="1 of 2 branches missed.">        &amp;&amp; StringUtils.startsWith(name, &quot;jcr_root/&quot;);</span>
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">    return Strings.CI.equals(FilenameUtils.getExtension(name), &quot;xml&quot;)</span>
+<span class="pc bpc" id="L165" title="1 of 2 branches missed.">        &amp;&amp; Strings.CS.startsWith(name, &quot;jcr_root/&quot;);</span>
   }
 
   /**
@@ -170,67 +171,67 @@ public final class ContentUnpacker {
    * @param outputDirectory Output directory
    */
   public void unpack(File file, File outputDirectory) {
-<span class="fc" id="L173">    try (ZipFile zipFile = new ZipFile.Builder().setFile(file).get()) {</span>
-<span class="fc" id="L174">      Enumeration&lt;ZipArchiveEntry&gt; entries = zipFile.getEntries();</span>
-<span class="fc bfc" id="L175" title="All 2 branches covered.">      while (entries.hasMoreElements()) {</span>
-<span class="fc" id="L176">        ZipArchiveEntry entry = entries.nextElement();</span>
-<span class="fc bfc" id="L177" title="All 2 branches covered.">        if (!matches(entry.getName(), excludeFiles, false)) {</span>
-<span class="fc" id="L178">          unpackEntry(zipFile, entry, outputDirectory);</span>
+<span class="fc" id="L174">    try (ZipFile zipFile = new ZipFile.Builder().setFile(file).get()) {</span>
+<span class="fc" id="L175">      Enumeration&lt;ZipArchiveEntry&gt; entries = zipFile.getEntries();</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">      while (entries.hasMoreElements()) {</span>
+<span class="fc" id="L177">        ZipArchiveEntry entry = entries.nextElement();</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">        if (!matches(entry.getName(), excludeFiles, false)) {</span>
+<span class="fc" id="L179">          unpackEntry(zipFile, entry, outputDirectory);</span>
         }
-<span class="fc" id="L180">      }</span>
+<span class="fc" id="L181">      }</span>
     }
-<span class="nc" id="L182">    catch (IOException ex) {</span>
-<span class="nc" id="L183">      throw new PackageManagerException(&quot;Error reading content package &quot; + file.getAbsolutePath(), ex);</span>
-<span class="fc" id="L184">    }</span>
-<span class="fc" id="L185">  }</span>
+<span class="nc" id="L183">    catch (IOException ex) {</span>
+<span class="nc" id="L184">      throw new PackageManagerException(&quot;Error reading content package &quot; + file.getAbsolutePath(), ex);</span>
+<span class="fc" id="L185">    }</span>
+<span class="fc" id="L186">  }</span>
 
   @SuppressFBWarnings(&quot;RV_RETURN_VALUE_IGNORED_BAD_PRACTICE&quot;)
   private void unpackEntry(ZipFile zipFile, ZipArchiveEntry entry, File outputDirectory) throws IOException {
-<span class="fc bfc" id="L189" title="All 2 branches covered.">    if (entry.isDirectory()) {</span>
-<span class="fc" id="L190">      File directory = FileUtils.getFile(outputDirectory, entry.getName());</span>
-<span class="fc" id="L191">      directory.mkdirs();</span>
-<span class="fc" id="L192">    }</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">    if (entry.isDirectory()) {</span>
+<span class="fc" id="L191">      File directory = FileUtils.getFile(outputDirectory, entry.getName());</span>
+<span class="fc" id="L192">      directory.mkdirs();</span>
+<span class="fc" id="L193">    }</span>
     else {
-<span class="fc" id="L194">      Set&lt;String&gt; namespacePrefixes = null;</span>
-<span class="pc bpc" id="L195" title="1 of 2 branches missed.">      if (applyXmlExcludes(entry.getName())) {</span>
-<span class="fc" id="L196">        namespacePrefixes = getNamespacePrefixes(zipFile, entry);</span>
+<span class="fc" id="L195">      Set&lt;String&gt; namespacePrefixes = null;</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">      if (applyXmlExcludes(entry.getName())) {</span>
+<span class="fc" id="L197">        namespacePrefixes = getNamespacePrefixes(zipFile, entry);</span>
       }
 
-<span class="fc" id="L199">      try (InputStream entryStream = zipFile.getInputStream(entry)) {</span>
-<span class="fc" id="L200">        File outputFile = FileUtils.getFile(outputDirectory, entry.getName());</span>
-<span class="pc bpc" id="L201" title="1 of 2 branches missed.">        if (outputFile.exists()) {</span>
-<span class="nc" id="L202">          outputFile.delete();</span>
+<span class="fc" id="L200">      try (InputStream entryStream = zipFile.getInputStream(entry)) {</span>
+<span class="fc" id="L201">        File outputFile = FileUtils.getFile(outputDirectory, entry.getName());</span>
+<span class="pc bpc" id="L202" title="1 of 2 branches missed.">        if (outputFile.exists()) {</span>
+<span class="nc" id="L203">          outputFile.delete();</span>
         }
-<span class="fc" id="L204">        File directory = outputFile.getParentFile();</span>
-<span class="fc" id="L205">        directory.mkdirs();</span>
+<span class="fc" id="L205">        File directory = outputFile.getParentFile();</span>
+<span class="fc" id="L206">        directory.mkdirs();</span>
 
-<span class="fc" id="L207">        try (FileOutputStream fos = new FileOutputStream(outputFile)) {</span>
-<span class="pc bpc" id="L208" title="2 of 4 branches missed.">          if (applyXmlExcludes(entry.getName()) &amp;&amp; namespacePrefixes != null) {</span>
+<span class="fc" id="L208">        try (FileOutputStream fos = new FileOutputStream(outputFile)) {</span>
+<span class="pc bpc" id="L209" title="2 of 4 branches missed.">          if (applyXmlExcludes(entry.getName()) &amp;&amp; namespacePrefixes != null) {</span>
             // write file with XML filtering
             try {
-<span class="fc" id="L211">              writeXmlWithExcludes(entry, entryStream, fos, namespacePrefixes);</span>
+<span class="fc" id="L212">              writeXmlWithExcludes(entry, entryStream, fos, namespacePrefixes);</span>
             }
-<span class="nc" id="L213">            catch (JDOMException ex) {</span>
-<span class="nc" id="L214">              throw new PackageManagerException(&quot;Unable to parse XML file: &quot; + entry.getName(), ex);</span>
-<span class="fc" id="L215">            }</span>
+<span class="nc" id="L214">            catch (JDOMException ex) {</span>
+<span class="nc" id="L215">              throw new PackageManagerException(&quot;Unable to parse XML file: &quot; + entry.getName(), ex);</span>
+<span class="fc" id="L216">            }</span>
           }
           else {
             // write file directly without XML filtering
-<span class="nc" id="L219">            IOUtils.copy(entryStream, fos);</span>
+<span class="nc" id="L220">            IOUtils.copy(entryStream, fos);</span>
           }
         }
-<span class="pc bpc" id="L222" title="1 of 2 branches missed.">        if (isJcrContentXmlFile(entry.getName())) {</span>
+<span class="pc bpc" id="L223" title="1 of 2 branches missed.">        if (isJcrContentXmlFile(entry.getName())) {</span>
           // format output file using DocView format
           try {
-<span class="fc" id="L225">            DOCVIEWFORMAT.format(outputFile, false);</span>
+<span class="fc" id="L226">            DOCVIEWFORMAT.format(outputFile, false);</span>
           }
-<span class="nc" id="L227">          catch (IOException ex) {</span>
-<span class="nc" id="L228">            throw new IOException(&quot;Unable to apply DocView format to file: &quot; + outputFile.getAbsolutePath(), ex);</span>
-<span class="fc" id="L229">          }</span>
+<span class="nc" id="L228">          catch (IOException ex) {</span>
+<span class="nc" id="L229">            throw new IOException(&quot;Unable to apply DocView format to file: &quot; + outputFile.getAbsolutePath(), ex);</span>
+<span class="fc" id="L230">          }</span>
         }
       }
     }
-<span class="fc" id="L233">  }</span>
+<span class="fc" id="L234">  }</span>
 
   /**
    * Parses XML file with namespace-aware SAX parser to get defined namespaces prefixes in order of appearance
@@ -241,221 +242,221 @@ public final class ContentUnpacker {
    *         Returns null if given XML file does not contain FileVault XML content.
    */
   private Set&lt;String&gt; getNamespacePrefixes(ZipFile zipFile, ZipArchiveEntry entry) throws IOException {
-<span class="fc" id="L244">    try (InputStream entryStream = zipFile.getInputStream(entry)) {</span>
-<span class="fc" id="L245">      SAXParser parser = SAX_PARSER_FACTORY.newSAXParser();</span>
-<span class="fc" id="L246">      final Set&lt;String&gt; prefixes = new LinkedHashSet&lt;&gt;();</span>
+<span class="fc" id="L245">    try (InputStream entryStream = zipFile.getInputStream(entry)) {</span>
+<span class="fc" id="L246">      SAXParser parser = SAX_PARSER_FACTORY.newSAXParser();</span>
+<span class="fc" id="L247">      final Set&lt;String&gt; prefixes = new LinkedHashSet&lt;&gt;();</span>
 
-<span class="fc" id="L248">      final AtomicBoolean foundRootElement = new AtomicBoolean(false);</span>
-<span class="fc" id="L249">      DefaultHandler handler = new DefaultHandler() {</span>
+<span class="fc" id="L249">      final AtomicBoolean foundRootElement = new AtomicBoolean(false);</span>
+<span class="fc" id="L250">      DefaultHandler handler = new DefaultHandler() {</span>
         @Override
         public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
           // validate that XML file contains FileVault XML content
-<span class="fc bfc" id="L253" title="All 4 branches covered.">          if (StringUtils.equals(uri, JCR_NAMESPACE.getURI()) &amp;&amp; StringUtils.equals(localName, &quot;root&quot;)) {</span>
-<span class="fc" id="L254">            foundRootElement.set(true);</span>
+<span class="fc bfc" id="L254" title="All 4 branches covered.">          if (Strings.CS.equals(uri, JCR_NAMESPACE.getURI()) &amp;&amp; Strings.CS.equals(localName, &quot;root&quot;)) {</span>
+<span class="fc" id="L255">            foundRootElement.set(true);</span>
           }
-<span class="fc" id="L256">        }</span>
+<span class="fc" id="L257">        }</span>
         @Override
         public void startPrefixMapping(String prefix, String uri) throws SAXException {
-<span class="pc bpc" id="L259" title="1 of 2 branches missed.">          if (StringUtils.isNotBlank(prefix)) {</span>
-<span class="fc" id="L260">            prefixes.add(prefix);</span>
+<span class="pc bpc" id="L260" title="1 of 2 branches missed.">          if (StringUtils.isNotBlank(prefix)) {</span>
+<span class="fc" id="L261">            prefixes.add(prefix);</span>
           }
-<span class="fc" id="L262">        }</span>
+<span class="fc" id="L263">        }</span>
       };
-<span class="fc" id="L264">      parser.parse(entryStream, handler);</span>
+<span class="fc" id="L265">      parser.parse(entryStream, handler);</span>
 
-<span class="pc bpc" id="L266" title="1 of 2 branches missed.">      if (!foundRootElement.get()) {</span>
-<span class="nc" id="L267">        return null;</span>
+<span class="pc bpc" id="L267" title="1 of 2 branches missed.">      if (!foundRootElement.get()) {</span>
+<span class="nc" id="L268">        return null;</span>
       }
       else {
-<span class="fc" id="L270">        return prefixes;</span>
+<span class="fc" id="L271">        return prefixes;</span>
       }
-<span class="nc bnc" id="L272" title="All 2 branches missed.">    }</span>
-<span class="nc" id="L273">    catch (IOException | SAXException | ParserConfigurationException ex) {</span>
-<span class="nc" id="L274">      throw new IOException(&quot;Error parsing &quot; + entry.getName(), ex);</span>
+<span class="nc bnc" id="L273" title="All 2 branches missed.">    }</span>
+<span class="nc" id="L274">    catch (IOException | SAXException | ParserConfigurationException ex) {</span>
+<span class="nc" id="L275">      throw new IOException(&quot;Error parsing &quot; + entry.getName(), ex);</span>
     }
   }
 
   private void writeXmlWithExcludes(ZipArchiveEntry entry, InputStream inputStream, OutputStream outputStream, Set&lt;String&gt; namespacePrefixes)
       throws IOException, JDOMException {
-<span class="fc" id="L280">    SAXBuilder saxBuilder = new SAXBuilder();</span>
-<span class="fc" id="L281">    saxBuilder.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, &quot;&quot;);</span>
-<span class="fc" id="L282">    saxBuilder.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, &quot;&quot;);</span>
-<span class="fc" id="L283">    Document doc = saxBuilder.build(inputStream);</span>
+<span class="fc" id="L281">    SAXBuilder saxBuilder = new SAXBuilder();</span>
+<span class="fc" id="L282">    saxBuilder.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, &quot;&quot;);</span>
+<span class="fc" id="L283">    saxBuilder.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, &quot;&quot;);</span>
+<span class="fc" id="L284">    Document doc = saxBuilder.build(inputStream);</span>
 
-<span class="fc" id="L285">    Set&lt;String&gt; namespacePrefixesActuallyUsed = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L286">    Set&lt;String&gt; namespacePrefixesActuallyUsed = new HashSet&lt;&gt;();</span>
 
     // check for namespace prefix in file name
-<span class="fc" id="L288">    String namespacePrefix = getNamespacePrefix(entry.getName());</span>
-<span class="pc bpc" id="L289" title="1 of 2 branches missed.">    if (namespacePrefix != null) {</span>
-<span class="nc" id="L290">      namespacePrefixesActuallyUsed.add(namespacePrefix);</span>
+<span class="fc" id="L289">    String namespacePrefix = getNamespacePrefix(entry.getName());</span>
+<span class="pc bpc" id="L290" title="1 of 2 branches missed.">    if (namespacePrefix != null) {</span>
+<span class="nc" id="L291">      namespacePrefixesActuallyUsed.add(namespacePrefix);</span>
     }
 
-<span class="fc" id="L293">    applyXmlExcludes(doc.getRootElement(), getParentPath(entry), namespacePrefixesActuallyUsed, false);</span>
+<span class="fc" id="L294">    applyXmlExcludes(doc.getRootElement(), getParentPath(entry), namespacePrefixesActuallyUsed, false);</span>
 
-<span class="fc" id="L295">    XMLOutputter outputter = new XMLOutputter(Format.getPrettyFormat()</span>
-<span class="fc" id="L296">        .setIndent(&quot;    &quot;)</span>
-<span class="fc" id="L297">        .setLineSeparator(LineSeparator.UNIX));</span>
-<span class="fc" id="L298">    outputter.setXMLOutputProcessor(new NamspaceOrderedXmlProcessor(namespacePrefixes, namespacePrefixesActuallyUsed));</span>
-<span class="fc" id="L299">    outputter.output(doc, outputStream);</span>
-<span class="fc" id="L300">    outputStream.flush();</span>
-<span class="fc" id="L301">  }</span>
+<span class="fc" id="L296">    XMLOutputter outputter = new XMLOutputter(Format.getPrettyFormat()</span>
+<span class="fc" id="L297">        .setIndent(&quot;    &quot;)</span>
+<span class="fc" id="L298">        .setLineSeparator(LineSeparator.UNIX));</span>
+<span class="fc" id="L299">    outputter.setXMLOutputProcessor(new NamspaceOrderedXmlProcessor(namespacePrefixes, namespacePrefixesActuallyUsed));</span>
+<span class="fc" id="L300">    outputter.output(doc, outputStream);</span>
+<span class="fc" id="L301">    outputStream.flush();</span>
+<span class="fc" id="L302">  }</span>
 
   static String getNamespacePrefix(String path) {
-<span class="fc" id="L304">    String fileName = FilenameUtils.getName(path);</span>
-<span class="fc bfc" id="L305" title="All 2 branches covered.">    if (StringUtils.equals(DOT_CONTENT_XML, fileName)) {</span>
-<span class="fc" id="L306">      String parentFolderName = FilenameUtils.getName(FilenameUtils.getPathNoEndSeparator(path));</span>
-<span class="pc bpc" id="L307" title="1 of 2 branches missed.">      if (parentFolderName != null) {</span>
-<span class="fc" id="L308">        String nodeName = PlatformNameFormat.getRepositoryName(parentFolderName);</span>
-<span class="fc" id="L309">        Matcher matcher = FILENAME_NAMESPACE_PATTERN.matcher(nodeName);</span>
-<span class="fc bfc" id="L310" title="All 2 branches covered.">        if (matcher.matches()) {</span>
-<span class="fc" id="L311">          return matcher.group(1);</span>
+<span class="fc" id="L305">    String fileName = FilenameUtils.getName(path);</span>
+<span class="fc bfc" id="L306" title="All 2 branches covered.">    if (Strings.CS.equals(DOT_CONTENT_XML, fileName)) {</span>
+<span class="fc" id="L307">      String parentFolderName = FilenameUtils.getName(FilenameUtils.getPathNoEndSeparator(path));</span>
+<span class="pc bpc" id="L308" title="1 of 2 branches missed.">      if (parentFolderName != null) {</span>
+<span class="fc" id="L309">        String nodeName = PlatformNameFormat.getRepositoryName(parentFolderName);</span>
+<span class="fc" id="L310">        Matcher matcher = FILENAME_NAMESPACE_PATTERN.matcher(nodeName);</span>
+<span class="fc bfc" id="L311" title="All 2 branches covered.">        if (matcher.matches()) {</span>
+<span class="fc" id="L312">          return matcher.group(1);</span>
         }
       }
     }
-<span class="fc" id="L315">    return null;</span>
+<span class="fc" id="L316">    return null;</span>
   }
 
   private String getParentPath(ZipArchiveEntry entry) {
-<span class="fc" id="L319">    return StringUtils.removeEnd(StringUtils.removeStart(entry.getName(), ROOT_DIR), &quot;/&quot; + DOT_CONTENT_XML);</span>
+<span class="fc" id="L320">    return Strings.CS.removeEnd(Strings.CS.removeStart(entry.getName(), ROOT_DIR), &quot;/&quot; + DOT_CONTENT_XML);</span>
   }
 
   private String buildElementPath(Element element, String parentPath) {
-<span class="fc" id="L323">    StringBuilder path = new StringBuilder(parentPath);</span>
-<span class="fc bfc" id="L324" title="All 2 branches covered.">    if (!StringUtils.equals(element.getQualifiedName(), &quot;jcr:root&quot;)) {</span>
-<span class="fc" id="L325">      path.append(&quot;/&quot;).append(element.getQualifiedName());</span>
+<span class="fc" id="L324">    StringBuilder path = new StringBuilder(parentPath);</span>
+<span class="fc bfc" id="L325" title="All 2 branches covered.">    if (!Strings.CS.equals(element.getQualifiedName(), &quot;jcr:root&quot;)) {</span>
+<span class="fc" id="L326">      path.append(&quot;/&quot;).append(element.getQualifiedName());</span>
     }
-<span class="fc" id="L327">    return path.toString();</span>
+<span class="fc" id="L328">    return path.toString();</span>
   }
 
   @SuppressWarnings(&quot;PMD.EmptyControlStatement&quot;)
   private void applyXmlExcludes(Element element, String parentPath, Set&lt;String&gt; namespacePrefixesActuallyUsed,
       boolean insideReplicationElement) {
-<span class="fc" id="L333">    String path = buildElementPath(element, parentPath);</span>
-<span class="fc bfc" id="L334" title="All 2 branches covered.">    if (matches(path, this.excludeNodes, false)) {</span>
-<span class="fc" id="L335">      element.detach();</span>
-<span class="fc" id="L336">      return;</span>
+<span class="fc" id="L334">    String path = buildElementPath(element, parentPath);</span>
+<span class="fc bfc" id="L335" title="All 2 branches covered.">    if (matches(path, this.excludeNodes, false)) {</span>
+<span class="fc" id="L336">      element.detach();</span>
+<span class="fc" id="L337">      return;</span>
     }
-<span class="fc" id="L338">    collectNamespacePrefix(namespacePrefixesActuallyUsed, element.getNamespacePrefix());</span>
+<span class="fc" id="L339">    collectNamespacePrefix(namespacePrefixesActuallyUsed, element.getNamespacePrefix());</span>
 
-<span class="fc" id="L340">    String jcrPrimaryType = element.getAttributeValue(&quot;primaryType&quot;, JCR_NAMESPACE);</span>
-<span class="pc bpc" id="L341" title="2 of 4 branches missed.">    boolean isRepositoryUserGroup = StringUtils.equals(jcrPrimaryType, &quot;rep:User&quot;) || StringUtils.equals(jcrPrimaryType, &quot;rep:Group&quot;);</span>
-<span class="fc bfc" id="L342" title="All 2 branches covered.">    boolean isReplicationElement = StringUtils.equals(jcrPrimaryType, &quot;cq:Page&quot;)</span>
-<span class="pc bpc" id="L343" title="1 of 2 branches missed.">        || StringUtils.equals(jcrPrimaryType, &quot;dam:Asset&quot;)</span>
-<span class="pc bpc" id="L344" title="1 of 2 branches missed.">        || StringUtils.equals(jcrPrimaryType, &quot;cq:Template&quot;);</span>
-<span class="fc bfc" id="L345" title="All 4 branches covered.">    boolean isContent = insideReplicationElement &amp;&amp; StringUtils.equals(element.getQualifiedName(), &quot;jcr:content&quot;);</span>
-<span class="fc bfc" id="L346" title="All 4 branches covered.">    boolean setReplicationAttributes = isContent &amp;&amp; markReplicationActivated;</span>
+<span class="fc" id="L341">    String jcrPrimaryType = element.getAttributeValue(&quot;primaryType&quot;, JCR_NAMESPACE);</span>
+<span class="pc bpc" id="L342" title="2 of 4 branches missed.">    boolean isRepositoryUserGroup = Strings.CS.equals(jcrPrimaryType, &quot;rep:User&quot;) || Strings.CS.equals(jcrPrimaryType, &quot;rep:Group&quot;);</span>
+<span class="fc bfc" id="L343" title="All 2 branches covered.">    boolean isReplicationElement = Strings.CS.equals(jcrPrimaryType, &quot;cq:Page&quot;)</span>
+<span class="pc bpc" id="L344" title="1 of 2 branches missed.">        || Strings.CS.equals(jcrPrimaryType, &quot;dam:Asset&quot;)</span>
+<span class="pc bpc" id="L345" title="1 of 2 branches missed.">        || Strings.CS.equals(jcrPrimaryType, &quot;cq:Template&quot;);</span>
+<span class="fc bfc" id="L346" title="All 4 branches covered.">    boolean isContent = insideReplicationElement &amp;&amp; Strings.CS.equals(element.getQualifiedName(), &quot;jcr:content&quot;);</span>
+<span class="fc bfc" id="L347" title="All 4 branches covered.">    boolean setReplicationAttributes = isContent &amp;&amp; markReplicationActivated;</span>
 
-<span class="fc" id="L348">    List&lt;Attribute&gt; attributes = new ArrayList&lt;&gt;(element.getAttributes());</span>
-<span class="fc bfc" id="L349" title="All 2 branches covered.">    for (Attribute attribute : attributes) {</span>
-<span class="fc" id="L350">      boolean excluded = false;</span>
-<span class="fc bfc" id="L351" title="All 2 branches covered.">      if (matches(attribute.getQualifiedName(), this.excludeProperties, false)) {</span>
-<span class="pc bpc" id="L352" title="3 of 4 branches missed.">        if (isRepositoryUserGroup &amp;&amp; StringUtils.equals(attribute.getQualifiedName(), JcrConstants.JCR_UUID)) {</span>
+<span class="fc" id="L349">    List&lt;Attribute&gt; attributes = new ArrayList&lt;&gt;(element.getAttributes());</span>
+<span class="fc bfc" id="L350" title="All 2 branches covered.">    for (Attribute attribute : attributes) {</span>
+<span class="fc" id="L351">      boolean excluded = false;</span>
+<span class="fc bfc" id="L352" title="All 2 branches covered.">      if (matches(attribute.getQualifiedName(), this.excludeProperties, false)) {</span>
+<span class="pc bpc" id="L353" title="3 of 4 branches missed.">        if (isRepositoryUserGroup &amp;&amp; Strings.CS.equals(attribute.getQualifiedName(), JcrConstants.JCR_UUID)) {</span>
           // keep jcr:uuid property for groups and users, otherwise they cannot be imported again
         }
         else {
-<span class="fc" id="L356">          attribute.detach();</span>
-<span class="fc" id="L357">          excluded = true;</span>
+<span class="fc" id="L357">          attribute.detach();</span>
+<span class="fc" id="L358">          excluded = true;</span>
         }
       }
-<span class="fc bfc" id="L360" title="All 2 branches covered.">      else if (StringUtils.equals(attribute.getQualifiedName(), PRIMARYTYPE_PROPERTY)) {</span>
-<span class="fc" id="L361">        String namespacePrefix = StringUtils.substringBefore(attribute.getValue(), &quot;:&quot;);</span>
-<span class="fc" id="L362">        collectNamespacePrefix(namespacePrefixesActuallyUsed, namespacePrefix);</span>
-<span class="fc" id="L363">      }</span>
-<span class="fc bfc" id="L364" title="All 2 branches covered.">      else if (StringUtils.equals(attribute.getQualifiedName(), MIXINS_PROPERTY)) {</span>
-<span class="fc" id="L365">        String filteredValue = filterMixinsPropertyValue(attribute.getValue(), namespacePrefixesActuallyUsed);</span>
-<span class="pc bpc" id="L366" title="1 of 2 branches missed.">        if (StringUtils.isBlank(filteredValue)) {</span>
-<span class="nc" id="L367">          attribute.detach();</span>
+<span class="fc bfc" id="L361" title="All 2 branches covered.">      else if (Strings.CS.equals(attribute.getQualifiedName(), PRIMARYTYPE_PROPERTY)) {</span>
+<span class="fc" id="L362">        String namespacePrefix = StringUtils.substringBefore(attribute.getValue(), &quot;:&quot;);</span>
+<span class="fc" id="L363">        collectNamespacePrefix(namespacePrefixesActuallyUsed, namespacePrefix);</span>
+<span class="fc" id="L364">      }</span>
+<span class="fc bfc" id="L365" title="All 2 branches covered.">      else if (Strings.CS.equals(attribute.getQualifiedName(), MIXINS_PROPERTY)) {</span>
+<span class="fc" id="L366">        String filteredValue = filterMixinsPropertyValue(attribute.getValue(), namespacePrefixesActuallyUsed);</span>
+<span class="pc bpc" id="L367" title="1 of 2 branches missed.">        if (StringUtils.isBlank(filteredValue)) {</span>
+<span class="nc" id="L368">          attribute.detach();</span>
         }
         else {
-<span class="fc" id="L370">          attribute.setValue(filteredValue);</span>
+<span class="fc" id="L371">          attribute.setValue(filteredValue);</span>
         }
-<span class="fc" id="L372">      }</span>
-<span class="fc bfc" id="L373" title="All 2 branches covered.">      else if (StringUtils.startsWith(attribute.getValue(), &quot;{Name}&quot;)) {</span>
-<span class="fc" id="L374">        collectNamespacePrefixNameArray(namespacePrefixesActuallyUsed, attribute.getValue());</span>
+<span class="fc" id="L373">      }</span>
+<span class="fc bfc" id="L374" title="All 2 branches covered.">      else if (Strings.CS.startsWith(attribute.getValue(), &quot;{Name}&quot;)) {</span>
+<span class="fc" id="L375">        collectNamespacePrefixNameArray(namespacePrefixesActuallyUsed, attribute.getValue());</span>
         // alphabetically sort name values
-<span class="fc" id="L376">        attribute.setValue(sortReferenceValues(attribute.getValue(), PropertyType.NAME));</span>
+<span class="fc" id="L377">        attribute.setValue(sortReferenceValues(attribute.getValue(), PropertyType.NAME));</span>
       }
-<span class="pc bpc" id="L378" title="1 of 2 branches missed.">      else if (StringUtils.startsWith(attribute.getValue(), &quot;{WeakReference}&quot;)) {</span>
+<span class="pc bpc" id="L379" title="1 of 2 branches missed.">      else if (Strings.CS.startsWith(attribute.getValue(), &quot;{WeakReference}&quot;)) {</span>
         // alphabetically sort weak reference values
-<span class="nc" id="L380">        attribute.setValue(sortReferenceValues(attribute.getValue(), PropertyType.WEAKREFERENCE));</span>
+<span class="nc" id="L381">        attribute.setValue(sortReferenceValues(attribute.getValue(), PropertyType.WEAKREFERENCE));</span>
       }
-<span class="fc bfc" id="L382" title="All 2 branches covered.">      if (!excluded) {</span>
-<span class="fc" id="L383">        collectNamespacePrefix(namespacePrefixesActuallyUsed, attribute.getNamespacePrefix());</span>
+<span class="fc bfc" id="L383" title="All 2 branches covered.">      if (!excluded) {</span>
+<span class="fc" id="L384">        collectNamespacePrefix(namespacePrefixesActuallyUsed, attribute.getNamespacePrefix());</span>
       }
-<span class="fc" id="L385">    }</span>
+<span class="fc" id="L386">    }</span>
 
     // set replication status for jcr:content nodes inside cq:Page nodes
-<span class="fc bfc" id="L388" title="All 4 branches covered.">    if (setReplicationAttributes &amp;&amp; matches(path, markReplicationActivatedIncludeNodes, true)) {</span>
-<span class="fc" id="L389">      addMixin(element, &quot;cq:ReplicationStatus&quot;);</span>
-<span class="fc" id="L390">      element.setAttribute(&quot;lastReplicated&quot;, &quot;{Date}&quot; + dateLastReplicated, CQ_NAMESPACE);</span>
-<span class="fc" id="L391">      element.setAttribute(&quot;lastReplicationAction&quot;, &quot;Activate&quot;, CQ_NAMESPACE);</span>
-<span class="fc" id="L392">      collectNamespacePrefix(namespacePrefixesActuallyUsed, CQ_NAMESPACE.getPrefix());</span>
+<span class="fc bfc" id="L389" title="All 4 branches covered.">    if (setReplicationAttributes &amp;&amp; matches(path, markReplicationActivatedIncludeNodes, true)) {</span>
+<span class="fc" id="L390">      addMixin(element, &quot;cq:ReplicationStatus&quot;);</span>
+<span class="fc" id="L391">      element.setAttribute(&quot;lastReplicated&quot;, &quot;{Date}&quot; + dateLastReplicated, CQ_NAMESPACE);</span>
+<span class="fc" id="L392">      element.setAttribute(&quot;lastReplicationAction&quot;, &quot;Activate&quot;, CQ_NAMESPACE);</span>
+<span class="fc" id="L393">      collectNamespacePrefix(namespacePrefixesActuallyUsed, CQ_NAMESPACE.getPrefix());</span>
     }
 
     // if current element is a replication element, but the jcr:content node to set the replication attributes to is missing, add it
-<span class="fc bfc" id="L396" title="All 4 branches covered.">    if (isReplicationElement &amp;&amp; element.getChild(&quot;content&quot;, JCR_NAMESPACE) == null</span>
-<span class="fc bfc" id="L397" title="All 2 branches covered.">        &amp;&amp; matches(path + &quot;/jcr:content&quot;, markReplicationActivatedIncludeNodes, true)) {</span>
-<span class="fc" id="L398">      Element contentNode = new Element(&quot;content&quot;, JCR_NAMESPACE);</span>
-<span class="pc bpc" id="L399" title="1 of 2 branches missed.">      String jcrContentPrimaryType = StringUtils.equals(jcrPrimaryType, &quot;cq:Template&quot;) ? &quot;cq:PageContent&quot; : jcrPrimaryType + &quot;Content&quot;;</span>
-<span class="fc" id="L400">      contentNode.setAttribute(&quot;primaryType&quot;, jcrContentPrimaryType, JCR_NAMESPACE);</span>
-<span class="fc" id="L401">      element.addContent(contentNode);</span>
+<span class="fc bfc" id="L397" title="All 4 branches covered.">    if (isReplicationElement &amp;&amp; element.getChild(&quot;content&quot;, JCR_NAMESPACE) == null</span>
+<span class="fc bfc" id="L398" title="All 2 branches covered.">        &amp;&amp; matches(path + &quot;/jcr:content&quot;, markReplicationActivatedIncludeNodes, true)) {</span>
+<span class="fc" id="L399">      Element contentNode = new Element(&quot;content&quot;, JCR_NAMESPACE);</span>
+<span class="pc bpc" id="L400" title="1 of 2 branches missed.">      String jcrContentPrimaryType = Strings.CS.equals(jcrPrimaryType, &quot;cq:Template&quot;) ? &quot;cq:PageContent&quot; : jcrPrimaryType + &quot;Content&quot;;</span>
+<span class="fc" id="L401">      contentNode.setAttribute(&quot;primaryType&quot;, jcrContentPrimaryType, JCR_NAMESPACE);</span>
+<span class="fc" id="L402">      element.addContent(contentNode);</span>
     }
 
-<span class="fc" id="L404">    List&lt;Element&gt; children = new ArrayList&lt;&gt;(element.getChildren());</span>
-<span class="fc bfc" id="L405" title="All 2 branches covered.">    for (Element child : children) {</span>
-<span class="fc bfc" id="L406" title="All 6 branches covered.">      applyXmlExcludes(child, path, namespacePrefixesActuallyUsed, (insideReplicationElement || isReplicationElement) &amp;&amp; !isContent);</span>
-<span class="fc" id="L407">    }</span>
-<span class="fc" id="L408">  }</span>
+<span class="fc" id="L405">    List&lt;Element&gt; children = new ArrayList&lt;&gt;(element.getChildren());</span>
+<span class="fc bfc" id="L406" title="All 2 branches covered.">    for (Element child : children) {</span>
+<span class="fc bfc" id="L407" title="All 6 branches covered.">      applyXmlExcludes(child, path, namespacePrefixesActuallyUsed, (insideReplicationElement || isReplicationElement) &amp;&amp; !isContent);</span>
+<span class="fc" id="L408">    }</span>
+<span class="fc" id="L409">  }</span>
 
   private String filterMixinsPropertyValue(String value, Set&lt;String&gt; namespacePrefixesActuallyUsed) {
-<span class="pc bpc" id="L411" title="3 of 4 branches missed.">    if (this.excludeMixins.length == 0 || StringUtils.isBlank(value)) {</span>
-<span class="fc" id="L412">      return value;</span>
+<span class="pc bpc" id="L412" title="3 of 4 branches missed.">    if (this.excludeMixins.length == 0 || StringUtils.isBlank(value)) {</span>
+<span class="fc" id="L413">      return value;</span>
     }
 
-<span class="nc" id="L415">    List&lt;String&gt; mixins = new ArrayList&lt;&gt;();</span>
-<span class="nc bnc" id="L416" title="All 2 branches missed.">    for (String mixin : DocViewUtil.parseValues(value)) {</span>
-<span class="nc bnc" id="L417" title="All 2 branches missed.">      if (!matches(mixin, this.excludeMixins, false)) {</span>
-<span class="nc" id="L418">        String namespacePrefix = StringUtils.substringBefore(mixin, &quot;:&quot;);</span>
-<span class="nc" id="L419">        collectNamespacePrefix(namespacePrefixesActuallyUsed, namespacePrefix);</span>
-<span class="nc" id="L420">        mixins.add(mixin);</span>
+<span class="nc" id="L416">    List&lt;String&gt; mixins = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L417" title="All 2 branches missed.">    for (String mixin : DocViewUtil.parseValues(value)) {</span>
+<span class="nc bnc" id="L418" title="All 2 branches missed.">      if (!matches(mixin, this.excludeMixins, false)) {</span>
+<span class="nc" id="L419">        String namespacePrefix = StringUtils.substringBefore(mixin, &quot;:&quot;);</span>
+<span class="nc" id="L420">        collectNamespacePrefix(namespacePrefixesActuallyUsed, namespacePrefix);</span>
+<span class="nc" id="L421">        mixins.add(mixin);</span>
       }
-<span class="nc" id="L422">    }</span>
+<span class="nc" id="L423">    }</span>
 
-<span class="nc bnc" id="L424" title="All 2 branches missed.">    if (mixins.isEmpty()) {</span>
-<span class="nc" id="L425">      return null;</span>
+<span class="nc bnc" id="L425" title="All 2 branches missed.">    if (mixins.isEmpty()) {</span>
+<span class="nc" id="L426">      return null;</span>
     }
 
-<span class="nc" id="L428">    return DocViewUtil.formatValues(mixins);</span>
+<span class="nc" id="L429">    return DocViewUtil.formatValues(mixins);</span>
   }
 
   private void addMixin(Element element, String mixin) {
-<span class="fc" id="L432">    String mixinsString = element.getAttributeValue(&quot;mixinTypes&quot;, JCR_NAMESPACE);</span>
+<span class="fc" id="L433">    String mixinsString = element.getAttributeValue(&quot;mixinTypes&quot;, JCR_NAMESPACE);</span>
 
-<span class="fc" id="L434">    List&lt;String&gt; mixins = new ArrayList&lt;&gt;();</span>
-<span class="pc bpc" id="L435" title="1 of 2 branches missed.">    if (!StringUtils.isBlank(mixinsString)) {</span>
-<span class="nc bnc" id="L436" title="All 2 branches missed.">      for (String item : DocViewUtil.parseValues(mixinsString)) {</span>
-<span class="nc" id="L437">        mixins.add(item);</span>
-<span class="nc" id="L438">      }</span>
+<span class="fc" id="L435">    List&lt;String&gt; mixins = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L436" title="1 of 2 branches missed.">    if (!StringUtils.isBlank(mixinsString)) {</span>
+<span class="nc bnc" id="L437" title="All 2 branches missed.">      for (String item : DocViewUtil.parseValues(mixinsString)) {</span>
+<span class="nc" id="L438">        mixins.add(item);</span>
+<span class="nc" id="L439">      }</span>
     }
-<span class="pc bpc" id="L440" title="1 of 2 branches missed.">    if (!mixins.contains(mixin)) {</span>
-<span class="fc" id="L441">      mixins.add(mixin);</span>
+<span class="pc bpc" id="L441" title="1 of 2 branches missed.">    if (!mixins.contains(mixin)) {</span>
+<span class="fc" id="L442">      mixins.add(mixin);</span>
     }
 
-<span class="fc" id="L444">    element.setAttribute(&quot;mixinTypes&quot;, DocViewUtil.formatValues(mixins), JCR_NAMESPACE);</span>
-<span class="fc" id="L445">  }</span>
+<span class="fc" id="L445">    element.setAttribute(&quot;mixinTypes&quot;, DocViewUtil.formatValues(mixins), JCR_NAMESPACE);</span>
+<span class="fc" id="L446">  }</span>
 
   private void collectNamespacePrefix(Set&lt;String&gt; prefixes, String prefix) {
-<span class="fc bfc" id="L448" title="All 2 branches covered.">    if (StringUtils.isNotBlank(prefix)) {</span>
-<span class="fc" id="L449">      prefixes.add(prefix);</span>
+<span class="fc bfc" id="L449" title="All 2 branches covered.">    if (StringUtils.isNotBlank(prefix)) {</span>
+<span class="fc" id="L450">      prefixes.add(prefix);</span>
     }
-<span class="fc" id="L451">  }</span>
+<span class="fc" id="L452">  }</span>
 
   private void collectNamespacePrefixNameArray(Set&lt;String&gt; prefixes, String value) {
-<span class="fc bfc" id="L454" title="All 2 branches covered.">    for (String item : DocViewUtil.parseValues(value)) {</span>
-<span class="fc" id="L455">      String namespacePrefix = StringUtils.substringBefore(item, &quot;:&quot;);</span>
-<span class="fc" id="L456">      collectNamespacePrefix(prefixes, namespacePrefix);</span>
-<span class="fc" id="L457">    }</span>
-<span class="fc" id="L458">  }</span>
+<span class="fc bfc" id="L455" title="All 2 branches covered.">    for (String item : DocViewUtil.parseValues(value)) {</span>
+<span class="fc" id="L456">      String namespacePrefix = StringUtils.substringBefore(item, &quot;:&quot;);</span>
+<span class="fc" id="L457">      collectNamespacePrefix(prefixes, namespacePrefix);</span>
+<span class="fc" id="L458">    }</span>
+<span class="fc" id="L459">  }</span>
 
   /**
    * Sort weak reference values alphabetically to ensure consistent ordering.
@@ -464,11 +465,11 @@ public final class ContentUnpacker {
    * @return Property value with sorted references
    */
   private String sortReferenceValues(String value, int propertyType) {
-<span class="fc" id="L467">    Set&lt;String&gt; refs = new TreeSet&lt;&gt;();</span>
-<span class="fc bfc" id="L468" title="All 2 branches covered.">    for (String item : DocViewUtil.parseValues(value)) {</span>
-<span class="fc" id="L469">      refs.add(item);</span>
-<span class="fc" id="L470">    }</span>
-<span class="fc" id="L471">    return DocViewUtil.formatValues(new ArrayList&lt;&gt;(refs), propertyType);</span>
+<span class="fc" id="L468">    Set&lt;String&gt; refs = new TreeSet&lt;&gt;();</span>
+<span class="fc bfc" id="L469" title="All 2 branches covered.">    for (String item : DocViewUtil.parseValues(value)) {</span>
+<span class="fc" id="L470">      refs.add(item);</span>
+<span class="fc" id="L471">    }</span>
+<span class="fc" id="L472">    return DocViewUtil.formatValues(new ArrayList&lt;&gt;(refs), propertyType);</span>
   }
 
 }

@@ -24,6 +24,7 @@ import static io.wcm.tooling.commons.packmgr.PackageManagerHelper.CRX_PACKAGE_EX
 import java.io.File;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.json.JSONObject;
@@ -36,39 +37,39 @@ import io.wcm.tooling.commons.packmgr.install.VendorInstallerFactory;
 /**
  * Vendor Downloader for AEM's CRX Package Manager
  */
-<span class="nc" id="L39">public class CrxPackageDownloader implements VendorPackageDownloader {</span>
+<span class="nc" id="L40">public class CrxPackageDownloader implements VendorPackageDownloader {</span>
 
   @Override
   public String uploadPackageDefinition(String packageManagerUrl, File file, PackageManagerHelper pkgmgr) {
-<span class="nc" id="L43">    HttpPost post = new HttpPost(packageManagerUrl + &quot;/.json?cmd=upload&quot;);</span>
-<span class="nc" id="L44">    MultipartEntityBuilder entity = MultipartEntityBuilder.create()</span>
-<span class="nc" id="L45">        .addBinaryBody(&quot;package&quot;, file)</span>
-<span class="nc" id="L46">        .addTextBody(&quot;force&quot;, &quot;true&quot;);</span>
-<span class="nc" id="L47">    post.setEntity(entity.build());</span>
-<span class="nc" id="L48">    JSONObject jsonResponse = pkgmgr.executePackageManagerMethodJson(pkgmgr.getHttpClient(), pkgmgr.getPackageManagerHttpClientContext(), post);</span>
-<span class="nc" id="L49">    boolean success = jsonResponse.optBoolean(&quot;success&quot;, false);</span>
-<span class="nc" id="L50">    String msg = jsonResponse.optString(&quot;msg&quot;, null);</span>
-<span class="nc" id="L51">    String packagePath = jsonResponse.optString(&quot;path&quot;, null);</span>
+<span class="nc" id="L44">    HttpPost post = new HttpPost(packageManagerUrl + &quot;/.json?cmd=upload&quot;);</span>
+<span class="nc" id="L45">    MultipartEntityBuilder entity = MultipartEntityBuilder.create()</span>
+<span class="nc" id="L46">        .addBinaryBody(&quot;package&quot;, file)</span>
+<span class="nc" id="L47">        .addTextBody(&quot;force&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L48">    post.setEntity(entity.build());</span>
+<span class="nc" id="L49">    JSONObject jsonResponse = pkgmgr.executePackageManagerMethodJson(pkgmgr.getHttpClient(), pkgmgr.getPackageManagerHttpClientContext(), post);</span>
+<span class="nc" id="L50">    boolean success = jsonResponse.optBoolean(&quot;success&quot;, false);</span>
+<span class="nc" id="L51">    String msg = jsonResponse.optString(&quot;msg&quot;, null);</span>
+<span class="nc" id="L52">    String packagePath = jsonResponse.optString(&quot;path&quot;, null);</span>
     // package already exists - get path from error message and continue
-<span class="nc bnc" id="L53" title="All 6 branches missed.">    if (!success &amp;&amp; StringUtils.startsWith(msg, CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX) &amp;&amp; StringUtils.isEmpty(packagePath)) {</span>
-<span class="nc" id="L54">      packagePath = StringUtils.substringAfter(msg, CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX);</span>
-<span class="nc" id="L55">      success = true;</span>
+<span class="nc bnc" id="L54" title="All 6 branches missed.">    if (!success &amp;&amp; Strings.CS.startsWith(msg, CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX) &amp;&amp; StringUtils.isEmpty(packagePath)) {</span>
+<span class="nc" id="L55">      packagePath = StringUtils.substringAfter(msg, CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX);</span>
+<span class="nc" id="L56">      success = true;</span>
     }
-<span class="nc bnc" id="L57" title="All 2 branches missed.">    if (!success) {</span>
-<span class="nc" id="L58">      throw new PackageManagerException(&quot;Package path detection failed: &quot; + msg);</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">    if (!success) {</span>
+<span class="nc" id="L59">      throw new PackageManagerException(&quot;Package path detection failed: &quot; + msg);</span>
     }
 
-<span class="nc" id="L61">    return packagePath;</span>
+<span class="nc" id="L62">    return packagePath;</span>
   }
 
   @Override
   public HttpPost createRebuildMethod(String packagePath, String packageManagerUrl) {
-<span class="nc" id="L66">    return new HttpPost(packageManagerUrl + &quot;/console.html&quot; + packagePath + &quot;?cmd=build&quot;);</span>
+<span class="nc" id="L67">    return new HttpPost(packageManagerUrl + &quot;/console.html&quot; + packagePath + &quot;?cmd=build&quot;);</span>
   }
 
   @Override
   public String createDownloadZipBaseUrl(String packageManagerUrl) {
-<span class="nc" id="L71">    return VendorInstallerFactory.getBaseUrl(packageManagerUrl);</span>
+<span class="nc" id="L72">    return VendorInstallerFactory.getBaseUrl(packageManagerUrl);</span>
   }
 
 }

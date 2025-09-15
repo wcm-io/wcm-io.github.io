@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -35,88 +36,88 @@ final class BundleStatusParser {
 
   private final List&lt;Pattern&gt; bundleStatusWhitelistBundleNames;
 
-<span class="fc" id="L38">  BundleStatusParser(List&lt;Pattern&gt; bundleStatusWhitelistBundleNames) {</span>
-<span class="fc" id="L39">    this.bundleStatusWhitelistBundleNames = bundleStatusWhitelistBundleNames;</span>
-<span class="fc" id="L40">  }</span>
+<span class="fc" id="L39">  BundleStatusParser(List&lt;Pattern&gt; bundleStatusWhitelistBundleNames) {</span>
+<span class="fc" id="L40">    this.bundleStatusWhitelistBundleNames = bundleStatusWhitelistBundleNames;</span>
+<span class="fc" id="L41">  }</span>
 
   BundleStatus parse(String jsonString) {
-<span class="fc" id="L43">    JSONObject json = new JSONObject(jsonString);</span>
+<span class="fc" id="L44">    JSONObject json = new JSONObject(jsonString);</span>
 
-<span class="fc" id="L45">    String statusLine = json.getString(&quot;status&quot;);</span>
+<span class="fc" id="L46">    String statusLine = json.getString(&quot;status&quot;);</span>
 
     // get bundle stats
-<span class="fc" id="L48">    int total = 0;</span>
-<span class="fc" id="L49">    int active = 0;</span>
-<span class="fc" id="L50">    int activeFragment = 0;</span>
-<span class="fc" id="L51">    int resolved = 0;</span>
-<span class="fc" id="L52">    int installed = 0;</span>
-<span class="fc" id="L53">    int ignored = 0;</span>
+<span class="fc" id="L49">    int total = 0;</span>
+<span class="fc" id="L50">    int active = 0;</span>
+<span class="fc" id="L51">    int activeFragment = 0;</span>
+<span class="fc" id="L52">    int resolved = 0;</span>
+<span class="fc" id="L53">    int installed = 0;</span>
+<span class="fc" id="L54">    int ignored = 0;</span>
 
     // get list of all bundle names
-<span class="fc" id="L56">    Set&lt;String&gt; bundleSymbolicNames = new HashSet&lt;&gt;();</span>
-<span class="fc" id="L57">    JSONArray data = json.getJSONArray(&quot;data&quot;);</span>
-<span class="fc bfc" id="L58" title="All 2 branches covered.">    for (int i = 0; i &lt; data.length(); i++) {</span>
-<span class="fc" id="L59">      JSONObject item = data.getJSONObject(i);</span>
+<span class="fc" id="L57">    Set&lt;String&gt; bundleSymbolicNames = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L58">    JSONArray data = json.getJSONArray(&quot;data&quot;);</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    for (int i = 0; i &lt; data.length(); i++) {</span>
+<span class="fc" id="L60">      JSONObject item = data.getJSONObject(i);</span>
 
-<span class="fc" id="L61">      String symbolicName = item.optString(&quot;symbolicName&quot;);</span>
-<span class="fc" id="L62">      String state = item.optString(&quot;state&quot;);</span>
-<span class="fc" id="L63">      boolean fragment = item.optBoolean(&quot;fragment&quot;);</span>
-<span class="fc" id="L64">      boolean whitelisted = isWhitelisted(symbolicName);</span>
+<span class="fc" id="L62">      String symbolicName = item.optString(&quot;symbolicName&quot;);</span>
+<span class="fc" id="L63">      String state = item.optString(&quot;state&quot;);</span>
+<span class="fc" id="L64">      boolean fragment = item.optBoolean(&quot;fragment&quot;);</span>
+<span class="fc" id="L65">      boolean whitelisted = isWhitelisted(symbolicName);</span>
 
-<span class="fc" id="L66">      total++;</span>
-<span class="fc bfc" id="L67" title="All 2 branches covered.">      if (fragment) {</span>
-<span class="fc" id="L68">        activeFragment++;</span>
+<span class="fc" id="L67">      total++;</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">      if (fragment) {</span>
+<span class="fc" id="L69">        activeFragment++;</span>
       }
-<span class="fc bfc" id="L70" title="All 2 branches covered.">      else if (isActive(state)) {</span>
-<span class="fc" id="L71">        active++;</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">      else if (isActive(state)) {</span>
+<span class="fc" id="L72">        active++;</span>
       }
-<span class="pc bpc" id="L73" title="1 of 2 branches missed.">      else if (isResolved(state)) {</span>
-<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (whitelisted) {</span>
-<span class="fc" id="L75">          ignored++;</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">      else if (isResolved(state)) {</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        if (whitelisted) {</span>
+<span class="fc" id="L76">          ignored++;</span>
         }
         else {
-<span class="fc" id="L78">          resolved++;</span>
+<span class="fc" id="L79">          resolved++;</span>
         }
       }
-<span class="nc bnc" id="L81" title="All 2 branches missed.">      else if (isInstalled(state)) {</span>
-<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (whitelisted) {</span>
-<span class="nc" id="L83">          ignored++;</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">      else if (isInstalled(state)) {</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">        if (whitelisted) {</span>
+<span class="nc" id="L84">          ignored++;</span>
         }
         else {
-<span class="nc" id="L86">          installed++;</span>
+<span class="nc" id="L87">          installed++;</span>
         }
       }
 
-<span class="pc bpc" id="L90" title="1 of 4 branches missed.">      if (StringUtils.isNotBlank(symbolicName) &amp;&amp; !whitelisted) {</span>
-<span class="fc" id="L91">        bundleSymbolicNames.add(symbolicName);</span>
+<span class="pc bpc" id="L91" title="1 of 4 branches missed.">      if (StringUtils.isNotBlank(symbolicName) &amp;&amp; !whitelisted) {</span>
+<span class="fc" id="L92">        bundleSymbolicNames.add(symbolicName);</span>
       }
     }
 
-<span class="fc" id="L95">    return new BundleStatus(</span>
+<span class="fc" id="L96">    return new BundleStatus(</span>
         statusLine,
         total, active, activeFragment, resolved, installed, ignored,
         bundleSymbolicNames);
   }
 
   private boolean isActive(String actual) {
-<span class="fc" id="L102">    return StringUtils.equalsIgnoreCase(actual, &quot;Active&quot;);</span>
+<span class="fc" id="L103">    return Strings.CI.equals(actual, &quot;Active&quot;);</span>
   }
 
   private boolean isResolved(String actual) {
-<span class="fc" id="L106">    return StringUtils.equalsIgnoreCase(actual, &quot;Resolved&quot;);</span>
+<span class="fc" id="L107">    return Strings.CI.equals(actual, &quot;Resolved&quot;);</span>
   }
 
   private boolean isInstalled(String actual) {
-<span class="nc" id="L110">    return StringUtils.equalsIgnoreCase(actual, &quot;Installed&quot;);</span>
+<span class="nc" id="L111">    return Strings.CI.equals(actual, &quot;Installed&quot;);</span>
   }
 
   private boolean isWhitelisted(String symbolicName) {
-<span class="fc bfc" id="L114" title="All 2 branches covered.">    for (Pattern pattern : bundleStatusWhitelistBundleNames) {</span>
-<span class="fc bfc" id="L115" title="All 2 branches covered.">      if (pattern.matcher(symbolicName).matches()) {</span>
-<span class="fc" id="L116">        return true;</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">    for (Pattern pattern : bundleStatusWhitelistBundleNames) {</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">      if (pattern.matcher(symbolicName).matches()) {</span>
+<span class="fc" id="L117">        return true;</span>
       }
-<span class="fc" id="L118">    }</span>
-<span class="fc" id="L119">    return false;</span>
+<span class="fc" id="L119">    }</span>
+<span class="fc" id="L120">    return false;</span>
   }
 
 }

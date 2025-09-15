@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -42,72 +43,72 @@ final class PackageInstalledChecker {
   private static final long NOT_FOUND_DATE = -1;
   private static final long NOT_UNPACKED_DATE = 0;
 
-<span class="fc" id="L45">  PackageInstalledChecker(JSONObject result) {</span>
+<span class="fc" id="L46">  PackageInstalledChecker(JSONObject result) {</span>
     try {
-<span class="fc" id="L47">      this.results = result.getJSONArray(&quot;results&quot;);</span>
+<span class="fc" id="L48">      this.results = result.getJSONArray(&quot;results&quot;);</span>
     }
-<span class="nc" id="L49">    catch (JSONException ex) {</span>
-<span class="nc" id="L50">      throw new PackageManagerException(&quot;JSON response from &quot; + PACKMGR_LIST_URL + &quot; does not contain 'results' array.&quot;, ex);</span>
-<span class="fc" id="L51">    }</span>
-<span class="fc" id="L52">  }</span>
+<span class="nc" id="L50">    catch (JSONException ex) {</span>
+<span class="nc" id="L51">      throw new PackageManagerException(&quot;JSON response from &quot; + PACKMGR_LIST_URL + &quot; does not contain 'results' array.&quot;, ex);</span>
+<span class="fc" id="L52">    }</span>
+<span class="fc" id="L53">  }</span>
 
   public PackageInstalledStatus getStatus(String group, String name, String version) {
-<span class="fc" id="L55">    Map&lt;String, Long&gt; map = getVersionUnpackedDates(group, name);</span>
+<span class="fc" id="L56">    Map&lt;String, Long&gt; map = getVersionUnpackedDates(group, name);</span>
 
-<span class="fc bfc" id="L57" title="All 2 branches covered.">    if (map.isEmpty()) {</span>
-<span class="fc" id="L58">      return PackageInstalledStatus.NOT_FOUND;</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">    if (map.isEmpty()) {</span>
+<span class="fc" id="L59">      return PackageInstalledStatus.NOT_FOUND;</span>
     }
 
-<span class="fc" id="L61">    long versionUnpackDate = getVersionUnpackDate(map, version);</span>
-<span class="fc bfc" id="L62" title="All 2 branches covered.">    if (versionUnpackDate == NOT_FOUND_DATE) {</span>
-<span class="fc" id="L63">      return PackageInstalledStatus.NOT_FOUND;</span>
+<span class="fc" id="L62">    long versionUnpackDate = getVersionUnpackDate(map, version);</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">    if (versionUnpackDate == NOT_FOUND_DATE) {</span>
+<span class="fc" id="L64">      return PackageInstalledStatus.NOT_FOUND;</span>
     }
-<span class="fc bfc" id="L65" title="All 2 branches covered.">    if (versionUnpackDate == NOT_UNPACKED_DATE) {</span>
-<span class="fc" id="L66">      return PackageInstalledStatus.UPLOADED;</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">    if (versionUnpackDate == NOT_UNPACKED_DATE) {</span>
+<span class="fc" id="L67">      return PackageInstalledStatus.UPLOADED;</span>
     }
 
-<span class="fc" id="L69">    long lastUnpackDate = getLastUnpackDate(map);</span>
-<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (lastUnpackDate &gt; versionUnpackDate) {</span>
-<span class="fc" id="L71">      return PackageInstalledStatus.INSTALLED_OTHER_VERSION;</span>
+<span class="fc" id="L70">    long lastUnpackDate = getLastUnpackDate(map);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">    if (lastUnpackDate &gt; versionUnpackDate) {</span>
+<span class="fc" id="L72">      return PackageInstalledStatus.INSTALLED_OTHER_VERSION;</span>
     }
     else {
-<span class="fc" id="L74">      return PackageInstalledStatus.INSTALLED;</span>
+<span class="fc" id="L75">      return PackageInstalledStatus.INSTALLED;</span>
     }
   }
 
   private Map&lt;String, Long&gt; getVersionUnpackedDates(String group, String name) {
-<span class="fc" id="L79">    Map&lt;String, Long&gt; map = new HashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L80" title="All 2 branches covered.">    for (int i = 0; i &lt; results.length(); i++) {</span>
-<span class="fc" id="L81">      JSONObject item = results.getJSONObject(i);</span>
-<span class="fc" id="L82">      String itemGroup = item.optString(&quot;group&quot;);</span>
-<span class="fc" id="L83">      String itemName = item.optString(&quot;name&quot;);</span>
-<span class="fc" id="L84">      String itemVersion = item.optString(&quot;version&quot;);</span>
-<span class="fc" id="L85">      long itemLastUnpacked = item.optLong(&quot;lastUnpacked&quot;, NOT_UNPACKED_DATE);</span>
-<span class="pc bpc" id="L86" title="1 of 6 branches missed.">      if (StringUtils.equals(group, itemGroup) &amp;&amp; StringUtils.equals(name, itemName) &amp;&amp; StringUtils.isNotBlank(itemVersion)) {</span>
-<span class="fc" id="L87">        map.put(itemVersion, itemLastUnpacked);</span>
+<span class="fc" id="L80">    Map&lt;String, Long&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">    for (int i = 0; i &lt; results.length(); i++) {</span>
+<span class="fc" id="L82">      JSONObject item = results.getJSONObject(i);</span>
+<span class="fc" id="L83">      String itemGroup = item.optString(&quot;group&quot;);</span>
+<span class="fc" id="L84">      String itemName = item.optString(&quot;name&quot;);</span>
+<span class="fc" id="L85">      String itemVersion = item.optString(&quot;version&quot;);</span>
+<span class="fc" id="L86">      long itemLastUnpacked = item.optLong(&quot;lastUnpacked&quot;, NOT_UNPACKED_DATE);</span>
+<span class="pc bpc" id="L87" title="1 of 6 branches missed.">      if (Strings.CS.equals(group, itemGroup) &amp;&amp; Strings.CS.equals(name, itemName) &amp;&amp; StringUtils.isNotBlank(itemVersion)) {</span>
+<span class="fc" id="L88">        map.put(itemVersion, itemLastUnpacked);</span>
       }
     }
-<span class="fc" id="L90">    return map;</span>
+<span class="fc" id="L91">    return map;</span>
   }
 
   private long getVersionUnpackDate(Map&lt;String, Long&gt; map, String version) {
-<span class="fc" id="L94">    Long value = map.get(version);</span>
-<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (value == null) {</span>
-<span class="fc" id="L96">      return NOT_FOUND_DATE;</span>
+<span class="fc" id="L95">    Long value = map.get(version);</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L97">      return NOT_FOUND_DATE;</span>
     }
     else {
-<span class="fc" id="L99">      return value;</span>
+<span class="fc" id="L100">      return value;</span>
     }
   }
 
   private long getLastUnpackDate(Map&lt;String, Long&gt; map) {
-<span class="fc" id="L104">    long last = 0;</span>
-<span class="fc bfc" id="L105" title="All 2 branches covered.">    for (Long date : map.values()) {</span>
-<span class="fc bfc" id="L106" title="All 2 branches covered.">      if (date &gt; last) {</span>
-<span class="fc" id="L107">        last = date;</span>
+<span class="fc" id="L105">    long last = 0;</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">    for (Long date : map.values()) {</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">      if (date &gt; last) {</span>
+<span class="fc" id="L108">        last = date;</span>
       }
-<span class="fc" id="L109">    }</span>
-<span class="fc" id="L110">    return last;</span>
+<span class="fc" id="L110">    }</span>
+<span class="fc" id="L111">    return last;</span>
   }
 
 }
