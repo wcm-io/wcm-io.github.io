@@ -30,40 +30,21 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * POJO to map system ready JSON response to via Jackson.
+ * @param overallResult overall result
+ * @param results list of individual results
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public final class SystemReadyStatus {
-
-  private final String overallResult;
-  private final List&lt;Result&gt; results;
+<span class="fc" id="L37">public record SystemReadyStatus(@JsonProperty(&quot;overallResult&quot;) String overallResult,</span>
+    @JsonProperty(&quot;results&quot;) List&lt;Result&gt; results) {
 
   private static final String STATUS_OK = &quot;OK&quot;;
-
-  /**
-   * Constructor.
-   * @param overallResult overall result
-   * @param results list of individual results
-   */
-  public SystemReadyStatus(@JsonProperty(&quot;overallResult&quot;) String overallResult,
-<span class="fc" id="L48">      @JsonProperty(&quot;results&quot;) List&lt;Result&gt; results) {</span>
-<span class="fc" id="L49">    this.overallResult = overallResult;</span>
-<span class="fc" id="L50">    this.results = results;</span>
-<span class="fc" id="L51">  }</span>
-
-  public String getOverallResult() {
-<span class="fc" id="L54">    return overallResult;</span>
-  }
-
-  public List&lt;Result&gt; getResults() {
-<span class="fc" id="L58">    return results;</span>
-  }
 
   /**
    * Checks if the overall system ready status is OK.
    * @return true if overall status is OK
    */
   public boolean isSystemReadyOK() {
-<span class="fc bfc" id="L66" title="All 4 branches covered.">    return StringUtils.isBlank(overallResult) || Strings.CI.equals(overallResult, STATUS_OK);</span>
+<span class="fc bfc" id="L47" title="All 4 branches covered.">    return StringUtils.isBlank(overallResult) || Strings.CI.equals(overallResult, STATUS_OK);</span>
   }
 
   /**
@@ -72,114 +53,52 @@ public final class SystemReadyStatus {
    * @return failure information string or null
    */
   public String getFailureInfoString() {
-<span class="fc bfc" id="L75" title="All 2 branches covered.">    if (isSystemReadyOK()) {</span>
-<span class="fc" id="L76">      return null;</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">    if (isSystemReadyOK()) {</span>
+<span class="fc" id="L57">      return null;</span>
     }
-<span class="fc" id="L78">    StringBuilder sb = new StringBuilder();</span>
-<span class="fc bfc" id="L79" title="All 2 branches covered.">    for (Result result : Optional.ofNullable(results).orElse(List.of())) {</span>
-<span class="fc bfc" id="L80" title="All 2 branches covered.">      if (!Strings.CI.equals(result.getStatus(), STATUS_OK)) {</span>
-<span class="fc" id="L81">        sb.append(&quot;- &quot;).append(result.getStatus()).append(&quot;: &quot;).append(result.getName()).append(&quot;\n&quot;);</span>
-<span class="fc bfc" id="L82" title="All 2 branches covered.">        for (Message message : Optional.ofNullable(result.getMessages()).orElse(List.of())) {</span>
-<span class="fc" id="L83">          String notOkStatus = &quot;&quot;;</span>
-<span class="fc bfc" id="L84" title="All 2 branches covered.">          if (!Strings.CI.equals(message.getStatus(), STATUS_OK)) {</span>
-<span class="fc" id="L85">            notOkStatus = message.getStatus() + &quot;: &quot;;</span>
+<span class="fc" id="L59">    StringBuilder sb = new StringBuilder();</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">    for (Result result : Optional.ofNullable(results).orElse(List.of())) {</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">      if (!Strings.CI.equals(result.status(), STATUS_OK)) {</span>
+<span class="fc" id="L62">        sb.append(&quot;- &quot;).append(result.status()).append(&quot;: &quot;).append(result.name()).append(&quot;\n&quot;);</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        for (Message message : Optional.ofNullable(result.messages()).orElse(List.of())) {</span>
+<span class="fc" id="L64">          String notOkStatus = &quot;&quot;;</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">          if (!Strings.CI.equals(message.status(), STATUS_OK)) {</span>
+<span class="fc" id="L66">            notOkStatus = message.status() + &quot;: &quot;;</span>
           }
-<span class="fc" id="L87">          sb.append(&quot;  * &quot;).append(notOkStatus).append(message.getMessage()).append(&quot;\n&quot;);</span>
-<span class="fc" id="L88">        }</span>
+<span class="fc" id="L68">          sb.append(&quot;  * &quot;).append(notOkStatus).append(message.message()).append(&quot;\n&quot;);</span>
+<span class="fc" id="L69">        }</span>
       }
-<span class="fc" id="L90">    }</span>
-<span class="fc" id="L91">    return sb.toString();</span>
+<span class="fc" id="L71">    }</span>
+<span class="fc" id="L72">    return sb.toString();</span>
   }
 
   /**
    * Represents a single health check result.
+   * @param name name
+   * @param status status
+   * @param timeInMs time in ms
+   * @param finishedAt finished at
+   * @param tags tags
+   * @param messages messages
    */
   @JsonIgnoreProperties(ignoreUnknown = true)
-  public static final class Result {
-
-    private final String name;
-    private final String status;
-    private final long timeInMs;
-    private final String finishedAt;
-    private final List&lt;String&gt; tags;
-    private final List&lt;Message&gt; messages;
-
-    /**
-     * Constructor.
-     * @param name name
-     * @param status status
-     * @param timeInMs time in ms
-     * @param finishedAt finished at
-     * @param tags tags
-     * @param messages messages
-     */
-    public Result(@JsonProperty(&quot;name&quot;) String name,
-        @JsonProperty(&quot;status&quot;) String status,
-        @JsonProperty(&quot;timeInMs&quot;) long timeInMs,
-        @JsonProperty(&quot;finishedAt&quot;) String finishedAt,
-        @JsonProperty(&quot;tags&quot;) List&lt;String&gt; tags,
-<span class="fc" id="L121">        @JsonProperty(&quot;messages&quot;) List&lt;Message&gt; messages) {</span>
-<span class="fc" id="L122">      this.name = name;</span>
-<span class="fc" id="L123">      this.status = status;</span>
-<span class="fc" id="L124">      this.timeInMs = timeInMs;</span>
-<span class="fc" id="L125">      this.finishedAt = finishedAt;</span>
-<span class="fc" id="L126">      this.tags = tags;</span>
-<span class="fc" id="L127">      this.messages = messages;</span>
-<span class="fc" id="L128">    }</span>
-
-    public String getName() {
-<span class="fc" id="L131">      return name;</span>
-    }
-
-    public String getStatus() {
-<span class="fc" id="L135">      return status;</span>
-    }
-
-    public long getTimeInMs() {
-<span class="nc" id="L139">      return timeInMs;</span>
-    }
-
-    public String getFinishedAt() {
-<span class="nc" id="L143">      return finishedAt;</span>
-    }
-
-    public List&lt;String&gt; getTags() {
-<span class="nc" id="L147">      return tags;</span>
-    }
-
-    public List&lt;Message&gt; getMessages() {
-<span class="fc" id="L151">      return messages;</span>
-    }
+<span class="fc" id="L85">  public record Result(@JsonProperty(&quot;name&quot;) String name,</span>
+      @JsonProperty(&quot;status&quot;) String status,
+      @JsonProperty(&quot;timeInMs&quot;) long timeInMs,
+      @JsonProperty(&quot;finishedAt&quot;) String finishedAt,
+      @JsonProperty(&quot;tags&quot;) List&lt;String&gt; tags,
+      @JsonProperty(&quot;messages&quot;) List&lt;Message&gt; messages) {
 
   }
 
   /**
    * Represents a message within a health check result.
+   * @param status status
+   * @param message message
    */
   @JsonIgnoreProperties(ignoreUnknown = true)
-  public static final class Message {
-
-    private final String status;
-    private final String message;
-
-    /**
-     * Constructor.
-     * @param status status
-     * @param message message
-     */
-    public Message(@JsonProperty(&quot;status&quot;) String status,
-<span class="fc" id="L171">        @JsonProperty(&quot;message&quot;) String message) {</span>
-<span class="fc" id="L172">      this.status = status;</span>
-<span class="fc" id="L173">      this.message = message;</span>
-<span class="fc" id="L174">    }</span>
-
-    public String getStatus() {
-<span class="fc" id="L177">      return status;</span>
-    }
-
-    public String getMessage() {
-<span class="fc" id="L181">      return message;</span>
-    }
+<span class="fc" id="L100">  public record Message(@JsonProperty(&quot;status&quot;) String status,</span>
+      @JsonProperty(&quot;message&quot;) String message) {
 
   }
 
