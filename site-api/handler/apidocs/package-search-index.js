@@ -1,1 +1,1 @@
-packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"io.wcm.siteapi.handler.link"},{"l":"io.wcm.siteapi.handler.media"}]
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"io.wcm.siteapi.handler.link"},{"l":"io.wcm.siteapi.handler.media"}];updateSearchResults();
