@@ -1,1 +1,1 @@
-/usr/lib/jvm/temurin-11-jdk-amd64/bin/javadoc -J-Duser.language= -J-Duser.country= @options @packages
+/usr/lib/jvm/temurin-17-jdk-amd64/bin/javadoc -J-Duser.language= -J-Duser.country= @options @packages
