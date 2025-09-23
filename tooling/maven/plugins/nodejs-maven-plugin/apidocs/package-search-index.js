@@ -1,1 +1,1 @@
-packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"io.wcm.maven.plugins.nodejs_maven_plugin"},{"l":"io.wcm.maven.plugins.nodejs.installation"},{"l":"io.wcm.maven.plugins.nodejs.mojo"}]
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"io.wcm.maven.plugins.nodejs_maven_plugin"},{"l":"io.wcm.maven.plugins.nodejs.installation"},{"l":"io.wcm.maven.plugins.nodejs.mojo"}];updateSearchResults();
