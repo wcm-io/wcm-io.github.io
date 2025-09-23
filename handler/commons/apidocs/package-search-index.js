@@ -1,1 +1,1 @@
-packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"io.wcm.handler.commons.dom"},{"l":"io.wcm.handler.commons.editcontext"}]
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"io.wcm.handler.commons.dom"},{"l":"io.wcm.handler.commons.editcontext"}];updateSearchResults();
