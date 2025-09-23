@@ -1,1 +1,1 @@
-typeSearchIndex = [{"l":"All Classes","url":"allclasses-index.html"},{"p":"io.wcm.testing.mock.wcmio.sling","l":"ContextPlugins"},{"p":"io.wcm.testing.mock.wcmio.sling","l":"MockRequestContext"},{"p":"io.wcm.testing.mock.wcmio.sling","l":"MockSlingExtensions"}]
+typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html"},{"p":"io.wcm.testing.mock.wcmio.sling","l":"ContextPlugins"},{"p":"io.wcm.testing.mock.wcmio.sling","l":"MockRequestContext"},{"p":"io.wcm.testing.mock.wcmio.sling","l":"MockSlingExtensions"}];updateSearchResults();
