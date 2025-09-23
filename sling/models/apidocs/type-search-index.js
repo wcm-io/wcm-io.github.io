@@ -1,1 +1,1 @@
-typeSearchIndex = [{"p":"io.wcm.sling.models.annotations","l":"AemObject"},{"l":"All Classes","url":"allclasses-index.html"}]
+typeSearchIndex = [{"p":"io.wcm.sling.models.annotations","l":"AemObject"},{"l":"All Classes and Interfaces","u":"allclasses-index.html"}];updateSearchResults();

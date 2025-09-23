@@ -1,1 +1,1 @@
-memberSearchIndex = [{"p":"io.wcm.sling.models.annotations","c":"AemObject","l":"injectionStrategy()"},{"p":"io.wcm.sling.models.annotations","c":"AemObject","l":"name()"},{"p":"io.wcm.sling.models.annotations","c":"AemObject","l":"optional()"}]
+memberSearchIndex = [{"p":"io.wcm.sling.models.annotations","c":"AemObject","l":"injectionStrategy()"},{"p":"io.wcm.sling.models.annotations","c":"AemObject","l":"name()"},{"p":"io.wcm.sling.models.annotations","c":"AemObject","l":"optional()"}];updateSearchResults();
