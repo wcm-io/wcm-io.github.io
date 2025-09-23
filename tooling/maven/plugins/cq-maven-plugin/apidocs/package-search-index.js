@@ -1,1 +1,1 @@
-packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"io.wcm.maven.plugins.cq"},{"l":"io.wcm.maven.plugins.cq_maven_plugin"}]
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"io.wcm.maven.plugins.cq"},{"l":"io.wcm.maven.plugins.cq_maven_plugin"}];updateSearchResults();
