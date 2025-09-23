@@ -1,1 +1,1 @@
-packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"io.wcm.siteapi.processor"},{"l":"io.wcm.siteapi.processor.caconfig"},{"l":"io.wcm.siteapi.processor.url"},{"l":"io.wcm.siteapi.processor.util"}]
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"io.wcm.siteapi.processor"},{"l":"io.wcm.siteapi.processor.caconfig"},{"l":"io.wcm.siteapi.processor.url"},{"l":"io.wcm.siteapi.processor.util"}];updateSearchResults();
