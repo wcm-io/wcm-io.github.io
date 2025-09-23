@@ -1,1 +1,1 @@
-typeSearchIndex = [{"l":"All Classes","url":"allclasses-index.html"},{"p":"io.wcm.testing.mock.wcmio.wcm","l":"ContextPlugins"},{"p":"io.wcm.testing.mock.wcmio.wcm","l":"MockInstanceType"}]
+typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html"},{"p":"io.wcm.testing.mock.wcmio.wcm","l":"ContextPlugins"},{"p":"io.wcm.testing.mock.wcmio.wcm","l":"MockInstanceType"}];updateSearchResults();
