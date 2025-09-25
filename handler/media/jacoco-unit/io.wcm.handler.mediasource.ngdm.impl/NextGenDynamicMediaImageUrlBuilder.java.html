@@ -39,6 +39,7 @@ import io.wcm.handler.media.CropDimension;
 import io.wcm.handler.media.Dimension;
 import io.wcm.handler.media.format.Ratio;
 import io.wcm.handler.media.impl.ImageTransformation;
+import io.wcm.handler.media.impl.RelativeCroppingString;
 import io.wcm.handler.mediasource.ngdm.impl.metadata.NextGenDynamicMediaMetadata;
 import io.wcm.handler.mediasource.ngdm.impl.metadata.SmartCrop;
 import io.wcm.wcm.commons.contenttype.FileExtension;
@@ -48,12 +49,12 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
  *
  * &lt;p&gt;
  * Example URL that might be build:
- * https://host/adobe/assets/urn:aaid:aem:12345678-abcd-abcd-abcd-abcd12345678/as/my-image.jpg?preferwebp=true&amp;quality=85&amp;width=300&amp;crop=16:9,smart
+ * https://repo1/adobe/assets/urn:aaid:aem:12345678-abcd-abcd-abcd-abcd12345678/as/my-image.jpg?quality=60&amp;smartcrop=Landscape&amp;width=100
+ * https://repo1/adobe/assets/urn:aaid:aem:12345678-abcd-abcd-abcd-abcd12345678/as/my-image.jpg?crop=16.7p%2C0.0p%2C66.7p%2C100.0p&amp;quality=60&amp;width=100
  * &lt;/p&gt;
  */
 public final class NextGenDynamicMediaImageUrlBuilder {
 
-  static final String PARAM_PREFER_WEBP = &quot;preferwebp&quot;;
   static final String PARAM_WIDTH = &quot;width&quot;;
   static final String PARAM_HEIGHT = &quot;height&quot;;
   static final String PARAM_CROP = &quot;crop&quot;;
@@ -61,7 +62,7 @@ public final class NextGenDynamicMediaImageUrlBuilder {
   static final String PARAM_ROTATE = &quot;rotate&quot;;
   static final String PARAM_QUALITY = &quot;quality&quot;;
 
-<span class="fc" id="L64">  private static final Set&lt;String&gt; SUPPORTED_FORMATS = Set.of(</span>
+<span class="fc" id="L65">  private static final Set&lt;String&gt; SUPPORTED_FORMATS = Set.of(</span>
       FileExtension.JPEG,
       FileExtension.PNG,
       FileExtension.GIF,
@@ -72,9 +73,9 @@ public final class NextGenDynamicMediaImageUrlBuilder {
   /**
    * @param context Context
    */
-<span class="fc" id="L75">  public NextGenDynamicMediaImageUrlBuilder(@NotNull NextGenDynamicMediaContext context) {</span>
-<span class="fc" id="L76">    this.context = context;</span>
-<span class="fc" id="L77">  }</span>
+<span class="fc" id="L76">  public NextGenDynamicMediaImageUrlBuilder(@NotNull NextGenDynamicMediaContext context) {</span>
+<span class="fc" id="L77">    this.context = context;</span>
+<span class="fc" id="L78">  }</span>
 
   /**
    * Builds the URL for a rendition.
@@ -85,27 +86,26 @@ public final class NextGenDynamicMediaImageUrlBuilder {
 
     // get parameters from nextgen dynamic media config for URL parameters
     String repositoryId;
-<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (context.getReference().getAsset() != null) {</span>
-<span class="fc" id="L89">      repositoryId = context.getNextGenDynamicMediaConfig().getLocalAssetsRepositoryId();</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">    if (context.getReference().getAsset() != null) {</span>
+<span class="fc" id="L90">      repositoryId = context.getNextGenDynamicMediaConfig().getLocalAssetsRepositoryId();</span>
     }
     else {
-<span class="fc" id="L92">      repositoryId = context.getNextGenDynamicMediaConfig().getRemoteAssetsRepositoryId();</span>
+<span class="fc" id="L93">      repositoryId = context.getNextGenDynamicMediaConfig().getRemoteAssetsRepositoryId();</span>
     }
-<span class="fc" id="L94">    String imageDeliveryPath = context.getNextGenDynamicMediaConfig().getImageDeliveryBasePath();</span>
-<span class="pc bpc" id="L95" title="3 of 6 branches missed.">    if (repositoryId == null || imageDeliveryPath == null || StringUtils.isAnyBlank(repositoryId, imageDeliveryPath)) {</span>
-<span class="nc" id="L96">      return null;</span>
+<span class="fc" id="L95">    String imageDeliveryPath = context.getNextGenDynamicMediaConfig().getImageDeliveryBasePath();</span>
+<span class="pc bpc" id="L96" title="3 of 6 branches missed.">    if (repositoryId == null || imageDeliveryPath == null || StringUtils.isAnyBlank(repositoryId, imageDeliveryPath)) {</span>
+<span class="nc" id="L97">      return null;</span>
     }
 
     // replace placeholders in delivery path
-<span class="fc" id="L100">    String seoName = FilenameUtils.getBaseName(context.getReference().getFileName());</span>
-<span class="fc" id="L101">    String format = getFileExtension();</span>
-<span class="fc" id="L102">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_ASSET_ID, context.getReference().getAssetId());</span>
-<span class="fc" id="L103">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_SEO_NAME, seoName);</span>
-<span class="fc" id="L104">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_FORMAT, format);</span>
+<span class="fc" id="L101">    String seoName = FilenameUtils.getBaseName(context.getReference().getFileName());</span>
+<span class="fc" id="L102">    String format = getFileExtension();</span>
+<span class="fc" id="L103">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_ASSET_ID, context.getReference().getAssetId());</span>
+<span class="fc" id="L104">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_SEO_NAME, seoName);</span>
+<span class="fc" id="L105">    imageDeliveryPath = StringUtils.replace(imageDeliveryPath, PLACEHOLDER_FORMAT, format);</span>
 
     // prepare URL params
-<span class="fc" id="L107">    SortedMap&lt;String, String&gt; urlParamMap = new TreeMap&lt;&gt;();</span>
-<span class="fc" id="L108">    urlParamMap.put(PARAM_PREFER_WEBP, &quot;true&quot;);</span>
+<span class="fc" id="L108">    SortedMap&lt;String, String&gt; urlParamMap = new TreeMap&lt;&gt;();</span>
 
 <span class="fc" id="L110">    applyWidthHeightCroppingParams(params, urlParamMap);</span>
 
@@ -135,7 +135,7 @@ public final class NextGenDynamicMediaImageUrlBuilder {
 <span class="fc" id="L135">    String urlParams = urlParamMap.entrySet().stream()</span>
 <span class="fc" id="L136">        .map(entry -&gt; toUrlParam(entry.getKey(), entry.getValue()))</span>
 <span class="fc" id="L137">        .collect(Collectors.joining(&quot;&amp;&quot;));</span>
-<span class="pc bpc" id="L138" title="1 of 2 branches missed.">    if (StringUtils.isNotEmpty(urlParams)) {</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(urlParams)) {</span>
 <span class="pc bpc" id="L139" title="1 of 2 branches missed.">      if (url.indexOf(&quot;?&quot;) &lt; 0) {</span>
 <span class="fc" id="L140">        url.append(&quot;?&quot;);</span>
       }
@@ -198,7 +198,7 @@ public final class NextGenDynamicMediaImageUrlBuilder {
       // apply static auto crop (center-cropping)
 <span class="fc" id="L199">      CropDimension cropDimension = ImageTransformation.calculateAutoCropDimension(</span>
 <span class="fc" id="L200">          orginalDimension.getWidth(), orginalDimension.getHeight(), Ratio.get(requestedRatio));</span>
-<span class="fc" id="L201">      urlParamMap.put(PARAM_CROP, cropDimension.getCropStringWidthHeight());</span>
+<span class="fc" id="L201">      urlParamMap.put(PARAM_CROP, RelativeCroppingString.createFromCropDimension(cropDimension, orginalDimension));</span>
 <span class="pc bpc" id="L202" title="1 of 2 branches missed.">      if (!applyWidthOrPlaceholder(params, urlParamMap)) {</span>
 <span class="nc" id="L203">        applyHeightOrPlaceholder(params, urlParamMap);</span>
       }

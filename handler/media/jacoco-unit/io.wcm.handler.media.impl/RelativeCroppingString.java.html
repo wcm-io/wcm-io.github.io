@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RelativeCroppingString.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.media.impl</a> &gt; <span class="el_source">RelativeCroppingString.java</span></div><h1>RelativeCroppingString.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2024 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.media.impl;
+
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
+import java.util.Locale;
+
+import org.jetbrains.annotations.NotNull;
+
+import io.wcm.handler.media.CropDimension;
+import io.wcm.handler.media.Dimension;
+
+/**
+ * Creates relative crop string with percentage values as required by the Web-Optimized Image Delivery API.
+ * It uses one fractional digit for the percentage values.
+ */
+public final class RelativeCroppingString {
+
+<span class="fc" id="L38">  private static final NumberFormat DECIMAL_FORMAT = new DecimalFormat(&quot;0.0&quot;, new DecimalFormatSymbols(Locale.US));</span>
+
+  private RelativeCroppingString() {
+    // static methods only
+  }
+
+  /**
+   * Create relative cropping string from crop dimension and image dimension.
+   * @param cropDimension Crop dimension
+   * @param imageDimension Image dimension
+   * @return Cropping string
+   */
+  public static @NotNull String createFromCropDimension(
+      @NotNull CropDimension cropDimension, @NotNull Dimension imageDimension) {
+<span class="fc" id="L52">    double x1 = cropDimension.getLeft();</span>
+<span class="fc" id="L53">    double y1 = cropDimension.getTop();</span>
+<span class="fc" id="L54">    double left = x1 / imageDimension.getWidth();</span>
+<span class="fc" id="L55">    double top = y1 / imageDimension.getHeight();</span>
+<span class="fc" id="L56">    double width = (double)cropDimension.getWidth() / imageDimension.getWidth();</span>
+<span class="fc" id="L57">    double height = (double)cropDimension.getHeight() / imageDimension.getHeight();</span>
+<span class="fc" id="L58">    return create(left, top, width, height);</span>
+  }
+
+  /**
+   * Create relative cropping string from percentage values.
+   * @param left Left
+   * @param top Top
+   * @param width Width
+   * @param height Height
+   * @return Cropping string
+   */
+  public static @NotNull String create(double left, double top, double width, double height) {
+<span class="fc" id="L70">    return String.format(&quot;%sp,%sp,%sp,%sp&quot;,</span>
+<span class="fc" id="L71">        toPercentage(left), toPercentage(top),</span>
+<span class="fc" id="L72">        toPercentage(width), toPercentage(height));</span>
+  }
+
+  private static String toPercentage(double fraction) {
+<span class="fc" id="L76">    double percentage = Math.round(fraction * 1000d) / 10d;</span>
+<span class="fc" id="L77">    percentage = Math.max(0.0, percentage);</span>
+<span class="fc" id="L78">    percentage = Math.min(100.0, percentage);</span>
+<span class="fc" id="L79">    return DECIMAL_FORMAT.format(percentage);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
