@@ -20,19 +20,20 @@
 package io.wcm.dam.assetservice.impl;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang3.CharEncoding;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
-import org.apache.sling.commons.json.JSONException;
-import org.apache.sling.commons.json.JSONObject;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.wcm.wcm.commons.caching.CacheHeader;
 import io.wcm.wcm.commons.contenttype.ContentType;
@@ -40,43 +41,38 @@ import io.wcm.wcm.commons.contenttype.ContentType;
 /**
  * Returns generated data version if called on the root of an allowed asset path in DAM.
  */
-@SuppressWarnings(&quot;deprecation&quot;)
 class DataVersionServlet extends SlingSafeMethodsServlet {
   private static final long serialVersionUID = 1L;
 
   private final DamPathHandler damPathHandler;
+<span class="fc" id="L48">  private static final JsonMapper JSON_MAPPER = new JsonMapper();</span>
 
-<span class="fc" id="L49">  private static final Logger log = LoggerFactory.getLogger(DataVersionServlet.class);</span>
+<span class="fc" id="L50">  private static final Logger log = LoggerFactory.getLogger(DataVersionServlet.class);</span>
 
-<span class="fc" id="L51">  DataVersionServlet(DamPathHandler damPathHandler) {</span>
-<span class="fc" id="L52">    this.damPathHandler = damPathHandler;</span>
-<span class="fc" id="L53">  }</span>
+<span class="fc" id="L52">  DataVersionServlet(DamPathHandler damPathHandler) {</span>
+<span class="fc" id="L53">    this.damPathHandler = damPathHandler;</span>
+<span class="fc" id="L54">  }</span>
 
   @Override
   protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
-<span class="fc" id="L57">    String path = request.getResource().getPath();</span>
+<span class="fc" id="L58">    String path = request.getResource().getPath();</span>
 
     // check path is a valid DAM root folder path for asset service
-<span class="fc bfc" id="L60" title="All 2 branches covered.">    if (!damPathHandler.isAllowedDataVersionPath(path)) {</span>
-<span class="fc" id="L61">      log.debug(&quot;Path not allowed to get data version {}&quot;, path);</span>
-<span class="fc" id="L62">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
-<span class="fc" id="L63">      return;</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">    if (!damPathHandler.isAllowedDataVersionPath(path)) {</span>
+<span class="fc" id="L62">      log.debug(&quot;Path not allowed to get data version {}&quot;, path);</span>
+<span class="fc" id="L63">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="fc" id="L64">      return;</span>
     }
 
     // return data version as JSON
-    try {
-<span class="fc" id="L68">      JSONObject jsonResponse = new JSONObject();</span>
-<span class="fc" id="L69">      jsonResponse.put(&quot;dataVersion&quot;, damPathHandler.getDataVersion(path));</span>
+<span class="fc" id="L68">    ObjectNode jsonResponse = JSON_MAPPER.createObjectNode();</span>
+<span class="fc" id="L69">    jsonResponse.put(&quot;dataVersion&quot;, damPathHandler.getDataVersion(path));</span>
 
-<span class="fc" id="L71">      response.setContentType(ContentType.JSON);</span>
-<span class="fc" id="L72">      response.setCharacterEncoding(CharEncoding.UTF_8);</span>
-<span class="fc" id="L73">      response.getWriter().write(jsonResponse.toString());</span>
-<span class="fc" id="L74">      CacheHeader.setNonCachingHeaders(response);</span>
-    }
-<span class="nc" id="L76">    catch (JSONException ex) {</span>
-<span class="nc" id="L77">      throw new ServletException(&quot;Unable to generate JSON.&quot;, ex);</span>
-<span class="fc" id="L78">    }</span>
-<span class="fc" id="L79">  }</span>
+<span class="fc" id="L71">    response.setContentType(ContentType.JSON);</span>
+<span class="fc" id="L72">    response.setCharacterEncoding(StandardCharsets.UTF_8.name());</span>
+<span class="fc" id="L73">    response.getWriter().write(JSON_MAPPER.writeValueAsString(jsonResponse));</span>
+<span class="fc" id="L74">    CacheHeader.setNonCachingHeaders(response);</span>
+<span class="fc" id="L75">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
