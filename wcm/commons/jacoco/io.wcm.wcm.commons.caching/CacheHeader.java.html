@@ -87,9 +87,11 @@ public final class CacheHeader {
    * the resource was not modified since the client retrieved the resource, a 304-redirect is send to the response (and
    * the method returns true). If the resource has changed (or the client didn't) supply the &quot;If-Modified-Since&quot; header
    * a &quot;Last-Modified&quot; header is set so future requests can be cached.
+   *
    * &lt;p&gt;
    * Expires header is automatically set on author instance, and not set on publish instance.
    * &lt;/p&gt;
+   *
    * @param resource the JCR resource the last modification date is taken from
    * @param request Request
    * @param response Response
@@ -98,8 +100,8 @@ public final class CacheHeader {
    */
   public static boolean isNotModified(@NotNull Resource resource,
       @NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) {
-<span class="fc" id="L101">    ResourceModificationDateProvider dateProvider = new ResourceModificationDateProvider(resource);</span>
-<span class="fc" id="L102">    return isNotModified(dateProvider, request, response);</span>
+<span class="fc" id="L103">    ResourceModificationDateProvider dateProvider = new ResourceModificationDateProvider(resource);</span>
+<span class="fc" id="L104">    return isNotModified(dateProvider, request, response);</span>
   }
 
   /**
@@ -116,8 +118,8 @@ public final class CacheHeader {
    */
   public static boolean isNotModified(@NotNull Resource resource,
       @NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response, boolean setExpiresHeader) {
-<span class="nc" id="L119">    ResourceModificationDateProvider dateProvider = new ResourceModificationDateProvider(resource);</span>
-<span class="nc" id="L120">    return isNotModified(dateProvider, request, response, setExpiresHeader);</span>
+<span class="nc" id="L121">    ResourceModificationDateProvider dateProvider = new ResourceModificationDateProvider(resource);</span>
+<span class="nc" id="L122">    return isNotModified(dateProvider, request, response, setExpiresHeader);</span>
   }
 
   /**
@@ -125,9 +127,11 @@ public final class CacheHeader {
    * resource. If the resource was not modified since the client retrieved the resource, a 304-redirect is send to the
    * response (and the method returns true). If the resource has changed (or the client didn't) supply the
    * &quot;If-Modified-Since&quot; header a &quot;Last-Modified&quot; header is set so future requests can be cached.
+   *
    * &lt;p&gt;
    * Expires header is automatically set on author instance, and not set on publish instance.
    * &lt;/p&gt;
+   *
    * @param dateProvider abstraction layer that calculates the last-modification time of an aggregated resource
    * @param request Request
    * @param response Response
@@ -136,8 +140,8 @@ public final class CacheHeader {
    */
   public static boolean isNotModified(@NotNull ModificationDateProvider dateProvider,
       @NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) {
-<span class="fc bfc" id="L139" title="All 2 branches covered.">    boolean isAuthor = WCMMode.fromRequest(request) != WCMMode.DISABLED;</span>
-<span class="fc" id="L140">    return isNotModified(dateProvider, request, response, isAuthor);</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">    boolean isAuthor = WCMMode.fromRequest(request) != WCMMode.DISABLED;</span>
+<span class="fc" id="L144">    return isNotModified(dateProvider, request, response, isAuthor);</span>
   }
 
   /**
@@ -156,44 +160,44 @@ public final class CacheHeader {
       @NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response, boolean setExpiresHeader) {
 
     // assume the resource *was* modified until we know better
-<span class="fc" id="L159">    boolean isModified = true;</span>
+<span class="fc" id="L163">    boolean isModified = true;</span>
 
     // get the modification date of the resource(s) in question
-<span class="fc" id="L162">    Date lastModificationDate = dateProvider.getModificationDate();</span>
+<span class="fc" id="L166">    Date lastModificationDate = dateProvider.getModificationDate();</span>
 
     // get the date of the version from the client's cache
-<span class="fc" id="L165">    String ifModifiedSince = request.getHeader(HEADER_IF_MODIFIED_SINCE);</span>
+<span class="fc" id="L169">    String ifModifiedSince = request.getHeader(HEADER_IF_MODIFIED_SINCE);</span>
 
     // only compare if both resource modification date and If-Modified-Since header is available
-<span class="pc bpc" id="L168" title="1 of 4 branches missed.">    if (lastModificationDate != null &amp;&amp; StringUtils.isNotBlank(ifModifiedSince)) {</span>
+<span class="pc bpc" id="L172" title="1 of 4 branches missed.">    if (lastModificationDate != null &amp;&amp; StringUtils.isNotBlank(ifModifiedSince)) {</span>
       try {
-<span class="fc" id="L170">        Date clientModificationDate = parseDate(ifModifiedSince);</span>
+<span class="fc" id="L174">        Date clientModificationDate = parseDate(ifModifiedSince);</span>
 
         // resource is considered modified if it's modification date is *after* the client's modification date
-<span class="pc bpc" id="L173" title="1 of 2 branches missed.">        isModified = lastModificationDate.getTime() - DateUtils.MILLIS_PER_SECOND &gt; clientModificationDate.getTime();</span>
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">        isModified = lastModificationDate.getTime() - DateUtils.MILLIS_PER_SECOND &gt; clientModificationDate.getTime();</span>
       }
-<span class="nc" id="L175">      catch (ParseException ex) {</span>
-<span class="nc" id="L176">        log.warn(&quot;Failed to parse value '{}' of If-Modified-Since header.&quot;, ifModifiedSince, ex);</span>
-<span class="fc" id="L177">      }</span>
+<span class="nc" id="L179">      catch (ParseException ex) {</span>
+<span class="nc" id="L180">        log.warn(&quot;Failed to parse value '{}' of If-Modified-Since header.&quot;, ifModifiedSince, ex);</span>
+<span class="fc" id="L181">      }</span>
     }
 
     // if resource wasn't modified: send a 304 and return true so the caller knows it shouldn't go on writing the response
-<span class="fc bfc" id="L181" title="All 2 branches covered.">    if (!isModified) {</span>
-<span class="fc" id="L182">      response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);</span>
-<span class="fc" id="L183">      return true;</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">    if (!isModified) {</span>
+<span class="fc" id="L186">      response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);</span>
+<span class="fc" id="L187">      return true;</span>
     }
 
     // set last modified header so future requests can be cached
-<span class="pc bpc" id="L187" title="1 of 2 branches missed.">    if (lastModificationDate != null) {</span>
-<span class="fc" id="L188">      response.setHeader(HEADER_LAST_MODIFIED, formatDate(lastModificationDate));</span>
-<span class="fc bfc" id="L189" title="All 2 branches covered.">      if (setExpiresHeader) {</span>
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">    if (lastModificationDate != null) {</span>
+<span class="fc" id="L192">      response.setHeader(HEADER_LAST_MODIFIED, formatDate(lastModificationDate));</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">      if (setExpiresHeader) {</span>
         // by setting an expires header we force the browser to always check for updated versions (only on author)
-<span class="fc" id="L191">        response.setHeader(HEADER_EXPIRES, &quot;-1&quot;);</span>
+<span class="fc" id="L195">        response.setHeader(HEADER_EXPIRES, &quot;-1&quot;);</span>
       }
     }
 
     // tell the caller it should go on writing the response as no 304-header was send
-<span class="fc" id="L196">    return false;</span>
+<span class="fc" id="L200">    return false;</span>
   }
 
   /**
@@ -201,11 +205,11 @@ public final class CacheHeader {
    * @param response Current response
    */
   public static void setNonCachingHeaders(@NotNull HttpServletResponse response) {
-<span class="fc" id="L204">    response.setHeader(HEADER_PRAGMA, NO_CACHE);</span>
-<span class="fc" id="L205">    response.setHeader(HEADER_CACHE_CONTROL, NO_CACHE);</span>
-<span class="fc" id="L206">    response.setHeader(HEADER_EXPIRES, &quot;0&quot;);</span>
-<span class="fc" id="L207">    response.setHeader(HEADER_DISPATCHER, NO_CACHE);</span>
-<span class="fc" id="L208">  }</span>
+<span class="fc" id="L208">    response.setHeader(HEADER_PRAGMA, NO_CACHE);</span>
+<span class="fc" id="L209">    response.setHeader(HEADER_CACHE_CONTROL, NO_CACHE);</span>
+<span class="fc" id="L210">    response.setHeader(HEADER_EXPIRES, &quot;0&quot;);</span>
+<span class="fc" id="L211">    response.setHeader(HEADER_DISPATCHER, NO_CACHE);</span>
+<span class="fc" id="L212">  }</span>
 
   /**
    * Set expires header to given date.
@@ -213,13 +217,13 @@ public final class CacheHeader {
    * @param date Expires date
    */
   public static void setExpires(@NotNull HttpServletResponse response, @Nullable Date date) {
-<span class="fc bfc" id="L216" title="All 2 branches covered.">    if (date == null) {</span>
-<span class="fc" id="L217">      response.setHeader(HEADER_EXPIRES, &quot;-1&quot;);</span>
+<span class="fc bfc" id="L220" title="All 2 branches covered.">    if (date == null) {</span>
+<span class="fc" id="L221">      response.setHeader(HEADER_EXPIRES, &quot;-1&quot;);</span>
     }
     else {
-<span class="fc" id="L220">      response.setHeader(HEADER_EXPIRES, formatDate(date));</span>
+<span class="fc" id="L224">      response.setHeader(HEADER_EXPIRES, formatDate(date));</span>
     }
-<span class="fc" id="L222">  }</span>
+<span class="fc" id="L226">  }</span>
 
   /**
    * Set expires header to given amount of seconds in the future.
@@ -227,9 +231,9 @@ public final class CacheHeader {
    * @param seconds Seconds to expire
    */
   public static void setExpiresSeconds(@NotNull HttpServletResponse response, int seconds) {
-<span class="fc" id="L230">    Date expiresDate = DateUtils.addSeconds(new Date(), seconds);</span>
-<span class="fc" id="L231">    setExpires(response, expiresDate);</span>
-<span class="fc" id="L232">  }</span>
+<span class="fc" id="L234">    Date expiresDate = DateUtils.addSeconds(new Date(), seconds);</span>
+<span class="fc" id="L235">    setExpires(response, expiresDate);</span>
+<span class="fc" id="L236">  }</span>
 
   /**
    * Set expires header to given amount of hours in the future.
@@ -237,9 +241,9 @@ public final class CacheHeader {
    * @param hours Hours to expire
    */
   public static void setExpiresHours(@NotNull HttpServletResponse response, int hours) {
-<span class="fc" id="L240">    Date expiresDate = DateUtils.addHours(new Date(), hours);</span>
-<span class="fc" id="L241">    setExpires(response, expiresDate);</span>
-<span class="fc" id="L242">  }</span>
+<span class="fc" id="L244">    Date expiresDate = DateUtils.addHours(new Date(), hours);</span>
+<span class="fc" id="L245">    setExpires(response, expiresDate);</span>
+<span class="fc" id="L246">  }</span>
 
   /**
    * Set expires header to given amount of days in the future.
@@ -247,9 +251,9 @@ public final class CacheHeader {
    * @param days Days to expire
    */
   public static void setExpiresDays(@NotNull HttpServletResponse response, int days) {
-<span class="fc" id="L250">    Date expiresDate = DateUtils.addDays(new Date(), days);</span>
-<span class="fc" id="L251">    setExpires(response, expiresDate);</span>
-<span class="fc" id="L252">  }</span>
+<span class="fc" id="L254">    Date expiresDate = DateUtils.addDays(new Date(), days);</span>
+<span class="fc" id="L255">    setExpires(response, expiresDate);</span>
+<span class="fc" id="L256">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
