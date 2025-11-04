@@ -27,6 +27,7 @@ import org.apache.jackrabbit.util.Text;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.tenant.Tenant;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 import com.day.cq.wcm.api.Page;
@@ -60,13 +61,13 @@ public final class Path {
   private static final String LAUNCHES_PATH = &quot;/content/launches&quot;;
   private static final String EXPERIENCE_FRAGMENTS_PATH = &quot;/content/experience-fragments&quot;;
 
-<span class="fc" id="L63">  private static final Pattern VERSION_HISTORY_PATTERN = Pattern.compile(VERSION_HISTORY_PATH + &quot;/[^/]+/[^/]+(/.*)?&quot;);</span>
-<span class="fc" id="L64">  private static final Pattern LEGACY_VERSION_HISTORY_PATTERN = Pattern.compile(LEGACY_VERSION_HISTORY_PATH + &quot;/[^/]+(/.*)?&quot;);</span>
-<span class="fc" id="L65">  private static final Pattern LEGACY_VERSION_HISTORY_TENANT_PATTERN = Pattern.compile(LEGACY_VERSION_HISTORY_PATH + &quot;/[^/]+/[^/]+(/.*)?&quot;);</span>
-<span class="fc" id="L66">  private static final Pattern LAUNCHES_PATTERN = Pattern.compile(LAUNCHES_PATH + &quot;/\\d+/\\d+/\\d+/[^/]+(/.*)?&quot;);</span>
+<span class="fc" id="L64">  private static final Pattern VERSION_HISTORY_PATTERN = Pattern.compile(VERSION_HISTORY_PATH + &quot;/[^/]+/[^/]+(/.*)?&quot;);</span>
+<span class="fc" id="L65">  private static final Pattern LEGACY_VERSION_HISTORY_PATTERN = Pattern.compile(LEGACY_VERSION_HISTORY_PATH + &quot;/[^/]+(/.*)?&quot;);</span>
+<span class="fc" id="L66">  private static final Pattern LEGACY_VERSION_HISTORY_TENANT_PATTERN = Pattern.compile(LEGACY_VERSION_HISTORY_PATH + &quot;/[^/]+/[^/]+(/.*)?&quot;);</span>
+<span class="fc" id="L67">  private static final Pattern LAUNCHES_PATTERN = Pattern.compile(LAUNCHES_PATH + &quot;/\\d+/\\d+/\\d+/[^/]+(/.*)?&quot;);</span>
 
-<span class="fc" id="L68">  private static final Pattern EXPERIENCE_FRAGMENTS_PATTERN = Pattern.compile(&quot;^&quot; + EXPERIENCE_FRAGMENTS_PATH + &quot;/.*$&quot;);</span>
-<span class="fc" id="L69">  private static final Pattern EDITABLE_TEMPLATE_PATTERN = Pattern.compile(&quot;^/conf/.*/settings/wcm/templates/.*$&quot;);</span>
+<span class="fc" id="L69">  private static final Pattern EXPERIENCE_FRAGMENTS_PATTERN = Pattern.compile(&quot;^&quot; + EXPERIENCE_FRAGMENTS_PATH + &quot;/.*$&quot;);</span>
+<span class="fc" id="L70">  private static final Pattern EDITABLE_TEMPLATE_PATTERN = Pattern.compile(&quot;^/conf/.*/settings/wcm/templates/.*$&quot;);</span>
 
   private Path() {
     // static methods only
@@ -81,12 +82,12 @@ public final class Path {
    * @param resourceResolver Resource resolver
    * @return Absolute parent path or empty string if path is invalid
    */
-  public static String getAbsoluteParent(@NotNull String path, int parentLevel, @NotNull ResourceResolver resourceResolver) {
-<span class="fc bfc" id="L85" title="All 2 branches covered.">    if (parentLevel &lt; 0) {</span>
-<span class="fc" id="L86">      return &quot;&quot;;</span>
+  public static @NotNull String getAbsoluteParent(@NotNull String path, int parentLevel, @NotNull ResourceResolver resourceResolver) {
+<span class="fc bfc" id="L86" title="All 2 branches covered.">    if (parentLevel &lt; 0) {</span>
+<span class="fc" id="L87">      return &quot;&quot;;</span>
     }
-<span class="fc" id="L88">    int level = parentLevel + getAbsoluteLevelOffset(path, resourceResolver);</span>
-<span class="fc" id="L89">    return Text.getAbsoluteParent(path, level);</span>
+<span class="fc" id="L89">    int level = parentLevel + getAbsoluteLevelOffset(path, resourceResolver);</span>
+<span class="fc" id="L90">    return Text.getAbsoluteParent(path, level);</span>
   }
 
   /**
@@ -99,13 +100,13 @@ public final class Path {
    * @return Absolute parent page or null if path is invalid
    */
   @SuppressWarnings(&quot;null&quot;)
-  public static Page getAbsoluteParent(@NotNull Page page, int parentLevel, @NotNull ResourceResolver resourceResolver) {
-<span class="fc" id="L103">    PageManager pageManager = resourceResolver.adaptTo(PageManager.class);</span>
-<span class="fc" id="L104">    String absoluteParentPath = getAbsoluteParent(page.getPath(), parentLevel, resourceResolver);</span>
-<span class="fc bfc" id="L105" title="All 2 branches covered.">    if (StringUtils.isEmpty(absoluteParentPath)) {</span>
-<span class="fc" id="L106">      return null;</span>
+  public static @Nullable Page getAbsoluteParent(@NotNull Page page, int parentLevel, @NotNull ResourceResolver resourceResolver) {
+<span class="fc" id="L104">    PageManager pageManager = resourceResolver.adaptTo(PageManager.class);</span>
+<span class="fc" id="L105">    String absoluteParentPath = getAbsoluteParent(page.getPath(), parentLevel, resourceResolver);</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">    if (StringUtils.isEmpty(absoluteParentPath)) {</span>
+<span class="fc" id="L107">      return null;</span>
     }
-<span class="fc" id="L108">    return pageManager.getPage(absoluteParentPath);</span>
+<span class="fc" id="L109">    return pageManager.getPage(absoluteParentPath);</span>
   }
 
   /**
@@ -116,11 +117,11 @@ public final class Path {
    * @return level &amp;gt;= 0 if path is valid, -1 if path is invalid
    */
   public static int getAbsoluteLevel(@NotNull String path, @NotNull ResourceResolver resourceResolver) {
-<span class="fc bfc" id="L119" title="All 4 branches covered.">    if (StringUtils.isEmpty(path) || StringUtils.equals(path, &quot;/&quot;)) {</span>
-<span class="fc" id="L120">      return -1;</span>
+<span class="fc bfc" id="L120" title="All 4 branches covered.">    if (StringUtils.isEmpty(path) || StringUtils.equals(path, &quot;/&quot;)) {</span>
+<span class="fc" id="L121">      return -1;</span>
     }
-<span class="fc" id="L122">    String originalPath = getOriginalPath(path, resourceResolver);</span>
-<span class="fc" id="L123">    return StringUtils.countMatches(originalPath, &quot;/&quot;) - 1;</span>
+<span class="fc" id="L123">    String originalPath = getOriginalPath(path, resourceResolver);</span>
+<span class="fc" id="L124">    return StringUtils.countMatches(originalPath, &quot;/&quot;) - 1;</span>
   }
 
   /**
@@ -130,28 +131,28 @@ public final class Path {
    * @param resourceResolver Resource resolver
    * @return Path that is not a version history or launch path
    */
-  public static String getOriginalPath(@NotNull String path, @NotNull ResourceResolver resourceResolver) {
-<span class="fc bfc" id="L134" title="All 2 branches covered.">    if (StringUtils.isEmpty(path)) {</span>
-<span class="fc" id="L135">      return null;</span>
+  public static @Nullable String getOriginalPath(@NotNull String path, @NotNull ResourceResolver resourceResolver) {
+<span class="fc bfc" id="L135" title="All 2 branches covered.">    if (StringUtils.isEmpty(path)) {</span>
+<span class="fc" id="L136">      return null;</span>
     }
-<span class="fc" id="L137">    Matcher versionHistoryMatcher = VERSION_HISTORY_PATTERN.matcher(path);</span>
-<span class="fc bfc" id="L138" title="All 2 branches covered.">    if (versionHistoryMatcher.matches()) {</span>
-<span class="fc" id="L139">      return &quot;/content&quot; + versionHistoryMatcher.group(1);</span>
+<span class="fc" id="L138">    Matcher versionHistoryMatcher = VERSION_HISTORY_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">    if (versionHistoryMatcher.matches()) {</span>
+<span class="fc" id="L140">      return &quot;/content&quot; + versionHistoryMatcher.group(1);</span>
     }
-<span class="fc" id="L141">    Matcher legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_PATTERN.matcher(path);</span>
-<span class="fc bfc" id="L142" title="All 2 branches covered.">    if (legacyVersionHistoryMatcher.matches()) {</span>
-<span class="fc bfc" id="L143" title="All 2 branches covered.">      if (isTenant(resourceResolver)) {</span>
-<span class="fc" id="L144">        legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_TENANT_PATTERN.matcher(path);</span>
+<span class="fc" id="L142">    Matcher legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">    if (legacyVersionHistoryMatcher.matches()) {</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">      if (isTenant(resourceResolver)) {</span>
+<span class="fc" id="L145">        legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_TENANT_PATTERN.matcher(path);</span>
       }
-<span class="pc bpc" id="L146" title="1 of 2 branches missed.">      if (legacyVersionHistoryMatcher.matches()) {</span>
-<span class="fc" id="L147">        return &quot;/content&quot; + legacyVersionHistoryMatcher.group(1);</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">      if (legacyVersionHistoryMatcher.matches()) {</span>
+<span class="fc" id="L148">        return &quot;/content&quot; + legacyVersionHistoryMatcher.group(1);</span>
       }
     }
-<span class="fc" id="L150">    Matcher launchesMatcher = LAUNCHES_PATTERN.matcher(path);</span>
-<span class="fc bfc" id="L151" title="All 2 branches covered.">    if (launchesMatcher.matches()) {</span>
-<span class="fc" id="L152">      return launchesMatcher.group(1);</span>
+<span class="fc" id="L151">    Matcher launchesMatcher = LAUNCHES_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">    if (launchesMatcher.matches()) {</span>
+<span class="fc" id="L153">      return launchesMatcher.group(1);</span>
     }
-<span class="fc" id="L154">    return path;</span>
+<span class="fc" id="L155">    return path;</span>
   }
 
   /**
@@ -161,25 +162,25 @@ public final class Path {
    * @return 0 or offset if a version history or launch path.
    */
   private static int getAbsoluteLevelOffset(@NotNull String path, @NotNull ResourceResolver resourceResolver) {
-<span class="fc" id="L164">    Matcher versionHistoryMatcher = VERSION_HISTORY_PATTERN.matcher(path);</span>
-<span class="fc bfc" id="L165" title="All 2 branches covered.">    if (versionHistoryMatcher.matches()) {</span>
-<span class="fc" id="L166">      return 3;</span>
+<span class="fc" id="L165">    Matcher versionHistoryMatcher = VERSION_HISTORY_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">    if (versionHistoryMatcher.matches()) {</span>
+<span class="fc" id="L167">      return 3;</span>
     }
-<span class="fc" id="L168">    Matcher legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_PATTERN.matcher(path);</span>
-<span class="fc bfc" id="L169" title="All 2 branches covered.">    if (legacyVersionHistoryMatcher.matches()) {</span>
-<span class="fc bfc" id="L170" title="All 2 branches covered.">      if (isTenant(resourceResolver)) {</span>
-<span class="fc" id="L171">        legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_TENANT_PATTERN.matcher(path);</span>
-<span class="pc bpc" id="L172" title="1 of 2 branches missed.">        if (legacyVersionHistoryMatcher.matches()) {</span>
-<span class="fc" id="L173">          return 3;</span>
+<span class="fc" id="L169">    Matcher legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">    if (legacyVersionHistoryMatcher.matches()) {</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">      if (isTenant(resourceResolver)) {</span>
+<span class="fc" id="L172">        legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_TENANT_PATTERN.matcher(path);</span>
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">        if (legacyVersionHistoryMatcher.matches()) {</span>
+<span class="fc" id="L174">          return 3;</span>
         }
       }
-<span class="fc" id="L176">      return 2;</span>
+<span class="fc" id="L177">      return 2;</span>
     }
-<span class="fc" id="L178">    Matcher launchesMatcher = LAUNCHES_PATTERN.matcher(path);</span>
-<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (launchesMatcher.matches()) {</span>
-<span class="fc" id="L180">      return 6;</span>
+<span class="fc" id="L179">    Matcher launchesMatcher = LAUNCHES_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L180" title="All 2 branches covered.">    if (launchesMatcher.matches()) {</span>
+<span class="fc" id="L181">      return 6;</span>
     }
-<span class="fc" id="L182">    return 0;</span>
+<span class="fc" id="L183">    return 0;</span>
   }
 
   /**
@@ -188,8 +189,8 @@ public final class Path {
    * @return true if tenant is active
    */
   private static boolean isTenant(@NotNull ResourceResolver resourceResolver) {
-<span class="fc" id="L191">    Tenant tenant = resourceResolver.adaptTo(Tenant.class);</span>
-<span class="fc bfc" id="L192" title="All 2 branches covered.">    return tenant != null;</span>
+<span class="fc" id="L192">    Tenant tenant = resourceResolver.adaptTo(Tenant.class);</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">    return tenant != null;</span>
   }
 
   /**
@@ -197,7 +198,7 @@ public final class Path {
    * @return true if content path is inside experience fragements path.
    */
   public static boolean isExperienceFragmentPath(@NotNull String path) {
-<span class="fc" id="L200">    return EXPERIENCE_FRAGMENTS_PATTERN.matcher(path).matches();</span>
+<span class="fc" id="L201">    return EXPERIENCE_FRAGMENTS_PATTERN.matcher(path).matches();</span>
   }
 
   /**
@@ -205,7 +206,7 @@ public final class Path {
    * @return true if content path is inside an editable template definition.
    */
   public static boolean isEditableTemplatePath(@NotNull String path) {
-<span class="fc" id="L208">    return EDITABLE_TEMPLATE_PATTERN.matcher(path).matches();</span>
+<span class="fc" id="L209">    return EDITABLE_TEMPLATE_PATTERN.matcher(path).matches();</span>
   }
 
 }
