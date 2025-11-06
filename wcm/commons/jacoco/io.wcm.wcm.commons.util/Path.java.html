@@ -148,11 +148,24 @@ public final class Path {
 <span class="fc" id="L148">        return &quot;/content&quot; + legacyVersionHistoryMatcher.group(1);</span>
       }
     }
-<span class="fc" id="L151">    Matcher launchesMatcher = LAUNCHES_PATTERN.matcher(path);</span>
-<span class="fc bfc" id="L152" title="All 2 branches covered.">    if (launchesMatcher.matches()) {</span>
-<span class="fc" id="L153">      return launchesMatcher.group(1);</span>
+<span class="fc" id="L151">    return getOriginalPathLaunches(path);</span>
+  }
+
+  /**
+   * Check recursively for launches (launches can be nested).
+   * @param path Path
+   * @return Path that is not a launch path
+   */
+  private static String getOriginalPathLaunches(@NotNull String path) {
+<span class="fc" id="L160">    Matcher launchesMatcher = LAUNCHES_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">    if (launchesMatcher.matches()) {</span>
+<span class="fc" id="L162">      String subPath = launchesMatcher.group(1);</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">      if (subPath == null) {</span>
+<span class="fc" id="L164">        return null;</span>
+      }
+<span class="fc" id="L166">      return getOriginalPathLaunches(subPath);</span>
     }
-<span class="fc" id="L155">    return path;</span>
+<span class="fc" id="L168">    return path;</span>
   }
 
   /**
@@ -162,25 +175,35 @@ public final class Path {
    * @return 0 or offset if a version history or launch path.
    */
   private static int getAbsoluteLevelOffset(@NotNull String path, @NotNull ResourceResolver resourceResolver) {
-<span class="fc" id="L165">    Matcher versionHistoryMatcher = VERSION_HISTORY_PATTERN.matcher(path);</span>
-<span class="fc bfc" id="L166" title="All 2 branches covered.">    if (versionHistoryMatcher.matches()) {</span>
-<span class="fc" id="L167">      return 3;</span>
+<span class="fc" id="L178">    Matcher versionHistoryMatcher = VERSION_HISTORY_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (versionHistoryMatcher.matches()) {</span>
+<span class="fc" id="L180">      return 3;</span>
     }
-<span class="fc" id="L169">    Matcher legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_PATTERN.matcher(path);</span>
-<span class="fc bfc" id="L170" title="All 2 branches covered.">    if (legacyVersionHistoryMatcher.matches()) {</span>
-<span class="fc bfc" id="L171" title="All 2 branches covered.">      if (isTenant(resourceResolver)) {</span>
-<span class="fc" id="L172">        legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_TENANT_PATTERN.matcher(path);</span>
-<span class="pc bpc" id="L173" title="1 of 2 branches missed.">        if (legacyVersionHistoryMatcher.matches()) {</span>
-<span class="fc" id="L174">          return 3;</span>
+<span class="fc" id="L182">    Matcher legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">    if (legacyVersionHistoryMatcher.matches()) {</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">      if (isTenant(resourceResolver)) {</span>
+<span class="fc" id="L185">        legacyVersionHistoryMatcher = LEGACY_VERSION_HISTORY_TENANT_PATTERN.matcher(path);</span>
+<span class="pc bpc" id="L186" title="1 of 2 branches missed.">        if (legacyVersionHistoryMatcher.matches()) {</span>
+<span class="fc" id="L187">          return 3;</span>
         }
       }
-<span class="fc" id="L177">      return 2;</span>
+<span class="fc" id="L190">      return 2;</span>
     }
-<span class="fc" id="L179">    Matcher launchesMatcher = LAUNCHES_PATTERN.matcher(path);</span>
-<span class="fc bfc" id="L180" title="All 2 branches covered.">    if (launchesMatcher.matches()) {</span>
-<span class="fc" id="L181">      return 6;</span>
+<span class="fc" id="L192">    return getAbsoluteLevelOffsetLaunches(path);</span>
+  }
+
+  /**
+   * Check recursively for launches (launches can be nested).
+   * @param path Path
+   * @return 0 or offset if a launch path.
+   */
+  private static int getAbsoluteLevelOffsetLaunches(@NotNull String path) {
+<span class="fc" id="L201">    Matcher launchesMatcher = LAUNCHES_PATTERN.matcher(path);</span>
+<span class="fc bfc" id="L202" title="All 2 branches covered.">    if (launchesMatcher.matches()) {</span>
+<span class="fc" id="L203">      String subPath = path.substring(Text.getAbsoluteParent(path, 5).length());</span>
+<span class="fc" id="L204">      return 6 + getAbsoluteLevelOffsetLaunches(subPath);</span>
     }
-<span class="fc" id="L183">    return 0;</span>
+<span class="fc" id="L206">    return 0;</span>
   }
 
   /**
@@ -189,8 +212,8 @@ public final class Path {
    * @return true if tenant is active
    */
   private static boolean isTenant(@NotNull ResourceResolver resourceResolver) {
-<span class="fc" id="L192">    Tenant tenant = resourceResolver.adaptTo(Tenant.class);</span>
-<span class="fc bfc" id="L193" title="All 2 branches covered.">    return tenant != null;</span>
+<span class="fc" id="L215">    Tenant tenant = resourceResolver.adaptTo(Tenant.class);</span>
+<span class="fc bfc" id="L216" title="All 2 branches covered.">    return tenant != null;</span>
   }
 
   /**
@@ -198,7 +221,7 @@ public final class Path {
    * @return true if content path is inside experience fragements path.
    */
   public static boolean isExperienceFragmentPath(@NotNull String path) {
-<span class="fc" id="L201">    return EXPERIENCE_FRAGMENTS_PATTERN.matcher(path).matches();</span>
+<span class="fc" id="L224">    return EXPERIENCE_FRAGMENTS_PATTERN.matcher(path).matches();</span>
   }
 
   /**
@@ -206,7 +229,7 @@ public final class Path {
    * @return true if content path is inside an editable template definition.
    */
   public static boolean isEditableTemplatePath(@NotNull String path) {
-<span class="fc" id="L209">    return EDITABLE_TEMPLATE_PATTERN.matcher(path).matches();</span>
+<span class="fc" id="L232">    return EDITABLE_TEMPLATE_PATTERN.matcher(path).matches();</span>
   }
 
 }
