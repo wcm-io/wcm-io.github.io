@@ -164,21 +164,22 @@ public final class RichTextUtil {
 
 <span class="fc bfc" id="L165" title="All 2 branches covered.">      if (xhtmlEntities) {</span>
 <span class="fc" id="L166">        saxBuilder.setEntityResolver(XHtmlEntityResolver.getInstance());</span>
+<span class="fc" id="L167">        saxBuilder.setFeature(&quot;http://apache.org/xml/features/disallow-doctype-decl&quot;, false);</span>
       }
 
       // XXE prevention
-<span class="fc" id="L170">      saxBuilder.setFeature(JDOMConstants.SAX_FEATURE_EXTERNAL_ENT, false);</span>
-<span class="fc" id="L171">      saxBuilder.setExpandEntities(false);</span>
-<span class="fc bfc" id="L172" title="All 2 branches covered.">      if (!xhtmlEntities) {</span>
-<span class="fc" id="L173">        saxBuilder.setFeature(&quot;http://apache.org/xml/features/disallow-doctype-decl&quot;, true);</span>
-<span class="fc" id="L174">        saxBuilder.setFeature(&quot;http://xml.org/sax/features/external-parameter-entities&quot;, false);</span>
+<span class="fc" id="L171">      saxBuilder.setFeature(JDOMConstants.SAX_FEATURE_EXTERNAL_ENT, false);</span>
+<span class="fc" id="L172">      saxBuilder.setExpandEntities(false);</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">      if (!xhtmlEntities) {</span>
+<span class="fc" id="L174">        saxBuilder.setFeature(&quot;http://apache.org/xml/features/disallow-doctype-decl&quot;, true);</span>
+<span class="fc" id="L175">        saxBuilder.setFeature(&quot;http://xml.org/sax/features/external-parameter-entities&quot;, false);</span>
       }
 
-<span class="fc" id="L177">      Document doc = saxBuilder.build(new StringReader(xhtmlString));</span>
-<span class="fc" id="L178">      return doc.getRootElement();</span>
+<span class="fc" id="L178">      Document doc = saxBuilder.build(new StringReader(xhtmlString));</span>
+<span class="fc" id="L179">      return doc.getRootElement();</span>
     }
-<span class="nc" id="L180">    catch (IOException ex) {</span>
-<span class="nc" id="L181">      throw new IllegalArgumentException(&quot;Error parsing XHTML fragment.&quot;, ex);</span>
+<span class="nc" id="L181">    catch (IOException ex) {</span>
+<span class="nc" id="L182">      throw new IllegalArgumentException(&quot;Error parsing XHTML fragment.&quot;, ex);</span>
     }
 
   }
@@ -190,7 +191,7 @@ public final class RichTextUtil {
    * @return Cleaned up string
    */
   private static String removeCharsNotAllowedInXML10(String value) {
-<span class="fc" id="L193">    return CONTROL_CHARS_NOT_ALLOWED_IN_XML10.matcher(value).replaceAll(&quot;&quot;);</span>
+<span class="fc" id="L194">    return CONTROL_CHARS_NOT_ALLOWED_IN_XML10.matcher(value).replaceAll(&quot;&quot;);</span>
   }
 
   /**
@@ -206,93 +207,93 @@ public final class RichTextUtil {
   public static void rewriteContent(@NotNull Element parent, @NotNull RewriteContentHandler rewriteContentHandler) {
 
     // iterate through content list and build new content list
-<span class="fc" id="L209">    List&lt;Content&gt; originalContent = parent.getContent();</span>
-<span class="fc" id="L210">    List&lt;Content&gt; newContent = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L211" title="All 2 branches covered.">    for (Content contentElement : originalContent) {</span>
+<span class="fc" id="L210">    List&lt;Content&gt; originalContent = parent.getContent();</span>
+<span class="fc" id="L211">    List&lt;Content&gt; newContent = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">    for (Content contentElement : originalContent) {</span>
 
       // handle element
-<span class="fc bfc" id="L214" title="All 2 branches covered.">      if (contentElement instanceof Element) {</span>
-<span class="fc" id="L215">        Element element = (Element)contentElement;</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">      if (contentElement instanceof Element) {</span>
+<span class="fc" id="L216">        Element element = (Element)contentElement;</span>
 
         // check if rewrite is needed for element
-<span class="fc" id="L218">        List&lt;Content&gt; rewriteContent = rewriteContentHandler.rewriteElement(element);</span>
-<span class="fc bfc" id="L219" title="All 2 branches covered.">        if (rewriteContent != null) {</span>
+<span class="fc" id="L219">        List&lt;Content&gt; rewriteContent = rewriteContentHandler.rewriteElement(element);</span>
+<span class="fc bfc" id="L220" title="All 2 branches covered.">        if (rewriteContent != null) {</span>
           // element was removed
-<span class="fc bfc" id="L221" title="All 2 branches covered.">          if (rewriteContent.isEmpty()) {</span>
+<span class="fc bfc" id="L222" title="All 2 branches covered.">          if (rewriteContent.isEmpty()) {</span>
             // do not add to newContent
           }
 
           // element is the same - rewrite child elements
-<span class="fc bfc" id="L226" title="All 4 branches covered.">          else if (rewriteContent.size() == 1 &amp;&amp; rewriteContent.get(0) == element) { //NOPMD</span>
-<span class="fc" id="L227">            rewriteContent(element, rewriteContentHandler);</span>
-<span class="fc" id="L228">            newContent.add(element);</span>
+<span class="fc bfc" id="L227" title="All 4 branches covered.">          else if (rewriteContent.size() == 1 &amp;&amp; rewriteContent.get(0) == element) { //NOPMD</span>
+<span class="fc" id="L228">            rewriteContent(element, rewriteContentHandler);</span>
+<span class="fc" id="L229">            newContent.add(element);</span>
           }
 
           // element was replaced with other content - rewrite and add instead
           else {
-<span class="fc bfc" id="L233" title="All 2 branches covered.">            for (Content newContentItem : rewriteContent) {</span>
-<span class="pc bpc" id="L234" title="1 of 2 branches missed.">              if (newContentItem instanceof Element) {</span>
-<span class="fc" id="L235">                Element newElement = (Element)newContentItem;</span>
-<span class="fc" id="L236">                rewriteContent(newElement, rewriteContentHandler);</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">            for (Content newContentItem : rewriteContent) {</span>
+<span class="pc bpc" id="L235" title="1 of 2 branches missed.">              if (newContentItem instanceof Element) {</span>
+<span class="fc" id="L236">                Element newElement = (Element)newContentItem;</span>
+<span class="fc" id="L237">                rewriteContent(newElement, rewriteContentHandler);</span>
               }
-<span class="fc" id="L238">              newContent.add(newContentItem.clone());</span>
-<span class="fc" id="L239">            }</span>
+<span class="fc" id="L239">              newContent.add(newContentItem.clone());</span>
+<span class="fc" id="L240">            }</span>
           }
         }
 
         // nothing to rewrite - do nothing, but rewrite child element
         else {
-<span class="fc" id="L245">          rewriteContent(element, rewriteContentHandler);</span>
-<span class="fc" id="L246">          newContent.add(element);</span>
+<span class="fc" id="L246">          rewriteContent(element, rewriteContentHandler);</span>
+<span class="fc" id="L247">          newContent.add(element);</span>
         }
 
-<span class="fc" id="L249">      }</span>
+<span class="fc" id="L250">      }</span>
 
       // handle text node
-<span class="fc bfc" id="L252" title="All 2 branches covered.">      else if (contentElement instanceof Text) {</span>
-<span class="fc" id="L253">        Text text = (Text)contentElement;</span>
+<span class="fc bfc" id="L253" title="All 2 branches covered.">      else if (contentElement instanceof Text) {</span>
+<span class="fc" id="L254">        Text text = (Text)contentElement;</span>
 
         // check if rewrite is needed for text node
-<span class="fc" id="L256">        List&lt;Content&gt; rewriteContent = rewriteContentHandler.rewriteText(text);</span>
-<span class="fc bfc" id="L257" title="All 2 branches covered.">        if (rewriteContent != null) {</span>
+<span class="fc" id="L257">        List&lt;Content&gt; rewriteContent = rewriteContentHandler.rewriteText(text);</span>
+<span class="fc bfc" id="L258" title="All 2 branches covered.">        if (rewriteContent != null) {</span>
           // element was removed
-<span class="pc bpc" id="L259" title="1 of 2 branches missed.">          if (rewriteContent.isEmpty()) {</span>
+<span class="pc bpc" id="L260" title="1 of 2 branches missed.">          if (rewriteContent.isEmpty()) {</span>
             // do not add to newContent
           }
 
           // element is the same - ignore
-<span class="pc bpc" id="L264" title="2 of 4 branches missed.">          else if (rewriteContent.size() == 1 &amp;&amp; rewriteContent.get(0) == text) { //NOPMD</span>
+<span class="pc bpc" id="L265" title="2 of 4 branches missed.">          else if (rewriteContent.size() == 1 &amp;&amp; rewriteContent.get(0) == text) { //NOPMD</span>
             // add original element
-<span class="nc" id="L266">            newContent.add(text);</span>
+<span class="nc" id="L267">            newContent.add(text);</span>
           }
 
           // element was replaced with other content - add instead
           else {
-<span class="fc bfc" id="L271" title="All 2 branches covered.">            for (Content newContentItem : rewriteContent) {</span>
-<span class="fc" id="L272">              newContent.add(newContentItem.clone());</span>
-<span class="fc" id="L273">            }</span>
+<span class="fc bfc" id="L272" title="All 2 branches covered.">            for (Content newContentItem : rewriteContent) {</span>
+<span class="fc" id="L273">              newContent.add(newContentItem.clone());</span>
+<span class="fc" id="L274">            }</span>
           }
         }
 
         // nothing to rewrite - do nothing, but add original text element
         else {
-<span class="fc" id="L279">          newContent.add(text);</span>
+<span class="fc" id="L280">          newContent.add(text);</span>
         }
 
-<span class="fc" id="L282">      }</span>
+<span class="fc" id="L283">      }</span>
 
       // unknown element - just add to new content
       else {
-<span class="fc" id="L286">        newContent.add(contentElement);</span>
+<span class="fc" id="L287">        newContent.add(contentElement);</span>
       }
 
-<span class="fc" id="L289">    }</span>
+<span class="fc" id="L290">    }</span>
 
     // replace original content with new content
-<span class="fc" id="L292">    parent.removeContent();</span>
-<span class="fc" id="L293">    parent.addContent(newContent);</span>
+<span class="fc" id="L293">    parent.removeContent();</span>
+<span class="fc" id="L294">    parent.addContent(newContent);</span>
 
-<span class="fc" id="L295">  }</span>
+<span class="fc" id="L296">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
