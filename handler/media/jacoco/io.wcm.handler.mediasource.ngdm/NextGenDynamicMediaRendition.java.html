@@ -19,12 +19,14 @@
  */
 package io.wcm.handler.mediasource.ngdm;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.Objects;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.api.wrappers.ValueMapDecorator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -45,6 +47,7 @@ import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaContext;
 import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaImageDeliveryParams;
 import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaImageUrlBuilder;
 import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaReference;
+import io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaVideoUrlBuilder;
 import io.wcm.handler.mediasource.ngdm.impl.metadata.NextGenDynamicMediaMetadata;
 
 /**
@@ -64,140 +67,207 @@ final class NextGenDynamicMediaRendition implements Rendition {
   private long width;
   private long height;
   private String fileExtension;
+  private final String originalFileExtension;
+  private String videoManifestFormat;
 
-<span class="fc" id="L68">  private static final Logger log = LoggerFactory.getLogger(NextGenDynamicMediaRendition.class);</span>
+<span class="fc" id="L73">  private static final Logger log = LoggerFactory.getLogger(NextGenDynamicMediaRendition.class);</span>
 
-<span class="fc" id="L70">  NextGenDynamicMediaRendition(@NotNull NextGenDynamicMediaContext context, @NotNull MediaArgs mediaArgs) {</span>
-<span class="fc" id="L71">    this.context = context;</span>
-<span class="fc" id="L72">    this.metadata = context.getMetadata();</span>
-<span class="fc bfc" id="L73" title="All 2 branches covered.">    if (this.metadata != null) {</span>
-<span class="fc" id="L74">      this.originalDimension = metadata.getDimension();</span>
+<span class="fc" id="L75">  NextGenDynamicMediaRendition(@NotNull NextGenDynamicMediaContext context, @NotNull MediaArgs mediaArgs) {</span>
+<span class="fc" id="L76">    this.context = context;</span>
+<span class="fc" id="L77">    this.metadata = context.getMetadata();</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">    if (this.metadata != null) {</span>
+<span class="fc" id="L79">      this.originalDimension = metadata.getDimension();</span>
     }
     else {
-<span class="fc" id="L77">      this.originalDimension = null;</span>
+<span class="fc" id="L82">      this.originalDimension = null;</span>
     }
-<span class="fc" id="L79">    this.reference = context.getReference();</span>
-<span class="fc" id="L80">    this.mediaArgs = mediaArgs;</span>
-<span class="fc" id="L81">    this.requestedWidth = mediaArgs.getFixedWidth();</span>
-<span class="fc" id="L82">    this.requestedHeight = mediaArgs.getFixedHeight();</span>
+<span class="fc" id="L84">    this.reference = context.getReference();</span>
+<span class="fc" id="L85">    this.mediaArgs = mediaArgs;</span>
+<span class="fc" id="L86">    this.requestedWidth = mediaArgs.getFixedWidth();</span>
+<span class="fc" id="L87">    this.requestedHeight = mediaArgs.getFixedHeight();</span>
 
     // set first media format as resolved format - because only the first is supported
-<span class="fc" id="L85">    MediaFormat firstMediaFormat = MediaArgsDimension.getFirstMediaFormat(mediaArgs);</span>
-<span class="fc bfc" id="L86" title="All 2 branches covered.">    if (firstMediaFormat != null) {</span>
-<span class="fc" id="L87">      this.resolvedMediaFormat = firstMediaFormat;</span>
-<span class="fc bfc" id="L88" title="All 2 branches covered.">      if (this.requestedWidth == 0) {</span>
-<span class="fc" id="L89">        this.requestedWidth = firstMediaFormat.getEffectiveMinWidth();</span>
-<span class="fc" id="L90">        this.requestedHeight = firstMediaFormat.getEffectiveMinHeight();</span>
+<span class="fc" id="L90">    MediaFormat firstMediaFormat = MediaArgsDimension.getFirstMediaFormat(mediaArgs);</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (firstMediaFormat != null) {</span>
+<span class="fc" id="L92">      this.resolvedMediaFormat = firstMediaFormat;</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">      if (this.requestedWidth == 0) {</span>
+<span class="fc" id="L94">        this.requestedWidth = firstMediaFormat.getEffectiveMinWidth();</span>
+<span class="fc" id="L95">        this.requestedHeight = firstMediaFormat.getEffectiveMinHeight();</span>
       }
     }
 
-<span class="fc" id="L94">    this.fileExtension = mediaArgs.getEnforceOutputFileExtension();</span>
-<span class="fc bfc" id="L95" title="All 2 branches covered.">    if (StringUtils.isEmpty(this.fileExtension)) {</span>
-<span class="fc" id="L96">      this.fileExtension = FilenameUtils.getExtension(reference.getFileName());</span>
+<span class="fc" id="L99">    this.originalFileExtension = FilenameUtils.getExtension(reference.getFileName());</span>
+<span class="fc" id="L100">    this.fileExtension = mediaArgs.getEnforceOutputFileExtension();</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">    if (StringUtils.isEmpty(this.fileExtension)) {</span>
+<span class="fc" id="L102">      this.fileExtension = this.originalFileExtension;</span>
     }
 
-<span class="fc bfc" id="L99" title="All 4 branches covered.">    if (!isImage() || mediaArgs.isDownload()) {</span>
-      // deliver as binary
-<span class="fc" id="L101">      this.url = buildBinaryUrl();</span>
-    }
-<span class="fc bfc" id="L103" title="All 2 branches covered.">    else if (isVectorImage()) {</span>
-      // calculate width/height for rendition metadata
-<span class="fc" id="L105">      calculateWidthHeightVectorImage();</span>
-      // deliver as binary
+<span class="fc bfc" id="L105" title="All 2 branches covered.">    if (mediaArgs.isDownload()) {</span>
+      // force binary download regardless of type
 <span class="fc" id="L107">      this.url = buildBinaryUrl();</span>
+    }
+<span class="fc bfc" id="L109" title="All 2 branches covered.">    else if (isVideo()) {</span>
+      // video handling with adaptive streaming
+<span class="fc" id="L111">      setVideoDimensionsFromMetadata();</span>
+<span class="fc" id="L112">      this.url = buildVideoUrl();</span>
+    }
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">    else if (!isImage()) {</span>
+      // generic binary (PDF, etc.)
+<span class="nc" id="L116">      this.url = buildBinaryUrl();</span>
+    }
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    else if (isVectorImage()) {</span>
+      // calculate width/height for rendition metadata
+<span class="fc" id="L120">      calculateWidthHeightVectorImage();</span>
+      // deliver as binary
+<span class="fc" id="L122">      this.url = buildBinaryUrl();</span>
     }
     else {
       // calculate width/height for rendition metadata
-<span class="fc" id="L111">      calculateWidthHeight();</span>
-<span class="fc bfc" id="L112" title="All 2 branches covered.">      if (isRequestedDimensionLargerThanOriginal()) {</span>
+<span class="fc" id="L126">      calculateWidthHeight();</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">      if (isRequestedDimensionLargerThanOriginal()) {</span>
         // image upscaling is not supported
-<span class="fc" id="L114">        this.url = null;</span>
+<span class="fc" id="L129">        this.url = null;</span>
       }
       else {
         // deliver scaled image rendition
-<span class="fc" id="L118">        this.url = buildImageRenditionUrl();</span>
-<span class="fc" id="L119">        this.fileExtension = new NextGenDynamicMediaImageUrlBuilder(context).getFileExtension();</span>
+<span class="fc" id="L133">        this.url = buildImageRenditionUrl();</span>
+<span class="fc" id="L134">        this.fileExtension = new NextGenDynamicMediaImageUrlBuilder(context).getFileExtension();</span>
       }
     }
-<span class="fc" id="L122">  }</span>
+<span class="fc" id="L137">  }</span>
 
   /**
    * Recalculates width and/or height based on requested media format, ratio and original dimensions.
    */
   private void calculateWidthHeight() {
-<span class="fc" id="L128">    double requestedRatio = MediaArgsDimension.getRequestedRatio(mediaArgs);</span>
+<span class="fc" id="L143">    double requestedRatio = MediaArgsDimension.getRequestedRatio(mediaArgs);</span>
 
     // use given width/height if fixed dimension is requested
-<span class="fc bfc" id="L131" title="All 4 branches covered.">    if (requestedWidth &gt; 0 &amp;&amp; requestedHeight &gt; 0) {</span>
-<span class="fc" id="L132">      this.width = requestedWidth;</span>
-<span class="fc" id="L133">      this.height = requestedHeight;</span>
+<span class="fc bfc" id="L146" title="All 4 branches covered.">    if (requestedWidth &gt; 0 &amp;&amp; requestedHeight &gt; 0) {</span>
+<span class="fc" id="L147">      this.width = requestedWidth;</span>
+<span class="fc" id="L148">      this.height = requestedHeight;</span>
     }
 
     // set original sizes if not width/height is requested
-<span class="fc bfc" id="L137" title="All 6 branches covered.">    else if (this.requestedWidth == 0 &amp;&amp; this.requestedHeight == 0 &amp;&amp; this.originalDimension != null) {</span>
-<span class="fc" id="L138">      this.width = this.originalDimension.getWidth();</span>
-<span class="fc" id="L139">      this.height = this.originalDimension.getHeight();</span>
+<span class="fc bfc" id="L152" title="All 6 branches covered.">    else if (this.requestedWidth == 0 &amp;&amp; this.requestedHeight == 0 &amp;&amp; this.originalDimension != null) {</span>
+<span class="fc" id="L153">      this.width = this.originalDimension.getWidth();</span>
+<span class="fc" id="L154">      this.height = this.originalDimension.getHeight();</span>
     }
 
     // calculate height if only width is requested
-<span class="pc bpc" id="L143" title="1 of 4 branches missed.">    else if (this.requestedWidth &gt; 0 &amp;&amp; this.requestedHeight == 0) {</span>
-<span class="fc" id="L144">      this.width = requestedWidth;</span>
-<span class="fc bfc" id="L145" title="All 2 branches covered.">      if (requestedRatio &gt; 0) {</span>
-<span class="fc" id="L146">        this.height = Math.round(this.requestedWidth / requestedRatio);</span>
-<span class="fc" id="L147">        this.requestedHeight = this.height;</span>
+<span class="pc bpc" id="L158" title="1 of 4 branches missed.">    else if (this.requestedWidth &gt; 0 &amp;&amp; this.requestedHeight == 0) {</span>
+<span class="fc" id="L159">      this.width = requestedWidth;</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">      if (requestedRatio &gt; 0) {</span>
+<span class="fc" id="L161">        this.height = Math.round(this.requestedWidth / requestedRatio);</span>
+<span class="fc" id="L162">        this.requestedHeight = this.height;</span>
       }
-<span class="fc bfc" id="L149" title="All 2 branches covered.">      else if (originalDimension != null) {</span>
-<span class="fc" id="L150">        this.height = Math.round(this.requestedWidth / Ratio.get(originalDimension));</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">      else if (originalDimension != null) {</span>
+<span class="fc" id="L165">        this.height = Math.round(this.requestedWidth / Ratio.get(originalDimension));</span>
       }
     }
 
     // calculate width if only height is requested
-<span class="pc bpc" id="L155" title="1 of 4 branches missed.">    else if (this.requestedHeight &gt; 0 &amp;&amp; this.requestedWidth == 0) {</span>
-<span class="fc" id="L156">      this.height = requestedHeight;</span>
-<span class="pc bpc" id="L157" title="1 of 2 branches missed.">      if (requestedRatio &gt; 0) {</span>
-<span class="nc" id="L158">        this.width = Math.round(this.requestedHeight * requestedRatio);</span>
-<span class="nc" id="L159">        this.requestedWidth = this.width;</span>
+<span class="pc bpc" id="L170" title="1 of 4 branches missed.">    else if (this.requestedHeight &gt; 0 &amp;&amp; this.requestedWidth == 0) {</span>
+<span class="fc" id="L171">      this.height = requestedHeight;</span>
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">      if (requestedRatio &gt; 0) {</span>
+<span class="nc" id="L173">        this.width = Math.round(this.requestedHeight * requestedRatio);</span>
+<span class="nc" id="L174">        this.requestedWidth = this.width;</span>
       }
-<span class="fc bfc" id="L161" title="All 2 branches covered.">      else if (originalDimension != null) {</span>
-<span class="fc" id="L162">        this.width = Math.round(this.requestedHeight * Ratio.get(originalDimension));</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">      else if (originalDimension != null) {</span>
+<span class="fc" id="L177">        this.width = Math.round(this.requestedHeight * Ratio.get(originalDimension));</span>
       }
     }
-<span class="fc" id="L165">  }</span>
+<span class="fc" id="L180">  }</span>
 
   /**
    * Recalculates width and/or height based on requested media format, ratio and original dimensions.
    * For vector images, original dimensions are used, if present.
    */
   private void calculateWidthHeightVectorImage() {
-<span class="fc bfc" id="L172" title="All 2 branches covered.">    if (this.originalDimension != null) {</span>
-<span class="fc" id="L173">      this.width = this.originalDimension.getWidth();</span>
-<span class="fc" id="L174">      this.height = this.originalDimension.getHeight();</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">    if (this.originalDimension != null) {</span>
+<span class="fc" id="L188">      this.width = this.originalDimension.getWidth();</span>
+<span class="fc" id="L189">      this.height = this.originalDimension.getHeight();</span>
     }
     else {
-<span class="fc" id="L177">      calculateWidthHeight();</span>
+<span class="fc" id="L192">      calculateWidthHeight();</span>
     }
-<span class="fc" id="L179">  }</span>
+<span class="fc" id="L194">  }</span>
+
+  /**
+   * Set width/height from metadata for videos.
+   * Video dimensions reflect the original asset size and are not used for URL building
+   * (videos use adaptive streaming, not server-side scaling).
+   */
+  private void setVideoDimensionsFromMetadata() {
+<span class="pc bpc" id="L202" title="1 of 2 branches missed.">    if (this.originalDimension != null) {</span>
+<span class="fc" id="L203">      this.width = this.originalDimension.getWidth();</span>
+<span class="fc" id="L204">      this.height = this.originalDimension.getHeight();</span>
+    }
+<span class="fc" id="L206">  }</span>
 
   /**
    * Build image rendition URL which is dynamically scaled and/or cropped.
    */
   private String buildImageRenditionUrl() {
-<span class="fc" id="L185">    NextGenDynamicMediaImageDeliveryParams params = new NextGenDynamicMediaImageDeliveryParams()</span>
-<span class="fc" id="L186">        .rotation(context.getMedia().getRotation())</span>
-<span class="fc" id="L187">        .quality(ImageQualityPercentage.getAsInteger(mediaArgs, context.getMediaHandlerConfig()));</span>
-<span class="fc bfc" id="L188" title="All 2 branches covered.">    if (this.requestedWidth &gt; 0) {</span>
-<span class="fc" id="L189">      params.width(this.requestedWidth);</span>
+<span class="fc" id="L212">    NextGenDynamicMediaImageDeliveryParams params = new NextGenDynamicMediaImageDeliveryParams()</span>
+<span class="fc" id="L213">        .rotation(context.getMedia().getRotation())</span>
+<span class="fc" id="L214">        .quality(ImageQualityPercentage.getAsInteger(mediaArgs, context.getMediaHandlerConfig()));</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">    if (this.requestedWidth &gt; 0) {</span>
+<span class="fc" id="L216">      params.width(this.requestedWidth);</span>
     }
-<span class="fc bfc" id="L191" title="All 2 branches covered.">    if (this.requestedHeight &gt; 0) {</span>
-<span class="fc" id="L192">      params.height(this.requestedHeight);</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">    if (this.requestedHeight &gt; 0) {</span>
+<span class="fc" id="L219">      params.height(this.requestedHeight);</span>
     }
-<span class="fc" id="L194">    Dimension ratioDimension = MediaArgsDimension.getRequestedRatioAsWidthHeight(mediaArgs);</span>
-<span class="fc bfc" id="L195" title="All 2 branches covered.">    if (ratioDimension != null) {</span>
-<span class="fc" id="L196">      params.ratio(ratioDimension);</span>
+<span class="fc" id="L221">    Dimension ratioDimension = MediaArgsDimension.getRequestedRatioAsWidthHeight(mediaArgs);</span>
+<span class="fc bfc" id="L222" title="All 2 branches covered.">    if (ratioDimension != null) {</span>
+<span class="fc" id="L223">      params.ratio(ratioDimension);</span>
     }
 
-<span class="fc" id="L199">    return new NextGenDynamicMediaImageUrlBuilder(context).build(params);</span>
+<span class="fc" id="L226">    return new NextGenDynamicMediaImageUrlBuilder(context).build(params);</span>
   }
+
+  /**
+   * Build video URL based on mediaArgs settings. As a side effect, also sets {@link #videoManifestFormat}
+   * and {@link #fileExtension} based on the resolved delivery mode.
+   * &lt;ul&gt;
+   *   &lt;li&gt;If hostedVideoPlayer is true: returns hosted player URL (iframe)&lt;/li&gt;
+   *   &lt;li&gt;Otherwise: returns streaming manifest URL (HLS/DASH)&lt;/li&gt;
+   *   &lt;li&gt;Falls back to binary download if configuration is incomplete&lt;/li&gt;
+   * &lt;/ul&gt;
+   * @return Video URL
+   */
+  private String buildVideoUrl() {
+<span class="fc" id="L240">    NextGenDynamicMediaVideoUrlBuilder builder = new NextGenDynamicMediaVideoUrlBuilder(context);</span>
+
+    // check if hosted video player is requested
+<span class="fc bfc" id="L243" title="All 2 branches covered.">    if (mediaArgs.isHostedVideoPlayer()) {</span>
+<span class="fc" id="L244">      String playerUrl = builder.buildPlayerUrl();</span>
+<span class="pc bpc" id="L245" title="1 of 2 branches missed.">      if (playerUrl != null) {</span>
+<span class="fc" id="L246">        this.videoManifestFormat = null;</span>
+<span class="fc" id="L247">        this.fileExtension = &quot;html&quot;;</span>
+<span class="fc" id="L248">        return playerUrl;</span>
+      }
+      // fall through to streaming if player URL unavailable
+    }
+
+    // default: streaming manifest URL (HLS/DASH)
+<span class="fc" id="L254">    String format = mediaArgs.getVideoManifestFormat();</span>
+<span class="fc bfc" id="L255" title="All 2 branches covered.">    if (StringUtils.isBlank(format)) {</span>
+<span class="fc" id="L256">      format = context.getNextGenDynamicMediaConfig().getDefaultVideoManifestFormat();</span>
+    }
+<span class="fc" id="L258">    String manifestUrl = builder.buildManifestUrl(format);</span>
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">    if (manifestUrl != null) {</span>
+<span class="fc" id="L260">      this.videoManifestFormat = format;</span>
+<span class="fc" id="L261">      this.fileExtension = format;</span>
+<span class="fc" id="L262">      return manifestUrl;</span>
+    }
+
+    // fallback: binary download
+<span class="nc" id="L266">    this.videoManifestFormat = null;</span>
+<span class="nc" id="L267">    this.fileExtension = this.originalFileExtension;</span>
+<span class="nc" id="L268">    return buildBinaryUrl();</span>
+  }
+
 
   /**
    * Checks if the original dimension is available in remote asset metadata, and if that dimension
@@ -205,141 +275,164 @@ final class NextGenDynamicMediaRendition implements Rendition {
    * @return true if requested dimension is larger than original dimension
    */
   private boolean isRequestedDimensionLargerThanOriginal() {
-<span class="fc bfc" id="L208" title="All 2 branches covered.">    if (originalDimension != null</span>
-<span class="pc bpc" id="L209" title="1 of 4 branches missed.">        &amp;&amp; (this.requestedWidth &gt; originalDimension.getWidth() || this.requestedHeight &gt; originalDimension.getHeight())) {</span>
-<span class="pc bpc" id="L210" title="1 of 2 branches missed.">      if (log.isTraceEnabled()) {</span>
-<span class="nc" id="L211">        log.trace(&quot;Requested dimension {} is larger than original image dimension {} of {}&quot;,</span>
-<span class="nc" id="L212">            new Dimension(this.requestedWidth, this.requestedHeight), originalDimension, context.getReference());</span>
+<span class="fc bfc" id="L278" title="All 2 branches covered.">    if (originalDimension != null</span>
+<span class="pc bpc" id="L279" title="1 of 4 branches missed.">        &amp;&amp; (this.requestedWidth &gt; originalDimension.getWidth() || this.requestedHeight &gt; originalDimension.getHeight())) {</span>
+<span class="pc bpc" id="L280" title="1 of 2 branches missed.">      if (log.isTraceEnabled()) {</span>
+<span class="nc" id="L281">        log.trace(&quot;Requested dimension {} is larger than original image dimension {} of {}&quot;,</span>
+<span class="nc" id="L282">            new Dimension(this.requestedWidth, this.requestedHeight), originalDimension, context.getReference());</span>
       }
-<span class="fc" id="L214">      return true;</span>
+<span class="fc" id="L284">      return true;</span>
     }
-<span class="fc" id="L216">    return false;</span>
+<span class="fc" id="L286">    return false;</span>
   }
 
   /**
    * Build URL which points directly to the binary file.
    */
   private String buildBinaryUrl() {
-<span class="fc" id="L223">    return new NextGenDynamicMediaBinaryUrlBuilder(context).build(mediaArgs.isContentDispositionAttachment());</span>
+<span class="fc" id="L293">    return new NextGenDynamicMediaBinaryUrlBuilder(context).build(mediaArgs.isContentDispositionAttachment());</span>
   }
 
   @Override
   public @Nullable String getUrl() {
-<span class="fc" id="L228">    return url;</span>
+<span class="fc" id="L298">    return url;</span>
   }
 
   @Override
   public @Nullable String getPath() {
     // not supported
-<span class="fc" id="L234">    return null;</span>
+<span class="fc" id="L304">    return null;</span>
   }
 
   @Override
   public @Nullable String getFileName() {
-<span class="fc" id="L239">    return reference.getFileName();</span>
+<span class="fc" id="L309">    return reference.getFileName();</span>
   }
 
   @Override
   public @Nullable String getFileExtension() {
-<span class="fc" id="L244">    return this.fileExtension;</span>
+<span class="fc" id="L314">    return this.fileExtension;</span>
   }
 
   @Override
   public long getFileSize() {
-<span class="fc bfc" id="L249" title="All 2 branches covered.">    if (this.metadata != null) {</span>
-<span class="fc" id="L250">      Long fileSize = this.metadata.getFileSize();</span>
-<span class="pc bpc" id="L251" title="1 of 2 branches missed.">      if (fileSize != null) {</span>
-<span class="fc" id="L252">        return fileSize;</span>
+<span class="fc bfc" id="L319" title="All 2 branches covered.">    if (this.metadata != null) {</span>
+<span class="fc" id="L320">      Long fileSize = this.metadata.getFileSize();</span>
+<span class="pc bpc" id="L321" title="1 of 2 branches missed.">      if (fileSize != null) {</span>
+<span class="fc" id="L322">        return fileSize;</span>
       }
     }
     // file size is unknown
-<span class="fc" id="L256">    return -1;</span>
+<span class="fc" id="L326">    return -1;</span>
   }
 
   @Override
   public @Nullable String getMimeType() {
-<span class="fc bfc" id="L261" title="All 2 branches covered.">    if (this.metadata != null) {</span>
-<span class="fc" id="L262">      return this.metadata.getMimeType();</span>
+<span class="fc bfc" id="L331" title="All 2 branches covered.">    if (this.videoManifestFormat != null) {</span>
+<span class="fc" id="L332">      MediaFileType fileType = MediaFileType.getByFileExtensions(this.videoManifestFormat);</span>
+<span class="pc bpc" id="L333" title="1 of 2 branches missed.">      if (fileType != null) {</span>
+<span class="fc" id="L334">        return fileType.getContentTypes().iterator().next();</span>
+      }
+    }
+<span class="fc bfc" id="L337" title="All 2 branches covered.">    if (this.metadata != null) {</span>
+<span class="fc" id="L338">      return this.metadata.getMimeType();</span>
     }
     else {
-<span class="fc" id="L265">      return context.getMimeTypeService().getMimeType(getFileExtension());</span>
+<span class="fc" id="L341">      return context.getMimeTypeService().getMimeType(getFileExtension());</span>
     }
   }
 
   @Override
   public @Nullable MediaFormat getMediaFormat() {
-<span class="fc" id="L271">    return this.resolvedMediaFormat;</span>
+<span class="fc" id="L347">    return this.resolvedMediaFormat;</span>
   }
 
+  /**
+   * For video renditions, provides a &quot;posterUrl&quot; property with the auto-generated thumbnail URL.
+   * This is used by {@link io.wcm.handler.mediasource.ngdm.markup.NextGenDynamicMediaVideoMarkupBuilder}
+   * to set the poster attribute on the HTML5 video element.
+   */
   @Override
   public @NotNull ValueMap getProperties() {
-<span class="fc" id="L276">    return ValueMap.EMPTY;</span>
+<span class="fc bfc" id="L357" title="All 2 branches covered.">    if (isVideo()) {</span>
+<span class="fc" id="L358">      String posterUrl = new NextGenDynamicMediaVideoUrlBuilder(context).buildThumbnailUrl();</span>
+<span class="pc bpc" id="L359" title="1 of 2 branches missed.">      if (posterUrl != null) {</span>
+<span class="fc" id="L360">        return new ValueMapDecorator(Collections.singletonMap(&quot;posterUrl&quot;, posterUrl));</span>
+      }
+    }
+<span class="fc" id="L363">    return ValueMap.EMPTY;</span>
   }
 
   @Override
   public boolean isImage() {
-<span class="fc" id="L281">    return MediaFileType.isImage(getFileExtension());</span>
+<span class="fc" id="L368">    return MediaFileType.isImage(getFileExtension());</span>
   }
 
   @Override
   public boolean isBrowserImage() {
-<span class="fc" id="L286">    return MediaFileType.isBrowserImage(getFileExtension());</span>
+<span class="fc" id="L373">    return MediaFileType.isBrowserImage(getFileExtension());</span>
   }
 
   @Override
   public boolean isVectorImage() {
-<span class="fc" id="L291">    return MediaFileType.isVectorImage(getFileExtension());</span>
+<span class="fc" id="L378">    return MediaFileType.isVectorImage(getFileExtension());</span>
+  }
+
+  @Override
+  public boolean isVideo() {
+<span class="fc" id="L383">    return MediaFileType.isVideo(this.originalFileExtension);</span>
   }
 
   @Override
   public boolean isDownload() {
-<span class="pc bpc" id="L296" title="1 of 2 branches missed.">    return !isImage();</span>
+<span class="pc bpc" id="L388" title="1 of 4 branches missed.">    return !isImage() &amp;&amp; !isVideo();</span>
   }
 
   @Override
   public long getWidth() {
-<span class="fc" id="L301">    return width;</span>
+<span class="fc" id="L393">    return width;</span>
   }
 
   @Override
   public long getHeight() {
-<span class="fc" id="L306">    return height;</span>
+<span class="fc" id="L398">    return height;</span>
   }
 
   @Override
   public @Nullable Date getModificationDate() {
     // not supported
-<span class="fc" id="L312">    return null;</span>
+<span class="fc" id="L404">    return null;</span>
   }
 
   @Override
   public boolean isFallback() {
     // not supported
-<span class="fc" id="L318">    return false;</span>
+<span class="fc" id="L410">    return false;</span>
   }
 
   @Override
   public @NotNull UriTemplate getUriTemplate(@NotNull UriTemplateType type) {
-<span class="pc bpc" id="L323" title="2 of 4 branches missed.">    if (!isImage() || isVectorImage()) {</span>
-<span class="nc" id="L324">      throw new UnsupportedOperationException(&quot;Unable to build URI template for &quot; + reference.toReference());</span>
+    // URI templates are only supported for dynamically scaled raster images
+<span class="pc bpc" id="L416" title="3 of 6 branches missed.">    if (!isImage() || isVectorImage() || isVideo()) {</span>
+<span class="nc" id="L417">      throw new UnsupportedOperationException(&quot;Unable to build URI template for &quot; + reference.toReference());</span>
     }
-<span class="fc" id="L326">    return new NextGenDynamicMediaUriTemplate(context, type);</span>
+<span class="fc" id="L419">    return new NextGenDynamicMediaUriTemplate(context, type);</span>
   }
 
   @Override
   public &lt;AdapterType&gt; @Nullable AdapterType adaptTo(@NotNull Class&lt;AdapterType&gt; arg0) {
     // not adaption supported
-<span class="fc" id="L332">    return null;</span>
+<span class="fc" id="L425">    return null;</span>
   }
 
   @Override
   public String toString() {
-<span class="fc" id="L337">    StringBuilder sb = new StringBuilder();</span>
-<span class="fc" id="L338">    sb.append(Objects.toString(url, &quot;#invalid&quot;));</span>
-<span class="pc bpc" id="L339" title="3 of 4 branches missed.">    if (width &gt; 0 || height &gt; 0) {</span>
-<span class="fc" id="L340">      sb.append(&quot; (&quot;).append(Long.toString(width)).append(&quot;x&quot;).append(Long.toString(height)).append(&quot;)&quot;);</span>
+<span class="fc" id="L430">    StringBuilder sb = new StringBuilder();</span>
+<span class="fc" id="L431">    sb.append(Objects.toString(url, &quot;#invalid&quot;));</span>
+<span class="pc bpc" id="L432" title="3 of 4 branches missed.">    if (width &gt; 0 || height &gt; 0) {</span>
+<span class="fc" id="L433">      sb.append(&quot; (&quot;).append(Long.toString(width)).append(&quot;x&quot;).append(Long.toString(height)).append(&quot;)&quot;);</span>
     }
-<span class="fc" id="L342">    return sb.toString();</span>
+<span class="fc" id="L435">    return sb.toString();</span>
   }
 
 }

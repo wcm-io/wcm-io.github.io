@@ -168,43 +168,50 @@
 <a class="jxr_linenumber" name="L160" href="#L160">160</a>       properties = <strong class="jxr_keyword">new</strong> ValueMapDecorator(assetMetadata);
 <a class="jxr_linenumber" name="L161" href="#L161">161</a>       width = properties.get(TIFF_IMAGEWIDTH, 0L);
 <a class="jxr_linenumber" name="L162" href="#L162">162</a>       height = properties.get(TIFF_IMAGELENGTH, 0L);
-<a class="jxr_linenumber" name="L163" href="#L163">163</a>       assetStatus = properties.get(<span class="jxr_string">"dam:assetStatus"</span>, String.<strong class="jxr_keyword">class</strong>);
-<a class="jxr_linenumber" name="L164" href="#L164">164</a>     }
-<a class="jxr_linenumber" name="L165" href="#L165">165</a>     <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a> dimension = toDimension(width, height);
-<a class="jxr_linenumber" name="L166" href="#L166">166</a> 
-<a class="jxr_linenumber" name="L167" href="#L167">167</a>     String mimeType = <strong class="jxr_keyword">null</strong>;
-<a class="jxr_linenumber" name="L168" href="#L168">168</a>     Long fileSize = <strong class="jxr_keyword">null</strong>;
-<a class="jxr_linenumber" name="L169" href="#L169">169</a>     List&lt;SmartCrop&gt; smartCrops = <strong class="jxr_keyword">null</strong>;
-<a class="jxr_linenumber" name="L170" href="#L170">170</a>     <strong class="jxr_keyword">if</strong> (respositoryMetadata != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L171" href="#L171">171</a>       mimeType = respositoryMetadata.dcFormat;
-<a class="jxr_linenumber" name="L172" href="#L172">172</a>       fileSize = respositoryMetadata.repoSize;
-<a class="jxr_linenumber" name="L173" href="#L173">173</a>       <strong class="jxr_keyword">if</strong> (respositoryMetadata.smartCrops != <strong class="jxr_keyword">null</strong> &amp;&amp; dimension != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L174" href="#L174">174</a>         smartCrops = respositoryMetadata.smartCrops.entrySet().stream()
-<a class="jxr_linenumber" name="L175" href="#L175">175</a>             .filter(entry -&gt; isSmartCropDefinitionValid(entry.getKey(), entry.getValue()))
-<a class="jxr_linenumber" name="L176" href="#L176">176</a>             .map(entry -&gt; <strong class="jxr_keyword">new</strong> <a name="SmartCrop" href="../../../../../../../io/wcm/handler/mediasource/ngdm/impl/metadata/SmartCrop.html#SmartCrop">SmartCrop</a>(entry.getKey(), entry.getValue(), dimension))
-<a class="jxr_linenumber" name="L177" href="#L177">177</a>             .collect(Collectors.toList());
-<a class="jxr_linenumber" name="L178" href="#L178">178</a>       }
-<a class="jxr_linenumber" name="L179" href="#L179">179</a>     }
-<a class="jxr_linenumber" name="L180" href="#L180">180</a> 
-<a class="jxr_linenumber" name="L181" href="#L181">181</a>     <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">new</strong> <a name="NextGenDynamicMediaMetadata" href="../../../../../../../io/wcm/handler/mediasource/ngdm/impl/metadata/NextGenDynamicMediaMetadata.html#NextGenDynamicMediaMetadata">NextGenDynamicMediaMetadata</a>(mimeType, fileSize, dimension, assetStatus, properties, smartCrops);
-<a class="jxr_linenumber" name="L182" href="#L182">182</a>   }
-<a class="jxr_linenumber" name="L183" href="#L183">183</a> 
-<a class="jxr_linenumber" name="L184" href="#L184">184</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> @Nullable <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a> toDimension(<strong class="jxr_keyword">long</strong> width, <strong class="jxr_keyword">long</strong> height) {
-<a class="jxr_linenumber" name="L185" href="#L185">185</a>     <strong class="jxr_keyword">if</strong> (width &gt; 0 &amp;&amp; height &gt; 0) {
-<a class="jxr_linenumber" name="L186" href="#L186">186</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">new</strong> <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a>(width, height);
-<a class="jxr_linenumber" name="L187" href="#L187">187</a>     }
-<a class="jxr_linenumber" name="L188" href="#L188">188</a>     <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="L163" href="#L163">163</a>       <em class="jxr_comment">// fallback to video-specific dimension properties</em>
+<a class="jxr_linenumber" name="L164" href="#L164">164</a>       <strong class="jxr_keyword">if</strong> (width == 0) {
+<a class="jxr_linenumber" name="L165" href="#L165">165</a>         width = properties.get(<span class="jxr_string">"xmpDM:videoFrameSize_stDim:w"</span>, 0L);
+<a class="jxr_linenumber" name="L166" href="#L166">166</a>       }
+<a class="jxr_linenumber" name="L167" href="#L167">167</a>       <strong class="jxr_keyword">if</strong> (height == 0) {
+<a class="jxr_linenumber" name="L168" href="#L168">168</a>         height = properties.get(<span class="jxr_string">"xmpDM:videoFrameSize_stDim:h"</span>, 0L);
+<a class="jxr_linenumber" name="L169" href="#L169">169</a>       }
+<a class="jxr_linenumber" name="L170" href="#L170">170</a>       assetStatus = properties.get(<span class="jxr_string">"dam:assetStatus"</span>, String.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="L171" href="#L171">171</a>     }
+<a class="jxr_linenumber" name="L172" href="#L172">172</a>     <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a> dimension = toDimension(width, height);
+<a class="jxr_linenumber" name="L173" href="#L173">173</a> 
+<a class="jxr_linenumber" name="L174" href="#L174">174</a>     String mimeType = <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="L175" href="#L175">175</a>     Long fileSize = <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="L176" href="#L176">176</a>     List&lt;SmartCrop&gt; smartCrops = <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="L177" href="#L177">177</a>     <strong class="jxr_keyword">if</strong> (respositoryMetadata != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L178" href="#L178">178</a>       mimeType = respositoryMetadata.dcFormat;
+<a class="jxr_linenumber" name="L179" href="#L179">179</a>       fileSize = respositoryMetadata.repoSize;
+<a class="jxr_linenumber" name="L180" href="#L180">180</a>       <strong class="jxr_keyword">if</strong> (respositoryMetadata.smartCrops != <strong class="jxr_keyword">null</strong> &amp;&amp; dimension != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L181" href="#L181">181</a>         smartCrops = respositoryMetadata.smartCrops.entrySet().stream()
+<a class="jxr_linenumber" name="L182" href="#L182">182</a>             .filter(entry -&gt; isSmartCropDefinitionValid(entry.getKey(), entry.getValue()))
+<a class="jxr_linenumber" name="L183" href="#L183">183</a>             .map(entry -&gt; <strong class="jxr_keyword">new</strong> <a name="SmartCrop" href="../../../../../../../io/wcm/handler/mediasource/ngdm/impl/metadata/SmartCrop.html#SmartCrop">SmartCrop</a>(entry.getKey(), entry.getValue(), dimension))
+<a class="jxr_linenumber" name="L184" href="#L184">184</a>             .collect(Collectors.toList());
+<a class="jxr_linenumber" name="L185" href="#L185">185</a>       }
+<a class="jxr_linenumber" name="L186" href="#L186">186</a>     }
+<a class="jxr_linenumber" name="L187" href="#L187">187</a> 
+<a class="jxr_linenumber" name="L188" href="#L188">188</a>     <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">new</strong> <a name="NextGenDynamicMediaMetadata" href="../../../../../../../io/wcm/handler/mediasource/ngdm/impl/metadata/NextGenDynamicMediaMetadata.html#NextGenDynamicMediaMetadata">NextGenDynamicMediaMetadata</a>(mimeType, fileSize, dimension, assetStatus, properties, smartCrops);
 <a class="jxr_linenumber" name="L189" href="#L189">189</a>   }
 <a class="jxr_linenumber" name="L190" href="#L190">190</a> 
-<a class="jxr_linenumber" name="L191" href="#L191">191</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">boolean</strong> isSmartCropDefinitionValid(@NotNull String name, @NotNull MetadataResponse.SmartCrop smartCop) {
-<a class="jxr_linenumber" name="L192" href="#L192">192</a>     <strong class="jxr_keyword">return</strong> StringUtils.isNotBlank(name)
-<a class="jxr_linenumber" name="L193" href="#L193">193</a>         &amp;&amp; smartCop.normalizedWidth &gt; 0
-<a class="jxr_linenumber" name="L194" href="#L194">194</a>         &amp;&amp; smartCop.normalizedHeight &gt; 0
-<a class="jxr_linenumber" name="L195" href="#L195">195</a>         &amp;&amp; smartCop.left &gt;= 0
-<a class="jxr_linenumber" name="L196" href="#L196">196</a>         &amp;&amp; smartCop.top &gt;= 0;
-<a class="jxr_linenumber" name="L197" href="#L197">197</a>   }
-<a class="jxr_linenumber" name="L198" href="#L198">198</a> 
-<a class="jxr_linenumber" name="L199" href="#L199">199</a> }
+<a class="jxr_linenumber" name="L191" href="#L191">191</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> @Nullable <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a> toDimension(<strong class="jxr_keyword">long</strong> width, <strong class="jxr_keyword">long</strong> height) {
+<a class="jxr_linenumber" name="L192" href="#L192">192</a>     <strong class="jxr_keyword">if</strong> (width &gt; 0 &amp;&amp; height &gt; 0) {
+<a class="jxr_linenumber" name="L193" href="#L193">193</a>       <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">new</strong> <a name="Dimension" href="../../../../../../../io/wcm/handler/media/Dimension.html#Dimension">Dimension</a>(width, height);
+<a class="jxr_linenumber" name="L194" href="#L194">194</a>     }
+<a class="jxr_linenumber" name="L195" href="#L195">195</a>     <strong class="jxr_keyword">return</strong> <strong class="jxr_keyword">null</strong>;
+<a class="jxr_linenumber" name="L196" href="#L196">196</a>   }
+<a class="jxr_linenumber" name="L197" href="#L197">197</a> 
+<a class="jxr_linenumber" name="L198" href="#L198">198</a>   <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">boolean</strong> isSmartCropDefinitionValid(@NotNull String name, @NotNull MetadataResponse.SmartCrop smartCop) {
+<a class="jxr_linenumber" name="L199" href="#L199">199</a>     <strong class="jxr_keyword">return</strong> StringUtils.isNotBlank(name)
+<a class="jxr_linenumber" name="L200" href="#L200">200</a>         &amp;&amp; smartCop.normalizedWidth &gt; 0
+<a class="jxr_linenumber" name="L201" href="#L201">201</a>         &amp;&amp; smartCop.normalizedHeight &gt; 0
+<a class="jxr_linenumber" name="L202" href="#L202">202</a>         &amp;&amp; smartCop.left &gt;= 0
+<a class="jxr_linenumber" name="L203" href="#L203">203</a>         &amp;&amp; smartCop.top &gt;= 0;
+<a class="jxr_linenumber" name="L204" href="#L204">204</a>   }
+<a class="jxr_linenumber" name="L205" href="#L205">205</a> 
+<a class="jxr_linenumber" name="L206" href="#L206">206</a> }
 </pre>
 <hr/>
 <div id="footer">© 2014–2026 <a href="https://wcm.io">wcm.io</a></div>

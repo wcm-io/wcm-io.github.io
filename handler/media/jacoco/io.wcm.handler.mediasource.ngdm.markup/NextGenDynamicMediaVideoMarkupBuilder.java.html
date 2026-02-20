@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang=""><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NextGenDynamicMediaVideoMarkupBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.ngdm.markup</a> &gt; <span class="el_source">NextGenDynamicMediaVideoMarkupBuilder.java</span></div><h1>NextGenDynamicMediaVideoMarkupBuilder.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2026 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.ngdm.markup;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.models.annotations.Model;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ConsumerType;
+
+import io.wcm.handler.commons.dom.HtmlElement;
+import io.wcm.handler.commons.dom.Video;
+import io.wcm.handler.media.Dimension;
+import io.wcm.handler.media.Media;
+import io.wcm.handler.media.Rendition;
+import io.wcm.handler.media.markup.MediaMarkupBuilderUtil;
+import io.wcm.handler.media.spi.MediaMarkupBuilder;
+
+/**
+ * Generates an HTML5 video element for Next Gen. Dynamic Media video renditions.
+ */
+@Model(adaptables = {
+    SlingHttpServletRequest.class, Resource.class
+})
+@ConsumerType
+<span class="fc" id="L44">public class NextGenDynamicMediaVideoMarkupBuilder implements MediaMarkupBuilder {</span>
+
+  @Override
+  public boolean accepts(@NotNull Media media) {
+<span class="fc" id="L48">    Rendition rendition = media.getRendition();</span>
+<span class="pc bpc" id="L49" title="2 of 6 branches missed.">    if (!media.isValid() || rendition == null || media.getMediaRequest().getMediaArgs().isHostedVideoPlayer()) {</span>
+<span class="fc" id="L50">      return false;</span>
+    }
+<span class="fc" id="L52">    return rendition.isVideo();</span>
+  }
+
+  @Override
+  public HtmlElement build(@NotNull Media media) {
+<span class="fc" id="L57">    Rendition rendition = media.getRendition();</span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">    if (rendition == null) {</span>
+<span class="nc" id="L59">      return null;</span>
+    }
+<span class="fc" id="L61">    Dimension dimension = MediaMarkupBuilderUtil.getMediaformatDimension(media);</span>
+
+<span class="fc" id="L63">    Video video = new Video();</span>
+<span class="fc" id="L64">    video.setWidth(dimension.getWidth());</span>
+<span class="fc" id="L65">    video.setHeight(dimension.getHeight());</span>
+<span class="fc" id="L66">    video.setControls(true);</span>
+
+<span class="fc" id="L68">    ValueMap properties = rendition.getProperties();</span>
+<span class="fc" id="L69">    String posterUrl = properties.get(&quot;posterUrl&quot;, String.class);</span>
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">    if (posterUrl != null) {</span>
+<span class="fc" id="L71">      video.setPoster(posterUrl);</span>
+    }
+
+    // add source
+<span class="fc" id="L75">    video.createSource()</span>
+<span class="fc" id="L76">        .setType(rendition.getMimeType())</span>
+<span class="fc" id="L77">        .setSrc(rendition.getUrl());</span>
+
+<span class="fc" id="L79">    return video;</span>
+  }
+
+  @Override
+  public boolean isValidMedia(@NotNull HtmlElement element) {
+<span class="fc" id="L84">    return element instanceof Video;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

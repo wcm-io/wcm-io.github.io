@@ -160,36 +160,43 @@ public final class NextGenDynamicMediaMetadata {
 <span class="fc" id="L160">      properties = new ValueMapDecorator(assetMetadata);</span>
 <span class="fc" id="L161">      width = properties.get(TIFF_IMAGEWIDTH, 0L);</span>
 <span class="fc" id="L162">      height = properties.get(TIFF_IMAGELENGTH, 0L);</span>
-<span class="fc" id="L163">      assetStatus = properties.get(&quot;dam:assetStatus&quot;, String.class);</span>
+      // fallback to video-specific dimension properties
+<span class="fc bfc" id="L164" title="All 2 branches covered.">      if (width == 0) {</span>
+<span class="fc" id="L165">        width = properties.get(&quot;xmpDM:videoFrameSize_stDim:w&quot;, 0L);</span>
+      }
+<span class="fc bfc" id="L167" title="All 2 branches covered.">      if (height == 0) {</span>
+<span class="fc" id="L168">        height = properties.get(&quot;xmpDM:videoFrameSize_stDim:h&quot;, 0L);</span>
+      }
+<span class="fc" id="L170">      assetStatus = properties.get(&quot;dam:assetStatus&quot;, String.class);</span>
     }
-<span class="fc" id="L165">    Dimension dimension = toDimension(width, height);</span>
+<span class="fc" id="L172">    Dimension dimension = toDimension(width, height);</span>
 
-<span class="fc" id="L167">    String mimeType = null;</span>
-<span class="fc" id="L168">    Long fileSize = null;</span>
-<span class="fc" id="L169">    List&lt;SmartCrop&gt; smartCrops = null;</span>
-<span class="fc bfc" id="L170" title="All 2 branches covered.">    if (respositoryMetadata != null) {</span>
-<span class="fc" id="L171">      mimeType = respositoryMetadata.dcFormat;</span>
-<span class="fc" id="L172">      fileSize = respositoryMetadata.repoSize;</span>
-<span class="pc bpc" id="L173" title="1 of 4 branches missed.">      if (respositoryMetadata.smartCrops != null &amp;&amp; dimension != null) {</span>
-<span class="fc" id="L174">        smartCrops = respositoryMetadata.smartCrops.entrySet().stream()</span>
-<span class="fc" id="L175">            .filter(entry -&gt; isSmartCropDefinitionValid(entry.getKey(), entry.getValue()))</span>
-<span class="fc" id="L176">            .map(entry -&gt; new SmartCrop(entry.getKey(), entry.getValue(), dimension))</span>
-<span class="fc" id="L177">            .collect(Collectors.toList());</span>
+<span class="fc" id="L174">    String mimeType = null;</span>
+<span class="fc" id="L175">    Long fileSize = null;</span>
+<span class="fc" id="L176">    List&lt;SmartCrop&gt; smartCrops = null;</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">    if (respositoryMetadata != null) {</span>
+<span class="fc" id="L178">      mimeType = respositoryMetadata.dcFormat;</span>
+<span class="fc" id="L179">      fileSize = respositoryMetadata.repoSize;</span>
+<span class="pc bpc" id="L180" title="1 of 4 branches missed.">      if (respositoryMetadata.smartCrops != null &amp;&amp; dimension != null) {</span>
+<span class="fc" id="L181">        smartCrops = respositoryMetadata.smartCrops.entrySet().stream()</span>
+<span class="fc" id="L182">            .filter(entry -&gt; isSmartCropDefinitionValid(entry.getKey(), entry.getValue()))</span>
+<span class="fc" id="L183">            .map(entry -&gt; new SmartCrop(entry.getKey(), entry.getValue(), dimension))</span>
+<span class="fc" id="L184">            .collect(Collectors.toList());</span>
       }
     }
 
-<span class="fc" id="L181">    return new NextGenDynamicMediaMetadata(mimeType, fileSize, dimension, assetStatus, properties, smartCrops);</span>
+<span class="fc" id="L188">    return new NextGenDynamicMediaMetadata(mimeType, fileSize, dimension, assetStatus, properties, smartCrops);</span>
   }
 
   private static @Nullable Dimension toDimension(long width, long height) {
-<span class="pc bpc" id="L185" title="1 of 4 branches missed.">    if (width &gt; 0 &amp;&amp; height &gt; 0) {</span>
-<span class="fc" id="L186">      return new Dimension(width, height);</span>
+<span class="pc bpc" id="L192" title="1 of 4 branches missed.">    if (width &gt; 0 &amp;&amp; height &gt; 0) {</span>
+<span class="fc" id="L193">      return new Dimension(width, height);</span>
     }
-<span class="fc" id="L188">    return null;</span>
+<span class="fc" id="L195">    return null;</span>
   }
 
   private static boolean isSmartCropDefinitionValid(@NotNull String name, @NotNull MetadataResponse.SmartCrop smartCop) {
-<span class="pc bpc" id="L192" title="4 of 10 branches missed.">    return StringUtils.isNotBlank(name)</span>
+<span class="pc bpc" id="L199" title="4 of 10 branches missed.">    return StringUtils.isNotBlank(name)</span>
         &amp;&amp; smartCop.normalizedWidth &gt; 0
         &amp;&amp; smartCop.normalizedHeight &gt; 0
         &amp;&amp; smartCop.left &gt;= 0

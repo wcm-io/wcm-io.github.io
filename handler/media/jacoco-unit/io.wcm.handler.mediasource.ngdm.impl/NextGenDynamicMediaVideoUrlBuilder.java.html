@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NextGenDynamicMediaVideoUrlBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Media Handler</a> &gt; <a href="index.source.html" class="el_package">io.wcm.handler.mediasource.ngdm.impl</a> &gt; <span class="el_source">NextGenDynamicMediaVideoUrlBuilder.java</span></div><h1>NextGenDynamicMediaVideoUrlBuilder.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * wcm.io
+ * %%
+ * Copyright (C) 2026 wcm.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+package io.wcm.handler.mediasource.ngdm.impl;
+
+import static io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaConfigService.PLACEHOLDER_ASSET_ID;
+import static io.wcm.handler.mediasource.ngdm.impl.NextGenDynamicMediaConfigService.PLACEHOLDER_FORMAT;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+
+/**
+ * Builds URLs for delivering videos via Dynamic Media with OpenAPI.
+ */
+public final class NextGenDynamicMediaVideoUrlBuilder {
+
+  private final NextGenDynamicMediaContext context;
+
+  /**
+   * @param context Context used for placeholder replacement and configuration access
+   */
+<span class="fc" id="L40">  public NextGenDynamicMediaVideoUrlBuilder(@NotNull NextGenDynamicMediaContext context) {</span>
+<span class="fc" id="L41">    this.context = context;</span>
+<span class="fc" id="L42">  }</span>
+
+  /**
+   * Build adaptive streaming manifest URL (HLS/DASH).
+   * @param requestedFormat Requested format, falls back to configured default if {@code null}
+   * @return Manifest URL or {@code null} if configuration is incomplete
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  public @Nullable String buildManifestUrl(@Nullable String requestedFormat) {
+<span class="fc" id="L51">    String repositoryId = getRepositoryId();</span>
+<span class="fc" id="L52">    String videoDeliveryPath = context.getNextGenDynamicMediaConfig().getVideoDeliveryPath();</span>
+
+<span class="fc bfc" id="L54" title="All 2 branches covered.">    if (StringUtils.isAnyBlank(repositoryId, videoDeliveryPath)) {</span>
+<span class="fc" id="L55">      return null;</span>
+    }
+
+<span class="fc" id="L58">    String targetFormat = StringUtils.defaultIfBlank(requestedFormat,</span>
+<span class="fc" id="L59">        context.getNextGenDynamicMediaConfig().getDefaultVideoManifestFormat());</span>
+
+<span class="fc" id="L61">    String resolvedPath = StringUtils.replace(videoDeliveryPath, PLACEHOLDER_ASSET_ID, context.getReference().getAssetId());</span>
+<span class="fc" id="L62">    resolvedPath = StringUtils.replace(resolvedPath, PLACEHOLDER_FORMAT, targetFormat);</span>
+
+<span class="fc" id="L64">    return buildBaseUrl(repositoryId, resolvedPath);</span>
+  }
+
+  /**
+   * Build thumbnail/poster URL for a video (leverages the image delivery endpoint).
+   * @return Thumbnail URL or {@code null} if configuration is incomplete
+   */
+  public @Nullable String buildThumbnailUrl() {
+    // reuse image URL builder - it will automatically use &quot;jpg&quot; format since video file extensions
+    // are not in SUPPORTED_FORMATS, causing getFileExtension() to fall back to JPEG
+<span class="fc" id="L74">    return new NextGenDynamicMediaImageUrlBuilder(context).build(new NextGenDynamicMediaImageDeliveryParams());</span>
+  }
+
+  /**
+   * Build remote player URL (HTML micro-frontend hosted by Dynamic Media).
+   * @return Player URL or {@code null} if configuration is incomplete
+   */
+  @SuppressWarnings(&quot;null&quot;)
+  public @Nullable String buildPlayerUrl() {
+<span class="fc" id="L83">    String repositoryId = getRepositoryId();</span>
+<span class="fc" id="L84">    String videoPlayerPath = context.getNextGenDynamicMediaConfig().getVideoPlayerPath();</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">    if (StringUtils.isAnyBlank(repositoryId, videoPlayerPath)) {</span>
+<span class="fc" id="L86">      return null;</span>
+    }
+<span class="fc" id="L88">    String resolvedPath = StringUtils.replace(videoPlayerPath, PLACEHOLDER_ASSET_ID, context.getReference().getAssetId());</span>
+<span class="fc" id="L89">    return buildBaseUrl(repositoryId, resolvedPath);</span>
+  }
+
+  private @Nullable String getRepositoryId() {
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">    if (context.getReference().getAsset() != null) {</span>
+<span class="nc" id="L94">      return context.getNextGenDynamicMediaConfig().getLocalAssetsRepositoryId();</span>
+    }
+<span class="fc" id="L96">    return context.getNextGenDynamicMediaConfig().getRemoteAssetsRepositoryId();</span>
+  }
+
+  private static String buildBaseUrl(@NotNull String repositoryId, @NotNull String path) {
+<span class="fc" id="L100">    return &quot;https://&quot; + repositoryId + path;</span>
+  }
+
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

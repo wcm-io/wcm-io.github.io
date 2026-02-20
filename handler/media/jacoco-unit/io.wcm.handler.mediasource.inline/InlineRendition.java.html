@@ -538,88 +538,93 @@ final class InlineRendition extends SlingAdaptable implements Rendition {
   }
 
   @Override
+  public boolean isVideo() {
+<span class="nc" id="L542">    return MediaFileType.isVideo(getFileExtension());</span>
+  }
+
+  @Override
   public boolean isDownload() {
-<span class="pc bpc" id="L542" title="1 of 2 branches missed.">    return !isImage();</span>
+<span class="pc bpc" id="L547" title="3 of 4 branches missed.">    return !isImage() &amp;&amp; !isVideo();</span>
   }
 
   @Override
   public long getWidth() {
-<span class="fc bfc" id="L547" title="All 2 branches covered.">    if (imageDimension != null) {</span>
-<span class="fc" id="L548">      return ImageTransformation.rotateMapDimension(imageDimension, rotation).getWidth();</span>
+<span class="fc bfc" id="L552" title="All 2 branches covered.">    if (imageDimension != null) {</span>
+<span class="fc" id="L553">      return ImageTransformation.rotateMapDimension(imageDimension, rotation).getWidth();</span>
     }
     else {
-<span class="fc" id="L551">      return 0;</span>
+<span class="fc" id="L556">      return 0;</span>
     }
   }
 
   @Override
   public long getHeight() {
-<span class="fc bfc" id="L557" title="All 2 branches covered.">    if (imageDimension != null) {</span>
-<span class="fc" id="L558">      return ImageTransformation.rotateMapDimension(imageDimension, rotation).getHeight();</span>
+<span class="fc bfc" id="L562" title="All 2 branches covered.">    if (imageDimension != null) {</span>
+<span class="fc" id="L563">      return ImageTransformation.rotateMapDimension(imageDimension, rotation).getHeight();</span>
     }
     else {
-<span class="fc" id="L561">      return 0;</span>
+<span class="fc" id="L566">      return 0;</span>
     }
   }
 
   @Override
   public boolean isFallback() {
-<span class="fc" id="L567">    return fallback;</span>
+<span class="fc" id="L572">    return fallback;</span>
   }
 
   @Override
   public @NotNull UriTemplate getUriTemplate(@NotNull UriTemplateType type) {
-<span class="fc bfc" id="L572" title="All 2 branches covered.">    if (type == UriTemplateType.CROP_CENTER) {</span>
-<span class="fc" id="L573">      throw new IllegalArgumentException(&quot;CROP_CENTER not supported for rendition URI templates.&quot;);</span>
+<span class="fc bfc" id="L577" title="All 2 branches covered.">    if (type == UriTemplateType.CROP_CENTER) {</span>
+<span class="fc" id="L578">      throw new IllegalArgumentException(&quot;CROP_CENTER not supported for rendition URI templates.&quot;);</span>
     }
-<span class="pc bpc" id="L575" title="2 of 4 branches missed.">    if (!isImage() || isVectorImage()) {</span>
-<span class="nc" id="L576">      throw new UnsupportedOperationException(&quot;Unable to build URI template for &quot; + resource.getPath());</span>
+<span class="pc bpc" id="L580" title="2 of 4 branches missed.">    if (!isImage() || isVectorImage()) {</span>
+<span class="nc" id="L581">      throw new UnsupportedOperationException(&quot;Unable to build URI template for &quot; + resource.getPath());</span>
     }
-<span class="pc bpc" id="L578" title="1 of 2 branches missed.">    if (this.maxImageDimension == null) {</span>
-<span class="nc" id="L579">      throw new IllegalStateException(&quot;Unable to detect dimension for inline image: &quot; + resource.getPath());</span>
+<span class="pc bpc" id="L583" title="1 of 2 branches missed.">    if (this.maxImageDimension == null) {</span>
+<span class="nc" id="L584">      throw new IllegalStateException(&quot;Unable to detect dimension for inline image: &quot; + resource.getPath());</span>
     }
 
-<span class="fc" id="L582">    Dimension dimension = ImageTransformation.rotateMapDimension(maxImageDimension, rotation);</span>
-<span class="fc" id="L583">    return new InlineUriTemplate(type, dimension, this.resource, fileName,</span>
+<span class="fc" id="L587">    Dimension dimension = ImageTransformation.rotateMapDimension(maxImageDimension, rotation);</span>
+<span class="fc" id="L588">    return new InlineUriTemplate(type, dimension, this.resource, fileName,</span>
         this.cropDimension, this.rotation, mediaArgs, adaptable);
   }
 
   @Override
   @SuppressWarnings({ &quot;unchecked&quot;, &quot;null&quot; })
   public &lt;AdapterType&gt; AdapterType adaptTo(Class&lt;AdapterType&gt; type) {
-<span class="pc bpc" id="L590" title="1 of 2 branches missed.">    if (type == Resource.class) {</span>
-<span class="nc" id="L591">      return (AdapterType)this.resource;</span>
+<span class="pc bpc" id="L595" title="1 of 2 branches missed.">    if (type == Resource.class) {</span>
+<span class="nc" id="L596">      return (AdapterType)this.resource;</span>
     }
-<span class="pc bpc" id="L593" title="2 of 4 branches missed.">    else if (type == Layer.class &amp;&amp; isImage()) {</span>
-<span class="fc" id="L594">      return (AdapterType)getLayer();</span>
+<span class="pc bpc" id="L598" title="2 of 4 branches missed.">    else if (type == Layer.class &amp;&amp; isImage()) {</span>
+<span class="fc" id="L599">      return (AdapterType)getLayer();</span>
     }
-<span class="nc bnc" id="L596" title="All 2 branches missed.">    else if (type == InputStream.class) {</span>
-<span class="nc" id="L597">      return (AdapterType)this.resource.adaptTo(InputStream.class);</span>
+<span class="nc bnc" id="L601" title="All 2 branches missed.">    else if (type == InputStream.class) {</span>
+<span class="nc" id="L602">      return (AdapterType)this.resource.adaptTo(InputStream.class);</span>
     }
-<span class="nc" id="L599">    return super.adaptTo(type);</span>
+<span class="nc" id="L604">    return super.adaptTo(type);</span>
   }
 
   private Layer getLayer() {
-<span class="fc" id="L603">    Layer layer = this.resource.adaptTo(Layer.class);</span>
-<span class="pc bpc" id="L604" title="1 of 2 branches missed.">    if (layer != null) {</span>
-<span class="fc bfc" id="L605" title="All 2 branches covered.">      if (cropDimension != null) {</span>
-<span class="fc" id="L606">        layer.crop(cropDimension.getRectangle());</span>
+<span class="fc" id="L608">    Layer layer = this.resource.adaptTo(Layer.class);</span>
+<span class="pc bpc" id="L609" title="1 of 2 branches missed.">    if (layer != null) {</span>
+<span class="fc bfc" id="L610" title="All 2 branches covered.">      if (cropDimension != null) {</span>
+<span class="fc" id="L611">        layer.crop(cropDimension.getRectangle());</span>
       }
-<span class="fc bfc" id="L608" title="All 2 branches covered.">      if (rotation != null) {</span>
-<span class="fc" id="L609">        layer.rotate(rotation);</span>
+<span class="fc bfc" id="L613" title="All 2 branches covered.">      if (rotation != null) {</span>
+<span class="fc" id="L614">        layer.rotate(rotation);</span>
       }
-<span class="fc" id="L611">      long width = getWidth();</span>
-<span class="fc" id="L612">      long height = getHeight();</span>
-<span class="pc bpc" id="L613" title="2 of 4 branches missed.">      if (width &lt;= layer.getWidth() &amp;&amp; height &lt;= layer.getHeight()) {</span>
-<span class="fc" id="L614">        layer.resize((int)width, (int)height);</span>
+<span class="fc" id="L616">      long width = getWidth();</span>
+<span class="fc" id="L617">      long height = getHeight();</span>
+<span class="pc bpc" id="L618" title="2 of 4 branches missed.">      if (width &lt;= layer.getWidth() &amp;&amp; height &lt;= layer.getHeight()) {</span>
+<span class="fc" id="L619">        layer.resize((int)width, (int)height);</span>
       }
     }
-<span class="fc" id="L617">    return layer;</span>
+<span class="fc" id="L622">    return layer;</span>
   }
 
   @Override
   public String toString() {
-<span class="nc" id="L622">    return Objects.toString(url, &quot;#invalid&quot;);</span>
+<span class="nc" id="L627">    return Objects.toString(url, &quot;#invalid&quot;);</span>
   }
 
 }
