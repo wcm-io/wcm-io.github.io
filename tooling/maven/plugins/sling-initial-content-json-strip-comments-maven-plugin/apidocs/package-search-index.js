@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"io.wcm.maven.plugins.sling_initial_content_json_strip_comments_maven_plugin"},{"l":"io.wcm.maven.plugins.slinginitialcontentjsonstripcomments"}];updateSearchResults();

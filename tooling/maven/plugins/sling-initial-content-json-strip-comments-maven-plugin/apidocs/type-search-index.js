@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html"},{"p":"io.wcm.maven.plugins.sling_initial_content_json_strip_comments_maven_plugin","l":"HelpMojo"},{"p":"io.wcm.maven.plugins.slinginitialcontentjsonstripcomments","l":"JsonStripCommentsMojo"}];updateSearchResults();
