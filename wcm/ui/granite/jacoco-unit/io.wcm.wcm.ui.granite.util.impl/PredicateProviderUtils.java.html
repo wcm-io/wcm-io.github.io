@@ -60,46 +60,48 @@ public final class PredicateProviderUtils {
    * @param bundleContext OSGi bundle context
    * @return List of predicates
    */
-  @SuppressWarnings({ &quot;java:S2583&quot;, &quot;null&quot; }) // filter may be null
+  @SuppressWarnings({
+      &quot;java:S2583&quot;, &quot;null&quot;
+  }) // filter may be null
   public static @NotNull List&lt;Predicate&lt;Resource&gt;&gt; toPredicates(@NotNull String @Nullable [] filter, @NotNull BundleContext bundleContext) {
-<span class="fc bfc" id="L65" title="All 4 branches covered.">    if (filter == null || filter.length == 0) {</span>
-<span class="fc" id="L66">      return Collections.emptyList();</span>
+<span class="fc bfc" id="L67" title="All 4 branches covered.">    if (filter == null || filter.length == 0) {</span>
+<span class="fc" id="L68">      return Collections.emptyList();</span>
     }
-<span class="fc" id="L68">    try (PredicateProviderWrapper predicateProvider = getPredicateProvider(bundleContext)) {</span>
-<span class="fc" id="L69">      return Arrays.asList(filter).stream()</span>
-<span class="fc" id="L70">          .filter(Objects::nonNull)</span>
-<span class="fc" id="L71">          .map(item -&gt; {</span>
-<span class="fc" id="L72">            Predicate&lt;Resource&gt; predicate = predicateProvider.getPredicate(item);</span>
-<span class="fc bfc" id="L73" title="All 2 branches covered.">            if (predicate != null) {</span>
-<span class="fc" id="L74">              return predicate;</span>
-            }
-            else {
-<span class="fc" id="L77">              log.warn(&quot;Unable to find predicate implementation for filter: {}&quot;, item);</span>
-<span class="fc" id="L78">              return null;</span>
-            }
-          })
-<span class="fc" id="L81">          .filter(Objects::nonNull)</span>
-<span class="fc" id="L82">          .collect(Collectors.toList());</span>
+<span class="fc" id="L70">    try (PredicateProviderWrapper predicateProvider = getPredicateProvider(bundleContext)) {</span>
+<span class="fc" id="L71">      return Arrays.asList(filter).stream()</span>
+<span class="fc" id="L72">        .filter(Objects::nonNull)</span>
+<span class="fc" id="L73">        .map(item -&gt; {</span>
+<span class="fc" id="L74">          Predicate&lt;Resource&gt; predicate = predicateProvider.getPredicate(item);</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">          if (predicate != null) {</span>
+<span class="fc" id="L76">            return predicate;</span>
+          }
+          else {
+<span class="fc" id="L79">            log.warn(&quot;Unable to find predicate implementation for filter: {}&quot;, item);</span>
+<span class="fc" id="L80">            return null;</span>
+          }
+        })
+<span class="fc" id="L83">        .filter(Objects::nonNull)</span>
+<span class="fc" id="L84">        .collect(Collectors.toList());</span>
     }
-<span class="nc" id="L84">    catch (Exception ex) {</span>
-<span class="nc" id="L85">      log.warn(&quot;Unable to close predicate provider.&quot;, ex);</span>
-<span class="nc" id="L86">      return Collections.emptyList();</span>
+<span class="nc" id="L86">    catch (Exception ex) {</span>
+<span class="nc" id="L87">      log.warn(&quot;Unable to close predicate provider.&quot;, ex);</span>
+<span class="nc" id="L88">      return Collections.emptyList();</span>
     }
   }
 
   private static @NotNull PredicateProviderWrapper getPredicateProvider(@NotNull BundleContext bundleContext) {
-<span class="fc" id="L91">    ServiceReference&lt;?&gt; serviceReference = bundleContext.getServiceReference(PREDICATE_PROVIDER_CLASS_NAME_LATEST);</span>
-<span class="fc bfc" id="L92" title="All 2 branches covered.">    if (serviceReference != null) {</span>
-<span class="fc" id="L93">      log.debug(&quot;Using latest PredicateProvider implementation: {}&quot;, PREDICATE_PROVIDER_CLASS_NAME_LATEST);</span>
-<span class="fc" id="L94">      return new LatestPredicateProviderWrapper(serviceReference, bundleContext);</span>
+<span class="fc" id="L93">    ServiceReference&lt;?&gt; serviceReference = bundleContext.getServiceReference(PREDICATE_PROVIDER_CLASS_NAME_LATEST);</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (serviceReference != null) {</span>
+<span class="fc" id="L95">      log.debug(&quot;Using latest PredicateProvider implementation: {}&quot;, PREDICATE_PROVIDER_CLASS_NAME_LATEST);</span>
+<span class="fc" id="L96">      return new LatestPredicateProviderWrapper(serviceReference, bundleContext);</span>
     }
-<span class="fc" id="L96">    serviceReference = bundleContext.getServiceReference(PREDICATE_PROVIDER_CLASS_NAME_LEGACY);</span>
-<span class="fc bfc" id="L97" title="All 2 branches covered.">    if (serviceReference != null) {</span>
-<span class="fc" id="L98">      log.debug(&quot;Using legacy PredicateProvider implementation: {}&quot;, PREDICATE_PROVIDER_CLASS_NAME_LEGACY);</span>
-<span class="fc" id="L99">      return new LegacyPredicateProviderWrapper(serviceReference, bundleContext);</span>
+<span class="fc" id="L98">    serviceReference = bundleContext.getServiceReference(PREDICATE_PROVIDER_CLASS_NAME_LEGACY);</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">    if (serviceReference != null) {</span>
+<span class="fc" id="L100">      log.debug(&quot;Using legacy PredicateProvider implementation: {}&quot;, PREDICATE_PROVIDER_CLASS_NAME_LEGACY);</span>
+<span class="fc" id="L101">      return new LegacyPredicateProviderWrapper(serviceReference, bundleContext);</span>
     }
-<span class="fc" id="L101">    log.warn(&quot;No PredicateProvider implementation found.&quot;);</span>
-<span class="fc" id="L102">    return new FallbackPredicateProviderWrapper();</span>
+<span class="fc" id="L103">    log.warn(&quot;No PredicateProvider implementation found.&quot;);</span>
+<span class="fc" id="L104">    return new FallbackPredicateProviderWrapper();</span>
   }
 
 }
