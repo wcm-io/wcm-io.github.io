@@ -72,12 +72,14 @@ import io.wcm.wcm.core.components.models.ResponsiveImage;
  * Responsive Image - wcm.io Core Component.
  */
 @Model(adaptables = SlingHttpServletRequest.class,
-    adapters = { ResponsiveImage.class, ComponentExporter.class },
+    adapters = {
+        ResponsiveImage.class, ComponentExporter.class
+    },
     resourceType = ResponsiveImageV1Impl.RESOURCE_TYPE)
 @Exporter(
     name = ExporterConstants.SLING_MODEL_EXPORTER_NAME,
     extensions = ExporterConstants.SLING_MODEL_EXTENSION)
-<span class="fc" id="L80">public class ResponsiveImageV1Impl extends AbstractComponentImpl implements ResponsiveImage {</span>
+<span class="fc" id="L82">public class ResponsiveImageV1Impl extends AbstractComponentImpl implements ResponsiveImage {</span>
 
   /**
    * Resource type
@@ -105,133 +107,133 @@ import io.wcm.wcm.core.components.models.ResponsiveImage;
 
   @PostConstruct
   private void activate() {
-<span class="fc" id="L108">    ValueMap properties = resource.getValueMap();</span>
+<span class="fc" id="L110">    ValueMap properties = resource.getValueMap();</span>
 
     // read basic properties
-<span class="fc" id="L111">    displayPopupTitle = properties.get(PN_DISPLAY_POPUP_TITLE, currentStyle.get(PN_DISPLAY_POPUP_TITLE, true));</span>
-<span class="fc" id="L112">    boolean isDecorative = properties.get(PN_IS_DECORATIVE, currentStyle.get(PN_IS_DECORATIVE, false));</span>
+<span class="fc" id="L113">    displayPopupTitle = properties.get(PN_DISPLAY_POPUP_TITLE, currentStyle.get(PN_DISPLAY_POPUP_TITLE, true));</span>
+<span class="fc" id="L114">    boolean isDecorative = properties.get(PN_IS_DECORATIVE, currentStyle.get(PN_IS_DECORATIVE, false));</span>
 
     // resolve link - decorative images have no link and no alt text by definition
-<span class="fc bfc" id="L115" title="All 2 branches covered.">    if (isDecorative) {</span>
-<span class="fc" id="L116">      link = linkHandler.invalid();</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">    if (isDecorative) {</span>
+<span class="fc" id="L118">      link = linkHandler.invalid();</span>
     }
     else {
-<span class="fc" id="L119">      link = HandlerUnwrapper.get(linkHandler, resource).build();</span>
+<span class="fc" id="L121">      link = HandlerUnwrapper.get(linkHandler, resource).build();</span>
     }
 
     // resolve image and alt. text
     // add custom properties as defined in &quot;image&quot; core component
-<span class="fc" id="L124">    media = new ComponentFeatureImageResolver(resource, getCurrentPage(), currentStyle, mediaHandler)</span>
-<span class="fc" id="L125">        .targetPage(link.getTargetPage())</span>
-<span class="fc" id="L126">        .mediaHandlerProperty(&quot;itemprop&quot;, &quot;contentUrl&quot;)</span>
-<span class="fc" id="L127">        .mediaHandlerProperty(&quot;data-cmp-hook-image&quot;, &quot;image&quot;)</span>
-<span class="fc" id="L128">        .mediaHandlerProperty(MediaNameConstants.PROP_CSS_CLASS, &quot;cmp-wcmio-responsiveimage__image&quot;)</span>
-<span class="fc" id="L129">        .buildMedia();</span>
-<span class="fc" id="L130">    Rendition rendition = media.getRendition();</span>
+<span class="fc" id="L126">    media = new ComponentFeatureImageResolver(resource, getCurrentPage(), currentStyle, mediaHandler)</span>
+<span class="fc" id="L127">      .targetPage(link.getTargetPage())</span>
+<span class="fc" id="L128">      .mediaHandlerProperty(&quot;itemprop&quot;, &quot;contentUrl&quot;)</span>
+<span class="fc" id="L129">      .mediaHandlerProperty(&quot;data-cmp-hook-image&quot;, &quot;image&quot;)</span>
+<span class="fc" id="L130">      .mediaHandlerProperty(MediaNameConstants.PROP_CSS_CLASS, &quot;cmp-wcmio-responsiveimage__image&quot;)</span>
+<span class="fc" id="L131">      .buildMedia();</span>
+<span class="fc" id="L132">    Rendition rendition = media.getRendition();</span>
 
-<span class="pc bpc" id="L132" title="1 of 6 branches missed.">    if (media.isValid() &amp;&amp; (rendition == null || !rendition.isImage())) {</span>
+<span class="pc bpc" id="L134" title="1 of 6 branches missed.">    if (media.isValid() &amp;&amp; (rendition == null || !rendition.isImage())) {</span>
       // no image asset selected (cannot be rendered) - set to invalid
-<span class="fc" id="L134">      media = mediaHandler.invalid();</span>
+<span class="fc" id="L136">      media = mediaHandler.invalid();</span>
     }
-<span class="fc bfc" id="L136" title="All 2 branches covered.">    if (media.isValid()) {</span>
-<span class="fc" id="L137">      initPropertiesFromDamAsset(properties);</span>
-<span class="fc" id="L138">      areas = ImageAreaV1Impl.convertMap(media.getMap());</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">    if (media.isValid()) {</span>
+<span class="fc" id="L139">      initPropertiesFromDamAsset(properties);</span>
+<span class="fc" id="L140">      areas = ImageAreaV1Impl.convertMap(media.getMap());</span>
 
       // display popup title
-<span class="pc bpc" id="L141" title="1 of 4 branches missed.">      if (this.displayPopupTitle() &amp;&amp; media.getElement() != null) {</span>
-<span class="fc" id="L142">        setImageTitle(media.getElement(), getTitle());</span>
+<span class="pc bpc" id="L143" title="1 of 4 branches missed.">      if (this.displayPopupTitle() &amp;&amp; media.getElement() != null) {</span>
+<span class="fc" id="L144">        setImageTitle(media.getElement(), getTitle());</span>
       }
     }
 
-<span class="fc" id="L146">  }</span>
+<span class="fc" id="L148">  }</span>
 
   /**
    * Checks if the resolved media is a DAM asset, and initializes properties from it.
    * @param properties Resource properties
    */
   private void initPropertiesFromDamAsset(ValueMap properties) {
-<span class="fc" id="L153">    Asset asset = media.getAsset();</span>
-<span class="pc bpc" id="L154" title="1 of 2 branches missed.">    if (asset != null) {</span>
-<span class="fc bfc" id="L155" title="All 2 branches covered.">      if (!StringUtils.equals(media.getMediaSource().getId(), InlineMediaSource.ID)) {</span>
-<span class="fc" id="L156">        fileReference = asset.getPath();</span>
+<span class="fc" id="L155">    Asset asset = media.getAsset();</span>
+<span class="pc bpc" id="L156" title="1 of 2 branches missed.">    if (asset != null) {</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">      if (!StringUtils.equals(media.getMediaSource().getId(), InlineMediaSource.ID)) {</span>
+<span class="fc" id="L158">        fileReference = asset.getPath();</span>
       }
-<span class="fc" id="L158">      alt = asset.getAltText();</span>
+<span class="fc" id="L160">      alt = asset.getAltText();</span>
 
-<span class="fc" id="L160">      com.day.cq.dam.api.Asset damAsset = asset.adaptTo(com.day.cq.dam.api.Asset.class);</span>
-<span class="fc bfc" id="L161" title="All 2 branches covered.">      if (damAsset != null) {</span>
-<span class="fc" id="L162">        boolean titleFromAsset = properties.get(PN_TITLE_VALUE_FROM_DAM, currentStyle.get(PN_TITLE_VALUE_FROM_DAM, true));</span>
-<span class="fc" id="L163">        boolean uuidDisabled = currentStyle.get(PN_UUID_DISABLED, false);</span>
+<span class="fc" id="L162">      com.day.cq.dam.api.Asset damAsset = asset.adaptTo(com.day.cq.dam.api.Asset.class);</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">      if (damAsset != null) {</span>
+<span class="fc" id="L164">        boolean titleFromAsset = properties.get(PN_TITLE_VALUE_FROM_DAM, currentStyle.get(PN_TITLE_VALUE_FROM_DAM, true));</span>
+<span class="fc" id="L165">        boolean uuidDisabled = currentStyle.get(PN_UUID_DISABLED, false);</span>
 
-<span class="fc bfc" id="L165" title="All 2 branches covered.">        if (!uuidDisabled) {</span>
-<span class="fc" id="L166">          uuid = damAsset.getID();</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">        if (!uuidDisabled) {</span>
+<span class="fc" id="L168">          uuid = damAsset.getID();</span>
         }
 
-<span class="fc bfc" id="L169" title="All 2 branches covered.">        if (titleFromAsset) {</span>
-<span class="fc" id="L170">          String assetTitle = asset.getTitle();</span>
-<span class="pc bpc" id="L171" title="1 of 2 branches missed.">          if (StringUtils.isNotEmpty(assetTitle)) {</span>
-<span class="fc" id="L172">            title = assetTitle;</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">        if (titleFromAsset) {</span>
+<span class="fc" id="L172">          String assetTitle = asset.getTitle();</span>
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">          if (StringUtils.isNotEmpty(assetTitle)) {</span>
+<span class="fc" id="L174">            title = assetTitle;</span>
           }
         }
       }
     }
-<span class="fc" id="L177">  }</span>
+<span class="fc" id="L179">  }</span>
 
   @SuppressWarnings(&quot;unchecked&quot;)
   private static void setImageTitle(HtmlElement element, String title) {
-<span class="pc bpc" id="L181" title="1 of 2 branches missed.">    if (element == null) {</span>
-<span class="nc" id="L182">      return;</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">    if (element == null) {</span>
+<span class="nc" id="L184">      return;</span>
     }
-<span class="pc bpc" id="L184" title="1 of 4 branches missed.">    if (element instanceof Picture || element instanceof Image) {</span>
-<span class="fc" id="L185">      element.setTitle(title);</span>
+<span class="pc bpc" id="L186" title="1 of 4 branches missed.">    if (element instanceof Picture || element instanceof Image) {</span>
+<span class="fc" id="L187">      element.setTitle(title);</span>
     }
     else {
-<span class="fc" id="L188">      List&lt;HtmlElement&gt; children = (List)element.getChildren();</span>
-<span class="fc bfc" id="L189" title="All 2 branches covered.">      for (HtmlElement child : children) {</span>
-<span class="fc" id="L190">        setImageTitle(child, title);</span>
-<span class="fc" id="L191">      }</span>
+<span class="fc" id="L190">      List&lt;HtmlElement&gt; children = (List)element.getChildren();</span>
+<span class="fc bfc" id="L191" title="All 2 branches covered.">      for (HtmlElement child : children) {</span>
+<span class="fc" id="L192">        setImageTitle(child, title);</span>
+<span class="fc" id="L193">      }</span>
     }
-<span class="fc" id="L193">  }</span>
+<span class="fc" id="L195">  }</span>
 
   @Override
   @NotNull
   public Link getLinkObject() {
-<span class="fc" id="L198">    return link;</span>
+<span class="fc" id="L200">    return link;</span>
   }
 
   @Override
   @NotNull
   public Media getMediaObject() {
-<span class="fc" id="L204">    return media;</span>
+<span class="fc" id="L206">    return media;</span>
   }
 
   @Override
   public String getAlt() {
-<span class="fc" id="L209">    return alt;</span>
+<span class="fc" id="L211">    return alt;</span>
   }
 
   @Override
   public String getTitle() {
-<span class="fc" id="L214">    return title;</span>
+<span class="fc" id="L216">    return title;</span>
   }
 
   @Override
   public String getUuid() {
-<span class="fc" id="L219">    return uuid;</span>
+<span class="fc" id="L221">    return uuid;</span>
   }
 
   @Override
   public boolean displayPopupTitle() {
-<span class="fc" id="L224">    return displayPopupTitle;</span>
+<span class="fc" id="L226">    return displayPopupTitle;</span>
   }
 
   @Override
   public String getFileReference() {
-<span class="fc" id="L229">    return fileReference;</span>
+<span class="fc" id="L231">    return fileReference;</span>
   }
 
   @Override
   public List&lt;ImageArea&gt; getAreas() {
-<span class="fc" id="L234">    return areas;</span>
+<span class="fc" id="L236">    return areas;</span>
   }
 
   // --- data layer ---
@@ -239,17 +241,17 @@ import io.wcm.wcm.core.components.models.ResponsiveImage;
   @Override
   @SuppressWarnings(&quot;null&quot;)
   protected @NotNull ImageData getComponentData() {
-<span class="fc" id="L242">    return DataLayerBuilder.extending(super.getComponentData()).asImageComponent()</span>
-<span class="fc" id="L243">        .withTitle(this::getTitle)</span>
-<span class="fc" id="L244">        .withLinkUrl(this::getLinkURL)</span>
-<span class="fc" id="L245">        .withAssetData(() -&gt; Optional.of(media)</span>
-<span class="fc" id="L246">            .filter(Media::isValid)</span>
-<span class="fc" id="L247">            .map(Media::getAsset)</span>
-<span class="fc" id="L248">            .map(asset -&gt; asset.adaptTo(com.day.cq.dam.api.Asset.class))</span>
-<span class="fc" id="L249">            .map(DataLayerBuilder::forAsset)</span>
-<span class="fc" id="L250">            .map(AssetDataBuilder::build)</span>
-<span class="fc" id="L251">            .orElse(null))</span>
-<span class="fc" id="L252">        .build();</span>
+<span class="fc" id="L244">    return DataLayerBuilder.extending(super.getComponentData()).asImageComponent()</span>
+<span class="fc" id="L245">      .withTitle(this::getTitle)</span>
+<span class="fc" id="L246">      .withLinkUrl(this::getLinkURL)</span>
+<span class="fc" id="L247">      .withAssetData(() -&gt; Optional.of(media)</span>
+<span class="fc" id="L248">        .filter(Media::isValid)</span>
+<span class="fc" id="L249">        .map(Media::getAsset)</span>
+<span class="fc" id="L250">        .map(asset -&gt; asset.adaptTo(com.day.cq.dam.api.Asset.class))</span>
+<span class="fc" id="L251">        .map(DataLayerBuilder::forAsset)</span>
+<span class="fc" id="L252">        .map(AssetDataBuilder::build)</span>
+<span class="fc" id="L253">        .orElse(null))</span>
+<span class="fc" id="L254">      .build();</span>
   }
 
 }
