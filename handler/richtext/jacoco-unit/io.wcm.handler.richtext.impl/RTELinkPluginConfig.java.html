@@ -62,86 +62,88 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
     extensions = FileExtension.JSON,
     methods = HttpConstants.METHOD_GET)
 <span class="fc" id="L64">public class RTELinkPluginConfig extends SlingSafeMethodsServlet {</span>
+
   private static final long serialVersionUID = 1L;
 
   static final String SELECTOR = &quot;wcmio-handler-richtext-rte-plugins-links-config&quot;;
 
-<span class="fc" id="L69">  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();</span>
+<span class="fc" id="L70">  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();</span>
 
   @Override
   protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
 
-<span class="fc" id="L74">    Resource resource = request.getResource();</span>
-<span class="fc" id="L75">    PageManager pageManager = AdaptTo.notNull(request.getResourceResolver(), PageManager.class);</span>
-<span class="fc" id="L76">    Page page = pageManager.getContainingPage(resource);</span>
-<span class="fc" id="L77">    I18n i18n = new I18n(request);</span>
+<span class="fc" id="L75">    Resource resource = request.getResource();</span>
+<span class="fc" id="L76">    PageManager pageManager = AdaptTo.notNull(request.getResourceResolver(), PageManager.class);</span>
+<span class="fc" id="L77">    Page page = pageManager.getContainingPage(resource);</span>
+<span class="fc" id="L78">    I18n i18n = new I18n(request);</span>
 
-<span class="fc" id="L79">    LinkHandlerConfig linkHandlerConfig = AdaptTo.notNull(resource, LinkHandlerConfig.class);</span>
-<span class="fc" id="L80">    List&lt;LinkType&gt; linkTypes = linkHandlerConfig.getLinkTypes().stream()</span>
-<span class="fc" id="L81">        .map(linkTypeClass -&gt; AdaptTo.notNull(resource, linkTypeClass))</span>
-<span class="fc" id="L82">        .filter(LinkType::hasRichTextPlugin)</span>
-<span class="fc" id="L83">        .collect(Collectors.toList());</span>
+<span class="fc" id="L80">    LinkHandlerConfig linkHandlerConfig = AdaptTo.notNull(resource, LinkHandlerConfig.class);</span>
+<span class="fc" id="L81">    List&lt;LinkType&gt; linkTypes = linkHandlerConfig.getLinkTypes().stream()</span>
+<span class="fc" id="L82">      .map(linkTypeClass -&gt; AdaptTo.notNull(resource, linkTypeClass))</span>
+<span class="fc" id="L83">      .filter(LinkType::hasRichTextPlugin)</span>
+<span class="fc" id="L84">      .collect(Collectors.toList());</span>
 
-<span class="fc" id="L85">    Result result = new Result();</span>
+<span class="fc" id="L86">    Result result = new Result();</span>
 
-<span class="fc" id="L87">    Map&lt;String, LinkTypeConfig&gt; linkTypesConfigs = new LinkedHashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L88" title="All 2 branches covered.">    for (LinkType linkType : linkTypes) {</span>
-<span class="fc" id="L89">      LinkTypeConfig linkTypeConfig = new LinkTypeConfig();</span>
-<span class="fc" id="L90">      linkTypeConfig.value = linkType.getId();</span>
-<span class="fc" id="L91">      linkTypeConfig.text = getI18nText(&quot;io.wcm.handler.link.components.granite.form.linkRefContainer.&quot; + linkType.getId() + &quot;.type&quot;, i18n);</span>
-<span class="fc" id="L92">      linkTypesConfigs.put(linkType.getId(), linkTypeConfig);</span>
-<span class="fc" id="L93">    }</span>
-<span class="fc" id="L94">    result.linkTypes = linkTypesConfigs;</span>
+<span class="fc" id="L88">    Map&lt;String, LinkTypeConfig&gt; linkTypesConfigs = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">    for (LinkType linkType : linkTypes) {</span>
+<span class="fc" id="L90">      LinkTypeConfig linkTypeConfig = new LinkTypeConfig();</span>
+<span class="fc" id="L91">      linkTypeConfig.value = linkType.getId();</span>
+<span class="fc" id="L92">      linkTypeConfig.text = getI18nText(&quot;io.wcm.handler.link.components.granite.form.linkRefContainer.&quot; + linkType.getId() + &quot;.type&quot;, i18n);</span>
+<span class="fc" id="L93">      linkTypesConfigs.put(linkType.getId(), linkTypeConfig);</span>
+<span class="fc" id="L94">    }</span>
+<span class="fc" id="L95">    result.linkTypes = linkTypesConfigs;</span>
 
-<span class="fc" id="L96">    Map&lt;String, String&gt; rootPaths = new LinkedHashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L97" title="All 2 branches covered.">    for (LinkType linkType : linkTypes) {</span>
-<span class="fc" id="L98">      String rootPath = linkHandlerConfig.getLinkRootPath(page, linkType.getId());</span>
-<span class="fc bfc" id="L99" title="All 2 branches covered.">      if (rootPath != null) {</span>
-<span class="fc" id="L100">        rootPaths.put(linkType.getId(), rootPath);</span>
+<span class="fc" id="L97">    Map&lt;String, String&gt; rootPaths = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">    for (LinkType linkType : linkTypes) {</span>
+<span class="fc" id="L99">      String rootPath = linkHandlerConfig.getLinkRootPath(page, linkType.getId());</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">      if (rootPath != null) {</span>
+<span class="fc" id="L101">        rootPaths.put(linkType.getId(), rootPath);</span>
       }
-<span class="fc" id="L102">    }</span>
+<span class="fc" id="L103">    }</span>
 
-<span class="fc" id="L104">    result.linkTypes = linkTypesConfigs;</span>
-<span class="fc" id="L105">    result.rootPaths = rootPaths;</span>
-<span class="fc" id="L106">    response.setContentType(ContentType.JSON);</span>
-<span class="fc" id="L107">    response.getWriter().write(OBJECT_MAPPER.writeValueAsString(result));</span>
-<span class="fc" id="L108">  }</span>
+<span class="fc" id="L105">    result.linkTypes = linkTypesConfigs;</span>
+<span class="fc" id="L106">    result.rootPaths = rootPaths;</span>
+<span class="fc" id="L107">    response.setContentType(ContentType.JSON);</span>
+<span class="fc" id="L108">    response.getWriter().write(OBJECT_MAPPER.writeValueAsString(result));</span>
+<span class="fc" id="L109">  }</span>
 
   private String getI18nText(String key, I18n i18n) {
     try {
-<span class="fc" id="L112">      return i18n.get(key);</span>
+<span class="fc" id="L113">      return i18n.get(key);</span>
     }
-<span class="nc" id="L114">    catch (MissingResourceException ex) {</span>
-<span class="nc" id="L115">      return key;</span>
+<span class="nc" id="L115">    catch (MissingResourceException ex) {</span>
+<span class="nc" id="L116">      return key;</span>
     }
   }
 
   @JsonInclude(Include.NON_NULL)
-<span class="fc" id="L120">  static class Result {</span>
+<span class="fc" id="L121">  static class Result {</span>
 
     private Map&lt;String, LinkTypeConfig&gt; linkTypes;
     private Map&lt;String, String&gt; rootPaths;
 
     public Map&lt;String, LinkTypeConfig&gt; getLinkTypes() {
-<span class="fc" id="L126">      return this.linkTypes;</span>
+<span class="fc" id="L127">      return this.linkTypes;</span>
     }
 
     public Map&lt;String, String&gt; getRootPaths() {
-<span class="fc" id="L130">      return this.rootPaths;</span>
+<span class="fc" id="L131">      return this.rootPaths;</span>
     }
   }
 
   @JsonInclude(Include.NON_NULL)
-<span class="fc" id="L135">  static class LinkTypeConfig {</span>
+<span class="fc" id="L136">  static class LinkTypeConfig {</span>
+
     private String value;
     private String text;
 
     public String getValue() {
-<span class="fc" id="L140">      return this.value;</span>
+<span class="fc" id="L142">      return this.value;</span>
     }
 
     public String getText() {
-<span class="fc" id="L144">      return this.text;</span>
+<span class="fc" id="L146">      return this.text;</span>
     }
   }
 
