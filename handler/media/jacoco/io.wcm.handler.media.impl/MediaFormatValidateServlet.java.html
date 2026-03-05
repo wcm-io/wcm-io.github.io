@@ -65,6 +65,7 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
     resourceTypes = &quot;sling/servlet/default&quot;,
     methods = HttpConstants.METHOD_GET)
 <span class="fc" id="L67">public final class MediaFormatValidateServlet extends SlingSafeMethodsServlet {</span>
+
   private static final long serialVersionUID = 1L;
 
   static final String SELECTOR = &quot;wcm-io-handler-media-mediaformat-validate&quot;;
@@ -74,7 +75,7 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
   static final String RP_MEDIA_CROPAUTO = &quot;mediaCropAuto&quot;;
   static final String RP_MEDIA_REF = &quot;mediaRef&quot;;
 
-<span class="fc" id="L77">  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();</span>
+<span class="fc" id="L78">  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();</span>
 
   /**
    * Prefix for i18n keys to generated messages for media invalid reasons.
@@ -86,95 +87,95 @@ import io.wcm.wcm.commons.contenttype.FileExtension;
   protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
 
     // read and validated request parameters
-<span class="fc" id="L89">    String[] mediaFormats = StringUtils.split(RequestParam.get(request, RP_MEDIA_FORMATS), &quot;,&quot;);</span>
-<span class="fc" id="L90">    String[] mediaFormatsMandatory = StringUtils.split(RequestParam.get(request, RP_MEDIA_FORMATS_MANDATORY), &quot;,&quot;);</span>
-<span class="fc" id="L91">    boolean mediaCropAuto = RequestParam.getBoolean(request, RP_MEDIA_CROPAUTO);</span>
-<span class="fc" id="L92">    String mediaRef = RequestParam.get(request, RP_MEDIA_REF);</span>
+<span class="fc" id="L90">    String[] mediaFormats = StringUtils.split(RequestParam.get(request, RP_MEDIA_FORMATS), &quot;,&quot;);</span>
+<span class="fc" id="L91">    String[] mediaFormatsMandatory = StringUtils.split(RequestParam.get(request, RP_MEDIA_FORMATS_MANDATORY), &quot;,&quot;);</span>
+<span class="fc" id="L92">    boolean mediaCropAuto = RequestParam.getBoolean(request, RP_MEDIA_CROPAUTO);</span>
+<span class="fc" id="L93">    String mediaRef = RequestParam.get(request, RP_MEDIA_REF);</span>
 
-<span class="pc bpc" id="L94" title="2 of 4 branches missed.">    if (mediaFormats == null || mediaFormats.length == 0</span>
-<span class="pc bpc" id="L95" title="1 of 2 branches missed.">        || StringUtils.isEmpty(mediaRef)) {</span>
-<span class="nc" id="L96">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
-<span class="nc" id="L97">      return;</span>
+<span class="pc bpc" id="L95" title="2 of 4 branches missed.">    if (mediaFormats == null || mediaFormats.length == 0</span>
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">        || StringUtils.isEmpty(mediaRef)) {</span>
+<span class="nc" id="L97">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="nc" id="L98">      return;</span>
     }
 
-<span class="fc" id="L100">    MediaFormatOption[] mediaFormatOptions = new MediaFormatOption[mediaFormats.length];</span>
-<span class="fc bfc" id="L101" title="All 2 branches covered.">    for (int i = 0; i &lt; mediaFormats.length; i++) {</span>
-<span class="fc" id="L102">      boolean mandatory = false;</span>
-<span class="fc bfc" id="L103" title="All 2 branches covered.">      if (mediaFormatsMandatory != null) {</span>
-<span class="fc" id="L104">        mandatory = ArrayUtils.contains(mediaFormatsMandatory, mediaFormats[i]);</span>
+<span class="fc" id="L101">    MediaFormatOption[] mediaFormatOptions = new MediaFormatOption[mediaFormats.length];</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">    for (int i = 0; i &lt; mediaFormats.length; i++) {</span>
+<span class="fc" id="L103">      boolean mandatory = false;</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">      if (mediaFormatsMandatory != null) {</span>
+<span class="fc" id="L105">        mandatory = ArrayUtils.contains(mediaFormatsMandatory, mediaFormats[i]);</span>
       }
-<span class="fc" id="L106">      mediaFormatOptions[i] = new MediaFormatOption(mediaFormats[i], mandatory);</span>
+<span class="fc" id="L107">      mediaFormatOptions[i] = new MediaFormatOption(mediaFormats[i], mandatory);</span>
     }
 
     // try to resolve media
-<span class="fc" id="L110">    MediaHandler mediaHandler = AdaptTo.notNull(request, MediaHandler.class);</span>
-<span class="fc" id="L111">    Media media = mediaHandler.get(mediaRef)</span>
-<span class="fc" id="L112">        .mediaFormatOptions(mediaFormatOptions)</span>
-<span class="fc" id="L113">        .autoCrop(mediaCropAuto)</span>
-<span class="fc" id="L114">        .build();</span>
+<span class="fc" id="L111">    MediaHandler mediaHandler = AdaptTo.notNull(request, MediaHandler.class);</span>
+<span class="fc" id="L112">    Media media = mediaHandler.get(mediaRef)</span>
+<span class="fc" id="L113">      .mediaFormatOptions(mediaFormatOptions)</span>
+<span class="fc" id="L114">      .autoCrop(mediaCropAuto)</span>
+<span class="fc" id="L115">      .build();</span>
 
     // response
-<span class="fc" id="L117">    ResultResponse result = new ResultResponse();</span>
-<span class="fc" id="L118">    result.valid = media.isValid();</span>
-<span class="fc bfc" id="L119" title="All 2 branches covered.">    if (!media.isValid()) {</span>
-<span class="fc" id="L120">      I18n i18n = getI18n(request);</span>
-<span class="fc" id="L121">      result.reason = getI18nText(i18n, getMediaInvalidReasonI18nKeyOrMessage(media));</span>
-<span class="fc" id="L122">      result.reasonTitle = getI18nText(i18n, ASSET_INVALID_I18N_KEY);</span>
+<span class="fc" id="L118">    ResultResponse result = new ResultResponse();</span>
+<span class="fc" id="L119">    result.valid = media.isValid();</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (!media.isValid()) {</span>
+<span class="fc" id="L121">      I18n i18n = getI18n(request);</span>
+<span class="fc" id="L122">      result.reason = getI18nText(i18n, getMediaInvalidReasonI18nKeyOrMessage(media));</span>
+<span class="fc" id="L123">      result.reasonTitle = getI18nText(i18n, ASSET_INVALID_I18N_KEY);</span>
     }
-<span class="fc" id="L124">    response.setContentType(ContentType.JSON);</span>
-<span class="fc" id="L125">    response.getWriter().write(OBJECT_MAPPER.writeValueAsString(result));</span>
-<span class="fc" id="L126">  }</span>
+<span class="fc" id="L125">    response.setContentType(ContentType.JSON);</span>
+<span class="fc" id="L126">    response.getWriter().write(OBJECT_MAPPER.writeValueAsString(result));</span>
+<span class="fc" id="L127">  }</span>
 
   private String getMediaInvalidReasonI18nKeyOrMessage(@NotNull Media media) {
-<span class="fc" id="L129">    MediaInvalidReason reason = media.getMediaInvalidReason();</span>
-<span class="fc bfc" id="L130" title="All 2 branches covered.">    if (reason == MediaInvalidReason.CUSTOM) {</span>
-<span class="fc" id="L131">      return media.getMediaInvalidReasonCustomMessage();</span>
+<span class="fc" id="L130">    MediaInvalidReason reason = media.getMediaInvalidReason();</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">    if (reason == MediaInvalidReason.CUSTOM) {</span>
+<span class="fc" id="L132">      return media.getMediaInvalidReasonCustomMessage();</span>
     }
-<span class="pc bpc" id="L133" title="1 of 2 branches missed.">    else if (reason != null) {</span>
-<span class="fc" id="L134">      return MEDIA_INVALID_REASON_I18N_PREFIX + reason.name();</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">    else if (reason != null) {</span>
+<span class="fc" id="L135">      return MEDIA_INVALID_REASON_I18N_PREFIX + reason.name();</span>
     }
     else {
-<span class="nc" id="L137">      return &quot;&quot;;</span>
+<span class="nc" id="L138">      return &quot;&quot;;</span>
     }
   }
 
   private String getI18nText(I18n i18n, String key) {
     try {
-<span class="fc" id="L143">      return i18n.get(key);</span>
+<span class="fc" id="L144">      return i18n.get(key);</span>
     }
-<span class="nc" id="L145">    catch (MissingResourceException ex) {</span>
-<span class="nc" id="L146">      return key;</span>
+<span class="nc" id="L146">    catch (MissingResourceException ex) {</span>
+<span class="nc" id="L147">      return key;</span>
     }
   }
 
   private I18n getI18n(SlingHttpServletRequest request) {
-<span class="fc" id="L151">    PageManager pageManager = AdaptTo.notNull(request.getResourceResolver(), PageManager.class);</span>
-<span class="fc" id="L152">    Page currentPage = pageManager.getContainingPage(request.getResource());</span>
-<span class="pc bpc" id="L153" title="1 of 2 branches missed.">    if (currentPage != null) {</span>
-<span class="fc" id="L154">      Locale locale = currentPage.getLanguage(false);</span>
-<span class="fc" id="L155">      ResourceBundle resourceBundle = request.getResourceBundle(locale);</span>
-<span class="fc" id="L156">      return new I18n(resourceBundle);</span>
+<span class="fc" id="L152">    PageManager pageManager = AdaptTo.notNull(request.getResourceResolver(), PageManager.class);</span>
+<span class="fc" id="L153">    Page currentPage = pageManager.getContainingPage(request.getResource());</span>
+<span class="pc bpc" id="L154" title="1 of 2 branches missed.">    if (currentPage != null) {</span>
+<span class="fc" id="L155">      Locale locale = currentPage.getLanguage(false);</span>
+<span class="fc" id="L156">      ResourceBundle resourceBundle = request.getResourceBundle(locale);</span>
+<span class="fc" id="L157">      return new I18n(resourceBundle);</span>
     }
-<span class="nc" id="L158">    return new I18n(request);</span>
+<span class="nc" id="L159">    return new I18n(request);</span>
   }
 
   @JsonInclude(Include.NON_NULL)
-<span class="fc" id="L162">  static class ResultResponse {</span>
+<span class="fc" id="L163">  static class ResultResponse {</span>
 
     private boolean valid;
     private String reason;
     private String reasonTitle;
 
     public boolean isValid() {
-<span class="fc" id="L169">      return this.valid;</span>
+<span class="fc" id="L170">      return this.valid;</span>
     }
 
     public String getReason() {
-<span class="fc" id="L173">      return this.reason;</span>
+<span class="fc" id="L174">      return this.reason;</span>
     }
 
     public String getReasonTitle() {
-<span class="fc" id="L177">      return this.reasonTitle;</span>
+<span class="fc" id="L178">      return this.reasonTitle;</span>
     }
 
   }
