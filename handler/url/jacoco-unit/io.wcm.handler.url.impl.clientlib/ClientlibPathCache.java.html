@@ -68,25 +68,25 @@ final class ClientlibPathCache implements EventListener, AutoCloseable {
       + &quot;'io.wcm.handler.url:&quot; + CLIENTLIBS_SERVICE + &quot;' - see https://wcm.io/handler/url/configuration.html&quot;;
 
 <span class="fc" id="L70">  private final LoadingCache&lt;String, ClientlibPathCacheEntry&gt; cache = Caffeine.newBuilder()</span>
-<span class="fc" id="L71">      .maximumSize(10000)</span>
-<span class="fc" id="L72">      .build(path -&gt; {</span>
-<span class="fc" id="L73">        try (ResourceResolver resourceResolver = getServiceResourceResolver()) {</span>
-<span class="fc" id="L74">          Resource resource = resourceResolver.getResource(path);</span>
-<span class="fc bfc" id="L75" title="All 2 branches covered.">          if (resource != null) {</span>
-<span class="fc" id="L76">            Node node = resource.adaptTo(Node.class);</span>
-<span class="pc bpc" id="L77" title="2 of 4 branches missed.">            if (node != null &amp;&amp; node.isNodeType(NT_CLIENTLIBRARY)) {</span>
-<span class="fc" id="L78">              boolean isAllowProxy = resource.getValueMap().get(PN_ALLOWPROXY, false);</span>
-<span class="fc" id="L79">              ClientlibPathCacheEntry entry = new ClientlibPathCacheEntry(path, true, isAllowProxy);</span>
-<span class="fc" id="L80">              log.debug(&quot;Detected client library: {}&quot;, entry);</span>
-<span class="fc" id="L81">              return entry;</span>
-            }
+<span class="fc" id="L71">    .maximumSize(10000)</span>
+<span class="fc" id="L72">    .build(path -&gt; {</span>
+<span class="fc" id="L73">      try (ResourceResolver resourceResolver = getServiceResourceResolver()) {</span>
+<span class="fc" id="L74">        Resource resource = resourceResolver.getResource(path);</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        if (resource != null) {</span>
+<span class="fc" id="L76">          Node node = resource.adaptTo(Node.class);</span>
+<span class="pc bpc" id="L77" title="2 of 4 branches missed.">          if (node != null &amp;&amp; node.isNodeType(NT_CLIENTLIBRARY)) {</span>
+<span class="fc" id="L78">            boolean isAllowProxy = resource.getValueMap().get(PN_ALLOWPROXY, false);</span>
+<span class="fc" id="L79">            ClientlibPathCacheEntry entry = new ClientlibPathCacheEntry(path, true, isAllowProxy);</span>
+<span class="fc" id="L80">            log.debug(&quot;Detected client library: {}&quot;, entry);</span>
+<span class="fc" id="L81">            return entry;</span>
           }
-<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        }</span>
-<span class="nc" id="L85">        catch (LoginException ex) {</span>
-<span class="nc" id="L86">          log.warn(SERVICE_USER_MAPPING_WARNING);</span>
-<span class="fc" id="L87">        }</span>
-<span class="fc" id="L88">        return new ClientlibPathCacheEntry(path, false, false);</span>
-      });
+        }
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">      }</span>
+<span class="nc" id="L85">      catch (LoginException ex) {</span>
+<span class="nc" id="L86">        log.warn(SERVICE_USER_MAPPING_WARNING);</span>
+<span class="fc" id="L87">      }</span>
+<span class="fc" id="L88">      return new ClientlibPathCacheEntry(path, false, false);</span>
+    });
 
 <span class="fc" id="L91">  private static final Logger log = LoggerFactory.getLogger(ClientlibPathCache.class);</span>
 
@@ -116,27 +116,29 @@ final class ClientlibPathCache implements EventListener, AutoCloseable {
 <span class="fc" id="L116">        log.debug(&quot;Enable observation for client libraries.&quot;);</span>
 <span class="fc" id="L117">        JackrabbitObservationManager observationManager = (JackrabbitObservationManager)session.getWorkspace().getObservationManager();</span>
 <span class="fc" id="L118">        JackrabbitEventFilter eventFilter = new JackrabbitEventFilter()</span>
-<span class="fc" id="L119">            .setEventTypes(NODE_ADDED | NODE_MOVED | NODE_REMOVED | PROPERTY_ADDED | PROPERTY_CHANGED | PROPERTY_REMOVED)</span>
-<span class="fc" id="L120">            .setAbsPath(&quot;/apps&quot;)</span>
-<span class="fc" id="L121">            .setAdditionalPaths(&quot;/apps&quot;, &quot;/libs&quot;)</span>
-<span class="fc" id="L122">            .setIsDeep(true)</span>
-<span class="fc" id="L123">            .setNodeTypes(new String[] { NT_CLIENTLIBRARY });</span>
-<span class="fc" id="L124">        observationManager.addEventListener(this, eventFilter);</span>
+<span class="fc" id="L119">          .setEventTypes(NODE_ADDED | NODE_MOVED | NODE_REMOVED | PROPERTY_ADDED | PROPERTY_CHANGED | PROPERTY_REMOVED)</span>
+<span class="fc" id="L120">          .setAbsPath(&quot;/apps&quot;)</span>
+<span class="fc" id="L121">          .setAdditionalPaths(&quot;/apps&quot;, &quot;/libs&quot;)</span>
+<span class="fc" id="L122">          .setIsDeep(true)</span>
+<span class="fc" id="L123">          .setNodeTypes(new String[] {</span>
+              NT_CLIENTLIBRARY
+          });
+<span class="fc" id="L126">        observationManager.addEventListener(this, eventFilter);</span>
       }
-<span class="nc" id="L126">      catch (RepositoryException ex) {</span>
-<span class="nc" id="L127">        log.warn(&quot;Unable to register obervation for client libraries.&quot;);</span>
-<span class="fc" id="L128">      }</span>
+<span class="nc" id="L128">      catch (RepositoryException ex) {</span>
+<span class="nc" id="L129">        log.warn(&quot;Unable to register obervation for client libraries.&quot;);</span>
+<span class="fc" id="L130">      }</span>
     }
-<span class="fc" id="L130">  }</span>
+<span class="fc" id="L132">  }</span>
 
   /**
    * If any event on any client library occurs clear the client library cache.
    */
   @Override
   public void onEvent(EventIterator events) {
-<span class="nc" id="L137">    log.debug(&quot;Clear client library path cache.&quot;);</span>
-<span class="nc" id="L138">    cache.invalidateAll();</span>
-<span class="nc" id="L139">  }</span>
+<span class="nc" id="L139">    log.debug(&quot;Clear client library path cache.&quot;);</span>
+<span class="nc" id="L140">    cache.invalidateAll();</span>
+<span class="nc" id="L141">  }</span>
 
   /**
    * Checks if the given path is a client library, and if this has enabled the &quot;allowProxy&quot; mode.
@@ -144,17 +146,17 @@ final class ClientlibPathCache implements EventListener, AutoCloseable {
    * @return true if it is a client library, and if it has set the &quot;allowProxy&quot; flag.
    */
   public boolean isClientlibWithAllowProxy(String path) {
-<span class="fc" id="L147">    ClientlibPathCacheEntry entry = cache.get(path);</span>
-<span class="fc bfc" id="L148" title="All 4 branches covered.">    return entry.isClientLibrary() &amp;&amp; entry.isAllowProxy();</span>
+<span class="fc" id="L149">    ClientlibPathCacheEntry entry = cache.get(path);</span>
+<span class="fc bfc" id="L150" title="All 4 branches covered.">    return entry.isClientLibrary() &amp;&amp; entry.isAllowProxy();</span>
   }
 
   @Override
   public void close() {
-<span class="pc bpc" id="L153" title="1 of 2 branches missed.">    if (this.listenerServiceResourceResolver != null) {</span>
-<span class="fc" id="L154">      log.debug(&quot;End observation for client libraries.&quot;);</span>
-<span class="fc" id="L155">      this.listenerServiceResourceResolver.close();</span>
+<span class="pc bpc" id="L155" title="1 of 2 branches missed.">    if (this.listenerServiceResourceResolver != null) {</span>
+<span class="fc" id="L156">      log.debug(&quot;End observation for client libraries.&quot;);</span>
+<span class="fc" id="L157">      this.listenerServiceResourceResolver.close();</span>
     }
-<span class="fc" id="L157">  }</span>
+<span class="fc" id="L159">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
