@@ -63,12 +63,14 @@ import io.wcm.siteapi.processor.util.JsonObjectMapper;
  * Accepts all Site API calls and redirects processing to a {@link SlingHttpServletProcessor} based on the suffix.
  */
 @Designate(ocd = SiteApiServlet.Config.class)
-@Component(service = { Servlet.class, SiteApiConfiguration.class })
+@Component(service = {
+    Servlet.class, SiteApiConfiguration.class
+})
 @SlingServletResourceTypes(
     resourceTypes = NameConstants.NT_PAGE,
     methods = HttpConstants.METHOD_GET)
 @SuppressWarnings(&quot;squid:S1948&quot;) // servlet is not serialized
-<span class="fc" id="L71">public class SiteApiServlet extends SlingSafeMethodsServlet implements SiteApiConfiguration {</span>
+<span class="fc" id="L73">public class SiteApiServlet extends SlingSafeMethodsServlet implements SiteApiConfiguration {</span>
 
   @ObjectClassDefinition(
       name = &quot;wcm.io Site API Servlet&quot;,
@@ -91,7 +93,7 @@ import io.wcm.siteapi.processor.util.JsonObjectMapper;
   static final String JSON_CONTENT_TYPE = &quot;application/json;charset=UTF-8&quot;;
 
   private static final long serialVersionUID = 1L;
-<span class="fc" id="L94">  private static final Logger log = LoggerFactory.getLogger(SiteApiServlet.class);</span>
+<span class="fc" id="L96">  private static final Logger log = LoggerFactory.getLogger(SiteApiServlet.class);</span>
 
   @Reference
   private PageManagerFactory pageManagerFactory;
@@ -105,100 +107,100 @@ import io.wcm.siteapi.processor.util.JsonObjectMapper;
 
   @Activate
   private void activate(Config config) {
-<span class="fc" id="L108">    this.selector = config.sling_servlet_selectors();</span>
-<span class="fc" id="L109">    this.extension = config.sling_servlet_extensions();</span>
-<span class="fc" id="L110">  }</span>
+<span class="fc" id="L110">    this.selector = config.sling_servlet_selectors();</span>
+<span class="fc" id="L111">    this.extension = config.sling_servlet_extensions();</span>
+<span class="fc" id="L112">  }</span>
 
 
   @Override
   protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response)
       throws ServletException, IOException {
-<span class="fc" id="L116">    Resource resource = request.getResource();</span>
+<span class="fc" id="L118">    Resource resource = request.getResource();</span>
 
     // force disabled mode for proper media/link handling
-<span class="fc" id="L119">    WCMMode.DISABLED.toRequest(request);</span>
+<span class="fc" id="L121">    WCMMode.DISABLED.toRequest(request);</span>
 
     // ensure selector matches exactly (no additional selectors allowed)
-<span class="fc bfc" id="L122" title="All 2 branches covered.">    if (!StringUtils.equals(request.getRequestPathInfo().getSelectorString(), this.selector)) {</span>
-<span class="fc" id="L123">      response.sendError(SC_NOT_FOUND);</span>
-<span class="fc" id="L124">      return;</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (!StringUtils.equals(request.getRequestPathInfo().getSelectorString(), this.selector)) {</span>
+<span class="fc" id="L125">      response.sendError(SC_NOT_FOUND);</span>
+<span class="fc" id="L126">      return;</span>
     }
 
     // get processor matching given suffix
-<span class="fc" id="L128">    Processor processor = null;</span>
-<span class="fc" id="L129">    JsonSuffix suffix = JsonSuffix.parse(request.getRequestPathInfo().getSuffix());</span>
-<span class="fc bfc" id="L130" title="All 2 branches covered.">    if (suffix != null) {</span>
-<span class="fc" id="L131">      processor = processorManager.getMatching(suffix.getSuffix(), resource);</span>
+<span class="fc" id="L130">    Processor processor = null;</span>
+<span class="fc" id="L131">    JsonSuffix suffix = JsonSuffix.parse(request.getRequestPathInfo().getSuffix());</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">    if (suffix != null) {</span>
+<span class="fc" id="L133">      processor = processorManager.getMatching(suffix.getSuffix(), resource);</span>
     }
-<span class="pc bpc" id="L133" title="1 of 4 branches missed.">    if (suffix == null || processor == null) {</span>
-<span class="fc" id="L134">      response.sendError(SC_NOT_FOUND);</span>
-<span class="fc" id="L135">      return;</span>
+<span class="pc bpc" id="L135" title="1 of 4 branches missed.">    if (suffix == null || processor == null) {</span>
+<span class="fc" id="L136">      response.sendError(SC_NOT_FOUND);</span>
+<span class="fc" id="L137">      return;</span>
     }
 
     // ensure valid page
-<span class="fc" id="L139">    PageManager pageManager = pageManagerFactory.getPageManager(request.getResourceResolver());</span>
-<span class="fc" id="L140">    Page currentPage = getCurrentPage(resource, pageManager);</span>
-<span class="fc bfc" id="L141" title="All 4 branches covered.">    if (currentPage == null || !ensurePageHasContent(currentPage)) {</span>
-<span class="fc" id="L142">      response.sendError(SC_NOT_FOUND);</span>
-<span class="fc" id="L143">      return;</span>
+<span class="fc" id="L141">    PageManager pageManager = pageManagerFactory.getPageManager(request.getResourceResolver());</span>
+<span class="fc" id="L142">    Page currentPage = getCurrentPage(resource, pageManager);</span>
+<span class="fc bfc" id="L143" title="All 4 branches covered.">    if (currentPage == null || !ensurePageHasContent(currentPage)) {</span>
+<span class="fc" id="L144">      response.sendError(SC_NOT_FOUND);</span>
+<span class="fc" id="L145">      return;</span>
     }
 
     // handle request using processor
-<span class="fc" id="L147">    ProcessorRequestContext context = new ProcessorRequestContextImpl(suffix.getSuffix(), suffix.getSuffixExtension(),</span>
+<span class="fc" id="L149">    ProcessorRequestContext context = new ProcessorRequestContextImpl(suffix.getSuffix(), suffix.getSuffixExtension(),</span>
         request, pageManager, currentPage);
-<span class="fc bfc" id="L149" title="All 2 branches covered.">    if (processor instanceof JsonObjectProcessor) {</span>
-<span class="fc" id="L150">      processJsonObject((JsonObjectProcessor)processor, context, response);</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">    if (processor instanceof JsonObjectProcessor) {</span>
+<span class="fc" id="L152">      processJsonObject((JsonObjectProcessor)processor, context, response);</span>
     }
-<span class="pc bpc" id="L152" title="1 of 2 branches missed.">    else if (processor instanceof SlingHttpServletProcessor) {</span>
-<span class="fc" id="L153">      ((SlingHttpServletProcessor)processor).process(context, response);</span>
+<span class="pc bpc" id="L154" title="1 of 2 branches missed.">    else if (processor instanceof SlingHttpServletProcessor) {</span>
+<span class="fc" id="L155">      ((SlingHttpServletProcessor)processor).process(context, response);</span>
     }
     else {
-<span class="nc" id="L156">      throw new ServletException(&quot;Processor does not implement JsonObjectProcessor or SlingHttpServletResponse: &quot; + processor);</span>
+<span class="nc" id="L158">      throw new ServletException(&quot;Processor does not implement JsonObjectProcessor or SlingHttpServletResponse: &quot; + processor);</span>
     }
-<span class="fc" id="L158">  }</span>
+<span class="fc" id="L160">  }</span>
 
   private void processJsonObject(JsonObjectProcessor&lt;?&gt; processor, ProcessorRequestContext context,
       SlingHttpServletResponse response) throws IOException {
-<span class="fc" id="L162">    Object result = processor.process(context);</span>
-<span class="fc bfc" id="L163" title="All 2 branches covered.">    if (result == null) {</span>
-<span class="fc" id="L164">      response.sendError(SC_NOT_FOUND);</span>
+<span class="fc" id="L164">    Object result = processor.process(context);</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">    if (result == null) {</span>
+<span class="fc" id="L166">      response.sendError(SC_NOT_FOUND);</span>
     }
     else {
-<span class="fc" id="L167">      response.setContentType(JSON_CONTENT_TYPE);</span>
-<span class="fc" id="L168">      String jsonString = jsonObjectMapper.toJsonString(result);</span>
-<span class="fc" id="L169">      response.getWriter().write(jsonString);</span>
+<span class="fc" id="L169">      response.setContentType(JSON_CONTENT_TYPE);</span>
+<span class="fc" id="L170">      String jsonString = jsonObjectMapper.toJsonString(result);</span>
+<span class="fc" id="L171">      response.getWriter().write(jsonString);</span>
     }
-<span class="fc" id="L171">  }</span>
+<span class="fc" id="L173">  }</span>
 
   private @Nullable Page getCurrentPage(@NotNull Resource resource, @NotNull PageManager pageManager) {
-<span class="fc" id="L174">    Page page = pageManager.getContainingPage(resource);</span>
-<span class="fc bfc" id="L175" title="All 2 branches covered.">    if (page == null) {</span>
-<span class="fc" id="L176">      log.debug(&quot;No page found for given resource: {}&quot;, resource.getPath());</span>
+<span class="fc" id="L176">    Page page = pageManager.getContainingPage(resource);</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">    if (page == null) {</span>
+<span class="fc" id="L178">      log.debug(&quot;No page found for given resource: {}&quot;, resource.getPath());</span>
     }
-<span class="fc" id="L178">    return page;</span>
+<span class="fc" id="L180">    return page;</span>
   }
 
   private boolean ensurePageHasContent(@NotNull Page page) {
-<span class="fc" id="L182">    boolean hasContent = page.hasContent();</span>
-<span class="fc bfc" id="L183" title="All 2 branches covered.">    if (!hasContent) {</span>
-<span class="fc" id="L184">      log.debug(&quot;Ignoring page without jcr:content node: {}&quot;, page.getPath());</span>
+<span class="fc" id="L184">    boolean hasContent = page.hasContent();</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">    if (!hasContent) {</span>
+<span class="fc" id="L186">      log.debug(&quot;Ignoring page without jcr:content node: {}&quot;, page.getPath());</span>
     }
-<span class="fc" id="L186">    return hasContent;</span>
+<span class="fc" id="L188">    return hasContent;</span>
   }
 
   @Override
   public @NotNull String getSelector() {
-<span class="fc" id="L191">    return selector;</span>
+<span class="fc" id="L193">    return selector;</span>
   }
 
   @Override
   public @NotNull String getExtension() {
-<span class="fc" id="L196">    return extension;</span>
+<span class="fc" id="L198">    return extension;</span>
   }
 
   @Override
   public @NotNull String getContextPath() {
-<span class="fc" id="L201">    return getServletContext().getContextPath();</span>
+<span class="fc" id="L203">    return getServletContext().getContextPath();</span>
   }
 
 }
