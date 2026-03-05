@@ -62,55 +62,55 @@ class ContextAwareServiceCollectionResolverImpl&lt;S extends ContextAwareService
   private static &lt;S extends ContextAwareService, D&gt; LoadingCache&lt;ServiceReference&lt;S&gt;, CollectionItemDecoration&lt;S, D&gt;&gt; buildCache(
       @NotNull BiFunction&lt;@NotNull ServiceReference&lt;S&gt;, @Nullable S, @Nullable D&gt; decorator, @NotNull BundleContext bundleContext) {
 <span class="fc" id="L64">    return Caffeine.newBuilder()</span>
-        // expire cached entry after 24h
-<span class="fc" id="L66">        .expireAfterAccess(24, TimeUnit.HOURS)</span>
-        // unget service on removal
-<span class="fc" id="L68">        .removalListener((ServiceReference&lt;S&gt; key, CollectionItemDecoration&lt;S, D&gt; value, RemovalCause cause) -&gt; {</span>
-<span class="fc" id="L69">          log.debug(&quot;Remove service {}&quot;, value);</span>
-<span class="fc" id="L70">          bundleContext.ungetService(key);</span>
-<span class="fc" id="L71">        })</span>
-        // build cache lazily
-<span class="fc" id="L73">        .build((ServiceReference&lt;S&gt; serviceReference) -&gt; {</span>
-<span class="fc" id="L74">          CollectionItemDecoration&lt;S, D&gt; item = new CollectionItemDecoration&lt;&gt;(serviceReference, decorator, bundleContext);</span>
-<span class="fc" id="L75">          log.debug(&quot;Add service {}&quot;, item);</span>
-<span class="fc" id="L76">          return item;</span>
-        });
+      // expire cached entry after 24h
+<span class="fc" id="L66">      .expireAfterAccess(24, TimeUnit.HOURS)</span>
+      // unget service on removal
+<span class="fc" id="L68">      .removalListener((ServiceReference&lt;S&gt; key, CollectionItemDecoration&lt;S, D&gt; value, RemovalCause cause) -&gt; {</span>
+<span class="fc" id="L69">        log.debug(&quot;Remove service {}&quot;, value);</span>
+<span class="fc" id="L70">        bundleContext.ungetService(key);</span>
+<span class="fc" id="L71">      })</span>
+      // build cache lazily
+<span class="fc" id="L73">      .build((ServiceReference&lt;S&gt; serviceReference) -&gt; {</span>
+<span class="fc" id="L74">        CollectionItemDecoration&lt;S, D&gt; item = new CollectionItemDecoration&lt;&gt;(serviceReference, decorator, bundleContext);</span>
+<span class="fc" id="L75">        log.debug(&quot;Add service {}&quot;, item);</span>
+<span class="fc" id="L76">        return item;</span>
+      });
   }
 
   @Override
   public @Nullable S resolve(@Nullable Adaptable adaptable) {
 <span class="fc" id="L82">    return getMatching(adaptable)</span>
-<span class="fc" id="L83">        .map(CollectionItemDecoration::getService)</span>
-<span class="fc" id="L84">        .findFirst().orElse(null);</span>
+<span class="fc" id="L83">      .map(CollectionItemDecoration::getService)</span>
+<span class="fc" id="L84">      .findFirst().orElse(null);</span>
   }
 
   @Override
   @SuppressWarnings(&quot;null&quot;)
   public @NotNull Stream&lt;S&gt; resolveAll(@Nullable Adaptable adaptable) {
 <span class="fc" id="L90">    return getMatching(adaptable)</span>
-<span class="fc" id="L91">        .map(CollectionItemDecoration::getService);</span>
+<span class="fc" id="L91">      .map(CollectionItemDecoration::getService);</span>
   }
 
   @Override
   public @Nullable D resolveDecorated(@Nullable Adaptable adaptable) {
 <span class="fc" id="L96">    return getMatching(adaptable)</span>
-<span class="fc" id="L97">        .map(CollectionItemDecoration::getDecoration)</span>
-<span class="fc" id="L98">        .findFirst().orElse(null);</span>
+<span class="fc" id="L97">      .map(CollectionItemDecoration::getDecoration)</span>
+<span class="fc" id="L98">      .findFirst().orElse(null);</span>
   }
 
   @Override
   @SuppressWarnings(&quot;null&quot;)
   public @NotNull Stream&lt;D&gt; resolveAllDecorated(@Nullable Adaptable adaptable) {
 <span class="fc" id="L104">    return getMatching(adaptable)</span>
-<span class="fc" id="L105">        .map(CollectionItemDecoration::getDecoration);</span>
+<span class="fc" id="L105">      .map(CollectionItemDecoration::getDecoration);</span>
   }
 
   private @NotNull Stream&lt;CollectionItemDecoration&lt;S, D&gt;&gt; getMatching(@Nullable Adaptable adaptable) {
 <span class="fc" id="L109">    String resourcePath = resourcePathResolver.get(adaptable);</span>
 <span class="fc" id="L110">    return serviceReferenceCollection.stream()</span>
-<span class="fc" id="L111">        .map(decorationCache::get)</span>
-<span class="fc" id="L112">        .filter(CollectionItemDecoration::isValid)</span>
-<span class="fc" id="L113">        .filter(item -&gt; item.matches(resourcePath));</span>
+<span class="fc" id="L111">      .map(decorationCache::get)</span>
+<span class="fc" id="L112">      .filter(CollectionItemDecoration::isValid)</span>
+<span class="fc" id="L113">      .filter(item -&gt; item.matches(resourcePath));</span>
   }
 
   @Override

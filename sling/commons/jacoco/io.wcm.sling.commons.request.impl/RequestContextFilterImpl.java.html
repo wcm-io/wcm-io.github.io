@@ -38,47 +38,49 @@ import io.wcm.sling.commons.request.RequestContext;
  * Servlet filter that sets the current sling request during processing to make it available via the
  * {@link RequestContext} interface.
  */
-@Component(service = { RequestContext.class, Filter.class }, immediate = true, property = {
+@Component(service = {
+    RequestContext.class, Filter.class
+}, immediate = true, property = {
     &quot;sling.filter.scope=component&quot;
 })
-<span class="fc" id="L44">public final class RequestContextFilterImpl implements RequestContext, Filter {</span>
+<span class="fc" id="L46">public final class RequestContextFilterImpl implements RequestContext, Filter {</span>
 
   @SuppressWarnings(&quot;java:S5164&quot;) // request are short-lived objects, no need to call remove explicitely
-<span class="fc" id="L47">  private static final ThreadLocal&lt;Stack&lt;SlingHttpServletRequest&gt;&gt; REQUEST_THREADLOCAL = ThreadLocal.withInitial(Stack::new);</span>
+<span class="fc" id="L49">  private static final ThreadLocal&lt;Stack&lt;SlingHttpServletRequest&gt;&gt; REQUEST_THREADLOCAL = ThreadLocal.withInitial(Stack::new);</span>
 
   @Override
   public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-<span class="pc bpc" id="L51" title="1 of 2 branches missed.">    if (request instanceof SlingHttpServletRequest) {</span>
-<span class="fc" id="L52">      REQUEST_THREADLOCAL.get().push((SlingHttpServletRequest)request);</span>
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">    if (request instanceof SlingHttpServletRequest) {</span>
+<span class="fc" id="L54">      REQUEST_THREADLOCAL.get().push((SlingHttpServletRequest)request);</span>
     }
     try {
-<span class="fc" id="L55">      chain.doFilter(request, response);</span>
+<span class="fc" id="L57">      chain.doFilter(request, response);</span>
     }
     finally {
-<span class="fc" id="L58">      REQUEST_THREADLOCAL.get().pop();</span>
+<span class="fc" id="L60">      REQUEST_THREADLOCAL.get().pop();</span>
     }
-<span class="fc" id="L60">  }</span>
+<span class="fc" id="L62">  }</span>
 
   @Override
   public SlingHttpServletRequest getThreadRequest() {
-<span class="fc" id="L64">    Stack&lt;SlingHttpServletRequest&gt; stack = REQUEST_THREADLOCAL.get();</span>
-<span class="fc bfc" id="L65" title="All 2 branches covered.">    if (stack.isEmpty()) {</span>
-<span class="fc" id="L66">      return null;</span>
+<span class="fc" id="L66">    Stack&lt;SlingHttpServletRequest&gt; stack = REQUEST_THREADLOCAL.get();</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">    if (stack.isEmpty()) {</span>
+<span class="fc" id="L68">      return null;</span>
     }
     else {
-<span class="fc" id="L69">      return stack.peek();</span>
+<span class="fc" id="L71">      return stack.peek();</span>
     }
   }
 
   @Override
   public void init(FilterConfig filterConfig) throws ServletException {
     // nothing to do
-<span class="nc" id="L76">  }</span>
+<span class="nc" id="L78">  }</span>
 
   @Override
   public void destroy() {
     // nothing to do
-<span class="nc" id="L81">  }</span>
+<span class="nc" id="L83">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
