@@ -27,6 +27,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.models.annotations.Model;
@@ -49,7 +50,7 @@ import io.wcm.handler.media.format.Ratio;
 @Model(adaptables = {
     SlingHttpServletRequest.class, Resource.class
 }, adapters = MediaFormatHandler.class)
-<span class="fc" id="L52">public final class MediaFormatHandlerImpl implements MediaFormatHandler {</span>
+<span class="fc" id="L53">public final class MediaFormatHandlerImpl implements MediaFormatHandler {</span>
 
   @SlingObject
   private Resource currentResource;
@@ -61,20 +62,20 @@ import io.wcm.handler.media.format.Ratio;
   private Map&lt;String, MediaFormat&gt; mediaFormatMap;
 
   private SortedSet&lt;MediaFormat&gt; getMediaFormatsForCurrentResource() {
-<span class="fc bfc" id="L64" title="All 2 branches covered.">    if (this.mediaFormats == null) {</span>
-<span class="fc" id="L65">      this.mediaFormats = mediaFormatProviderManager.getMediaFormats(currentResource);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">    if (this.mediaFormats == null) {</span>
+<span class="fc" id="L66">      this.mediaFormats = mediaFormatProviderManager.getMediaFormats(currentResource);</span>
     }
-<span class="fc" id="L67">    return this.mediaFormats;</span>
+<span class="fc" id="L68">    return this.mediaFormats;</span>
   }
 
   private Map&lt;String, MediaFormat&gt; getMediaFormatMap() {
-<span class="fc bfc" id="L71" title="All 2 branches covered.">    if (this.mediaFormatMap == null) {</span>
-<span class="fc" id="L72">      this.mediaFormatMap = new HashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L73" title="All 2 branches covered.">      for (MediaFormat mediaFormat : getMediaFormatsForCurrentResource()) {</span>
-<span class="fc" id="L74">        this.mediaFormatMap.put(mediaFormat.getName(), mediaFormat);</span>
-<span class="fc" id="L75">      }</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (this.mediaFormatMap == null) {</span>
+<span class="fc" id="L73">      this.mediaFormatMap = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">      for (MediaFormat mediaFormat : getMediaFormatsForCurrentResource()) {</span>
+<span class="fc" id="L75">        this.mediaFormatMap.put(mediaFormat.getName(), mediaFormat);</span>
+<span class="fc" id="L76">      }</span>
     }
-<span class="fc" id="L77">    return this.mediaFormatMap;</span>
+<span class="fc" id="L78">    return this.mediaFormatMap;</span>
   }
 
   /**
@@ -84,7 +85,7 @@ import io.wcm.handler.media.format.Ratio;
    */
   @Override
   public MediaFormat getMediaFormat(@NotNull String mediaFormatName) {
-<span class="fc" id="L87">    return getMediaFormatMap().get(mediaFormatName);</span>
+<span class="fc" id="L88">    return getMediaFormatMap().get(mediaFormatName);</span>
   }
 
   /**
@@ -93,7 +94,7 @@ import io.wcm.handler.media.format.Ratio;
    */
   @Override
   public @NotNull SortedSet&lt;MediaFormat&gt; getMediaFormats() {
-<span class="fc" id="L96">    return getMediaFormatsForCurrentResource();</span>
+<span class="fc" id="L97">    return getMediaFormatsForCurrentResource();</span>
   }
 
   /**
@@ -103,9 +104,9 @@ import io.wcm.handler.media.format.Ratio;
    */
   @Override
   public @NotNull SortedSet&lt;MediaFormat&gt; getMediaFormats(@NotNull Comparator&lt;MediaFormat&gt; comparator) {
-<span class="nc" id="L106">    SortedSet&lt;MediaFormat&gt; set = new TreeSet&lt;&gt;(comparator);</span>
-<span class="nc" id="L107">    set.addAll(getMediaFormatsForCurrentResource());</span>
-<span class="nc" id="L108">    return Collections.unmodifiableSortedSet(set);</span>
+<span class="nc" id="L107">    SortedSet&lt;MediaFormat&gt; set = new TreeSet&lt;&gt;(comparator);</span>
+<span class="nc" id="L108">    set.addAll(getMediaFormatsForCurrentResource());</span>
+<span class="nc" id="L109">    return Collections.unmodifiableSortedSet(set);</span>
   }
 
   /**
@@ -120,31 +121,31 @@ import io.wcm.handler.media.format.Ratio;
       &quot;java:S3776&quot;, &quot;java:S1066&quot;
   }) //ignore complexity
   public @NotNull SortedSet&lt;MediaFormat&gt; getSameBiggerMediaFormats(@NotNull MediaFormat mediaFormatRequested, boolean filterRenditionGroup) {
-<span class="fc" id="L123">    SortedSet&lt;MediaFormat&gt; matchingFormats = new TreeSet&lt;&gt;(new MediaFormatSizeRankingComparator());</span>
+<span class="fc" id="L124">    SortedSet&lt;MediaFormat&gt; matchingFormats = new TreeSet&lt;&gt;(new MediaFormatSizeRankingComparator());</span>
 
     // if filter by rendition group is enabled, but the requested media format does not define one,
     // use only the requested format
-<span class="pc bpc" id="L127" title="1 of 4 branches missed.">    if (filterRenditionGroup &amp;&amp; StringUtils.isEmpty(mediaFormatRequested.getRenditionGroup())) {</span>
-<span class="fc" id="L128">      matchingFormats.add(mediaFormatRequested);</span>
+<span class="pc bpc" id="L128" title="1 of 4 branches missed.">    if (filterRenditionGroup &amp;&amp; StringUtils.isEmpty(mediaFormatRequested.getRenditionGroup())) {</span>
+<span class="fc" id="L129">      matchingFormats.add(mediaFormatRequested);</span>
     }
     else {
-<span class="fc bfc" id="L131" title="All 2 branches covered.">      for (MediaFormat mediaFormat : getMediaFormats()) {</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">      for (MediaFormat mediaFormat : getMediaFormats()) {</span>
 
         // if filter by rendition group is enabled, check only media formats of same rendition group
-<span class="pc bpc" id="L134" title="1 of 2 branches missed.">        if (!filterRenditionGroup</span>
-<span class="fc bfc" id="L135" title="All 2 branches covered.">            || StringUtils.equals(mediaFormat.getRenditionGroup(), mediaFormatRequested.getRenditionGroup())) {</span>
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">        if (!filterRenditionGroup</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">            || Strings.CS.equals(mediaFormat.getRenditionGroup(), mediaFormatRequested.getRenditionGroup())) {</span>
 
           // check if size matched (image size is same or bigger)
-<span class="fc bfc" id="L138" title="All 2 branches covered.">          if (isRenditionMatchSizeSameBigger(mediaFormat, mediaFormatRequested)) { //NOPMD</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">          if (isRenditionMatchSizeSameBigger(mediaFormat, mediaFormatRequested)) { //NOPMD</span>
 
             // if media formats have ratios, check ratio (with tolerance)
             // otherwise add to list anyway, it *can* contain matching media items
-<span class="fc bfc" id="L142" title="All 2 branches covered.">            if (Ratio.matches(mediaFormat, mediaFormatRequested) //NOPMD</span>
-<span class="pc bpc" id="L143" title="1 of 4 branches missed.">                || !mediaFormat.hasRatio() || !mediaFormatRequested.hasRatio()) {</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">            if (Ratio.matches(mediaFormat, mediaFormatRequested) //NOPMD</span>
+<span class="pc bpc" id="L144" title="1 of 4 branches missed.">                || !mediaFormat.hasRatio() || !mediaFormatRequested.hasRatio()) {</span>
 
               // check for supported file extension
-<span class="pc bpc" id="L146" title="1 of 2 branches missed.">              if (isRenditionMatchExtension(mediaFormat)) { //NOPMD</span>
-<span class="fc" id="L147">                matchingFormats.add(mediaFormat);</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">              if (isRenditionMatchExtension(mediaFormat)) { //NOPMD</span>
+<span class="fc" id="L148">                matchingFormats.add(mediaFormat);</span>
               }
             }
 
@@ -152,10 +153,10 @@ import io.wcm.handler.media.format.Ratio;
 
         }
 
-<span class="fc" id="L155">      }</span>
+<span class="fc" id="L156">      }</span>
     }
 
-<span class="fc" id="L158">    return matchingFormats;</span>
+<span class="fc" id="L159">    return matchingFormats;</span>
   }
 
   /**
@@ -170,31 +171,31 @@ import io.wcm.handler.media.format.Ratio;
       &quot;java:S3776&quot;, &quot;java:S1066&quot;
   }) //ignore complexity
   public @NotNull SortedSet&lt;MediaFormat&gt; getSameSmallerMediaFormats(@NotNull MediaFormat mediaFormatRequested, boolean filterRenditionGroup) {
-<span class="fc" id="L173">    SortedSet&lt;MediaFormat&gt; matchingFormats = new TreeSet&lt;&gt;(new MediaFormatSizeRankingComparator());</span>
+<span class="fc" id="L174">    SortedSet&lt;MediaFormat&gt; matchingFormats = new TreeSet&lt;&gt;(new MediaFormatSizeRankingComparator());</span>
 
     // if filter by rendition group is enabled, but the requested media format does not define one,
     // use only the requested format
-<span class="pc bpc" id="L177" title="1 of 4 branches missed.">    if (filterRenditionGroup &amp;&amp; StringUtils.isEmpty(mediaFormatRequested.getRenditionGroup())) {</span>
-<span class="fc" id="L178">      matchingFormats.add(mediaFormatRequested);</span>
+<span class="pc bpc" id="L178" title="1 of 4 branches missed.">    if (filterRenditionGroup &amp;&amp; StringUtils.isEmpty(mediaFormatRequested.getRenditionGroup())) {</span>
+<span class="fc" id="L179">      matchingFormats.add(mediaFormatRequested);</span>
     }
     else {
-<span class="fc bfc" id="L181" title="All 2 branches covered.">      for (MediaFormat mediaFormat : getMediaFormats()) {</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">      for (MediaFormat mediaFormat : getMediaFormats()) {</span>
 
         // if filter by rendition group is enabled, check only media formats of same rendition group
-<span class="pc bpc" id="L184" title="1 of 2 branches missed.">        if (!filterRenditionGroup</span>
-<span class="fc bfc" id="L185" title="All 2 branches covered.">            || StringUtils.equals(mediaFormat.getRenditionGroup(), mediaFormatRequested.getRenditionGroup())) {</span>
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">        if (!filterRenditionGroup</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">            || Strings.CS.equals(mediaFormat.getRenditionGroup(), mediaFormatRequested.getRenditionGroup())) {</span>
 
           // check if size matched (image size is same or smaller)
-<span class="fc bfc" id="L188" title="All 2 branches covered.">          if (isRenditionMatchSizeSameSmaller(mediaFormat, mediaFormatRequested)) { //NOPMD</span>
+<span class="fc bfc" id="L189" title="All 2 branches covered.">          if (isRenditionMatchSizeSameSmaller(mediaFormat, mediaFormatRequested)) { //NOPMD</span>
 
             // if media formats have ratios, check ratio (with tolerance)
             // otherwise add to list anyway, it *can* contain matching media items
-<span class="fc bfc" id="L192" title="All 2 branches covered.">            if (Ratio.matches(mediaFormat, mediaFormatRequested) //NOPMD</span>
-<span class="pc bpc" id="L193" title="1 of 4 branches missed.">                || !mediaFormat.hasRatio() || !mediaFormatRequested.hasRatio()) {</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">            if (Ratio.matches(mediaFormat, mediaFormatRequested) //NOPMD</span>
+<span class="pc bpc" id="L194" title="1 of 4 branches missed.">                || !mediaFormat.hasRatio() || !mediaFormatRequested.hasRatio()) {</span>
 
               // check for supported file extension
-<span class="pc bpc" id="L196" title="1 of 2 branches missed.">              if (isRenditionMatchExtension(mediaFormat)) { //NOPMD</span>
-<span class="fc" id="L197">                matchingFormats.add(mediaFormat);</span>
+<span class="pc bpc" id="L197" title="1 of 2 branches missed.">              if (isRenditionMatchExtension(mediaFormat)) { //NOPMD</span>
+<span class="fc" id="L198">                matchingFormats.add(mediaFormat);</span>
               }
             }
 
@@ -202,10 +203,10 @@ import io.wcm.handler.media.format.Ratio;
 
         }
 
-<span class="fc" id="L205">      }</span>
+<span class="fc" id="L206">      }</span>
     }
 
-<span class="fc" id="L208">    return matchingFormats;</span>
+<span class="fc" id="L209">    return matchingFormats;</span>
   }
 
   /**
@@ -215,13 +216,13 @@ import io.wcm.handler.media.format.Ratio;
    * @return true if media format is same size or bigger
    */
   private boolean isRenditionMatchSizeSameBigger(MediaFormat mediaFormat, MediaFormat mediaFormatRequested) {
-<span class="fc" id="L218">    long widthRequested = getEffectiveMinWidthPreferringMinWidthHeight(mediaFormatRequested);</span>
-<span class="fc" id="L219">    long heightRequested = getEffectiveMinHeightPreferringMinWidthHeight(mediaFormatRequested);</span>
+<span class="fc" id="L219">    long widthRequested = getEffectiveMinWidthPreferringMinWidthHeight(mediaFormatRequested);</span>
+<span class="fc" id="L220">    long heightRequested = getEffectiveMinHeightPreferringMinWidthHeight(mediaFormatRequested);</span>
 
-<span class="fc" id="L221">    long widthMax = mediaFormat.getEffectiveMaxWidth();</span>
-<span class="fc" id="L222">    long heightMax = mediaFormat.getEffectiveMaxHeight();</span>
+<span class="fc" id="L222">    long widthMax = mediaFormat.getEffectiveMaxWidth();</span>
+<span class="fc" id="L223">    long heightMax = mediaFormat.getEffectiveMaxHeight();</span>
 
-<span class="fc bfc" id="L224" title="All 8 branches covered.">    return ((widthMax &gt;= widthRequested) || (widthMax == 0))</span>
+<span class="fc bfc" id="L225" title="All 8 branches covered.">    return ((widthMax &gt;= widthRequested) || (widthMax == 0))</span>
         &amp;&amp; ((heightMax &gt;= heightRequested) || (heightMax == 0));
   }
 
@@ -232,30 +233,30 @@ import io.wcm.handler.media.format.Ratio;
    * @return true if media format is same size or smaller
    */
   private boolean isRenditionMatchSizeSameSmaller(MediaFormat mediaFormat, MediaFormat mediaFormatRequested) {
-<span class="fc" id="L235">    long widthRequested = getEffectiveMinWidthPreferringMinWidthHeight(mediaFormatRequested);</span>
-<span class="fc" id="L236">    long heightRequested = getEffectiveMinHeightPreferringMinWidthHeight(mediaFormatRequested);</span>
+<span class="fc" id="L236">    long widthRequested = getEffectiveMinWidthPreferringMinWidthHeight(mediaFormatRequested);</span>
+<span class="fc" id="L237">    long heightRequested = getEffectiveMinHeightPreferringMinWidthHeight(mediaFormatRequested);</span>
 
-<span class="fc" id="L238">    long widthMin = getEffectiveMinWidthPreferringMinWidthHeight(mediaFormat);</span>
-<span class="fc" id="L239">    long heightMin = getEffectiveMinHeightPreferringMinWidthHeight(mediaFormat);</span>
+<span class="fc" id="L239">    long widthMin = getEffectiveMinWidthPreferringMinWidthHeight(mediaFormat);</span>
+<span class="fc" id="L240">    long heightMin = getEffectiveMinHeightPreferringMinWidthHeight(mediaFormat);</span>
 
-<span class="pc bpc" id="L241" title="1 of 4 branches missed.">    return widthMin &lt;= widthRequested &amp;&amp; heightMin &lt;= heightRequested;</span>
+<span class="pc bpc" id="L242" title="1 of 4 branches missed.">    return widthMin &lt;= widthRequested &amp;&amp; heightMin &lt;= heightRequested;</span>
   }
 
   private long getEffectiveMinWidthPreferringMinWidthHeight(MediaFormat mf) {
-<span class="fc bfc" id="L245" title="All 2 branches covered.">    if (mf.getMinWidthHeight() &gt; 0) {</span>
-<span class="fc" id="L246">      return mf.getMinWidthHeight();</span>
+<span class="fc bfc" id="L246" title="All 2 branches covered.">    if (mf.getMinWidthHeight() &gt; 0) {</span>
+<span class="fc" id="L247">      return mf.getMinWidthHeight();</span>
     }
     else {
-<span class="fc" id="L249">      return mf.getEffectiveMinWidth();</span>
+<span class="fc" id="L250">      return mf.getEffectiveMinWidth();</span>
     }
   }
 
   private long getEffectiveMinHeightPreferringMinWidthHeight(MediaFormat mf) {
-<span class="fc bfc" id="L254" title="All 2 branches covered.">    if (mf.getMinWidthHeight() &gt; 0) {</span>
-<span class="fc" id="L255">      return mf.getMinWidthHeight();</span>
+<span class="fc bfc" id="L255" title="All 2 branches covered.">    if (mf.getMinWidthHeight() &gt; 0) {</span>
+<span class="fc" id="L256">      return mf.getMinWidthHeight();</span>
     }
     else {
-<span class="fc" id="L258">      return mf.getEffectiveMinHeight();</span>
+<span class="fc" id="L259">      return mf.getEffectiveMinHeight();</span>
     }
   }
 
@@ -265,12 +266,12 @@ import io.wcm.handler.media.format.Ratio;
    * @return true if supported extension found
    */
   private boolean isRenditionMatchExtension(MediaFormat mediaFormat) {
-<span class="pc bpc" id="L268" title="1 of 2 branches missed.">    for (String extension : mediaFormat.getExtensions()) {</span>
-<span class="pc bpc" id="L269" title="1 of 2 branches missed.">      if (MediaFileType.isImage(extension)) {</span>
-<span class="fc" id="L270">        return true;</span>
+<span class="pc bpc" id="L269" title="1 of 2 branches missed.">    for (String extension : mediaFormat.getExtensions()) {</span>
+<span class="pc bpc" id="L270" title="1 of 2 branches missed.">      if (MediaFileType.isImage(extension)) {</span>
+<span class="fc" id="L271">        return true;</span>
       }
     }
-<span class="nc" id="L273">    return false;</span>
+<span class="nc" id="L274">    return false;</span>
   }
 
   /**
@@ -283,8 +284,8 @@ import io.wcm.handler.media.format.Ratio;
    */
   @Override
   public MediaFormat detectMediaFormat(@Nullable String extension, long fileSize, long width, long height) {
-<span class="fc" id="L286">    SortedSet&lt;MediaFormat&gt; matchingFormats = detectMediaFormats(extension, fileSize, width, height);</span>
-<span class="fc bfc" id="L287" title="All 2 branches covered.">    return !matchingFormats.isEmpty() ? matchingFormats.first() : null;</span>
+<span class="fc" id="L287">    SortedSet&lt;MediaFormat&gt; matchingFormats = detectMediaFormats(extension, fileSize, width, height);</span>
+<span class="fc bfc" id="L288" title="All 2 branches covered.">    return !matchingFormats.isEmpty() ? matchingFormats.first() : null;</span>
   }
 
   /**
@@ -300,72 +301,72 @@ import io.wcm.handler.media.format.Ratio;
   public @NotNull SortedSet&lt;MediaFormat&gt; detectMediaFormats(@Nullable String extension, long fileSize, long width, long height) {
 
     // sort media formats by ranking
-<span class="fc" id="L303">    SortedSet&lt;MediaFormat&gt; matchingFormats = new TreeSet&lt;&gt;(new MediaFormatRankingComparator());</span>
+<span class="fc" id="L304">    SortedSet&lt;MediaFormat&gt; matchingFormats = new TreeSet&lt;&gt;(new MediaFormatRankingComparator());</span>
 
-<span class="fc bfc" id="L305" title="All 2 branches covered.">    for (MediaFormat mediaFormat : getMediaFormats()) {</span>
+<span class="fc bfc" id="L306" title="All 2 branches covered.">    for (MediaFormat mediaFormat : getMediaFormats()) {</span>
 
       // skip media formats with negative ranking
-<span class="fc bfc" id="L308" title="All 2 branches covered.">      if (mediaFormat.getRanking() &lt; 0) {</span>
-<span class="fc" id="L309">        continue;</span>
+<span class="fc bfc" id="L309" title="All 2 branches covered.">      if (mediaFormat.getRanking() &lt; 0) {</span>
+<span class="fc" id="L310">        continue;</span>
       }
 
       // check extension
-<span class="fc" id="L313">      boolean extensionMatch = false;</span>
-<span class="pc bpc" id="L314" title="1 of 2 branches missed.">      if (mediaFormat.getExtensions() != null) {</span>
-<span class="fc bfc" id="L315" title="All 2 branches covered.">        for (String ext : mediaFormat.getExtensions()) {</span>
-<span class="fc bfc" id="L316" title="All 2 branches covered.">          if (StringUtils.equalsIgnoreCase(ext, extension)) {</span>
-<span class="fc" id="L317">            extensionMatch = true;</span>
-<span class="fc" id="L318">            break;</span>
+<span class="fc" id="L314">      boolean extensionMatch = false;</span>
+<span class="pc bpc" id="L315" title="1 of 2 branches missed.">      if (mediaFormat.getExtensions() != null) {</span>
+<span class="fc bfc" id="L316" title="All 2 branches covered.">        for (String ext : mediaFormat.getExtensions()) {</span>
+<span class="fc bfc" id="L317" title="All 2 branches covered.">          if (Strings.CI.equals(ext, extension)) {</span>
+<span class="fc" id="L318">            extensionMatch = true;</span>
+<span class="fc" id="L319">            break;</span>
           }
         }
       }
       else {
-<span class="nc" id="L323">        extensionMatch = true;</span>
+<span class="nc" id="L324">        extensionMatch = true;</span>
       }
 
       // check file size
-<span class="fc" id="L327">      boolean fileSizeMatch = false;</span>
-<span class="pc bpc" id="L328" title="1 of 2 branches missed.">      if (mediaFormat.getFileSizeMax() &gt; 0) {</span>
-<span class="nc bnc" id="L329" title="All 2 branches missed.">        fileSizeMatch = (fileSize &lt;= mediaFormat.getFileSizeMax());</span>
+<span class="fc" id="L328">      boolean fileSizeMatch = false;</span>
+<span class="pc bpc" id="L329" title="1 of 2 branches missed.">      if (mediaFormat.getFileSizeMax() &gt; 0) {</span>
+<span class="nc bnc" id="L330" title="All 2 branches missed.">        fileSizeMatch = (fileSize &lt;= mediaFormat.getFileSizeMax());</span>
       }
       else {
-<span class="fc" id="L332">        fileSizeMatch = true;</span>
+<span class="fc" id="L333">        fileSizeMatch = true;</span>
       }
 
       // width/height match
-<span class="fc" id="L336">      boolean dimensionMatch = false;</span>
-<span class="pc bpc" id="L337" title="1 of 4 branches missed.">      if (width &gt; 0 &amp;&amp; height &gt; 0) {</span>
-<span class="fc bfc" id="L338" title="All 2 branches covered.">        if (mediaFormat.getMinWidthHeight() &gt; 0) {</span>
-<span class="fc bfc" id="L339" title="All 2 branches covered.">          dimensionMatch = (width &gt;= mediaFormat.getMinWidthHeight())</span>
-<span class="fc bfc" id="L340" title="All 2 branches covered.">              || (height &gt;= mediaFormat.getMinWidthHeight());</span>
+<span class="fc" id="L337">      boolean dimensionMatch = false;</span>
+<span class="pc bpc" id="L338" title="1 of 4 branches missed.">      if (width &gt; 0 &amp;&amp; height &gt; 0) {</span>
+<span class="fc bfc" id="L339" title="All 2 branches covered.">        if (mediaFormat.getMinWidthHeight() &gt; 0) {</span>
+<span class="fc bfc" id="L340" title="All 2 branches covered.">          dimensionMatch = (width &gt;= mediaFormat.getMinWidthHeight())</span>
+<span class="fc bfc" id="L341" title="All 2 branches covered.">              || (height &gt;= mediaFormat.getMinWidthHeight());</span>
         }
         else {
-<span class="fc bfc" id="L343" title="All 4 branches covered.">          dimensionMatch = (mediaFormat.getEffectiveMinWidth() == 0 || width &gt;= mediaFormat.getEffectiveMinWidth())</span>
-<span class="fc bfc" id="L344" title="All 4 branches covered.">              &amp;&amp; (mediaFormat.getEffectiveMaxWidth() == 0 || width &lt;= mediaFormat.getEffectiveMaxWidth())</span>
-<span class="fc bfc" id="L345" title="All 4 branches covered.">              &amp;&amp; (mediaFormat.getEffectiveMinHeight() == 0 || height &gt;= mediaFormat.getEffectiveMinHeight())</span>
-<span class="fc bfc" id="L346" title="All 4 branches covered.">              &amp;&amp; (mediaFormat.getEffectiveMaxHeight() == 0 || height &lt;= mediaFormat.getEffectiveMaxHeight());</span>
+<span class="fc bfc" id="L344" title="All 4 branches covered.">          dimensionMatch = (mediaFormat.getEffectiveMinWidth() == 0 || width &gt;= mediaFormat.getEffectiveMinWidth())</span>
+<span class="fc bfc" id="L345" title="All 4 branches covered.">              &amp;&amp; (mediaFormat.getEffectiveMaxWidth() == 0 || width &lt;= mediaFormat.getEffectiveMaxWidth())</span>
+<span class="fc bfc" id="L346" title="All 4 branches covered.">              &amp;&amp; (mediaFormat.getEffectiveMinHeight() == 0 || height &gt;= mediaFormat.getEffectiveMinHeight())</span>
+<span class="fc bfc" id="L347" title="All 4 branches covered.">              &amp;&amp; (mediaFormat.getEffectiveMaxHeight() == 0 || height &lt;= mediaFormat.getEffectiveMaxHeight());</span>
         }
       }
       else {
-<span class="fc" id="L350">        dimensionMatch = true;</span>
+<span class="fc" id="L351">        dimensionMatch = true;</span>
       }
 
-<span class="fc" id="L353">      boolean ratioMatch = false;</span>
-<span class="pc bpc" id="L354" title="1 of 6 branches missed.">      if (mediaFormat.hasRatio() &amp;&amp; width &gt; 0 &amp;&amp; height &gt; 0) {</span>
-<span class="fc" id="L355">        double formatRatio = mediaFormat.getRatio();</span>
-<span class="fc" id="L356">        double ratio = (double)width / height;</span>
-<span class="fc" id="L357">        ratioMatch = Ratio.matches(ratio, formatRatio);</span>
-<span class="fc" id="L358">      }</span>
+<span class="fc" id="L354">      boolean ratioMatch = false;</span>
+<span class="pc bpc" id="L355" title="1 of 6 branches missed.">      if (mediaFormat.hasRatio() &amp;&amp; width &gt; 0 &amp;&amp; height &gt; 0) {</span>
+<span class="fc" id="L356">        double formatRatio = mediaFormat.getRatio();</span>
+<span class="fc" id="L357">        double ratio = (double)width / height;</span>
+<span class="fc" id="L358">        ratioMatch = Ratio.matches(ratio, formatRatio);</span>
+<span class="fc" id="L359">      }</span>
       else {
-<span class="fc" id="L360">        ratioMatch = true;</span>
+<span class="fc" id="L361">        ratioMatch = true;</span>
       }
 
-<span class="pc bpc" id="L363" title="1 of 8 branches missed.">      if (extensionMatch &amp;&amp; fileSizeMatch &amp;&amp; dimensionMatch &amp;&amp; ratioMatch) {</span>
-<span class="fc" id="L364">        matchingFormats.add(mediaFormat);</span>
+<span class="pc bpc" id="L364" title="1 of 8 branches missed.">      if (extensionMatch &amp;&amp; fileSizeMatch &amp;&amp; dimensionMatch &amp;&amp; ratioMatch) {</span>
+<span class="fc" id="L365">        matchingFormats.add(mediaFormat);</span>
       }
-<span class="fc" id="L366">    }</span>
+<span class="fc" id="L367">    }</span>
 
-<span class="fc" id="L368">    return matchingFormats;</span>
+<span class="fc" id="L369">    return matchingFormats;</span>
   }
 
 }

@@ -25,6 +25,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -42,13 +43,13 @@ public final class WidthUtils {
   // 800:1.5x   &lt;- width=800px, density 1.5x, mandatory
   // 800:1.5x?  &lt;- width=800px, density 1.5x, optional
   static final String WIDTH_OPTION = &quot;\\d+(:\\d+(\\.\\d+)?x)?\\??&quot;;
-<span class="fc" id="L45">  static final Pattern WIDTH_OPTION_PATTERN = Pattern.compile(&quot;(?&lt;width&gt;\\d+)(:(?&lt;density&gt;\\d+(\\.\\d+)?x))?(?&lt;optional&gt;\\?)?&quot;);</span>
+<span class="fc" id="L46">  static final Pattern WIDTH_OPTION_PATTERN = Pattern.compile(&quot;(?&lt;width&gt;\\d+)(:(?&lt;density&gt;\\d+(\\.\\d+)?x))?(?&lt;optional&gt;\\?)?&quot;);</span>
 
   // comma-separated width options; tolerates whitespaces between options.
   // example values:
   // 800,1024,2048
   // 800,1024?,2048?   &lt;- last two are optional
-<span class="fc" id="L51">  static final Pattern WIDTHS_PATTERN = Pattern.compile(&quot;^\\s*&quot; + WIDTH_OPTION + &quot;\\s*(,\\s*&quot; + WIDTH_OPTION + &quot;\\s*)*+$&quot;);</span>
+<span class="fc" id="L52">  static final Pattern WIDTHS_PATTERN = Pattern.compile(&quot;^\\s*&quot; + WIDTH_OPTION + &quot;\\s*(,\\s*&quot; + WIDTH_OPTION + &quot;\\s*)*+$&quot;);</span>
 
   private WidthUtils() {
     // static methods only
@@ -66,32 +67,32 @@ public final class WidthUtils {
    * @return Width options
    */
   public static @NotNull WidthOption @Nullable [] parseWidths(@Nullable String widths) {
-<span class="fc bfc" id="L69" title="All 2 branches covered.">    if (StringUtils.isBlank(widths)) {</span>
-<span class="fc" id="L70">      return null;</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (StringUtils.isBlank(widths)) {</span>
+<span class="fc" id="L71">      return null;</span>
     }
-<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (!WIDTHS_PATTERN.matcher(widths).matches()) {</span>
-<span class="fc" id="L73">      return null;</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">    if (!WIDTHS_PATTERN.matcher(widths).matches()) {</span>
+<span class="fc" id="L74">      return null;</span>
     }
-<span class="fc" id="L75">    String[] widthItems = StringUtils.split(widths, &quot;,&quot;);</span>
-<span class="fc" id="L76">    return Arrays.stream(widthItems)</span>
-<span class="fc" id="L77">      .map(StringUtils::trim)</span>
-<span class="fc" id="L78">      .map(WidthUtils::toWidthOption)</span>
-<span class="fc" id="L79">      .filter(Objects::nonNull)</span>
-<span class="fc" id="L80">      .toArray(WidthOption[]::new);</span>
+<span class="fc" id="L76">    String[] widthItems = StringUtils.split(widths, &quot;,&quot;);</span>
+<span class="fc" id="L77">    return Arrays.stream(widthItems)</span>
+<span class="fc" id="L78">      .map(StringUtils::trim)</span>
+<span class="fc" id="L79">      .map(WidthUtils::toWidthOption)</span>
+<span class="fc" id="L80">      .filter(Objects::nonNull)</span>
+<span class="fc" id="L81">      .toArray(WidthOption[]::new);</span>
   }
 
   private static @Nullable WidthOption toWidthOption(@NotNull String widthOptionString) {
-<span class="fc" id="L84">    Matcher widthOptionMatcher = WIDTH_OPTION_PATTERN.matcher(widthOptionString);</span>
-<span class="pc bpc" id="L85" title="1 of 2 branches missed.">    if (!widthOptionMatcher.matches()) {</span>
+<span class="fc" id="L85">    Matcher widthOptionMatcher = WIDTH_OPTION_PATTERN.matcher(widthOptionString);</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">    if (!widthOptionMatcher.matches()) {</span>
       // this should never happen because we already checked against this pattern in the caller method,
       // but we have to call matches() anyway
-<span class="nc" id="L88">      return null;</span>
+<span class="nc" id="L89">      return null;</span>
     }
 
-<span class="fc" id="L91">    long width = NumberUtils.toLong(widthOptionMatcher.group(&quot;width&quot;));</span>
-<span class="fc" id="L92">    String density = widthOptionMatcher.group(&quot;density&quot;);</span>
-<span class="fc bfc" id="L93" title="All 2 branches covered.">    boolean mandatory = widthOptionMatcher.group(&quot;optional&quot;) == null;</span>
-<span class="fc" id="L94">    return new WidthOption(width, density, mandatory);</span>
+<span class="fc" id="L92">    long width = NumberUtils.toLong(widthOptionMatcher.group(&quot;width&quot;));</span>
+<span class="fc" id="L93">    String density = widthOptionMatcher.group(&quot;density&quot;);</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    boolean mandatory = widthOptionMatcher.group(&quot;optional&quot;) == null;</span>
+<span class="fc" id="L95">    return new WidthOption(width, density, mandatory);</span>
   }
 
   /**
@@ -100,11 +101,11 @@ public final class WidthUtils {
    */
   public static boolean hasDensityDescriptor(@Nullable String widths) {
     // first make sure the widths string is valid
-<span class="pc bpc" id="L103" title="1 of 4 branches missed.">    if (StringUtils.isBlank(widths) || !WIDTHS_PATTERN.matcher(widths).matches()) {</span>
-<span class="fc" id="L104">      return false;</span>
+<span class="pc bpc" id="L104" title="1 of 4 branches missed.">    if (StringUtils.isBlank(widths) || !WIDTHS_PATTERN.matcher(widths).matches()) {</span>
+<span class="fc" id="L105">      return false;</span>
     }
     // now check if the valid string contains a density separator
-<span class="fc" id="L107">    return StringUtils.contains(widths, &quot;:&quot;);</span>
+<span class="fc" id="L108">    return Strings.CS.contains(widths, &quot;:&quot;);</span>
   }
 
 }

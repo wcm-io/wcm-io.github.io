@@ -27,6 +27,7 @@ import java.util.Set;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.jackrabbit.util.Text;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.adapter.Adaptable;
@@ -78,7 +79,7 @@ import io.wcm.sling.models.annotations.AemObject;
     SlingHttpServletRequest.class, Resource.class
 })
 @ProviderType
-<span class="fc" id="L81">public final class DamMediaSource extends MediaSource {</span>
+<span class="fc" id="L82">public final class DamMediaSource extends MediaSource {</span>
 
   @Self
   private Adaptable adaptable;
@@ -99,7 +100,7 @@ import io.wcm.sling.models.annotations.AemObject;
   @OSGiService
   private WebOptimizedImageDeliveryService webOptimizedImageDeliveryService;
 
-<span class="fc" id="L102">  private final Logger log = LoggerFactory.getLogger(getClass());</span>
+<span class="fc" id="L103">  private final Logger log = LoggerFactory.getLogger(getClass());</span>
 
   /**
    * Media source ID
@@ -108,17 +109,17 @@ import io.wcm.sling.models.annotations.AemObject;
 
   @Override
   public @NotNull String getId() {
-<span class="fc" id="L111">    return ID;</span>
+<span class="fc" id="L112">    return ID;</span>
   }
 
   @Override
   public boolean accepts(@Nullable String mediaRef) {
-<span class="fc" id="L116">    return StringUtils.startsWith(mediaRef, &quot;/content/dam/&quot;);</span>
+<span class="fc" id="L117">    return Strings.CS.startsWith(mediaRef, &quot;/content/dam/&quot;);</span>
   }
 
   @Override
   public @NotNull String getPrimaryMediaRefProperty() {
-<span class="fc" id="L121">    return mediaHandlerConfig.getMediaRefProperty();</span>
+<span class="fc" id="L122">    return mediaHandlerConfig.getMediaRefProperty();</span>
   }
 
   @Override
@@ -128,58 +129,58 @@ import io.wcm.sling.models.annotations.AemObject;
   })
   @SuppressFBWarnings(&quot;NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE&quot;)
   public @NotNull Media resolveMedia(@NotNull Media media) {
-<span class="fc" id="L131">    String mediaRef = getMediaRef(media.getMediaRequest(), mediaHandlerConfig);</span>
-<span class="fc" id="L132">    MediaArgs mediaArgs = media.getMediaRequest().getMediaArgs();</span>
+<span class="fc" id="L132">    String mediaRef = getMediaRef(media.getMediaRequest(), mediaHandlerConfig);</span>
+<span class="fc" id="L133">    MediaArgs mediaArgs = media.getMediaRequest().getMediaArgs();</span>
 
-<span class="fc" id="L134">    boolean renditionsResolved = false;</span>
-<span class="fc bfc" id="L135" title="All 2 branches covered.">    if (StringUtils.isNotBlank(mediaRef)) {</span>
+<span class="fc" id="L135">    boolean renditionsResolved = false;</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">    if (StringUtils.isNotBlank(mediaRef)) {</span>
 
       // Update media args settings from resource (e.g. alt. text setings)
-<span class="fc bfc" id="L138" title="All 2 branches covered.">      if (media.getMediaRequest().getResource() != null) {</span>
-<span class="fc" id="L139">        updateMediaArgsFromResource(mediaArgs, media.getMediaRequest().getResource(), mediaHandlerConfig);</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">      if (media.getMediaRequest().getResource() != null) {</span>
+<span class="fc" id="L140">        updateMediaArgsFromResource(mediaArgs, media.getMediaRequest().getResource(), mediaHandlerConfig);</span>
       }
 
       // Check for transformations
-<span class="fc" id="L143">      media.setCropDimension(getMediaCropDimension(media.getMediaRequest(), mediaHandlerConfig));</span>
-<span class="fc" id="L144">      media.setRotation(getMediaRotation(media.getMediaRequest(), mediaHandlerConfig));</span>
-<span class="fc" id="L145">      media.setMap(getMediaMap(media.getMediaRequest(), mediaHandlerConfig));</span>
+<span class="fc" id="L144">      media.setCropDimension(getMediaCropDimension(media.getMediaRequest(), mediaHandlerConfig));</span>
+<span class="fc" id="L145">      media.setRotation(getMediaRotation(media.getMediaRequest(), mediaHandlerConfig));</span>
+<span class="fc" id="L146">      media.setMap(getMediaMap(media.getMediaRequest(), mediaHandlerConfig));</span>
 
       // get DAM Asset to check for available renditions
-<span class="fc" id="L148">      com.day.cq.dam.api.Asset damAsset = null;</span>
-<span class="fc" id="L149">      Resource assetResource = resourceResolver.getResource(mediaRef);</span>
-<span class="fc bfc" id="L150" title="All 2 branches covered.">      if (assetResource != null) {</span>
-<span class="fc" id="L151">        damAsset = assetResource.adaptTo(com.day.cq.dam.api.Asset.class);</span>
+<span class="fc" id="L149">      com.day.cq.dam.api.Asset damAsset = null;</span>
+<span class="fc" id="L150">      Resource assetResource = resourceResolver.getResource(mediaRef);</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">      if (assetResource != null) {</span>
+<span class="fc" id="L152">        damAsset = assetResource.adaptTo(com.day.cq.dam.api.Asset.class);</span>
       }
-<span class="fc bfc" id="L153" title="All 2 branches covered.">      if (damAsset != null) {</span>
-<span class="fc" id="L154">        Asset asset = new DamAsset(media, damAsset, mediaHandlerConfig,</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">      if (damAsset != null) {</span>
+<span class="fc" id="L155">        Asset asset = new DamAsset(media, damAsset, mediaHandlerConfig,</span>
             dynamicMediaSupportService, webOptimizedImageDeliveryService, adaptable);
-<span class="fc" id="L156">        media.setAsset(asset);</span>
+<span class="fc" id="L157">        media.setAsset(asset);</span>
 
         // resolve rendition(s)
-<span class="fc" id="L159">        renditionsResolved = resolveRenditions(media, asset, mediaArgs);</span>
+<span class="fc" id="L160">        renditionsResolved = resolveRenditions(media, asset, mediaArgs);</span>
       }
 
     }
 
     // set media invalid reason
-<span class="fc bfc" id="L165" title="All 2 branches covered.">    if (!renditionsResolved) {</span>
-<span class="fc bfc" id="L166" title="All 2 branches covered.">      if (media.getAsset() != null) {</span>
-<span class="fc bfc" id="L167" title="All 2 branches covered.">        if (media.getRenditions().isEmpty()) {</span>
-<span class="fc" id="L168">          media.setMediaInvalidReason(MediaInvalidReason.NO_MATCHING_RENDITION);</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">    if (!renditionsResolved) {</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">      if (media.getAsset() != null) {</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        if (media.getRenditions().isEmpty()) {</span>
+<span class="fc" id="L169">          media.setMediaInvalidReason(MediaInvalidReason.NO_MATCHING_RENDITION);</span>
         }
         else {
-<span class="fc" id="L171">          media.setMediaInvalidReason(MediaInvalidReason.NOT_ENOUGH_MATCHING_RENDITIONS);</span>
+<span class="fc" id="L172">          media.setMediaInvalidReason(MediaInvalidReason.NOT_ENOUGH_MATCHING_RENDITIONS);</span>
         }
       }
-<span class="fc bfc" id="L174" title="All 2 branches covered.">      else if (StringUtils.isNotEmpty(mediaRef)) {</span>
-<span class="fc" id="L175">        media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_INVALID);</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">      else if (StringUtils.isNotEmpty(mediaRef)) {</span>
+<span class="fc" id="L176">        media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_INVALID);</span>
       }
       else {
-<span class="fc" id="L178">        media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_MISSING);</span>
+<span class="fc" id="L179">        media.setMediaInvalidReason(MediaInvalidReason.MEDIA_REFERENCE_MISSING);</span>
       }
     }
 
-<span class="fc" id="L182">    return media;</span>
+<span class="fc" id="L183">    return media;</span>
   }
 
   @Override
@@ -187,121 +188,121 @@ import io.wcm.sling.models.annotations.AemObject;
       &quot;null&quot;, &quot;java:S2589&quot;
   })
   public void enableMediaDrop(@NotNull HtmlElement element, @NotNull MediaRequest mediaRequest) {
-<span class="pc bpc" id="L190" title="2 of 4 branches missed.">    if (wcmMode == WCMMode.DISABLED || wcmMode == null) {</span>
-<span class="nc" id="L191">      return;</span>
+<span class="pc bpc" id="L191" title="2 of 4 branches missed.">    if (wcmMode == WCMMode.DISABLED || wcmMode == null) {</span>
+<span class="nc" id="L192">      return;</span>
     }
 
-<span class="pc bpc" id="L194" title="1 of 4 branches missed.">    if (componentContext != null &amp;&amp; componentContext.getEditContext() != null</span>
-<span class="pc bpc" id="L195" title="1 of 2 branches missed.">        &amp;&amp; MediaMarkupBuilderUtil.canApplyDragDropSupport(mediaRequest, componentContext)) {</span>
+<span class="pc bpc" id="L195" title="1 of 4 branches missed.">    if (componentContext != null &amp;&amp; componentContext.getEditContext() != null</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">        &amp;&amp; MediaMarkupBuilderUtil.canApplyDragDropSupport(mediaRequest, componentContext)) {</span>
 
-<span class="fc" id="L197">      String refProperty = prependDotSlash(getMediaRefProperty(mediaRequest, mediaHandlerConfig));</span>
-<span class="fc" id="L198">      String cropProperty = prependDotSlash(getMediaCropProperty(mediaRequest, mediaHandlerConfig));</span>
-<span class="fc" id="L199">      String rotationProperty = prependDotSlash(getMediaRotationProperty(mediaRequest, mediaHandlerConfig));</span>
-<span class="fc" id="L200">      String mapProperty = prependDotSlash(getMediaMapProperty(mediaRequest, mediaHandlerConfig));</span>
+<span class="fc" id="L198">      String refProperty = prependDotSlash(getMediaRefProperty(mediaRequest, mediaHandlerConfig));</span>
+<span class="fc" id="L199">      String cropProperty = prependDotSlash(getMediaCropProperty(mediaRequest, mediaHandlerConfig));</span>
+<span class="fc" id="L200">      String rotationProperty = prependDotSlash(getMediaRotationProperty(mediaRequest, mediaHandlerConfig));</span>
+<span class="fc" id="L201">      String mapProperty = prependDotSlash(getMediaMapProperty(mediaRequest, mediaHandlerConfig));</span>
 
-<span class="fc" id="L202">      String name = refProperty;</span>
-<span class="pc bpc" id="L203" title="1 of 2 branches missed.">      if (StringUtils.contains(name, &quot;/&quot;)) {</span>
-<span class="fc" id="L204">        name = Text.getName(name);</span>
+<span class="fc" id="L203">      String name = refProperty;</span>
+<span class="pc bpc" id="L204" title="1 of 2 branches missed.">      if (Strings.CS.contains(name, &quot;/&quot;)) {</span>
+<span class="fc" id="L205">        name = Text.getName(name);</span>
       }
 
       // check of drop target for &quot;media&quot; group already exists - get it's id for the cq-dd- css class
-<span class="fc" id="L208">      Optional&lt;String&gt; dropTargetCssClass = getMediaDropTargetID();</span>
-<span class="pc bpc" id="L209" title="1 of 2 branches missed.">      if (!dropTargetCssClass.isPresent()) {</span>
+<span class="fc" id="L209">      Optional&lt;String&gt; dropTargetCssClass = getMediaDropTargetID();</span>
+<span class="pc bpc" id="L210" title="1 of 2 branches missed.">      if (!dropTargetCssClass.isPresent()) {</span>
         // otherwise add a new drop target and get it's id
-<span class="fc" id="L211">        MediaPropertyNames mediaPropertyNames = new MediaPropertyNames()</span>
-<span class="fc" id="L212">          .refProperty(refProperty)</span>
-<span class="fc" id="L213">          .cropProperty(cropProperty)</span>
-<span class="fc" id="L214">          .rotationProperty(rotationProperty)</span>
-<span class="fc" id="L215">          .mapProperty(mapProperty);</span>
-<span class="fc" id="L216">        dropTargetCssClass = addMediaDroptarget(refProperty, mediaPropertyNames, name);</span>
+<span class="fc" id="L212">        MediaPropertyNames mediaPropertyNames = new MediaPropertyNames()</span>
+<span class="fc" id="L213">          .refProperty(refProperty)</span>
+<span class="fc" id="L214">          .cropProperty(cropProperty)</span>
+<span class="fc" id="L215">          .rotationProperty(rotationProperty)</span>
+<span class="fc" id="L216">          .mapProperty(mapProperty);</span>
+<span class="fc" id="L217">        dropTargetCssClass = addMediaDroptarget(refProperty, mediaPropertyNames, name);</span>
       }
 
-<span class="pc bpc" id="L219" title="1 of 2 branches missed.">      if (element != null) {</span>
-<span class="fc" id="L220">        element.addCssClass(dropTargetCssClass.get());</span>
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">      if (element != null) {</span>
+<span class="fc" id="L221">        element.addCssClass(dropTargetCssClass.get());</span>
       }
     }
-<span class="fc" id="L223">  }</span>
+<span class="fc" id="L224">  }</span>
 
   @Override
   @SuppressWarnings({
       &quot;PMD.AvoidAccessibilityAlteration&quot;, &quot;java:S3011&quot;
   })
   public void setCustomIPECropRatios(@NotNull HtmlElement element, @NotNull MediaRequest mediaRequest) {
-<span class="pc bpc" id="L230" title="2 of 4 branches missed.">    if (wcmMode == WCMMode.DISABLED || wcmMode == null) {</span>
-<span class="nc" id="L231">      return;</span>
+<span class="pc bpc" id="L231" title="2 of 4 branches missed.">    if (wcmMode == WCMMode.DISABLED || wcmMode == null) {</span>
+<span class="nc" id="L232">      return;</span>
     }
 
-<span class="pc bpc" id="L234" title="1 of 2 branches missed.">    if (componentContext != null</span>
-<span class="pc bpc" id="L235" title="1 of 2 branches missed.">        &amp;&amp; MediaMarkupBuilderUtil.canSetCustomIPECropRatios(mediaRequest, componentContext, mediaHandlerConfig.allowedIpeEditorTypes())) {</span>
+<span class="pc bpc" id="L235" title="1 of 2 branches missed.">    if (componentContext != null</span>
+<span class="pc bpc" id="L236" title="1 of 2 branches missed.">        &amp;&amp; MediaMarkupBuilderUtil.canSetCustomIPECropRatios(mediaRequest, componentContext, mediaHandlerConfig.allowedIpeEditorTypes())) {</span>
       // overlay IPE config with cropping ratios for each media format with a valid ratio
-<span class="fc" id="L237">      CroppingRatios croppingRatios = new CroppingRatios(mediaFormatHandler);</span>
-<span class="fc" id="L238">      Set&lt;String&gt; mediaFormatNames = croppingRatios.getMediaFormatsForCropping(mediaRequest);</span>
-<span class="pc bpc" id="L239" title="1 of 2 branches missed.">      if (!mediaFormatNames.isEmpty()) {</span>
+<span class="fc" id="L238">      CroppingRatios croppingRatios = new CroppingRatios(mediaFormatHandler);</span>
+<span class="fc" id="L239">      Set&lt;String&gt; mediaFormatNames = croppingRatios.getMediaFormatsForCropping(mediaRequest);</span>
+<span class="pc bpc" id="L240" title="1 of 2 branches missed.">      if (!mediaFormatNames.isEmpty()) {</span>
         // build custom IPE config path containing both the resource context path and the
         // configured media formats. The path is served by a custom resource provider, because
         // there is no other interface to pass in a dynamic IPE configuration
-<span class="fc" id="L243">        String ipeConfigPath = IPEConfigResourceProvider.buildPath(componentContext.getResource().getPath(), mediaFormatNames);</span>
+<span class="fc" id="L244">        String ipeConfigPath = IPEConfigResourceProvider.buildPath(componentContext.getResource().getPath(), mediaFormatNames);</span>
         // clone IPE config and overwrite config path via reflection (no API available for this)
-<span class="fc" id="L245">        InplaceEditingConfig customIpeConfig = new InplaceEditingConfig(componentContext</span>
-<span class="fc" id="L246">          .getEditContext().getEditConfig().getInplaceEditingConfig());</span>
+<span class="fc" id="L246">        InplaceEditingConfig customIpeConfig = new InplaceEditingConfig(componentContext</span>
+<span class="fc" id="L247">          .getEditContext().getEditConfig().getInplaceEditingConfig());</span>
         try {
-<span class="fc" id="L248">          Field configPathField = InplaceEditingConfig.class.getDeclaredField(&quot;configPath&quot;);</span>
-<span class="fc" id="L249">          configPathField.setAccessible(true);</span>
-<span class="fc" id="L250">          configPathField.set(customIpeConfig, ipeConfigPath);</span>
+<span class="fc" id="L249">          Field configPathField = InplaceEditingConfig.class.getDeclaredField(&quot;configPath&quot;);</span>
+<span class="fc" id="L250">          configPathField.setAccessible(true);</span>
+<span class="fc" id="L251">          configPathField.set(customIpeConfig, ipeConfigPath);</span>
         }
-<span class="nc" id="L252">        catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException ex) {</span>
-<span class="nc" id="L253">          log.warn(&quot;Unable to set custom IPE config via reflection for {}&quot;, componentContext.getResource().getPath(), ex);</span>
-<span class="fc" id="L254">        }</span>
-<span class="fc" id="L255">        componentContext.getEditContext().getEditConfig().setInplaceEditingConfig(customIpeConfig);</span>
+<span class="nc" id="L253">        catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException ex) {</span>
+<span class="nc" id="L254">          log.warn(&quot;Unable to set custom IPE config via reflection for {}&quot;, componentContext.getResource().getPath(), ex);</span>
+<span class="fc" id="L255">        }</span>
+<span class="fc" id="L256">        componentContext.getEditContext().getEditConfig().setInplaceEditingConfig(customIpeConfig);</span>
       }
 
     }
-<span class="fc" id="L259">  }</span>
+<span class="fc" id="L260">  }</span>
 
   private String prependDotSlash(String property) {
-<span class="pc bpc" id="L262" title="1 of 2 branches missed.">    if (!StringUtils.startsWith(property, &quot;./&quot;)) {</span>
-<span class="fc" id="L263">      return &quot;./&quot; + property;</span>
+<span class="pc bpc" id="L263" title="1 of 2 branches missed.">    if (!Strings.CS.startsWith(property, &quot;./&quot;)) {</span>
+<span class="fc" id="L264">      return &quot;./&quot; + property;</span>
     }
     else {
-<span class="nc" id="L266">      return property;</span>
+<span class="nc" id="L267">      return property;</span>
     }
   }
 
   private Optional&lt;String&gt; getMediaDropTargetID() {
-<span class="fc" id="L271">    return componentContext.getEditContext().getEditConfig().getDropTargets().values().stream()</span>
-<span class="pc" id="L272">      .filter(item -&gt; ArrayUtils.contains(item.getGroups(), &quot;media&quot;))</span>
-<span class="fc" id="L273">      .map(DropTarget::getId)</span>
-<span class="fc" id="L274">      .findFirst();</span>
+<span class="fc" id="L272">    return componentContext.getEditContext().getEditConfig().getDropTargets().values().stream()</span>
+<span class="pc" id="L273">      .filter(item -&gt; ArrayUtils.contains(item.getGroups(), &quot;media&quot;))</span>
+<span class="fc" id="L274">      .map(DropTarget::getId)</span>
+<span class="fc" id="L275">      .findFirst();</span>
   }
 
   private Optional&lt;String&gt; addMediaDroptarget(String refProperty, MediaPropertyNames mediaPropertyNames, String name) {
-<span class="fc" id="L278">    Component componentDefinition = WCMUtils.getComponent(resource);</span>
+<span class="fc" id="L279">    Component componentDefinition = WCMUtils.getComponent(resource);</span>
 
     // set drop target - with path of current component as default resource type
-<span class="fc" id="L281">    Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
-<span class="pc bpc" id="L282" title="1 of 2 branches missed.">    if (componentDefinition != null) {</span>
-<span class="nc" id="L283">      params.put(&quot;./&quot; + ResourceResolver.PROPERTY_RESOURCE_TYPE, componentDefinition.getPath());</span>
+<span class="fc" id="L282">    Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="pc bpc" id="L283" title="1 of 2 branches missed.">    if (componentDefinition != null) {</span>
+<span class="nc" id="L284">      params.put(&quot;./&quot; + ResourceResolver.PROPERTY_RESOURCE_TYPE, componentDefinition.getPath());</span>
 
       // clear cropping parameters if a new image is inserted via drag&amp;drop
-<span class="nc" id="L286">      params.put(mediaPropertyNames.getCropProperty(), &quot;&quot;);</span>
-<span class="nc" id="L287">      params.put(mediaPropertyNames.getRotationProperty(), &quot;&quot;);</span>
-<span class="nc" id="L288">      params.put(mediaPropertyNames.getMapProperty(), &quot;&quot;);</span>
+<span class="nc" id="L287">      params.put(mediaPropertyNames.getCropProperty(), &quot;&quot;);</span>
+<span class="nc" id="L288">      params.put(mediaPropertyNames.getRotationProperty(), &quot;&quot;);</span>
+<span class="nc" id="L289">      params.put(mediaPropertyNames.getMapProperty(), &quot;&quot;);</span>
     }
 
-<span class="fc" id="L291">    DropTarget dropTarget = new DropTargetImpl(name, refProperty).setAccept(</span>
-<span class="fc" id="L292">        MediaFileType.getImageContentTypes().stream().toArray(size -&gt; new String[size]) // allow all image mime types</span>
-<span class="fc" id="L293">    ).setGroups(new String[] {</span>
+<span class="fc" id="L292">    DropTarget dropTarget = new DropTargetImpl(name, refProperty).setAccept(</span>
+<span class="fc" id="L293">        MediaFileType.getImageContentTypes().stream().toArray(size -&gt; new String[size]) // allow all image mime types</span>
+<span class="fc" id="L294">    ).setGroups(new String[] {</span>
         &quot;media&quot; // allow drop from DAM contentfinder tab
-<span class="fc" id="L295">    }).setParameters(params);</span>
+<span class="fc" id="L296">    }).setParameters(params);</span>
 
-<span class="fc" id="L297">    componentContext.getEditContext().getEditConfig().getDropTargets().put(dropTarget.getId(), dropTarget);</span>
+<span class="fc" id="L298">    componentContext.getEditContext().getEditConfig().getDropTargets().put(dropTarget.getId(), dropTarget);</span>
 
-<span class="fc" id="L299">    return Optional.of(dropTarget.getId());</span>
+<span class="fc" id="L300">    return Optional.of(dropTarget.getId());</span>
   }
 
   @Override
   public String toString() {
-<span class="nc" id="L304">    return ID;</span>
+<span class="nc" id="L305">    return ID;</span>
   }
 
 }
