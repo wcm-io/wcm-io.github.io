@@ -21,8 +21,10 @@ package io.wcm.handler.link.type;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -51,7 +53,7 @@ import io.wcm.handler.media.MediaHandler;
     SlingHttpServletRequest.class, Resource.class
 })
 @ProviderType
-<span class="fc" id="L54">public final class MediaLinkType extends LinkType {</span>
+<span class="fc" id="L56">public final class MediaLinkType extends LinkType {</span>
 
   /**
    * Default root folder für DAM
@@ -71,69 +73,69 @@ import io.wcm.handler.media.MediaHandler;
    */
   @Override
   public @NotNull String getId() {
-<span class="fc" id="L74">    return ID;</span>
+<span class="fc" id="L76">    return ID;</span>
   }
 
   @Override
   public @NotNull String getLabel() {
-<span class="nc" id="L79">    return &quot;Asset&quot;;</span>
+<span class="nc" id="L81">    return &quot;Asset&quot;;</span>
   }
 
   @Override
   public String getPrimaryLinkRefProperty() {
-<span class="fc" id="L84">    return LinkNameConstants.PN_LINK_MEDIA_REF;</span>
+<span class="fc" id="L86">    return LinkNameConstants.PN_LINK_MEDIA_REF;</span>
   }
 
   @Override
   public @Nullable String getEditComponentResourceType() {
-<span class="nc" id="L89">    return &quot;wcm-io/handler/link/components/granite/form/linktype/media&quot;;</span>
+<span class="nc" id="L91">    return &quot;wcm-io/handler/link/components/granite/form/linktype/media&quot;;</span>
   }
 
   @Override
   public boolean hasRichTextPlugin() {
-<span class="nc" id="L94">    return true;</span>
+<span class="nc" id="L96">    return true;</span>
   }
 
   @Override
   public boolean accepts(@NotNull String linkRef) {
     // accept as media link if the ref is inside default media subtrees
-<span class="fc" id="L100">    return isDefaultMediaContentPath(linkRef);</span>
+<span class="fc" id="L102">    return isDefaultMediaContentPath(linkRef);</span>
   }
 
   @SuppressWarnings(&quot;null&quot;)
   @Override
   public @NotNull Link resolveLink(@NotNull Link link) {
-<span class="fc" id="L106">    LinkRequest linkRequest = link.getLinkRequest();</span>
-<span class="fc" id="L107">    ValueMap props = linkRequest.getResourceProperties();</span>
+<span class="fc" id="L108">    LinkRequest linkRequest = link.getLinkRequest();</span>
+<span class="fc" id="L109">    ValueMap props = linkRequest.getResourceProperties();</span>
 
     // get properties
-<span class="fc" id="L110">    String mediaRef = StringUtils.defaultString(props.get(LinkNameConstants.PN_LINK_MEDIA_REF, String.class),</span>
-<span class="fc" id="L111">        link.getLinkRequest().getReference());</span>
-<span class="fc" id="L112">    boolean isDownload = props.get(LinkNameConstants.PN_LINK_MEDIA_DOWNLOAD, false);</span>
+<span class="fc" id="L112">    String mediaRef = Objects.toString(props.get(LinkNameConstants.PN_LINK_MEDIA_REF, String.class),</span>
+<span class="fc" id="L113">        link.getLinkRequest().getReference());</span>
+<span class="fc" id="L114">    boolean isDownload = props.get(LinkNameConstants.PN_LINK_MEDIA_DOWNLOAD, false);</span>
 
-<span class="fc" id="L114">    MediaArgs mediaArgs = new MediaArgs()</span>
+<span class="fc" id="L116">    MediaArgs mediaArgs = new MediaArgs()</span>
       // only allow linking to &quot;download&quot; media formats
-<span class="fc" id="L116">      .download(true)</span>
+<span class="fc" id="L118">      .download(true)</span>
       // content disposition header for download links
-<span class="fc" id="L118">      .contentDispositionAttachment(isDownload)</span>
+<span class="fc" id="L120">      .contentDispositionAttachment(isDownload)</span>
       // disable web-optimized image delivery to get asset in original resolution
-<span class="fc" id="L120">      .webOptimizedImageDeliveryDisabled(true)</span>
-<span class="fc" id="L121">      .urlMode(linkRequest.getLinkArgs().getUrlMode());</span>
+<span class="fc" id="L122">      .webOptimizedImageDeliveryDisabled(true)</span>
+<span class="fc" id="L123">      .urlMode(linkRequest.getLinkArgs().getUrlMode());</span>
 
     // resolve media library reference
-<span class="fc" id="L124">    Media media = mediaHandler.get(mediaRef, mediaArgs).build();</span>
+<span class="fc" id="L126">    Media media = mediaHandler.get(mediaRef, mediaArgs).build();</span>
 
     // set resovled media references information in link metadata
-<span class="fc" id="L127">    link.setUrl(media.getUrl());</span>
-<span class="fc" id="L128">    link.setTargetAsset(media.getAsset());</span>
-<span class="fc" id="L129">    link.setTargetRendition(media.getRendition());</span>
+<span class="fc" id="L129">    link.setUrl(media.getUrl());</span>
+<span class="fc" id="L130">    link.setTargetAsset(media.getAsset());</span>
+<span class="fc" id="L131">    link.setTargetRendition(media.getRendition());</span>
 
     // mark link as invalid if a reference was set that could not be resolved
-<span class="fc bfc" id="L132" title="All 4 branches covered.">    if (link.getUrl() == null &amp;&amp; StringUtils.isNotEmpty(mediaRef)) {</span>
-<span class="fc" id="L133">      link.setLinkReferenceInvalid(true);</span>
+<span class="fc bfc" id="L134" title="All 4 branches covered.">    if (link.getUrl() == null &amp;&amp; StringUtils.isNotEmpty(mediaRef)) {</span>
+<span class="fc" id="L135">      link.setLinkReferenceInvalid(true);</span>
     }
 
-<span class="fc" id="L136">    return link;</span>
+<span class="fc" id="L138">    return link;</span>
   }
 
   /**
@@ -142,7 +144,7 @@ import io.wcm.handler.media.MediaHandler;
    * @return true if Path is located below DAM default root folders.
    */
   public static boolean isDefaultMediaContentPath(String path) {
-<span class="fc" id="L145">    return StringUtils.startsWith(path, DEFAULT_DAM_ROOT);</span>
+<span class="fc" id="L147">    return Strings.CS.startsWith(path, DEFAULT_DAM_ROOT);</span>
   }
 
   /**
@@ -156,15 +158,15 @@ import io.wcm.handler.media.MediaHandler;
    */
   public static @NotNull Resource getSyntheticLinkResource(@NotNull ResourceResolver resourceResolver,
       @NotNull String path, @NotNull String mediaRef) {
-<span class="fc" id="L159">    Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L160">    map.put(LinkNameConstants.PN_LINK_TYPE, ID);</span>
-<span class="fc" id="L161">    map.put(LinkNameConstants.PN_LINK_MEDIA_REF, mediaRef);</span>
-<span class="fc" id="L162">    return new SyntheticLinkResource(resourceResolver, path, map);</span>
+<span class="fc" id="L161">    Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L162">    map.put(LinkNameConstants.PN_LINK_TYPE, ID);</span>
+<span class="fc" id="L163">    map.put(LinkNameConstants.PN_LINK_MEDIA_REF, mediaRef);</span>
+<span class="fc" id="L164">    return new SyntheticLinkResource(resourceResolver, path, map);</span>
   }
 
   @Override
   public String toString() {
-<span class="nc" id="L167">    return ID;</span>
+<span class="nc" id="L169">    return ID;</span>
   }
 
 }
