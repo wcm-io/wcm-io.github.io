@@ -19,6 +19,7 @@
  */
 package io.wcm.handler.media.impl.ipeconfig;
 
+import static com.day.cq.commons.jcr.JcrConstants.NT_UNSTRUCTURED;
 import static io.wcm.handler.media.impl.ipeconfig.CroppingRatios.MEDIAFORMAT_FREE_CROP;
 import static io.wcm.handler.media.impl.ipeconfig.PathParser.NN_ASPECT_RATIOS;
 import static io.wcm.handler.media.impl.ipeconfig.PathParser.NN_CONFIG;
@@ -62,7 +63,7 @@ import io.wcm.sling.commons.adapter.AdaptTo;
     ResourceProvider.PROPERTY_NAME + &quot;=wcmioHandlerIPEConfig&quot;,
     ResourceProvider.PROPERTY_ROOT + &quot;=&quot; + IPEConfigResourceProvider.IPECONFIG_OVERLAY_ROOTPATH
 })
-<span class="fc" id="L65">public class IPEConfigResourceProvider extends ResourceProvider&lt;Void&gt; {</span>
+<span class="fc" id="L66">public class IPEConfigResourceProvider extends ResourceProvider&lt;Void&gt; {</span>
 
   /**
    * Root path for IPE config overlay resources.
@@ -74,67 +75,67 @@ import io.wcm.sling.commons.adapter.AdaptTo;
   public @Nullable Resource getResource(@NotNull ResolveContext resolveContext, @NotNull String path,
       @NotNull ResourceContext resourceContext, @Nullable Resource parent) {
 
-<span class="fc" id="L77">    PathParser parser = new PathParser(path);</span>
-<span class="pc bpc" id="L78" title="1 of 2 branches missed.">    if (!parser.isValid()) {</span>
-<span class="nc" id="L79">      return null;</span>
+<span class="fc" id="L78">    PathParser parser = new PathParser(path);</span>
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">    if (!parser.isValid()) {</span>
+<span class="nc" id="L80">      return null;</span>
     }
 
-<span class="fc" id="L82">    ResourceResolver resolver = resolveContext.getResourceResolver();</span>
-<span class="fc bfc" id="L83" title="All 2 branches covered.">    if (parser.isAspectRatiosNode()) {</span>
+<span class="fc" id="L83">    ResourceResolver resolver = resolveContext.getResourceResolver();</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">    if (parser.isAspectRatiosNode()) {</span>
       // simulate 'aspectRatios' node
-<span class="fc" id="L85">      return buildAspectRatiosResource(resolver, path);</span>
+<span class="fc" id="L86">      return buildAspectRatiosResource(resolver, path);</span>
     }
-<span class="pc bpc" id="L87" title="1 of 2 branches missed.">    else if (parser.isAspectRatioItem()) {</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">    else if (parser.isAspectRatioItem()) {</span>
       // simulate 'aspectRatios/xxx' node
-<span class="nc" id="L89">      String mediaFormatName = parser.getAspectRatioItemName();</span>
-<span class="nc bnc" id="L90" title="All 2 branches missed.">      if (parser.getMediaFormatNames().contains(mediaFormatName)) {</span>
-<span class="nc" id="L91">        return buildAspectRatioItemResource(resolver, path, mediaFormatName, parser);</span>
+<span class="nc" id="L90">      String mediaFormatName = parser.getAspectRatioItemName();</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">      if (parser.getMediaFormatNames().contains(mediaFormatName)) {</span>
+<span class="nc" id="L92">        return buildAspectRatioItemResource(resolver, path, mediaFormatName, parser);</span>
       }
-<span class="nc" id="L93">    }</span>
+<span class="nc" id="L94">    }</span>
     else {
       // return wrapped overlaid resource
-<span class="fc" id="L96">      String overlayResourcePath = getIpeConfigPath(resolver, parser);</span>
-<span class="pc bpc" id="L97" title="1 of 2 branches missed.">      if (StringUtils.isNotEmpty(overlayResourcePath)) {</span>
-<span class="fc" id="L98">        Resource overlayResource = resolver.getResource(overlayResourcePath);</span>
-<span class="pc bpc" id="L99" title="1 of 2 branches missed.">        if (overlayResource != null) {</span>
-<span class="fc" id="L100">          return new OverlayResource(overlayResource, path);</span>
+<span class="fc" id="L97">      String overlayResourcePath = getIpeConfigPath(resolver, parser);</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">      if (StringUtils.isNotEmpty(overlayResourcePath)) {</span>
+<span class="fc" id="L99">        Resource overlayResource = resolver.getResource(overlayResourcePath);</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">        if (overlayResource != null) {</span>
+<span class="fc" id="L101">          return new OverlayResource(overlayResource, path);</span>
         }
       }
     }
-<span class="nc" id="L104">    return null;</span>
+<span class="nc" id="L105">    return null;</span>
   }
 
   @Override
   public @Nullable Iterator&lt;Resource&gt; listChildren(@NotNull ResolveContext resolveContext, @NotNull Resource resource) {
-<span class="fc" id="L109">    Map&lt;String, Resource&gt; childMap = getOverlayedResourceChilden(resource);</span>
+<span class="fc" id="L110">    Map&lt;String, Resource&gt; childMap = getOverlayedResourceChilden(resource);</span>
 
-<span class="fc" id="L111">    String path = resource.getPath();</span>
-<span class="fc" id="L112">    PathParser parser = new PathParser(path);</span>
-<span class="pc bpc" id="L113" title="1 of 2 branches missed.">    if (!parser.isValid()) {</span>
-<span class="nc" id="L114">      return null;</span>
+<span class="fc" id="L112">    String path = resource.getPath();</span>
+<span class="fc" id="L113">    PathParser parser = new PathParser(path);</span>
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">    if (!parser.isValid()) {</span>
+<span class="nc" id="L115">      return null;</span>
     }
 
-<span class="fc" id="L117">    ResourceResolver resolver = resolveContext.getResourceResolver();</span>
-<span class="pc bpc" id="L118" title="1 of 2 branches missed.">    if (parser.isPluginsCropNode()) {</span>
+<span class="fc" id="L118">    ResourceResolver resolver = resolveContext.getResourceResolver();</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">    if (parser.isPluginsCropNode()) {</span>
       // add simulated 'aspectRatios' node
-<span class="nc" id="L120">      childMap.put(NN_ASPECT_RATIOS, buildAspectRatiosResource(resolver, path + &quot;/&quot; + NN_ASPECT_RATIOS));</span>
+<span class="nc" id="L121">      childMap.put(NN_ASPECT_RATIOS, buildAspectRatiosResource(resolver, path + &quot;/&quot; + NN_ASPECT_RATIOS));</span>
     }
-<span class="fc bfc" id="L122" title="All 2 branches covered.">    else if (parser.isAspectRatiosNode()) {</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">    else if (parser.isAspectRatiosNode()) {</span>
       // add simulated 'aspectRatios/xxx' nodes
-<span class="fc" id="L124">      childMap.clear();</span>
-<span class="fc bfc" id="L125" title="All 2 branches covered.">      for (String mediaFormatName : parser.getMediaFormatNames()) {</span>
-<span class="fc" id="L126">        Resource item = buildAspectRatioItemResource(resolver, path + &quot;/&quot; + mediaFormatName, mediaFormatName, parser);</span>
-<span class="pc bpc" id="L127" title="1 of 2 branches missed.">        if (item != null) {</span>
-<span class="fc" id="L128">          childMap.put(mediaFormatName, item);</span>
+<span class="fc" id="L125">      childMap.clear();</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">      for (String mediaFormatName : parser.getMediaFormatNames()) {</span>
+<span class="fc" id="L127">        Resource item = buildAspectRatioItemResource(resolver, path + &quot;/&quot; + mediaFormatName, mediaFormatName, parser);</span>
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">        if (item != null) {</span>
+<span class="fc" id="L129">          childMap.put(mediaFormatName, item);</span>
         }
-<span class="fc" id="L130">      }</span>
+<span class="fc" id="L131">      }</span>
     }
 
-<span class="pc bpc" id="L133" title="1 of 2 branches missed.">    if (childMap.isEmpty()) {</span>
-<span class="nc" id="L134">      return null;</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">    if (childMap.isEmpty()) {</span>
+<span class="nc" id="L135">      return null;</span>
     }
     else {
-<span class="fc" id="L137">      return childMap.values().iterator();</span>
+<span class="fc" id="L138">      return childMap.values().iterator();</span>
     }
   }
 
@@ -144,17 +145,17 @@ import io.wcm.sling.commons.adapter.AdaptTo;
    * @return Map with all children
    */
   private Map&lt;String, Resource&gt; getOverlayedResourceChilden(Resource resource) {
-<span class="fc" id="L147">    Map&lt;String, Resource&gt; childMap = new LinkedHashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L148" title="All 2 branches covered.">    if (resource instanceof OverlayResource) {</span>
-<span class="fc" id="L149">      Resource overlayResource = ((OverlayResource)resource).getOverlayedResource();</span>
-<span class="fc" id="L150">      Iterator&lt;Resource&gt; childrenIterator = overlayResource.listChildren();</span>
-<span class="fc bfc" id="L151" title="All 2 branches covered.">      while (childrenIterator.hasNext()) {</span>
-<span class="fc" id="L152">        Resource child = childrenIterator.next();</span>
-<span class="fc" id="L153">        childMap.put(child.getName(), new OverlayResource(child,</span>
-<span class="fc" id="L154">            resource.getPath() + &quot;/&quot; + child.getName()));</span>
-<span class="fc" id="L155">      }</span>
+<span class="fc" id="L148">    Map&lt;String, Resource&gt; childMap = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">    if (resource instanceof OverlayResource) {</span>
+<span class="fc" id="L150">      Resource overlayResource = ((OverlayResource)resource).getOverlayedResource();</span>
+<span class="fc" id="L151">      Iterator&lt;Resource&gt; childrenIterator = overlayResource.listChildren();</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">      while (childrenIterator.hasNext()) {</span>
+<span class="fc" id="L153">        Resource child = childrenIterator.next();</span>
+<span class="fc" id="L154">        childMap.put(child.getName(), new OverlayResource(child,</span>
+<span class="fc" id="L155">            resource.getPath() + &quot;/&quot; + child.getName()));</span>
+<span class="fc" id="L156">      }</span>
     }
-<span class="fc" id="L157">    return childMap;</span>
+<span class="fc" id="L158">    return childMap;</span>
   }
 
   /**
@@ -164,7 +165,7 @@ import io.wcm.sling.commons.adapter.AdaptTo;
    * @return Resource
    */
   private Resource buildAspectRatiosResource(ResourceResolver resolver, String path) {
-<span class="fc" id="L167">    return new SyntheticResource(resolver, path, null);</span>
+<span class="fc" id="L168">    return new SyntheticResource(resolver, path, NT_UNSTRUCTURED);</span>
   }
 
   /**
@@ -177,23 +178,23 @@ import io.wcm.sling.commons.adapter.AdaptTo;
    */
   private Resource buildAspectRatioItemResource(ResourceResolver resolver, String path, String mediaFormatName,
       PathParser parser) {
-<span class="fc" id="L180">    Resource componentContent = resolver.getResource(parser.getComponentContentPath());</span>
-<span class="pc bpc" id="L181" title="1 of 2 branches missed.">    if (componentContent != null) {</span>
-<span class="fc" id="L182">      MediaFormatHandler mediaFormatHandler = AdaptTo.notNull(componentContent, MediaFormatHandler.class);</span>
-<span class="fc" id="L183">      MediaFormat mediaFormat = getMediaFormat(mediaFormatName, mediaFormatHandler);</span>
-<span class="pc bpc" id="L184" title="1 of 2 branches missed.">      if (mediaFormat != null) {</span>
-<span class="fc" id="L185">        return new AspectRatioResource(resolver, mediaFormat, path);</span>
+<span class="fc" id="L181">    Resource componentContent = resolver.getResource(parser.getComponentContentPath());</span>
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">    if (componentContent != null) {</span>
+<span class="fc" id="L183">      MediaFormatHandler mediaFormatHandler = AdaptTo.notNull(componentContent, MediaFormatHandler.class);</span>
+<span class="fc" id="L184">      MediaFormat mediaFormat = getMediaFormat(mediaFormatName, mediaFormatHandler);</span>
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">      if (mediaFormat != null) {</span>
+<span class="fc" id="L186">        return new AspectRatioResource(resolver, mediaFormat, path);</span>
       }
     }
-<span class="nc" id="L188">    return null;</span>
+<span class="nc" id="L189">    return null;</span>
   }
 
   private MediaFormat getMediaFormat(String mediaFormatName, MediaFormatHandler mediaFormatHandler) {
-<span class="pc bpc" id="L192" title="1 of 2 branches missed.">    if (Strings.CS.equals(mediaFormatName, MEDIAFORMAT_FREE_CROP.getName())) {</span>
-<span class="nc" id="L193">      return MEDIAFORMAT_FREE_CROP;</span>
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">    if (Strings.CS.equals(mediaFormatName, MEDIAFORMAT_FREE_CROP.getName())) {</span>
+<span class="nc" id="L194">      return MEDIAFORMAT_FREE_CROP;</span>
     }
     else {
-<span class="fc" id="L196">      return mediaFormatHandler.getMediaFormat(mediaFormatName);</span>
+<span class="fc" id="L197">      return mediaFormatHandler.getMediaFormat(mediaFormatName);</span>
     }
   }
 
@@ -205,20 +206,20 @@ import io.wcm.sling.commons.adapter.AdaptTo;
    * @return Path or null
    */
   private String getIpeConfigPath(ResourceResolver resolver, PathParser parser) {
-<span class="fc" id="L208">    Resource componentContent = resolver.getResource(parser.getComponentContentPath());</span>
-<span class="pc bpc" id="L209" title="1 of 2 branches missed.">    if (componentContent != null) {</span>
-<span class="fc" id="L210">      ComponentManager componentManager = AdaptTo.notNull(resolver, ComponentManager.class);</span>
-<span class="fc" id="L211">      com.day.cq.wcm.api.components.Component component = componentManager.getComponentOfResource(componentContent);</span>
-<span class="pc bpc" id="L212" title="1 of 2 branches missed.">      if (component != null</span>
-<span class="pc bpc" id="L213" title="1 of 2 branches missed.">          &amp;&amp; component.getEditConfig() != null</span>
-<span class="pc bpc" id="L214" title="1 of 2 branches missed.">          &amp;&amp; component.getEditConfig().getInplaceEditingConfig() != null) {</span>
-<span class="fc" id="L215">        String ipeConfigPath = component.getEditConfig().getInplaceEditingConfig().getConfigPath();</span>
-<span class="pc bpc" id="L216" title="1 of 2 branches missed.">        if (StringUtils.isNotEmpty(ipeConfigPath)) {</span>
-<span class="fc" id="L217">          return ipeConfigPath + StringUtils.defaultString(parser.getRelativeConfigPath());</span>
+<span class="fc" id="L209">    Resource componentContent = resolver.getResource(parser.getComponentContentPath());</span>
+<span class="pc bpc" id="L210" title="1 of 2 branches missed.">    if (componentContent != null) {</span>
+<span class="fc" id="L211">      ComponentManager componentManager = AdaptTo.notNull(resolver, ComponentManager.class);</span>
+<span class="fc" id="L212">      com.day.cq.wcm.api.components.Component component = componentManager.getComponentOfResource(componentContent);</span>
+<span class="pc bpc" id="L213" title="1 of 2 branches missed.">      if (component != null</span>
+<span class="pc bpc" id="L214" title="1 of 2 branches missed.">          &amp;&amp; component.getEditConfig() != null</span>
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">          &amp;&amp; component.getEditConfig().getInplaceEditingConfig() != null) {</span>
+<span class="fc" id="L216">        String ipeConfigPath = component.getEditConfig().getInplaceEditingConfig().getConfigPath();</span>
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">        if (StringUtils.isNotEmpty(ipeConfigPath)) {</span>
+<span class="fc" id="L218">          return ipeConfigPath + StringUtils.defaultString(parser.getRelativeConfigPath());</span>
         }
       }
     }
-<span class="nc" id="L221">    return null;</span>
+<span class="nc" id="L222">    return null;</span>
   }
 
   /**
@@ -228,9 +229,9 @@ import io.wcm.sling.commons.adapter.AdaptTo;
    * @return Path
    */
   public static String buildPath(String componentContentPath, Set&lt;String&gt; mediaFormatNames) {
-<span class="fc" id="L231">    SortedSet&lt;String&gt; sortedMediaFormatNames = new TreeSet&lt;&gt;(mediaFormatNames);</span>
-<span class="fc" id="L232">    return IPECONFIG_OVERLAY_ROOTPATH + componentContentPath</span>
-<span class="fc" id="L233">        + &quot;/&quot; + NN_MEDIA_FORMAT + &quot;/&quot; + StringUtils.join(sortedMediaFormatNames, &quot;/&quot;)</span>
+<span class="fc" id="L232">    SortedSet&lt;String&gt; sortedMediaFormatNames = new TreeSet&lt;&gt;(mediaFormatNames);</span>
+<span class="fc" id="L233">    return IPECONFIG_OVERLAY_ROOTPATH + componentContentPath</span>
+<span class="fc" id="L234">        + &quot;/&quot; + NN_MEDIA_FORMAT + &quot;/&quot; + StringUtils.join(sortedMediaFormatNames, &quot;/&quot;)</span>
         + &quot;/&quot; + NN_CONFIG;
   }
 
