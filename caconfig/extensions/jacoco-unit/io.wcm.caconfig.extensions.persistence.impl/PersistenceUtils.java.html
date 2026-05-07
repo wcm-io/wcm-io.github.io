@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.sling.api.resource.ModifiableValueMap;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
@@ -56,20 +57,20 @@ final class PersistenceUtils {
 
   private static final String DEFAULT_FOLDER_NODE_TYPE = &quot;sling:Folder&quot;;
   private static final String DEFAULT_FOLDER_NODE_TYPE_IN_PAGE = JcrConstants.NT_UNSTRUCTURED;
-<span class="fc" id="L59">  private static final Pattern PAGE_PATH_PATTERN = Pattern.compile(&quot;^(.*?)/&quot; + Pattern.quote(JCR_CONTENT) + &quot;(/.*)?$&quot;);</span>
-<span class="fc" id="L60">  private static final Pattern JCR_CONTENT_PATTERN = Pattern.compile(&quot;^(.*/)?&quot; + Pattern.quote(JCR_CONTENT) + &quot;(/.*)?$&quot;);</span>
+<span class="fc" id="L60">  private static final Pattern PAGE_PATH_PATTERN = Pattern.compile(&quot;^(.*?)/&quot; + Pattern.quote(JCR_CONTENT) + &quot;(/.*)?$&quot;);</span>
+<span class="fc" id="L61">  private static final Pattern JCR_CONTENT_PATTERN = Pattern.compile(&quot;^(.*/)?&quot; + Pattern.quote(JCR_CONTENT) + &quot;(/.*)?$&quot;);</span>
 
-<span class="fc" id="L62">  private static final Logger log = LoggerFactory.getLogger(PersistenceUtils.class);</span>
+<span class="fc" id="L63">  private static final Logger log = LoggerFactory.getLogger(PersistenceUtils.class);</span>
 
   private PersistenceUtils() {
     // static methods only
   }
 
   public static boolean containsJcrContent(String path) {
-<span class="pc bpc" id="L69" title="1 of 2 branches missed.">    if (path == null) {</span>
-<span class="nc" id="L70">      return false;</span>
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">    if (path == null) {</span>
+<span class="nc" id="L71">      return false;</span>
     }
-<span class="fc" id="L72">    return JCR_CONTENT_PATTERN.matcher(path).matches();</span>
+<span class="fc" id="L73">    return JCR_CONTENT_PATTERN.matcher(path).matches();</span>
   }
 
   /**
@@ -83,8 +84,8 @@ final class PersistenceUtils {
    */
   public static void ensureContainingPage(ResourceResolver resolver, String configResourcePath,
       String resourceType, ConfigurationManagementSettings configurationManagementSettings) {
-<span class="fc" id="L86">    ensureContainingPage(resolver, configResourcePath, null, resourceType, null, configurationManagementSettings);</span>
-<span class="fc" id="L87">  }</span>
+<span class="fc" id="L87">    ensureContainingPage(resolver, configResourcePath, null, resourceType, null, configurationManagementSettings);</span>
+<span class="fc" id="L88">  }</span>
 
   /**
    * Ensure that a containing page exists for the given path inside a content page.
@@ -101,13 +102,13 @@ final class PersistenceUtils {
   public static void ensureContainingPage(ResourceResolver resolver, String configResourcePath,
       String template, String resourceType, String parentTemplate,
       ConfigurationManagementSettings configurationManagementSettings) {
-<span class="fc" id="L104">    Matcher matcher = PAGE_PATH_PATTERN.matcher(configResourcePath);</span>
-<span class="pc bpc" id="L105" title="1 of 2 branches missed.">    if (!matcher.matches()) {</span>
-<span class="nc" id="L106">      return;</span>
+<span class="fc" id="L105">    Matcher matcher = PAGE_PATH_PATTERN.matcher(configResourcePath);</span>
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">    if (!matcher.matches()) {</span>
+<span class="nc" id="L107">      return;</span>
     }
-<span class="fc" id="L108">    String pagePath = matcher.group(1);</span>
-<span class="fc" id="L109">    ensurePage(resolver, pagePath, template, resourceType, parentTemplate, configurationManagementSettings);</span>
-<span class="fc" id="L110">  }</span>
+<span class="fc" id="L109">    String pagePath = matcher.group(1);</span>
+<span class="fc" id="L110">    ensurePage(resolver, pagePath, template, resourceType, parentTemplate, configurationManagementSettings);</span>
+<span class="fc" id="L111">  }</span>
 
   /**
    * Ensure that a page at the given path exists, if the path is not already contained in a page.
@@ -119,93 +120,93 @@ final class PersistenceUtils {
    */
   public static Resource ensurePageIfNotContainingPage(ResourceResolver resolver, String pagePath,
       String resourceType, ConfigurationManagementSettings configurationManagementSettings) {
-<span class="fc" id="L122">    Matcher matcher = PAGE_PATH_PATTERN.matcher(pagePath);</span>
-<span class="fc bfc" id="L123" title="All 2 branches covered.">    if (matcher.matches()) {</span>
+<span class="fc" id="L123">    Matcher matcher = PAGE_PATH_PATTERN.matcher(pagePath);</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (matcher.matches()) {</span>
       // ensure that shorted path part that ends with /jcr:content is created as AEM page (if not existent already)
-<span class="fc" id="L125">      String detectedPagePath = matcher.group(1);</span>
-<span class="fc" id="L126">      ensurePage(resolver, detectedPagePath, null, resourceType, null, configurationManagementSettings);</span>
-<span class="fc" id="L127">      return getOrCreateResource(resolver, pagePath, DEFAULT_FOLDER_NODE_TYPE_IN_PAGE, null, configurationManagementSettings);</span>
+<span class="fc" id="L126">      String detectedPagePath = matcher.group(1);</span>
+<span class="fc" id="L127">      ensurePage(resolver, detectedPagePath, null, resourceType, null, configurationManagementSettings);</span>
+<span class="fc" id="L128">      return getOrCreateResource(resolver, pagePath, DEFAULT_FOLDER_NODE_TYPE_IN_PAGE, null, configurationManagementSettings);</span>
     }
-<span class="fc" id="L129">    return ensurePage(resolver, pagePath, null, resourceType, null, configurationManagementSettings);</span>
+<span class="fc" id="L130">    return ensurePage(resolver, pagePath, null, resourceType, null, configurationManagementSettings);</span>
   }
 
   private static Resource ensurePage(ResourceResolver resolver, String pagePath,
       String template, String resourceType, String parentTemplate,
       ConfigurationManagementSettings configurationManagementSettings) {
     // check if page or resource already exists
-<span class="fc" id="L136">    Resource resource = resolver.getResource(pagePath);</span>
-<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (resource != null) {</span>
-<span class="fc" id="L138">      return resource;</span>
+<span class="fc" id="L137">    Resource resource = resolver.getResource(pagePath);</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">    if (resource != null) {</span>
+<span class="fc" id="L139">      return resource;</span>
     }
 
     // ensure parent page or resource exists
-<span class="fc" id="L142">    String parentPath = ResourceUtil.getParent(pagePath);</span>
-<span class="fc" id="L143">    String pageName = ResourceUtil.getName(pagePath);</span>
+<span class="fc" id="L143">    String parentPath = ResourceUtil.getParent(pagePath);</span>
+<span class="fc" id="L144">    String pageName = ResourceUtil.getName(pagePath);</span>
     Resource parentResource;
-<span class="fc bfc" id="L145" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(parentTemplate)) {</span>
-<span class="fc" id="L146">      parentResource = ensurePage(resolver, parentPath, parentTemplate, null, parentTemplate, configurationManagementSettings);</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(parentTemplate)) {</span>
+<span class="fc" id="L147">      parentResource = ensurePage(resolver, parentPath, parentTemplate, null, parentTemplate, configurationManagementSettings);</span>
     }
     else {
-<span class="fc" id="L149">      parentResource = getOrCreateResource(resolver, parentPath, DEFAULT_FOLDER_NODE_TYPE, null, configurationManagementSettings);</span>
+<span class="fc" id="L150">      parentResource = getOrCreateResource(resolver, parentPath, DEFAULT_FOLDER_NODE_TYPE, null, configurationManagementSettings);</span>
     }
 
     // create page
-<span class="fc" id="L153">    return createPage(resolver, parentResource, pageName, template, resourceType);</span>
+<span class="fc" id="L154">    return createPage(resolver, parentResource, pageName, template, resourceType);</span>
   }
 
   private static Resource createPage(ResourceResolver resolver, Resource parentResource, String pageName,
       String template, String resourceType) {
-<span class="fc" id="L158">    String pagePath = parentResource.getPath() + &quot;/&quot; + pageName;</span>
-<span class="fc" id="L159">    log.trace(&quot;! Create cq:Page node at {}&quot;, pagePath);</span>
+<span class="fc" id="L159">    String pagePath = parentResource.getPath() + &quot;/&quot; + pageName;</span>
+<span class="fc" id="L160">    log.trace(&quot;! Create cq:Page node at {}&quot;, pagePath);</span>
     try {
       // create page directly via Sling API instead of PageManager because page name may contain dots (.)
-<span class="fc" id="L162">      Map&lt;String, Object&gt; props = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L163">      props.put(JcrConstants.JCR_PRIMARYTYPE, NameConstants.NT_PAGE);</span>
-<span class="fc" id="L164">      Resource pageResource = resolver.create(parentResource, pageName, props);</span>
+<span class="fc" id="L163">      Map&lt;String, Object&gt; props = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L164">      props.put(JcrConstants.JCR_PRIMARYTYPE, NameConstants.NT_PAGE);</span>
+<span class="fc" id="L165">      Resource pageResource = resolver.create(parentResource, pageName, props);</span>
 
       // create jcr:content node
-<span class="fc" id="L167">      props = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L168">      props.put(JcrConstants.JCR_PRIMARYTYPE, &quot;cq:PageContent&quot;);</span>
-<span class="fc bfc" id="L169" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(template)) {</span>
-<span class="fc" id="L170">        applyPageTemplate(resolver, props, pageName, template);</span>
+<span class="fc" id="L168">      props = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L169">      props.put(JcrConstants.JCR_PRIMARYTYPE, &quot;cq:PageContent&quot;);</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(template)) {</span>
+<span class="fc" id="L171">        applyPageTemplate(resolver, props, pageName, template);</span>
       }
-<span class="pc bpc" id="L172" title="1 of 4 branches missed.">      if (StringUtils.isNotEmpty(resourceType) &amp;&amp; props.get(PROPERTY_RESOURCE_TYPE) == null) {</span>
-<span class="fc" id="L173">        props.put(PROPERTY_RESOURCE_TYPE, resourceType);</span>
+<span class="pc bpc" id="L173" title="1 of 4 branches missed.">      if (StringUtils.isNotEmpty(resourceType) &amp;&amp; props.get(PROPERTY_RESOURCE_TYPE) == null) {</span>
+<span class="fc" id="L174">        props.put(PROPERTY_RESOURCE_TYPE, resourceType);</span>
       }
-<span class="fc" id="L175">      resolver.create(pageResource, JCR_CONTENT, props);</span>
+<span class="fc" id="L176">      resolver.create(pageResource, JCR_CONTENT, props);</span>
 
-<span class="fc" id="L177">      return pageResource;</span>
+<span class="fc" id="L178">      return pageResource;</span>
     }
-<span class="nc" id="L179">    catch (PersistenceException ex) {</span>
-<span class="nc" id="L180">      throw convertPersistenceException(&quot;Unable to create config page at &quot; + pagePath, ex);</span>
+<span class="nc" id="L180">    catch (PersistenceException ex) {</span>
+<span class="nc" id="L181">      throw convertPersistenceException(&quot;Unable to create config page at &quot; + pagePath, ex);</span>
     }
   }
 
   private static void applyPageTemplate(ResourceResolver resolver, Map&lt;String, Object&gt; props, String pageName, String template) {
     // set template
-<span class="fc" id="L186">    props.put(NameConstants.PN_TEMPLATE, template);</span>
+<span class="fc" id="L187">    props.put(NameConstants.PN_TEMPLATE, template);</span>
 
     // also set title for author when template is set
-<span class="fc" id="L189">    props.put(JcrConstants.JCR_TITLE, pageName);</span>
+<span class="fc" id="L190">    props.put(JcrConstants.JCR_TITLE, pageName);</span>
 
     // get sling:resourceType from template definition
-<span class="fc" id="L192">    Resource templateContentResource = resolver.getResource(template + &quot;/&quot; + JCR_CONTENT);</span>
-<span class="fc bfc" id="L193" title="All 2 branches covered.">    if (templateContentResource != null) {</span>
-<span class="fc" id="L194">      props.put(PROPERTY_RESOURCE_TYPE, templateContentResource.getValueMap().get(PROPERTY_RESOURCE_TYPE, String.class));</span>
+<span class="fc" id="L193">    Resource templateContentResource = resolver.getResource(template + &quot;/&quot; + JCR_CONTENT);</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">    if (templateContentResource != null) {</span>
+<span class="fc" id="L195">      props.put(PROPERTY_RESOURCE_TYPE, templateContentResource.getValueMap().get(PROPERTY_RESOURCE_TYPE, String.class));</span>
     }
-<span class="fc" id="L196">  }</span>
+<span class="fc" id="L197">  }</span>
 
   public static Resource getOrCreateResource(ResourceResolver resolver, String path, String defaultNodeType, Map&lt;String, Object&gt; properties,
       ConfigurationManagementSettings configurationManagementSettings) {
     try {
-<span class="fc" id="L201">      Resource resource = ResourceUtil.getOrCreateResource(resolver, path, defaultNodeType, defaultNodeType, false);</span>
-<span class="fc bfc" id="L202" title="All 2 branches covered.">      if (properties != null) {</span>
-<span class="fc" id="L203">        replaceProperties(resource, properties, configurationManagementSettings);</span>
+<span class="fc" id="L202">      Resource resource = ResourceUtil.getOrCreateResource(resolver, path, defaultNodeType, defaultNodeType, false);</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">      if (properties != null) {</span>
+<span class="fc" id="L204">        replaceProperties(resource, properties, configurationManagementSettings);</span>
       }
-<span class="fc" id="L205">      return resource;</span>
+<span class="fc" id="L206">      return resource;</span>
     }
-<span class="nc" id="L207">    catch (PersistenceException ex) {</span>
-<span class="nc" id="L208">      throw convertPersistenceException(&quot;Unable to create resource at &quot; + path, ex);</span>
+<span class="nc" id="L208">    catch (PersistenceException ex) {</span>
+<span class="nc" id="L209">      throw convertPersistenceException(&quot;Unable to create resource at &quot; + path, ex);</span>
     }
   }
 
@@ -215,71 +216,71 @@ final class PersistenceUtils {
    * @param data List of collection items
    */
   public static void deleteChildrenNotInCollection(Resource resource, ConfigurationCollectionPersistData data) {
-<span class="fc" id="L218">    Set&lt;String&gt; collectionItemNames = data.getItems().stream()</span>
-<span class="fc" id="L219">      .map(ConfigurationPersistData::getCollectionItemName)</span>
-<span class="fc" id="L220">      .collect(Collectors.toSet());</span>
+<span class="fc" id="L219">    Set&lt;String&gt; collectionItemNames = data.getItems().stream()</span>
+<span class="fc" id="L220">      .map(ConfigurationPersistData::getCollectionItemName)</span>
+<span class="fc" id="L221">      .collect(Collectors.toSet());</span>
 
-<span class="fc bfc" id="L222" title="All 2 branches covered.">    for (Resource child : resource.getChildren()) {</span>
-<span class="pc bpc" id="L223" title="1 of 4 branches missed.">      if (!collectionItemNames.contains(child.getName()) &amp;&amp; !StringUtils.equals(JCR_CONTENT, child.getName())) {</span>
-<span class="nc" id="L224">        deletePageOrResource(child);</span>
+<span class="fc bfc" id="L223" title="All 2 branches covered.">    for (Resource child : resource.getChildren()) {</span>
+<span class="pc bpc" id="L224" title="1 of 4 branches missed.">      if (!collectionItemNames.contains(child.getName()) &amp;&amp; !Strings.CS.equals(JCR_CONTENT, child.getName())) {</span>
+<span class="nc" id="L225">        deletePageOrResource(child);</span>
       }
-<span class="fc" id="L226">    }</span>
-<span class="fc" id="L227">  }</span>
+<span class="fc" id="L227">    }</span>
+<span class="fc" id="L228">  }</span>
 
   public static void replaceProperties(Resource resource, Map&lt;String, Object&gt; properties,
       ConfigurationManagementSettings configurationManagementSettings) {
-<span class="pc bpc" id="L231" title="1 of 2 branches missed.">    if (log.isTraceEnabled()) {</span>
-<span class="nc" id="L232">      log.trace(&quot;! Store properties for resource {}: {}&quot;, resource.getPath(), properties);</span>
+<span class="pc bpc" id="L232" title="1 of 2 branches missed.">    if (log.isTraceEnabled()) {</span>
+<span class="nc" id="L233">      log.trace(&quot;! Store properties for resource {}: {}&quot;, resource.getPath(), properties);</span>
     }
-<span class="fc" id="L234">    ModifiableValueMap modValueMap = resource.adaptTo(ModifiableValueMap.class);</span>
-<span class="pc bpc" id="L235" title="1 of 2 branches missed.">    if (modValueMap == null) {</span>
-<span class="nc" id="L236">      throw new ConfigurationPersistenceAccessDeniedException(&quot;No write access: Unable to store configuration data to &quot; + resource.getPath() + &quot;.&quot;);</span>
+<span class="fc" id="L235">    ModifiableValueMap modValueMap = resource.adaptTo(ModifiableValueMap.class);</span>
+<span class="pc bpc" id="L236" title="1 of 2 branches missed.">    if (modValueMap == null) {</span>
+<span class="nc" id="L237">      throw new ConfigurationPersistenceAccessDeniedException(&quot;No write access: Unable to store configuration data to &quot; + resource.getPath() + &quot;.&quot;);</span>
     }
 
     // remove all existing properties that are not filtered
-<span class="fc" id="L240">    Set&lt;String&gt; propertyNamesToRemove = new HashSet&lt;&gt;(modValueMap.keySet());</span>
-<span class="fc" id="L241">    PropertiesFilterUtil.removeIgnoredProperties(propertyNamesToRemove, configurationManagementSettings);</span>
-<span class="fc bfc" id="L242" title="All 2 branches covered.">    for (String propertyName : propertyNamesToRemove) {</span>
-<span class="fc" id="L243">      modValueMap.remove(propertyName);</span>
-<span class="fc" id="L244">    }</span>
+<span class="fc" id="L241">    Set&lt;String&gt; propertyNamesToRemove = new HashSet&lt;&gt;(modValueMap.keySet());</span>
+<span class="fc" id="L242">    PropertiesFilterUtil.removeIgnoredProperties(propertyNamesToRemove, configurationManagementSettings);</span>
+<span class="fc bfc" id="L243" title="All 2 branches covered.">    for (String propertyName : propertyNamesToRemove) {</span>
+<span class="fc" id="L244">      modValueMap.remove(propertyName);</span>
+<span class="fc" id="L245">    }</span>
 
-<span class="fc" id="L246">    modValueMap.putAll(properties);</span>
-<span class="fc" id="L247">  }</span>
+<span class="fc" id="L247">    modValueMap.putAll(properties);</span>
+<span class="fc" id="L248">  }</span>
 
   public static void updatePageLastMod(ResourceResolver resolver, PageManager pageManager, String configResourcePath) {
-<span class="fc" id="L250">    Page page = pageManager.getContainingPage(configResourcePath);</span>
-<span class="fc bfc" id="L251" title="All 2 branches covered.">    if (page == null) {</span>
-<span class="fc" id="L252">      return;</span>
+<span class="fc" id="L251">    Page page = pageManager.getContainingPage(configResourcePath);</span>
+<span class="fc bfc" id="L252" title="All 2 branches covered.">    if (page == null) {</span>
+<span class="fc" id="L253">      return;</span>
     }
-<span class="fc" id="L254">    Resource contentResource = page.getContentResource();</span>
-<span class="pc bpc" id="L255" title="1 of 2 branches missed.">    if (contentResource != null) {</span>
-<span class="fc" id="L256">      ModifiableValueMap contentProps = contentResource.adaptTo(ModifiableValueMap.class);</span>
-<span class="pc bpc" id="L257" title="1 of 2 branches missed.">      if (contentProps == null) {</span>
-<span class="nc" id="L258">        throw new ConfigurationPersistenceAccessDeniedException(&quot;No write access: Unable to update page &quot; + configResourcePath + &quot;.&quot;);</span>
+<span class="fc" id="L255">    Resource contentResource = page.getContentResource();</span>
+<span class="pc bpc" id="L256" title="1 of 2 branches missed.">    if (contentResource != null) {</span>
+<span class="fc" id="L257">      ModifiableValueMap contentProps = contentResource.adaptTo(ModifiableValueMap.class);</span>
+<span class="pc bpc" id="L258" title="1 of 2 branches missed.">      if (contentProps == null) {</span>
+<span class="nc" id="L259">        throw new ConfigurationPersistenceAccessDeniedException(&quot;No write access: Unable to update page &quot; + configResourcePath + &quot;.&quot;);</span>
       }
 
-<span class="fc" id="L261">      Object user = resolver.getAttribute(ResourceResolverFactory.USER);</span>
-<span class="fc" id="L262">      Calendar now = Calendar.getInstance();</span>
+<span class="fc" id="L262">      Object user = resolver.getAttribute(ResourceResolverFactory.USER);</span>
+<span class="fc" id="L263">      Calendar now = Calendar.getInstance();</span>
 
-<span class="fc" id="L264">      contentProps.put(NameConstants.PN_LAST_MOD, now);</span>
-<span class="fc" id="L265">      contentProps.put(NameConstants.PN_LAST_MOD_BY, user);</span>
+<span class="fc" id="L265">      contentProps.put(NameConstants.PN_LAST_MOD, now);</span>
+<span class="fc" id="L266">      contentProps.put(NameConstants.PN_LAST_MOD_BY, user);</span>
 
       // check if resource has cq:lastModified because it is created in site admin
-<span class="fc bfc" id="L268" title="All 2 branches covered.">      if (contentProps.containsKey(NameConstants.PN_PAGE_LAST_MOD)) {</span>
-<span class="fc" id="L269">        contentProps.put(NameConstants.PN_PAGE_LAST_MOD, now);</span>
-<span class="fc" id="L270">        contentProps.put(NameConstants.PN_PAGE_LAST_MOD_BY, user);</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">      if (contentProps.containsKey(NameConstants.PN_PAGE_LAST_MOD)) {</span>
+<span class="fc" id="L270">        contentProps.put(NameConstants.PN_PAGE_LAST_MOD, now);</span>
+<span class="fc" id="L271">        contentProps.put(NameConstants.PN_PAGE_LAST_MOD_BY, user);</span>
       }
     }
-<span class="fc" id="L273">  }</span>
+<span class="fc" id="L274">  }</span>
 
   public static void commit(ResourceResolver resourceResolver, String relatedResourcePath) {
     try {
-<span class="fc" id="L277">      resourceResolver.commit();</span>
+<span class="fc" id="L278">      resourceResolver.commit();</span>
     }
-<span class="nc" id="L279">    catch (PersistenceException ex) {</span>
-<span class="nc" id="L280">      throw convertPersistenceException(&quot;Unable to persist configuration changes to &quot; + relatedResourcePath, ex);</span>
-<span class="fc" id="L281">    }</span>
-<span class="fc" id="L282">  }</span>
+<span class="nc" id="L280">    catch (PersistenceException ex) {</span>
+<span class="nc" id="L281">      throw convertPersistenceException(&quot;Unable to persist configuration changes to &quot; + relatedResourcePath, ex);</span>
+<span class="fc" id="L282">    }</span>
+<span class="fc" id="L283">  }</span>
 
   /**
    * Checks if the given item is modified or newly added by comparing its properties with the current state of the
@@ -293,19 +294,19 @@ final class PersistenceUtils {
    */
   public static boolean isItemModifiedOrNewlyAdded(ResourceResolver resolver, String resourcePath, ConfigurationPersistData item,
       ConfigurationManagementSettings settings) {
-<span class="fc" id="L296">    Resource resource = resolver.getResource(resourcePath);</span>
-<span class="fc bfc" id="L297" title="All 2 branches covered.">    if (resource == null) {</span>
-<span class="fc" id="L298">      return true; // Resource does not exist, so it is considered modified</span>
+<span class="fc" id="L297">    Resource resource = resolver.getResource(resourcePath);</span>
+<span class="fc bfc" id="L298" title="All 2 branches covered.">    if (resource == null) {</span>
+<span class="fc" id="L299">      return true; // Resource does not exist, so it is considered modified</span>
     }
 
-<span class="fc" id="L301">    Map&lt;String, Object&gt; currentProperties = new HashMap&lt;&gt;(resource.getValueMap());</span>
-<span class="fc" id="L302">    Map&lt;String, Object&gt; newProperties = new HashMap&lt;&gt;(item.getProperties());</span>
+<span class="fc" id="L302">    Map&lt;String, Object&gt; currentProperties = new HashMap&lt;&gt;(resource.getValueMap());</span>
+<span class="fc" id="L303">    Map&lt;String, Object&gt; newProperties = new HashMap&lt;&gt;(item.getProperties());</span>
 
     // Filter out ignored properties
-<span class="fc" id="L305">    PropertiesFilterUtil.removeIgnoredProperties(currentProperties, settings);</span>
-<span class="fc" id="L306">    PropertiesFilterUtil.removeIgnoredProperties(newProperties, settings);</span>
+<span class="fc" id="L306">    PropertiesFilterUtil.removeIgnoredProperties(currentProperties, settings);</span>
+<span class="fc" id="L307">    PropertiesFilterUtil.removeIgnoredProperties(newProperties, settings);</span>
 
-<span class="fc bfc" id="L308" title="All 2 branches covered.">    return !currentProperties.equals(newProperties);</span>
+<span class="fc bfc" id="L309" title="All 2 branches covered.">    return !currentProperties.equals(newProperties);</span>
   }
 
   /**
@@ -314,43 +315,43 @@ final class PersistenceUtils {
    * @param resource Resource to delete
    */
   public static void deletePageOrResource(Resource resource) {
-<span class="fc" id="L317">    Page configPage = resource.adaptTo(Page.class);</span>
-<span class="fc bfc" id="L318" title="All 2 branches covered.">    if (configPage != null) {</span>
+<span class="fc" id="L318">    Page configPage = resource.adaptTo(Page.class);</span>
+<span class="fc bfc" id="L319" title="All 2 branches covered.">    if (configPage != null) {</span>
       try {
-<span class="fc" id="L320">        log.trace(&quot;! Delete page {}&quot;, configPage.getPath());</span>
-<span class="fc" id="L321">        PageManager pageManager = configPage.getPageManager();</span>
-<span class="fc" id="L322">        pageManager.delete(configPage, false);</span>
+<span class="fc" id="L321">        log.trace(&quot;! Delete page {}&quot;, configPage.getPath());</span>
+<span class="fc" id="L322">        PageManager pageManager = configPage.getPageManager();</span>
+<span class="fc" id="L323">        pageManager.delete(configPage, false);</span>
       }
-<span class="nc" id="L324">      catch (WCMException ex) {</span>
-<span class="nc" id="L325">        throw convertWCMException(&quot;Unable to delete configuration page at &quot; + resource.getPath(), ex);</span>
-<span class="fc" id="L326">      }</span>
+<span class="nc" id="L325">      catch (WCMException ex) {</span>
+<span class="nc" id="L326">        throw convertWCMException(&quot;Unable to delete configuration page at &quot; + resource.getPath(), ex);</span>
+<span class="fc" id="L327">      }</span>
     }
     else {
       try {
-<span class="fc" id="L330">        log.trace(&quot;! Delete resource {}&quot;, resource.getPath());</span>
-<span class="fc" id="L331">        resource.getResourceResolver().delete(resource);</span>
+<span class="fc" id="L331">        log.trace(&quot;! Delete resource {}&quot;, resource.getPath());</span>
+<span class="fc" id="L332">        resource.getResourceResolver().delete(resource);</span>
       }
-<span class="nc" id="L333">      catch (PersistenceException ex) {</span>
-<span class="nc" id="L334">        throw convertPersistenceException(&quot;Unable to delete configuration resource at &quot; + resource.getPath(), ex);</span>
-<span class="fc" id="L335">      }</span>
+<span class="nc" id="L334">      catch (PersistenceException ex) {</span>
+<span class="nc" id="L335">        throw convertPersistenceException(&quot;Unable to delete configuration resource at &quot; + resource.getPath(), ex);</span>
+<span class="fc" id="L336">      }</span>
     }
-<span class="fc" id="L337">  }</span>
+<span class="fc" id="L338">  }</span>
 
   private static ConfigurationPersistenceException convertWCMException(String message, WCMException ex) {
-<span class="nc" id="L340">    String causeClsName = ex.getCause().getClass().getName();</span>
-<span class="nc bnc" id="L341" title="All 2 branches missed.">    if (StringUtils.equals(causeClsName, &quot;com.day.cq.replication.AccessDeniedException&quot;)</span>
-<span class="nc bnc" id="L342" title="All 2 branches missed.">        || StringUtils.equals(causeClsName, &quot;javax.jcr.AccessDeniedException&quot;)) {</span>
-<span class="nc" id="L343">      return new ConfigurationPersistenceAccessDeniedException(&quot;No write access: &quot; + message, ex);</span>
+<span class="nc" id="L341">    String causeClsName = ex.getCause().getClass().getName();</span>
+<span class="nc bnc" id="L342" title="All 2 branches missed.">    if (Strings.CS.equals(causeClsName, &quot;com.day.cq.replication.AccessDeniedException&quot;)</span>
+<span class="nc bnc" id="L343" title="All 2 branches missed.">        || Strings.CS.equals(causeClsName, &quot;javax.jcr.AccessDeniedException&quot;)) {</span>
+<span class="nc" id="L344">      return new ConfigurationPersistenceAccessDeniedException(&quot;No write access: &quot; + message, ex);</span>
     }
-<span class="nc" id="L345">    return new ConfigurationPersistenceException(message, ex);</span>
+<span class="nc" id="L346">    return new ConfigurationPersistenceException(message, ex);</span>
   }
 
   private static ConfigurationPersistenceException convertPersistenceException(String message, PersistenceException ex) {
-<span class="nc bnc" id="L349" title="All 2 branches missed.">    if (StringUtils.equals(ex.getCause().getClass().getName(), &quot;javax.jcr.AccessDeniedException&quot;)) {</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">    if (Strings.CS.equals(ex.getCause().getClass().getName(), &quot;javax.jcr.AccessDeniedException&quot;)) {</span>
       // detect if commit failed due to read-only access to repository
-<span class="nc" id="L351">      return new ConfigurationPersistenceAccessDeniedException(&quot;No write access: &quot; + message, ex);</span>
+<span class="nc" id="L352">      return new ConfigurationPersistenceAccessDeniedException(&quot;No write access: &quot; + message, ex);</span>
     }
-<span class="nc" id="L353">    return new ConfigurationPersistenceException(message, ex);</span>
+<span class="nc" id="L354">    return new ConfigurationPersistenceException(message, ex);</span>
   }
 
 }
