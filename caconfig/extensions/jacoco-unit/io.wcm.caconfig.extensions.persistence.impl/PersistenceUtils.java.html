@@ -247,40 +247,41 @@ final class PersistenceUtils {
 <span class="fc" id="L247">    modValueMap.putAll(properties);</span>
 <span class="fc" id="L248">  }</span>
 
+  @SuppressWarnings(&quot;java:S3824&quot;) // do not use Map.computeIfPresent() because we update two properties
   public static void updatePageLastMod(ResourceResolver resolver, PageManager pageManager, String configResourcePath) {
-<span class="fc" id="L251">    Page page = pageManager.getContainingPage(configResourcePath);</span>
-<span class="fc bfc" id="L252" title="All 2 branches covered.">    if (page == null) {</span>
-<span class="fc" id="L253">      return;</span>
+<span class="fc" id="L252">    Page page = pageManager.getContainingPage(configResourcePath);</span>
+<span class="fc bfc" id="L253" title="All 2 branches covered.">    if (page == null) {</span>
+<span class="fc" id="L254">      return;</span>
     }
-<span class="fc" id="L255">    Resource contentResource = page.getContentResource();</span>
-<span class="pc bpc" id="L256" title="1 of 2 branches missed.">    if (contentResource != null) {</span>
-<span class="fc" id="L257">      ModifiableValueMap contentProps = contentResource.adaptTo(ModifiableValueMap.class);</span>
-<span class="pc bpc" id="L258" title="1 of 2 branches missed.">      if (contentProps == null) {</span>
-<span class="nc" id="L259">        throw new ConfigurationPersistenceAccessDeniedException(&quot;No write access: Unable to update page &quot; + configResourcePath + &quot;.&quot;);</span>
+<span class="fc" id="L256">    Resource contentResource = page.getContentResource();</span>
+<span class="pc bpc" id="L257" title="1 of 2 branches missed.">    if (contentResource != null) {</span>
+<span class="fc" id="L258">      ModifiableValueMap contentProps = contentResource.adaptTo(ModifiableValueMap.class);</span>
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">      if (contentProps == null) {</span>
+<span class="nc" id="L260">        throw new ConfigurationPersistenceAccessDeniedException(&quot;No write access: Unable to update page &quot; + configResourcePath + &quot;.&quot;);</span>
       }
 
-<span class="fc" id="L262">      Object user = resolver.getAttribute(ResourceResolverFactory.USER);</span>
-<span class="fc" id="L263">      Calendar now = Calendar.getInstance();</span>
+<span class="fc" id="L263">      Object user = resolver.getAttribute(ResourceResolverFactory.USER);</span>
+<span class="fc" id="L264">      Calendar now = Calendar.getInstance();</span>
 
-<span class="fc" id="L265">      contentProps.put(NameConstants.PN_LAST_MOD, now);</span>
-<span class="fc" id="L266">      contentProps.put(NameConstants.PN_LAST_MOD_BY, user);</span>
+<span class="fc" id="L266">      contentProps.put(NameConstants.PN_LAST_MOD, now);</span>
+<span class="fc" id="L267">      contentProps.put(NameConstants.PN_LAST_MOD_BY, user);</span>
 
       // check if resource has cq:lastModified because it is created in site admin
-<span class="fc bfc" id="L269" title="All 2 branches covered.">      if (contentProps.containsKey(NameConstants.PN_PAGE_LAST_MOD)) {</span>
-<span class="fc" id="L270">        contentProps.put(NameConstants.PN_PAGE_LAST_MOD, now);</span>
-<span class="fc" id="L271">        contentProps.put(NameConstants.PN_PAGE_LAST_MOD_BY, user);</span>
+<span class="fc bfc" id="L270" title="All 2 branches covered.">      if (contentProps.containsKey(NameConstants.PN_PAGE_LAST_MOD)) {</span>
+<span class="fc" id="L271">        contentProps.put(NameConstants.PN_PAGE_LAST_MOD, now);</span>
+<span class="fc" id="L272">        contentProps.put(NameConstants.PN_PAGE_LAST_MOD_BY, user);</span>
       }
     }
-<span class="fc" id="L274">  }</span>
+<span class="fc" id="L275">  }</span>
 
   public static void commit(ResourceResolver resourceResolver, String relatedResourcePath) {
     try {
-<span class="fc" id="L278">      resourceResolver.commit();</span>
+<span class="fc" id="L279">      resourceResolver.commit();</span>
     }
-<span class="nc" id="L280">    catch (PersistenceException ex) {</span>
-<span class="nc" id="L281">      throw convertPersistenceException(&quot;Unable to persist configuration changes to &quot; + relatedResourcePath, ex);</span>
-<span class="fc" id="L282">    }</span>
-<span class="fc" id="L283">  }</span>
+<span class="nc" id="L281">    catch (PersistenceException ex) {</span>
+<span class="nc" id="L282">      throw convertPersistenceException(&quot;Unable to persist configuration changes to &quot; + relatedResourcePath, ex);</span>
+<span class="fc" id="L283">    }</span>
+<span class="fc" id="L284">  }</span>
 
   /**
    * Checks if the given item is modified or newly added by comparing its properties with the current state of the
@@ -294,19 +295,19 @@ final class PersistenceUtils {
    */
   public static boolean isItemModifiedOrNewlyAdded(ResourceResolver resolver, String resourcePath, ConfigurationPersistData item,
       ConfigurationManagementSettings settings) {
-<span class="fc" id="L297">    Resource resource = resolver.getResource(resourcePath);</span>
-<span class="fc bfc" id="L298" title="All 2 branches covered.">    if (resource == null) {</span>
-<span class="fc" id="L299">      return true; // Resource does not exist, so it is considered modified</span>
+<span class="fc" id="L298">    Resource resource = resolver.getResource(resourcePath);</span>
+<span class="fc bfc" id="L299" title="All 2 branches covered.">    if (resource == null) {</span>
+<span class="fc" id="L300">      return true; // Resource does not exist, so it is considered modified</span>
     }
 
-<span class="fc" id="L302">    Map&lt;String, Object&gt; currentProperties = new HashMap&lt;&gt;(resource.getValueMap());</span>
-<span class="fc" id="L303">    Map&lt;String, Object&gt; newProperties = new HashMap&lt;&gt;(item.getProperties());</span>
+<span class="fc" id="L303">    Map&lt;String, Object&gt; currentProperties = new HashMap&lt;&gt;(resource.getValueMap());</span>
+<span class="fc" id="L304">    Map&lt;String, Object&gt; newProperties = new HashMap&lt;&gt;(item.getProperties());</span>
 
     // Filter out ignored properties
-<span class="fc" id="L306">    PropertiesFilterUtil.removeIgnoredProperties(currentProperties, settings);</span>
-<span class="fc" id="L307">    PropertiesFilterUtil.removeIgnoredProperties(newProperties, settings);</span>
+<span class="fc" id="L307">    PropertiesFilterUtil.removeIgnoredProperties(currentProperties, settings);</span>
+<span class="fc" id="L308">    PropertiesFilterUtil.removeIgnoredProperties(newProperties, settings);</span>
 
-<span class="fc bfc" id="L309" title="All 2 branches covered.">    return !currentProperties.equals(newProperties);</span>
+<span class="fc bfc" id="L310" title="All 2 branches covered.">    return !currentProperties.equals(newProperties);</span>
   }
 
   /**
@@ -315,43 +316,43 @@ final class PersistenceUtils {
    * @param resource Resource to delete
    */
   public static void deletePageOrResource(Resource resource) {
-<span class="fc" id="L318">    Page configPage = resource.adaptTo(Page.class);</span>
-<span class="fc bfc" id="L319" title="All 2 branches covered.">    if (configPage != null) {</span>
+<span class="fc" id="L319">    Page configPage = resource.adaptTo(Page.class);</span>
+<span class="fc bfc" id="L320" title="All 2 branches covered.">    if (configPage != null) {</span>
       try {
-<span class="fc" id="L321">        log.trace(&quot;! Delete page {}&quot;, configPage.getPath());</span>
-<span class="fc" id="L322">        PageManager pageManager = configPage.getPageManager();</span>
-<span class="fc" id="L323">        pageManager.delete(configPage, false);</span>
+<span class="fc" id="L322">        log.trace(&quot;! Delete page {}&quot;, configPage.getPath());</span>
+<span class="fc" id="L323">        PageManager pageManager = configPage.getPageManager();</span>
+<span class="fc" id="L324">        pageManager.delete(configPage, false);</span>
       }
-<span class="nc" id="L325">      catch (WCMException ex) {</span>
-<span class="nc" id="L326">        throw convertWCMException(&quot;Unable to delete configuration page at &quot; + resource.getPath(), ex);</span>
-<span class="fc" id="L327">      }</span>
+<span class="nc" id="L326">      catch (WCMException ex) {</span>
+<span class="nc" id="L327">        throw convertWCMException(&quot;Unable to delete configuration page at &quot; + resource.getPath(), ex);</span>
+<span class="fc" id="L328">      }</span>
     }
     else {
       try {
-<span class="fc" id="L331">        log.trace(&quot;! Delete resource {}&quot;, resource.getPath());</span>
-<span class="fc" id="L332">        resource.getResourceResolver().delete(resource);</span>
+<span class="fc" id="L332">        log.trace(&quot;! Delete resource {}&quot;, resource.getPath());</span>
+<span class="fc" id="L333">        resource.getResourceResolver().delete(resource);</span>
       }
-<span class="nc" id="L334">      catch (PersistenceException ex) {</span>
-<span class="nc" id="L335">        throw convertPersistenceException(&quot;Unable to delete configuration resource at &quot; + resource.getPath(), ex);</span>
-<span class="fc" id="L336">      }</span>
+<span class="nc" id="L335">      catch (PersistenceException ex) {</span>
+<span class="nc" id="L336">        throw convertPersistenceException(&quot;Unable to delete configuration resource at &quot; + resource.getPath(), ex);</span>
+<span class="fc" id="L337">      }</span>
     }
-<span class="fc" id="L338">  }</span>
+<span class="fc" id="L339">  }</span>
 
   private static ConfigurationPersistenceException convertWCMException(String message, WCMException ex) {
-<span class="nc" id="L341">    String causeClsName = ex.getCause().getClass().getName();</span>
-<span class="nc bnc" id="L342" title="All 2 branches missed.">    if (Strings.CS.equals(causeClsName, &quot;com.day.cq.replication.AccessDeniedException&quot;)</span>
-<span class="nc bnc" id="L343" title="All 2 branches missed.">        || Strings.CS.equals(causeClsName, &quot;javax.jcr.AccessDeniedException&quot;)) {</span>
-<span class="nc" id="L344">      return new ConfigurationPersistenceAccessDeniedException(&quot;No write access: &quot; + message, ex);</span>
+<span class="nc" id="L342">    String causeClsName = ex.getCause().getClass().getName();</span>
+<span class="nc bnc" id="L343" title="All 2 branches missed.">    if (Strings.CS.equals(causeClsName, &quot;com.day.cq.replication.AccessDeniedException&quot;)</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">        || Strings.CS.equals(causeClsName, &quot;javax.jcr.AccessDeniedException&quot;)) {</span>
+<span class="nc" id="L345">      return new ConfigurationPersistenceAccessDeniedException(&quot;No write access: &quot; + message, ex);</span>
     }
-<span class="nc" id="L346">    return new ConfigurationPersistenceException(message, ex);</span>
+<span class="nc" id="L347">    return new ConfigurationPersistenceException(message, ex);</span>
   }
 
   private static ConfigurationPersistenceException convertPersistenceException(String message, PersistenceException ex) {
-<span class="nc bnc" id="L350" title="All 2 branches missed.">    if (Strings.CS.equals(ex.getCause().getClass().getName(), &quot;javax.jcr.AccessDeniedException&quot;)) {</span>
+<span class="nc bnc" id="L351" title="All 2 branches missed.">    if (Strings.CS.equals(ex.getCause().getClass().getName(), &quot;javax.jcr.AccessDeniedException&quot;)) {</span>
       // detect if commit failed due to read-only access to repository
-<span class="nc" id="L352">      return new ConfigurationPersistenceAccessDeniedException(&quot;No write access: &quot; + message, ex);</span>
+<span class="nc" id="L353">      return new ConfigurationPersistenceAccessDeniedException(&quot;No write access: &quot; + message, ex);</span>
     }
-<span class="nc" id="L354">    return new ConfigurationPersistenceException(message, ex);</span>
+<span class="nc" id="L355">    return new ConfigurationPersistenceException(message, ex);</span>
   }
 
 }

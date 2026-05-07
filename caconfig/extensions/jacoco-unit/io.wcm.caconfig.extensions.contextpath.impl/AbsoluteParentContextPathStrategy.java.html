@@ -148,35 +148,39 @@ import io.wcm.wcm.commons.util.Path;
 <span class="pc bpc" id="L148" title="1 of 2 branches missed.">    templatePathsBlacklist = config.templatePathsBlacklist() != null ? new HashSet&lt;&gt;(Arrays.asList(config.templatePathsBlacklist())) : Collections.emptySet();</span>
 <span class="fc" id="L149">  }</span>
 
+  @SuppressWarnings({
+      &quot;java:S3776&quot;, // accept complexity
+      &quot;java:S112&quot; // accept RuntimeException
+  })
   @Override
   public @NotNull Iterator&lt;ContextResource&gt; findContextResources(@NotNull Resource resource) {
-<span class="fc bfc" id="L153" title="All 2 branches covered.">    if (!isValidConfig()) {</span>
-<span class="fc" id="L154">      return Collections.emptyIterator();</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">    if (!isValidConfig()) {</span>
+<span class="fc" id="L158">      return Collections.emptyIterator();</span>
     }
 
-<span class="fc" id="L157">    ResourceResolver resourceResolver = resource.getResourceResolver();</span>
-<span class="fc" id="L158">    PageManager pageManager = pageManagerFactory.getPageManager(resource.getResourceResolver());</span>
-<span class="pc bpc" id="L159" title="1 of 2 branches missed.">    if (pageManager == null) {</span>
-<span class="nc" id="L160">      throw new RuntimeException(&quot;No page manager.&quot;);</span>
+<span class="fc" id="L161">    ResourceResolver resourceResolver = resource.getResourceResolver();</span>
+<span class="fc" id="L162">    PageManager pageManager = pageManagerFactory.getPageManager(resource.getResourceResolver());</span>
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">    if (pageManager == null) {</span>
+<span class="nc" id="L164">      throw new RuntimeException(&quot;No page manager.&quot;);</span>
     }
-<span class="fc" id="L162">    List&lt;ContextResource&gt; contextResources = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L166">    List&lt;ContextResource&gt; contextResources = new ArrayList&lt;&gt;();</span>
 
-<span class="fc" id="L164">    int maxLevel = Path.getAbsoluteLevel(resource.getPath(), resourceResolver);</span>
-<span class="fc bfc" id="L165" title="All 2 branches covered.">    for (int level = 0; level &lt;= maxLevel; level++) {</span>
-<span class="fc bfc" id="L166" title="All 6 branches covered.">      if (levels.contains(level) || (unlimited &amp;&amp; level &gt;= unlimitedLevelStart)) {</span>
-<span class="fc" id="L167">        String contextPath = Path.getAbsoluteParent(resource.getPath(), level, resourceResolver);</span>
-<span class="pc bpc" id="L168" title="1 of 2 branches missed.">        if (StringUtils.isNotEmpty(contextPath)) {</span>
-<span class="fc" id="L169">          Resource contextResource = resource.getResourceResolver().getResource(contextPath);</span>
-<span class="pc bpc" id="L170" title="1 of 2 branches missed.">          if (contextResource != null) {</span>
+<span class="fc" id="L168">    int maxLevel = Path.getAbsoluteLevel(resource.getPath(), resourceResolver);</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">    for (int level = 0; level &lt;= maxLevel; level++) {</span>
+<span class="fc bfc" id="L170" title="All 6 branches covered.">      if (levels.contains(level) || (unlimited &amp;&amp; level &gt;= unlimitedLevelStart)) {</span>
+<span class="fc" id="L171">        String contextPath = Path.getAbsoluteParent(resource.getPath(), level, resourceResolver);</span>
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">        if (StringUtils.isNotEmpty(contextPath)) {</span>
+<span class="fc" id="L173">          Resource contextResource = resource.getResourceResolver().getResource(contextPath);</span>
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">          if (contextResource != null) {</span>
             // first check if resource is blacklisted
-<span class="fc bfc" id="L172" title="All 2 branches covered.">            if (isResourceBelongingToBlacklistedTemplates(contextResource, pageManager)) {</span>
-<span class="fc" id="L173">              log.trace(&quot;Resource '{}' is belonging to a page derived from a blacklisted template, skipping level {}&quot;, contextPath, level);</span>
-<span class="fc" id="L174">              break;</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">            if (isResourceBelongingToBlacklistedTemplates(contextResource, pageManager)) {</span>
+<span class="fc" id="L177">              log.trace(&quot;Resource '{}' is belonging to a page derived from a blacklisted template, skipping level {}&quot;, contextPath, level);</span>
+<span class="fc" id="L178">              break;</span>
             }
-<span class="fc bfc" id="L176" title="All 2 branches covered.">            for (String configPathPattern : configPathPatterns) {</span>
-<span class="fc" id="L177">              String configRef = deriveConfigRef(contextPath, configPathPattern, resourceResolver);</span>
-<span class="fc bfc" id="L178" title="All 2 branches covered.">              if (configRef != null) {</span>
-<span class="fc" id="L179">                contextResources.add(new ContextResource(contextResource, configRef, serviceRanking));</span>
+<span class="fc bfc" id="L180" title="All 2 branches covered.">            for (String configPathPattern : configPathPatterns) {</span>
+<span class="fc" id="L181">              String configRef = deriveConfigRef(contextPath, configPathPattern, resourceResolver);</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">              if (configRef != null) {</span>
+<span class="fc" id="L183">                contextResources.add(new ContextResource(contextResource, configRef, serviceRanking));</span>
               }
             }
           }
@@ -184,54 +188,54 @@ import io.wcm.wcm.commons.util.Path;
       }
     }
 
-<span class="fc" id="L187">    Collections.reverse(contextResources);</span>
-<span class="fc" id="L188">    return contextResources.iterator();</span>
+<span class="fc" id="L191">    Collections.reverse(contextResources);</span>
+<span class="fc" id="L192">    return contextResources.iterator();</span>
   }
 
   private boolean isValidConfig() {
-<span class="pc bpc" id="L192" title="3 of 8 branches missed.">    return !levels.isEmpty()</span>
+<span class="pc bpc" id="L196" title="3 of 8 branches missed.">    return !levels.isEmpty()</span>
         &amp;&amp; contextPathRegex != null
         &amp;&amp; configPathPatterns != null
         &amp;&amp; configPathPatterns.length &gt; 0;
   }
 
   private String deriveConfigRef(String contextPath, String configPathPattern, ResourceResolver resourceResolver) {
-<span class="fc" id="L199">    Matcher matcher = contextPathRegex.matcher(Path.getOriginalPath(contextPath, resourceResolver));</span>
-<span class="fc" id="L200">    Matcher blacklistMatcher = null;</span>
-<span class="pc bpc" id="L201" title="1 of 2 branches missed.">    if (contextPathBlacklistRegex != null) {</span>
-<span class="fc" id="L202">      blacklistMatcher = contextPathBlacklistRegex.matcher(contextPath);</span>
+<span class="fc" id="L203">    Matcher matcher = contextPathRegex.matcher(Path.getOriginalPath(contextPath, resourceResolver));</span>
+<span class="fc" id="L204">    Matcher blacklistMatcher = null;</span>
+<span class="pc bpc" id="L205" title="1 of 2 branches missed.">    if (contextPathBlacklistRegex != null) {</span>
+<span class="fc" id="L206">      blacklistMatcher = contextPathBlacklistRegex.matcher(contextPath);</span>
     }
-<span class="pc bpc" id="L204" title="2 of 6 branches missed.">    if (matcher.matches() &amp;&amp; (blacklistMatcher == null || !blacklistMatcher.matches())) {</span>
-<span class="fc" id="L205">      return matcher.replaceAll(configPathPattern);</span>
+<span class="pc bpc" id="L208" title="2 of 6 branches missed.">    if (matcher.matches() &amp;&amp; (blacklistMatcher == null || !blacklistMatcher.matches())) {</span>
+<span class="fc" id="L209">      return matcher.replaceAll(configPathPattern);</span>
     }
     else {
-<span class="fc" id="L208">      return null;</span>
+<span class="fc" id="L212">      return null;</span>
     }
   }
 
   private boolean isResourceBelongingToBlacklistedTemplates(Resource resource, PageManager pageManager) {
-<span class="fc bfc" id="L213" title="All 2 branches covered.">    if (templatePathsBlacklist.isEmpty()) {</span>
-<span class="fc" id="L214">      return false;</span>
+<span class="fc bfc" id="L217" title="All 2 branches covered.">    if (templatePathsBlacklist.isEmpty()) {</span>
+<span class="fc" id="L218">      return false;</span>
     }
-<span class="fc" id="L216">    Page page = pageManager.getContainingPage(resource);</span>
+<span class="fc" id="L220">    Page page = pageManager.getContainingPage(resource);</span>
     // if no containing page could be determined, we don't blacklist
-<span class="fc bfc" id="L218" title="All 2 branches covered.">    if (page == null) {</span>
-<span class="fc" id="L219">      log.trace(&quot;Resource '{}' is not part of page, blacklisted templates are not considered.&quot;, resource.getPath());</span>
-<span class="fc" id="L220">      return false;</span>
+<span class="fc bfc" id="L222" title="All 2 branches covered.">    if (page == null) {</span>
+<span class="fc" id="L223">      log.trace(&quot;Resource '{}' is not part of page, blacklisted templates are not considered.&quot;, resource.getPath());</span>
+<span class="fc" id="L224">      return false;</span>
     }
-<span class="fc" id="L222">    String templatePath = page.getProperties().get(NameConstants.PN_TEMPLATE, String.class);</span>
-<span class="pc bpc" id="L223" title="1 of 2 branches missed.">    if (templatePath != null) {</span>
-<span class="fc bfc" id="L224" title="All 2 branches covered.">      if (templatePathsBlacklist.contains(templatePath)) {</span>
-<span class="fc" id="L225">        return true;</span>
+<span class="fc" id="L226">    String templatePath = page.getProperties().get(NameConstants.PN_TEMPLATE, String.class);</span>
+<span class="pc bpc" id="L227" title="1 of 2 branches missed.">    if (templatePath != null) {</span>
+<span class="fc bfc" id="L228" title="All 2 branches covered.">      if (templatePathsBlacklist.contains(templatePath)) {</span>
+<span class="fc" id="L229">        return true;</span>
       }
     }
     else {
-<span class="nc" id="L229">      log.trace(&quot;Resource '{}' is part of page '{}' which doesn't contain any template property, blacklisted templates are not considered.&quot;,</span>
-<span class="nc" id="L230">          resource.getPath(), page.getPath());</span>
-<span class="nc" id="L231">      return false;</span>
+<span class="nc" id="L233">      log.trace(&quot;Resource '{}' is part of page '{}' which doesn't contain any template property, blacklisted templates are not considered.&quot;,</span>
+<span class="nc" id="L234">          resource.getPath(), page.getPath());</span>
+<span class="nc" id="L235">      return false;</span>
     }
-<span class="fc" id="L233">    log.trace(&quot;Resource '{}' is part of page '{}' but is not based on any of the blacklisted templates.&quot;, resource.getPath(), page.getPath());</span>
-<span class="fc" id="L234">    return false;</span>
+<span class="fc" id="L237">    log.trace(&quot;Resource '{}' is part of page '{}' but is not based on any of the blacklisted templates.&quot;, resource.getPath(), page.getPath());</span>
+<span class="fc" id="L238">    return false;</span>
   }
 
 }

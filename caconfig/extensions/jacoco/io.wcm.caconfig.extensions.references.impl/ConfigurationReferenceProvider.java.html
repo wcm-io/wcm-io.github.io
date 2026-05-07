@@ -138,54 +138,55 @@ import com.day.cq.wcm.api.reference.ReferenceProvider;
 <span class="fc" id="L138">    enabled = false;</span>
 <span class="fc" id="L139">  }</span>
 
+  @SuppressWarnings(&quot;java:S112&quot;) // accept RuntimeException
   @Override
   public List&lt;com.day.cq.wcm.api.reference.Reference&gt; findReferences(Resource resource) {
-<span class="fc bfc" id="L143" title="All 2 branches covered.">    if (!enabled) {</span>
-<span class="fc" id="L144">      return Collections.emptyList();</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">    if (!enabled) {</span>
+<span class="fc" id="L145">      return Collections.emptyList();</span>
     }
 
-<span class="fc" id="L147">    PageManager pageManager = pageManagerFactory.getPageManager(resource.getResourceResolver());</span>
-<span class="pc bpc" id="L148" title="1 of 2 branches missed.">    if (pageManager == null) {</span>
-<span class="nc" id="L149">      throw new RuntimeException(&quot;No page manager.&quot;);</span>
+<span class="fc" id="L148">    PageManager pageManager = pageManagerFactory.getPageManager(resource.getResourceResolver());</span>
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">    if (pageManager == null) {</span>
+<span class="nc" id="L150">      throw new RuntimeException(&quot;No page manager.&quot;);</span>
     }
-<span class="fc" id="L151">    Page contextPage = pageManager.getContainingPage(resource);</span>
-<span class="pc bpc" id="L152" title="1 of 4 branches missed.">    if (contextPage == null || !shouldProcessContextPage(contextPage)) {</span>
-<span class="fc" id="L153">      return Collections.emptyList();</span>
+<span class="fc" id="L152">    Page contextPage = pageManager.getContainingPage(resource);</span>
+<span class="pc bpc" id="L153" title="1 of 4 branches missed.">    if (contextPage == null || !shouldProcessContextPage(contextPage)) {</span>
+<span class="fc" id="L154">      return Collections.emptyList();</span>
     }
 
-<span class="fc" id="L156">    Map&lt;String, ConfigurationMetadata&gt; configurationMetadatas = new TreeMap&lt;&gt;(configurationManager.getConfigurationNames().stream()</span>
-<span class="fc" id="L157">      .collect(Collectors.toMap(configName -&gt; configName, configName -&gt; configurationManager.getConfigurationMetadata(configName))));</span>
-<span class="fc" id="L158">    List&lt;com.day.cq.wcm.api.reference.Reference&gt; references = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L159">    Map&lt;String, Asset&gt; referencedAssets = new TreeMap&lt;&gt;();</span>
-<span class="fc" id="L160">    Set&lt;String&gt; configurationBuckets = new LinkedHashSet&lt;&gt;(configurationResourceResolverConfig.configBucketNames());</span>
+<span class="fc" id="L157">    Map&lt;String, ConfigurationMetadata&gt; configurationMetadatas = new TreeMap&lt;&gt;(configurationManager.getConfigurationNames().stream()</span>
+<span class="fc" id="L158">      .collect(Collectors.toMap(configName -&gt; configName, configName -&gt; configurationManager.getConfigurationMetadata(configName))));</span>
+<span class="fc" id="L159">    List&lt;com.day.cq.wcm.api.reference.Reference&gt; references = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L160">    Map&lt;String, Asset&gt; referencedAssets = new TreeMap&lt;&gt;();</span>
+<span class="fc" id="L161">    Set&lt;String&gt; configurationBuckets = new LinkedHashSet&lt;&gt;(configurationResourceResolverConfig.configBucketNames());</span>
 
-<span class="fc bfc" id="L162" title="All 2 branches covered.">    for (String configurationName : configurationMetadatas.keySet()) {</span>
-<span class="fc" id="L163">      Iterator&lt;Resource&gt; configurationInheritanceChain = configurationResourceResolvingStrategy.getResourceInheritanceChain(resource, configurationBuckets,</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">    for (String configurationName : configurationMetadatas.keySet()) {</span>
+<span class="fc" id="L164">      Iterator&lt;Resource&gt; configurationInheritanceChain = configurationResourceResolvingStrategy.getResourceInheritanceChain(resource, configurationBuckets,</span>
           configurationName);
 
       // get all configuration pages from inheritance chain
-<span class="fc" id="L167">      Collection&lt;Page&gt; referencePages = getReferencePages(configurationInheritanceChain, pageManager);</span>
+<span class="fc" id="L168">      Collection&lt;Page&gt; referencePages = getReferencePages(configurationInheritanceChain, pageManager);</span>
 
       // generate references for each page (but not if the context page itself is included as well)
-<span class="fc" id="L170">      referencePages.stream()</span>
-<span class="pc bpc" id="L171" title="1 of 2 branches missed.">        .filter(configPage -&gt; !Strings.CS.equals(contextPage.getPath(), configPage.getPath()))</span>
-<span class="fc" id="L172">        .forEach(configPage -&gt; {</span>
-<span class="fc" id="L173">          references.add(toReference(resource, configPage, configurationMetadatas, configurationBuckets));</span>
+<span class="fc" id="L171">      referencePages.stream()</span>
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">        .filter(configPage -&gt; !Strings.CS.equals(contextPage.getPath(), configPage.getPath()))</span>
+<span class="fc" id="L173">        .forEach(configPage -&gt; {</span>
+<span class="fc" id="L174">          references.add(toReference(resource, configPage, configurationMetadatas, configurationBuckets));</span>
           // collect asset references
-<span class="pc bpc" id="L175" title="1 of 4 branches missed.">          if (assetReferencesEnabled &amp;&amp; configPage.getContentResource() != null) {</span>
-<span class="fc" id="L176">            AssetRefereneDetector detector = new AssetRefereneDetector(configPage);</span>
-<span class="fc" id="L177">            detector.getReferencedAssets().stream().forEach(asset -&gt; referencedAssets.put(asset.getPath(), asset));</span>
+<span class="pc bpc" id="L176" title="1 of 4 branches missed.">          if (assetReferencesEnabled &amp;&amp; configPage.getContentResource() != null) {</span>
+<span class="fc" id="L177">            AssetRefereneDetector detector = new AssetRefereneDetector(configPage);</span>
+<span class="fc" id="L178">            detector.getReferencedAssets().forEach(asset -&gt; referencedAssets.put(asset.getPath(), asset));</span>
           }
-<span class="fc" id="L179">        });</span>
-<span class="fc" id="L180">    }</span>
+<span class="fc" id="L180">        });</span>
+<span class="fc" id="L181">    }</span>
 
-<span class="fc bfc" id="L182" title="All 2 branches covered.">    if (!referencedAssets.isEmpty()) {</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">    if (!referencedAssets.isEmpty()) {</span>
       // collect asset references detected in configuration pages (de-duplicated by using a map)
-<span class="fc" id="L184">      referencedAssets.values().forEach(asset -&gt; references.add(toReference(resource, asset)));</span>
+<span class="fc" id="L185">      referencedAssets.values().forEach(asset -&gt; references.add(toReference(resource, asset)));</span>
     }
 
-<span class="fc" id="L187">    log.debug(&quot;Found {} references for resource {}&quot;, references.size(), resource.getPath());</span>
-<span class="fc" id="L188">    return references;</span>
+<span class="fc" id="L188">    log.debug(&quot;Found {} references for resource {}&quot;, references.size(), resource.getPath());</span>
+<span class="fc" id="L189">    return references;</span>
   }
 
   /**
@@ -194,46 +195,46 @@ import com.day.cq.wcm.api.reference.ReferenceProvider;
    * @return true if context page should be processed
    */
   private boolean shouldProcessContextPage(@NotNull Page contextPage) {
-<span class="fc" id="L197">    String resourceType = contextPage.getContentResource().getResourceType();</span>
-<span class="fc bfc" id="L198" title="All 2 branches covered.">    if (contextPageResourceTypeDenyList.contains(resourceType)) {</span>
-<span class="fc" id="L199">      return false;</span>
+<span class="fc" id="L198">    String resourceType = contextPage.getContentResource().getResourceType();</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">    if (contextPageResourceTypeDenyList.contains(resourceType)) {</span>
+<span class="fc" id="L200">      return false;</span>
     }
-<span class="fc bfc" id="L201" title="All 4 branches covered.">    return (contextPageResourceTypeAllowList.isEmpty() || contextPageResourceTypeAllowList.contains(resourceType));</span>
+<span class="fc bfc" id="L202" title="All 4 branches covered.">    return (contextPageResourceTypeAllowList.isEmpty() || contextPageResourceTypeAllowList.contains(resourceType));</span>
   }
 
   private Collection&lt;Page&gt; getReferencePages(@Nullable Iterator&lt;Resource&gt; configurationInheritanceChain, @NotNull PageManager pageManager) {
-<span class="fc" id="L205">    Map&lt;String, Page&gt; referencePages = new LinkedHashMap&lt;&gt;();</span>
-<span class="pc bpc" id="L206" title="1 of 4 branches missed.">    while (configurationInheritanceChain != null &amp;&amp; configurationInheritanceChain.hasNext()) {</span>
-<span class="fc" id="L207">      Resource configurationResource = configurationInheritanceChain.next();</span>
+<span class="fc" id="L206">    Map&lt;String, Page&gt; referencePages = new LinkedHashMap&lt;&gt;();</span>
+<span class="pc bpc" id="L207" title="1 of 4 branches missed.">    while (configurationInheritanceChain != null &amp;&amp; configurationInheritanceChain.hasNext()) {</span>
+<span class="fc" id="L208">      Resource configurationResource = configurationInheritanceChain.next();</span>
 
       // get page for configuration resource - and all children (e.g. for config collections)
       // collect in map to eliminate duplicate pages
-<span class="fc" id="L211">      Page configPage = pageManager.getContainingPage(configurationResource);</span>
-<span class="fc bfc" id="L212" title="All 2 branches covered.">      if (configPage != null) {</span>
-<span class="fc" id="L213">        referencePages.put(configPage.getPath(), configPage);</span>
-<span class="fc" id="L214">        Iterator&lt;Page&gt; deepChildren = configPage.listChildren(new PageFilter(false, true), true);</span>
-<span class="pc bpc" id="L215" title="1 of 2 branches missed.">        while (deepChildren.hasNext()) {</span>
-<span class="nc" id="L216">          Page configChildPage = deepChildren.next();</span>
-<span class="nc" id="L217">          referencePages.put(configChildPage.getPath(), configChildPage);</span>
-<span class="nc" id="L218">        }</span>
+<span class="fc" id="L212">      Page configPage = pageManager.getContainingPage(configurationResource);</span>
+<span class="fc bfc" id="L213" title="All 2 branches covered.">      if (configPage != null) {</span>
+<span class="fc" id="L214">        referencePages.put(configPage.getPath(), configPage);</span>
+<span class="fc" id="L215">        Iterator&lt;Page&gt; deepChildren = configPage.listChildren(new PageFilter(false, true), true);</span>
+<span class="pc bpc" id="L216" title="1 of 2 branches missed.">        while (deepChildren.hasNext()) {</span>
+<span class="nc" id="L217">          Page configChildPage = deepChildren.next();</span>
+<span class="nc" id="L218">          referencePages.put(configChildPage.getPath(), configChildPage);</span>
+<span class="nc" id="L219">        }</span>
       }
-<span class="fc" id="L220">    }</span>
-<span class="fc" id="L221">    return referencePages.values();</span>
+<span class="fc" id="L221">    }</span>
+<span class="fc" id="L222">    return referencePages.values();</span>
   }
 
   private com.day.cq.wcm.api.reference.Reference toReference(Resource resource, Page configPage,
       Map&lt;String, ConfigurationMetadata&gt; configurationMetadatas, Set&lt;String&gt; configurationBuckets) {
-<span class="fc" id="L226">    log.trace(&quot;Found configuration reference {} for resource {}&quot;, configPage.getPath(), resource.getPath());</span>
-<span class="fc" id="L227">    return new com.day.cq.wcm.api.reference.Reference(REFERENCE_TYPE,</span>
-<span class="fc" id="L228">        getReferenceName(configPage, configurationMetadatas, configurationBuckets),</span>
-<span class="fc" id="L229">        configPage.adaptTo(Resource.class),</span>
-<span class="fc" id="L230">        getLastModifiedOf(configPage));</span>
+<span class="fc" id="L227">    log.trace(&quot;Found configuration reference {} for resource {}&quot;, configPage.getPath(), resource.getPath());</span>
+<span class="fc" id="L228">    return new com.day.cq.wcm.api.reference.Reference(REFERENCE_TYPE,</span>
+<span class="fc" id="L229">        getReferenceName(configPage, configurationMetadatas, configurationBuckets),</span>
+<span class="fc" id="L230">        configPage.adaptTo(Resource.class),</span>
+<span class="fc" id="L231">        getLastModifiedOf(configPage));</span>
   }
 
   private com.day.cq.wcm.api.reference.Reference toReference(Resource resource, Asset asset) {
-<span class="fc" id="L234">    log.trace(&quot;Found asset reference {} for resource {}&quot;, asset.getPath(), resource.getPath());</span>
-<span class="fc" id="L235">    return new com.day.cq.wcm.api.reference.Reference(ACTIVITY_TYPE_ASSET,</span>
-<span class="fc" id="L236">        asset.getName(), asset.adaptTo(Resource.class), asset.getLastModified());</span>
+<span class="fc" id="L235">    log.trace(&quot;Found asset reference {} for resource {}&quot;, asset.getPath(), resource.getPath());</span>
+<span class="fc" id="L236">    return new com.day.cq.wcm.api.reference.Reference(ACTIVITY_TYPE_ASSET,</span>
+<span class="fc" id="L237">        asset.getName(), asset.adaptTo(Resource.class), asset.getLastModified());</span>
   }
 
   /**
@@ -244,24 +245,24 @@ import com.day.cq.wcm.api.reference.ReferenceProvider;
    */
   private static String getReferenceName(Page configPage,
       Map&lt;String, ConfigurationMetadata&gt; configurationMetadatas, Set&lt;String&gt; configurationBuckets) {
-<span class="fc" id="L247">    List&lt;String&gt; pathParts = Arrays.asList(StringUtils.split(configPage.getPath(), &quot;/&quot;));</span>
-<span class="fc" id="L248">    return pathParts.stream()</span>
-<span class="fc bfc" id="L249" title="All 2 branches covered.">      .filter(name -&gt; !configurationBuckets.contains(name))</span>
-<span class="fc" id="L250">      .map(name -&gt; {</span>
-<span class="fc" id="L251">        ConfigurationMetadata configMetadata = configurationMetadatas.get(name);</span>
-<span class="pc bpc" id="L252" title="1 of 4 branches missed.">        if (configMetadata != null &amp;&amp; configMetadata.getLabel() != null) {</span>
-<span class="fc" id="L253">          return configMetadata.getLabel();</span>
+<span class="fc" id="L248">    List&lt;String&gt; pathParts = Arrays.asList(StringUtils.split(configPage.getPath(), &quot;/&quot;));</span>
+<span class="fc" id="L249">    return pathParts.stream()</span>
+<span class="fc bfc" id="L250" title="All 2 branches covered.">      .filter(name -&gt; !configurationBuckets.contains(name))</span>
+<span class="fc" id="L251">      .map(name -&gt; {</span>
+<span class="fc" id="L252">        ConfigurationMetadata configMetadata = configurationMetadatas.get(name);</span>
+<span class="pc bpc" id="L253" title="1 of 4 branches missed.">        if (configMetadata != null &amp;&amp; configMetadata.getLabel() != null) {</span>
+<span class="fc" id="L254">          return configMetadata.getLabel();</span>
         }
         else {
-<span class="fc" id="L256">          return name;</span>
+<span class="fc" id="L257">          return name;</span>
         }
       })
-<span class="fc" id="L259">      .collect(Collectors.joining(&quot; / &quot;));</span>
+<span class="fc" id="L260">      .collect(Collectors.joining(&quot; / &quot;));</span>
   }
 
   private static long getLastModifiedOf(Page page) {
-<span class="fc" id="L263">    Calendar lastModified = page.getLastModified();</span>
-<span class="fc bfc" id="L264" title="All 2 branches covered.">    return lastModified != null ? lastModified.getTimeInMillis() : 0;</span>
+<span class="fc" id="L264">    Calendar lastModified = page.getLastModified();</span>
+<span class="fc bfc" id="L265" title="All 2 branches covered.">    return lastModified != null ? lastModified.getTimeInMillis() : 0;</span>
   }
 
 }
