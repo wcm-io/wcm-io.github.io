@@ -49,11 +49,12 @@ public class TarUnArchiver {
   private final File archive;
 
   /**
+   * Constructor
    * @param archive Archive
    */
-<span class="fc" id="L54">  public TarUnArchiver(File archive) {</span>
-<span class="fc" id="L55">    this.archive = archive;</span>
-<span class="fc" id="L56">  }</span>
+<span class="fc" id="L55">  public TarUnArchiver(File archive) {</span>
+<span class="fc" id="L56">    this.archive = archive;</span>
+<span class="fc" id="L57">  }</span>
 
   /**
    * Unarchives the archive into the base dir
@@ -61,89 +62,89 @@ public class TarUnArchiver {
    * @throws MojoExecutionException Mojo execution exception
    */
   public void unarchive(String baseDir) throws MojoExecutionException {
-<span class="fc" id="L64">    Path baseDirPath = Path.of(baseDir);</span>
-<span class="fc" id="L65">    try (FileInputStream fis = new FileInputStream(archive);</span>
-<span class="fc" id="L66">        TarArchiveInputStream tarIn = new TarArchiveInputStream(new GzipCompressorInputStream(fis))) {</span>
-<span class="fc" id="L67">      extractEntries(tarIn, baseDirPath);</span>
+<span class="fc" id="L65">    Path baseDirPath = Path.of(baseDir);</span>
+<span class="fc" id="L66">    try (FileInputStream fis = new FileInputStream(archive);</span>
+<span class="fc" id="L67">        TarArchiveInputStream tarIn = new TarArchiveInputStream(new GzipCompressorInputStream(fis))) {</span>
+<span class="fc" id="L68">      extractEntries(tarIn, baseDirPath);</span>
     }
-<span class="fc" id="L69">    catch (IOException ex) {</span>
-<span class="fc" id="L70">      throw new MojoExecutionException(&quot;Could not extract archive: &quot; + archive.getAbsolutePath(), ex);</span>
-<span class="fc" id="L71">    }</span>
+<span class="fc" id="L70">    catch (IOException ex) {</span>
+<span class="fc" id="L71">      throw new MojoExecutionException(&quot;Could not extract archive: &quot; + archive.getAbsolutePath(), ex);</span>
+<span class="fc" id="L72">    }</span>
 
     // delete archive after extraction
     try {
-<span class="fc" id="L75">      Files.deleteIfExists(archive.toPath());</span>
+<span class="fc" id="L76">      Files.deleteIfExists(archive.toPath());</span>
     }
-<span class="nc" id="L77">    catch (IOException ex) {</span>
-<span class="nc" id="L78">      throw new MojoExecutionException(&quot;Could not delete archive: &quot; + archive.getAbsolutePath(), ex);</span>
-<span class="fc" id="L79">    }</span>
-<span class="fc" id="L80">  }</span>
+<span class="nc" id="L78">    catch (IOException ex) {</span>
+<span class="nc" id="L79">      throw new MojoExecutionException(&quot;Could not delete archive: &quot; + archive.getAbsolutePath(), ex);</span>
+<span class="fc" id="L80">    }</span>
+<span class="fc" id="L81">  }</span>
 
   private static void extractEntries(TarArchiveInputStream tarIn, Path baseDirPath) throws IOException {
-<span class="fc" id="L83">    long entryCount = 0;</span>
-<span class="fc" id="L84">    long totalBytes = 0;</span>
-<span class="fc" id="L85">    TarArchiveEntry tarEntry = tarIn.getNextEntry();</span>
-<span class="fc bfc" id="L86" title="All 2 branches covered.">    while (tarEntry != null) {</span>
-<span class="fc" id="L87">      entryCount++;</span>
-<span class="fc" id="L88">      SafeExtract.checkEntryCount(entryCount);</span>
+<span class="fc" id="L84">    long entryCount = 0;</span>
+<span class="fc" id="L85">    long totalBytes = 0;</span>
+<span class="fc" id="L86">    TarArchiveEntry tarEntry = tarIn.getNextEntry();</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">    while (tarEntry != null) {</span>
+<span class="fc" id="L88">      entryCount++;</span>
+<span class="fc" id="L89">      SafeExtract.checkEntryCount(entryCount);</span>
       // resolve safely against the base directory (mitigates zip slip)
-<span class="fc" id="L90">      final Path destPath = SafeExtract.resolveSafely(baseDirPath, tarEntry.getName());</span>
-<span class="fc bfc" id="L91" title="All 2 branches covered.">      if (tarEntry.isSymbolicLink()) {</span>
-<span class="fc" id="L92">        extractSymbolicLink(tarEntry, destPath, baseDirPath);</span>
+<span class="fc" id="L91">      final Path destPath = SafeExtract.resolveSafely(baseDirPath, tarEntry.getName());</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">      if (tarEntry.isSymbolicLink()) {</span>
+<span class="fc" id="L93">        extractSymbolicLink(tarEntry, destPath, baseDirPath);</span>
       }
-<span class="fc bfc" id="L94" title="All 2 branches covered.">      else if (tarEntry.isDirectory()) {</span>
-<span class="fc" id="L95">        Files.createDirectories(destPath);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">      else if (tarEntry.isDirectory()) {</span>
+<span class="fc" id="L96">        Files.createDirectories(destPath);</span>
       }
       else {
-<span class="fc" id="L98">        totalBytes = extractFile(tarIn, destPath, totalBytes);</span>
+<span class="fc" id="L99">        totalBytes = extractFile(tarIn, destPath, totalBytes);</span>
       }
-<span class="fc" id="L100">      tarEntry = tarIn.getNextEntry();</span>
-<span class="fc" id="L101">    }</span>
-<span class="fc" id="L102">  }</span>
+<span class="fc" id="L101">      tarEntry = tarIn.getNextEntry();</span>
+<span class="fc" id="L102">    }</span>
+<span class="fc" id="L103">  }</span>
 
   private static void extractSymbolicLink(TarArchiveEntry tarEntry, Path destPath, Path baseDirPath) throws IOException {
     // ensure symlink target stays within the base directory.
     // Symlink targets are typically relative to the directory containing the symlink,
     // so resolve them against the symlink's parent directory but verify the final
     // location against the extraction base directory.
-<span class="fc" id="L109">    Path destParent = destPath.getParent();</span>
-<span class="pc bpc" id="L110" title="1 of 2 branches missed.">    Path linkParent = destParent != null ? destParent : baseDirPath;</span>
-<span class="fc" id="L111">    Path resolvedLinkTarget = linkParent.resolve(tarEntry.getLinkName()).normalize();</span>
-<span class="fc bfc" id="L112" title="All 2 branches covered.">    if (!resolvedLinkTarget.startsWith(baseDirPath.toAbsolutePath().normalize())) {</span>
-<span class="fc" id="L113">      throw new IOException(&quot;Symbolic link target is outside of the target directory: &quot;</span>
-<span class="fc" id="L114">          + tarEntry.getName() + &quot; -&gt; &quot; + tarEntry.getLinkName());</span>
+<span class="fc" id="L110">    Path destParent = destPath.getParent();</span>
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">    Path linkParent = destParent != null ? destParent : baseDirPath;</span>
+<span class="fc" id="L112">    Path resolvedLinkTarget = linkParent.resolve(tarEntry.getLinkName()).normalize();</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">    if (!resolvedLinkTarget.startsWith(baseDirPath.toAbsolutePath().normalize())) {</span>
+<span class="fc" id="L114">      throw new IOException(&quot;Symbolic link target is outside of the target directory: &quot;</span>
+<span class="fc" id="L115">          + tarEntry.getName() + &quot; -&gt; &quot; + tarEntry.getLinkName());</span>
     }
-<span class="pc bpc" id="L116" title="1 of 2 branches missed.">    if (destParent != null) {</span>
-<span class="fc" id="L117">      Files.createDirectories(destParent);</span>
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">    if (destParent != null) {</span>
+<span class="fc" id="L118">      Files.createDirectories(destParent);</span>
     }
-<span class="fc" id="L119">    Files.createSymbolicLink(destPath, Path.of(tarEntry.getLinkName()));</span>
-<span class="fc" id="L120">  }</span>
+<span class="fc" id="L120">    Files.createSymbolicLink(destPath, Path.of(tarEntry.getLinkName()));</span>
+<span class="fc" id="L121">  }</span>
 
   private static long extractFile(TarArchiveInputStream tarIn, Path destPath, long totalBytes) throws IOException {
-<span class="fc" id="L123">    Path destParent = destPath.getParent();</span>
-<span class="pc bpc" id="L124" title="1 of 2 branches missed.">    if (destParent != null) {</span>
-<span class="fc" id="L125">      Files.createDirectories(destParent);</span>
+<span class="fc" id="L124">    Path destParent = destPath.getParent();</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">    if (destParent != null) {</span>
+<span class="fc" id="L126">      Files.createDirectories(destParent);</span>
     }
     long newTotal;
-<span class="fc" id="L128">    try (OutputStream bout = new BufferedOutputStream(Files.newOutputStream(destPath))) {</span>
-<span class="fc" id="L129">      newTotal = SafeExtract.copyWithLimit(tarIn, bout, totalBytes);</span>
+<span class="fc" id="L129">    try (OutputStream bout = new BufferedOutputStream(Files.newOutputStream(destPath))) {</span>
+<span class="fc" id="L130">      newTotal = SafeExtract.copyWithLimit(tarIn, bout, totalBytes);</span>
     }
-<span class="fc" id="L131">    setExecutablePermissionsIfPosix(destPath);</span>
-<span class="fc" id="L132">    return newTotal;</span>
+<span class="fc" id="L132">    setExecutablePermissionsIfPosix(destPath);</span>
+<span class="fc" id="L133">    return newTotal;</span>
   }
 
   private static void setExecutablePermissionsIfPosix(Path destPath) throws IOException {
     // set executable permission via PosixFilePermissions when supported
     try {
-<span class="fc" id="L138">      Set&lt;PosixFilePermission&gt; perms = Files.getPosixFilePermissions(destPath);</span>
-<span class="fc" id="L139">      perms.add(PosixFilePermission.OWNER_EXECUTE);</span>
-<span class="fc" id="L140">      perms.add(PosixFilePermission.GROUP_EXECUTE);</span>
-<span class="fc" id="L141">      Files.setPosixFilePermissions(destPath, perms);</span>
+<span class="fc" id="L139">      Set&lt;PosixFilePermission&gt; perms = Files.getPosixFilePermissions(destPath);</span>
+<span class="fc" id="L140">      perms.add(PosixFilePermission.OWNER_EXECUTE);</span>
+<span class="fc" id="L141">      perms.add(PosixFilePermission.GROUP_EXECUTE);</span>
+<span class="fc" id="L142">      Files.setPosixFilePermissions(destPath, perms);</span>
     }
-<span class="nc" id="L143">    catch (UnsupportedOperationException ex) {</span>
+<span class="nc" id="L144">    catch (UnsupportedOperationException ex) {</span>
       // not a POSIX file system (e.g. Windows) - skip setting permissions
-<span class="fc" id="L145">    }</span>
-<span class="fc" id="L146">  }</span>
+<span class="fc" id="L146">    }</span>
+<span class="fc" id="L147">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
