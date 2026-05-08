@@ -22,16 +22,24 @@ package io.wcm.maven.plugins.nodejs.installation;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
-import org.apache.commons.io.IOUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 
 /**
- * Wrapper around the commons compress library to decompress the zip archives
+ * Wrapper around the commons compress library to decompress the zip archives.
+ *
+ * &lt;p&gt;
+ * Extraction is hardened against zip slip and zip bomb attacks via {@link SafeExtract}.
+ * See &lt;a href=&quot;https://commons.apache.org/proper/commons-compress/security-reports.html&quot;&gt;
+ * Commons Compress security recommendations&lt;/a&gt; and
+ * &lt;a href=&quot;https://rules.sonarsource.com/java/RSPEC-5042&quot;&gt;SonarSource rule java:S5042&lt;/a&gt;.
+ * &lt;/p&gt;
  */
 public class ZipUnArchiver {
 
@@ -40,9 +48,9 @@ public class ZipUnArchiver {
   /**
    * @param archive Archive
    */
-<span class="nc" id="L43">  public ZipUnArchiver(File archive) {</span>
-<span class="nc" id="L44">    this.archive = archive;</span>
-<span class="nc" id="L45">  }</span>
+<span class="fc" id="L51">  public ZipUnArchiver(File archive) {</span>
+<span class="fc" id="L52">    this.archive = archive;</span>
+<span class="fc" id="L53">  }</span>
 
   /**
    * Unarchives the archive into the base dir
@@ -50,31 +58,44 @@ public class ZipUnArchiver {
    * @throws MojoExecutionException Mojo execution exception
    */
   public void unarchive(String baseDir) throws MojoExecutionException {
-<span class="nc" id="L53">    try (FileInputStream fis = new FileInputStream(archive);</span>
-<span class="nc" id="L54">        ZipArchiveInputStream zipIn = new ZipArchiveInputStream(fis)) {</span>
-<span class="nc" id="L55">      ZipArchiveEntry zipEnry = zipIn.getNextEntry();</span>
-<span class="nc bnc" id="L56" title="All 2 branches missed.">      while (zipEnry != null) {</span>
-        // Create a file for this tarEntry
-<span class="nc" id="L58">        final File destPath = new File(baseDir + File.separator + zipEnry.getName());</span>
-<span class="nc bnc" id="L59" title="All 2 branches missed.">        if (zipEnry.isDirectory()) {</span>
-<span class="nc" id="L60">          destPath.mkdirs();</span>
+<span class="fc" id="L61">    Path baseDirPath = Path.of(baseDir);</span>
+<span class="fc" id="L62">    long entryCount = 0;</span>
+<span class="fc" id="L63">    long totalBytes = 0;</span>
+<span class="fc" id="L64">    try (FileInputStream fis = new FileInputStream(archive);</span>
+<span class="fc" id="L65">        ZipArchiveInputStream zipIn = new ZipArchiveInputStream(fis)) {</span>
+<span class="fc" id="L66">      ZipArchiveEntry zipEntry = zipIn.getNextEntry();</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">      while (zipEntry != null) {</span>
+<span class="fc" id="L68">        entryCount++;</span>
+<span class="fc" id="L69">        SafeExtract.checkEntryCount(entryCount);</span>
+        // resolve safely against the base directory (mitigates zip slip)
+<span class="fc" id="L71">        final Path destPath = SafeExtract.resolveSafely(baseDirPath, zipEntry.getName());</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        if (zipEntry.isDirectory()) {</span>
+<span class="fc" id="L73">          Files.createDirectories(destPath);</span>
         }
         else {
-<span class="nc" id="L63">          destPath.createNewFile();</span>
-<span class="nc" id="L64">          try (BufferedOutputStream bout = new BufferedOutputStream(new FileOutputStream(destPath))) {</span>
-<span class="nc" id="L65">            IOUtils.copy(zipIn, bout);</span>
+<span class="fc" id="L76">          Path destParent = destPath.getParent();</span>
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">          if (destParent != null) {</span>
+<span class="fc" id="L78">            Files.createDirectories(destParent);</span>
+          }
+<span class="fc" id="L80">          try (OutputStream bout = new BufferedOutputStream(Files.newOutputStream(destPath))) {</span>
+<span class="fc" id="L81">            totalBytes = SafeExtract.copyWithLimit(zipIn, bout, totalBytes);</span>
           }
         }
-<span class="nc" id="L68">        zipEnry = zipIn.getNextEntry();</span>
-<span class="nc" id="L69">      }</span>
+<span class="fc" id="L84">        zipEntry = zipIn.getNextEntry();</span>
+<span class="fc" id="L85">      }</span>
     }
-<span class="nc" id="L71">    catch (IOException ex) {</span>
-<span class="nc" id="L72">      throw new MojoExecutionException(&quot;Could not extract archive: &quot; + archive.getAbsolutePath(), ex);</span>
-<span class="nc" id="L73">    }</span>
+<span class="fc" id="L87">    catch (IOException ex) {</span>
+<span class="fc" id="L88">      throw new MojoExecutionException(&quot;Could not extract archive: &quot; + archive.getAbsolutePath(), ex);</span>
+<span class="fc" id="L89">    }</span>
 
     // delete archive after extraction
-<span class="nc" id="L76">    archive.delete();</span>
-<span class="nc" id="L77">  }</span>
+    try {
+<span class="fc" id="L93">      Files.deleteIfExists(archive.toPath());</span>
+    }
+<span class="nc" id="L95">    catch (IOException ex) {</span>
+<span class="nc" id="L96">      throw new MojoExecutionException(&quot;Could not delete archive: &quot; + archive.getAbsolutePath(), ex);</span>
+<span class="fc" id="L97">    }</span>
+<span class="fc" id="L98">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
