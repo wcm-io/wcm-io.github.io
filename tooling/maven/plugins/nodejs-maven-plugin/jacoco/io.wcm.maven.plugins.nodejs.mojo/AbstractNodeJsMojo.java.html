@@ -49,7 +49,8 @@ import io.wcm.maven.plugins.nodejs.installation.NodeUnarchiveTask;
 /**
  * Common Node.js Mojo functionality.
  */
-<span class="fc" id="L52">public abstract class AbstractNodeJsMojo extends AbstractMojo {</span>
+@SuppressWarnings(&quot;java:S6813&quot;) // allow field injection
+<span class="fc" id="L53">public abstract class AbstractNodeJsMojo extends AbstractMojo {</span>
 
   /**
    * Node.js version (minimum version: 6.3.0). Can be specified with or without &quot;v&quot; prefix.
@@ -141,91 +142,98 @@ import io.wcm.maven.plugins.nodejs.installation.NodeUnarchiveTask;
   @Inject
   private ArtifactResolver resolver;
 
-<span class="fc" id="L144">  private static final ComparableVersion NODEJS_MIN_VERSION = new ComparableVersion(&quot;6.3.0&quot;);</span>
+<span class="fc" id="L145">  private static final ComparableVersion NODEJS_MIN_VERSION = new ComparableVersion(&quot;6.3.0&quot;);</span>
 
   /**
    * Installs node js if necessary and performs defined tasks
    * @throws MojoExecutionException Mojo execution exception
    */
   public void run() throws MojoExecutionException {
-<span class="pc bpc" id="L151" title="1 of 2 branches missed.">    if (skip) {</span>
-<span class="nc" id="L152">      return;</span>
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">    if (skip) {</span>
+<span class="nc" id="L153">      return;</span>
     }
 
-<span class="pc bpc" id="L155" title="2 of 4 branches missed.">    if (tasks == null || tasks.isEmpty()) {</span>
-<span class="nc" id="L156">      getLog().warn(&quot;No Node.js tasks have been defined. Nothing to do.&quot;);</span>
+<span class="pc bpc" id="L156" title="2 of 4 branches missed.">    if (tasks == null || tasks.isEmpty()) {</span>
+<span class="nc" id="L157">      getLog().warn(&quot;No Node.js tasks have been defined. Nothing to do.&quot;);</span>
     }
 
     // validate nodejs version
-<span class="fc" id="L160">    ComparableVersion nodeJsVersionComparable = new ComparableVersion(cleanupVersion(nodeJsVersion));</span>
-<span class="pc bpc" id="L161" title="1 of 2 branches missed.">    if (nodeJsVersionComparable.compareTo(NODEJS_MIN_VERSION) &lt; 0) {</span>
-<span class="nc" id="L162">      throw new MojoExecutionException(&quot;This plugin supports Node.js &quot; + NODEJS_MIN_VERSION + &quot; and up.&quot;);</span>
+<span class="fc" id="L161">    ComparableVersion nodeJsVersionComparable = new ComparableVersion(cleanupVersion(nodeJsVersion));</span>
+<span class="pc bpc" id="L162" title="1 of 2 branches missed.">    if (nodeJsVersionComparable.compareTo(NODEJS_MIN_VERSION) &lt; 0) {</span>
+<span class="nc" id="L163">      throw new MojoExecutionException(&quot;This plugin supports Node.js &quot; + NODEJS_MIN_VERSION + &quot; and up.&quot;);</span>
     }
 
-<span class="fc" id="L165">    NodeInstallationInformation information = getOrInstallNodeJS();</span>
+<span class="fc" id="L166">    NodeInstallationInformation information = getOrInstallNodeJS();</span>
 
-<span class="pc bpc" id="L167" title="1 of 2 branches missed.">    if (tasks != null) {</span>
-<span class="fc bfc" id="L168" title="All 2 branches covered.">      for (Task task : tasks) {</span>
-<span class="fc" id="L169">        task.setLog(getLog());</span>
-<span class="fc" id="L170">        task.execute(information);</span>
-<span class="fc" id="L171">      }</span>
-    }
-<span class="fc" id="L173">  }</span>
-
-  private NodeInstallationInformation getOrInstallNodeJS() throws MojoExecutionException {
-<span class="fc" id="L176">    NodeInstallationInformation information = NodeInstallationInformation.forVersion(cleanupVersion(nodeJsVersion), npmVersion, nodeJsDirectory);</span>
-    try {
-<span class="pc bpc" id="L178" title="1 of 4 branches missed.">      if (!information.getNodeExecutable().exists() || !information.getNpmExecutableBundledWithNodeJs().exists()) {</span>
-<span class="fc" id="L179">        getLog().info(&quot;Install Node.js to &quot; + information.getNodeJsInstallPath());</span>
-<span class="pc bpc" id="L180" title="1 of 2 branches missed.">        if (!cleanNodeJsInstallPath(information)) {</span>
-<span class="nc" id="L181">          throw new MojoExecutionException(&quot;Could not delete node js directory: &quot; + information.getNodeJsInstallPath());</span>
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">    if (tasks != null) {</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">      for (Task task : tasks) {</span>
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">        if (task != null) {</span>
+<span class="fc" id="L171">          task.setLog(getLog());</span>
+<span class="fc" id="L172">          task.execute(information);</span>
         }
-<span class="fc" id="L183">        File nodeJsBinary = resolveArtifact(information.getNodeJsDependency());</span>
-<span class="fc" id="L184">        FileUtils.copyFile(nodeJsBinary, information.getArchive());</span>
-<span class="fc" id="L185">        Task installationTask = new NodeUnarchiveTask(nodeJsDirectory.getAbsolutePath());</span>
-<span class="fc" id="L186">        installationTask.setLog(getLog());</span>
-<span class="fc" id="L187">        installationTask.execute(information);</span>
+<span class="fc" id="L174">      }</span>
+    }
+<span class="fc" id="L176">  }</span>
+
+  @SuppressWarnings(&quot;PMD.ExceptionAsFlowControl&quot;)
+  private NodeInstallationInformation getOrInstallNodeJS() throws MojoExecutionException {
+<span class="fc" id="L180">    NodeInstallationInformation information = NodeInstallationInformation.forVersion(cleanupVersion(nodeJsVersion), npmVersion, nodeJsDirectory);</span>
+    try {
+<span class="pc bpc" id="L182" title="1 of 4 branches missed.">      if (!information.getNodeExecutable().exists() || !information.getNpmExecutableBundledWithNodeJs().exists()) {</span>
+<span class="fc" id="L183">        getLog().info(&quot;Install Node.js to &quot; + information.getNodeJsInstallPath());</span>
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">        if (!cleanNodeJsInstallPath(information)) {</span>
+<span class="nc" id="L185">          throw new MojoExecutionException(&quot;Could not delete node js directory: &quot; + information.getNodeJsInstallPath());</span>
+        }
+<span class="fc" id="L187">        File nodeJsBinary = resolveArtifact(information.getNodeJsDependency());</span>
+<span class="fc" id="L188">        FileUtils.copyFile(nodeJsBinary, information.getArchive());</span>
+<span class="fc" id="L189">        Task installationTask = new NodeUnarchiveTask(nodeJsDirectory.getAbsolutePath());</span>
+<span class="fc" id="L190">        installationTask.setLog(getLog());</span>
+<span class="fc" id="L191">        installationTask.execute(information);</span>
       }
 
-<span class="pc bpc" id="L190" title="1 of 4 branches missed.">      if (StringUtils.isNotEmpty(npmVersion) &amp;&amp; !information.getNpmExecutable().exists()) {</span>
-<span class="fc" id="L191">        updateNPMExecutable(information);</span>
+<span class="pc bpc" id="L194" title="1 of 4 branches missed.">      if (StringUtils.isNotEmpty(npmVersion) &amp;&amp; !information.getNpmExecutable().exists()) {</span>
+<span class="fc" id="L195">        updateNPMExecutable(information);</span>
       }
     }
-<span class="nc" id="L194">    catch (java.net.MalformedURLException ex) {</span>
-<span class="nc" id="L195">      throw new MojoExecutionException(&quot;Malformed provided node URL&quot;, ex);</span>
+<span class="nc" id="L198">    catch (java.net.MalformedURLException ex) {</span>
+<span class="nc" id="L199">      throw new MojoExecutionException(&quot;Malformed provided node URL&quot;, ex);</span>
     }
-<span class="nc" id="L197">    catch (IOException ex) {</span>
-<span class="nc" id="L198">      getLog().error(&quot;Failed to get nodeJs from &quot; + information.getNodeJsDependency(), ex);</span>
-<span class="nc" id="L199">      throw new MojoExecutionException(&quot;Failed to downloading nodeJs from &quot; + information.getNodeJsDependency(), ex);</span>
+<span class="nc" id="L201">    catch (IOException ex) {</span>
+<span class="nc" id="L202">      getLog().error(&quot;Failed to get nodeJs from &quot; + information.getNodeJsDependency(), ex);</span>
+<span class="nc" id="L203">      throw new MojoExecutionException(&quot;Failed to downloading nodeJs from &quot; + information.getNodeJsDependency(), ex);</span>
     }
-<span class="nc" id="L201">    catch (MojoExecutionException ex) {</span>
-<span class="nc" id="L202">      getLog().error(&quot;Execution Exception&quot;, ex);</span>
-<span class="nc bnc" id="L203" title="All 2 branches missed.">      if (stopOnError) {</span>
-<span class="nc" id="L204">        throw new MojoExecutionException(&quot;Execution Exception&quot;, ex);</span>
+<span class="nc" id="L205">    catch (MojoExecutionException ex) {</span>
+<span class="nc" id="L206">      getLog().error(&quot;Execution Exception&quot;, ex);</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">      if (stopOnError) {</span>
+<span class="nc" id="L208">        throw new MojoExecutionException(&quot;Execution Exception&quot;, ex);</span>
       }
-<span class="fc" id="L206">    }</span>
-<span class="fc" id="L207">    return information;</span>
+<span class="fc" id="L210">    }</span>
+<span class="fc" id="L211">    return information;</span>
   }
 
   private boolean cleanNodeJsInstallPath(NodeInstallationInformation information) {
-<span class="fc" id="L211">    File directory = new File(information.getNodeJsInstallPath());</span>
-<span class="pc bpc" id="L212" title="1 of 2 branches missed.">    if (directory.exists()) {</span>
+<span class="fc" id="L215">    File directory = new File(information.getNodeJsInstallPath());</span>
+<span class="pc bpc" id="L216" title="1 of 2 branches missed.">    if (directory.exists()) {</span>
       try {
-<span class="nc" id="L214">        FileUtils.deleteDirectory(directory);</span>
+<span class="nc" id="L218">        FileUtils.deleteDirectory(directory);</span>
       }
-<span class="nc" id="L216">      catch (IOException ex) {</span>
-<span class="nc" id="L217">        getLog().error(ex);</span>
-<span class="nc" id="L218">        return false;</span>
-<span class="nc" id="L219">      }</span>
+<span class="nc" id="L220">      catch (IOException ex) {</span>
+<span class="nc" id="L221">        getLog().error(ex);</span>
+<span class="nc" id="L222">        return false;</span>
+<span class="nc" id="L223">      }</span>
     }
 
-<span class="pc bpc" id="L222" title="1 of 2 branches missed.">    if (information.getArchive().exists()) {</span>
-<span class="nc bnc" id="L223" title="All 2 branches missed.">      if (!information.getArchive().delete()) {</span>
-<span class="nc" id="L224">        return false;</span>
+<span class="pc bpc" id="L226" title="1 of 2 branches missed.">    if (information.getArchive().exists()) {</span>
+      try {
+<span class="nc" id="L228">        java.nio.file.Files.delete(information.getArchive().toPath());</span>
       }
+<span class="nc" id="L230">      catch (IOException ex) {</span>
+<span class="nc" id="L231">        getLog().error(&quot;Error deleting archive: &quot; + information.getArchive().getPath(), ex);</span>
+<span class="nc" id="L232">        return false;</span>
+<span class="nc" id="L233">      }</span>
     }
 
-<span class="fc" id="L228">    return true;</span>
+<span class="fc" id="L236">    return true;</span>
   }
 
   /**
@@ -233,35 +241,32 @@ import io.wcm.maven.plugins.nodejs.installation.NodeUnarchiveTask;
    * @param information Information
    */
   private void updateNPMExecutable(NodeInstallationInformation information) throws MojoExecutionException {
-<span class="fc" id="L236">    getLog().info(&quot;Installing specified npm version &quot; + npmVersion);</span>
-<span class="fc" id="L237">    NpmInstallTask npmInstallTask = new NpmInstallTask();</span>
-<span class="fc" id="L238">    npmInstallTask.setLog(getLog());</span>
-<span class="fc" id="L239">    npmInstallTask.setNpmBundledWithNodeJs(true);</span>
-<span class="fc" id="L240">    npmInstallTask.setArguments(new String[] {</span>
-<span class="fc" id="L241">        &quot;--prefix&quot;, information.getNpmPrefixPath(), &quot;--global&quot;, &quot;npm@&quot; + npmVersion</span>
+<span class="fc" id="L244">    getLog().info(&quot;Installing specified npm version &quot; + npmVersion);</span>
+<span class="fc" id="L245">    NpmInstallTask npmInstallTask = new NpmInstallTask();</span>
+<span class="fc" id="L246">    npmInstallTask.setLog(getLog());</span>
+<span class="fc" id="L247">    npmInstallTask.setNpmBundledWithNodeJs(true);</span>
+<span class="fc" id="L248">    npmInstallTask.setArguments(new String[] {</span>
+<span class="fc" id="L249">        &quot;--prefix&quot;, information.getNpmPrefixPath(), &quot;--global&quot;, &quot;npm@&quot; + npmVersion</span>
     });
-<span class="fc" id="L243">    npmInstallTask.execute(information);</span>
-<span class="fc" id="L244">  }</span>
+<span class="fc" id="L251">    npmInstallTask.execute(information);</span>
+<span class="fc" id="L252">  }</span>
 
   @SuppressWarnings(&quot;deprecation&quot;)
   private File resolveArtifact(Dependency dependency) throws MojoExecutionException {
-<span class="fc" id="L248">    Artifact artifact = new DefaultArtifact(dependency.getGroupId(),</span>
-<span class="fc" id="L249">        dependency.getArtifactId(),</span>
-<span class="fc" id="L250">        VersionRange.createFromVersion(dependency.getVersion()),</span>
+<span class="fc" id="L256">    Artifact artifact = new DefaultArtifact(dependency.getGroupId(),</span>
+<span class="fc" id="L257">        dependency.getArtifactId(),</span>
+<span class="fc" id="L258">        VersionRange.createFromVersion(dependency.getVersion()),</span>
         Artifact.SCOPE_PROVIDED,
-<span class="fc" id="L252">        dependency.getType(),</span>
-<span class="fc" id="L253">        dependency.getClassifier(),</span>
-<span class="fc" id="L254">        artifactHandlerManager.getArtifactHandler(dependency.getType()));</span>
+<span class="fc" id="L260">        dependency.getType(),</span>
+<span class="fc" id="L261">        dependency.getClassifier(),</span>
+<span class="fc" id="L262">        artifactHandlerManager.getArtifactHandler(dependency.getType()));</span>
     try {
-<span class="fc" id="L256">      resolver.resolve(artifact, project.getRemoteArtifactRepositories(), session.getLocalRepository());</span>
+<span class="fc" id="L264">      resolver.resolve(artifact, project.getRemoteArtifactRepositories(), session.getLocalRepository());</span>
     }
-<span class="nc" id="L258">    catch (ArtifactResolutionException ex) {</span>
-<span class="nc" id="L259">      throw new MojoExecutionException(&quot;Unable to get artifact for &quot; + dependency, ex);</span>
-    }
-<span class="nc" id="L261">    catch (ArtifactNotFoundException ex) {</span>
-<span class="nc" id="L262">      throw new MojoExecutionException(&quot;Unable to get artifact for &quot; + dependency, ex);</span>
-<span class="fc" id="L263">    }</span>
-<span class="fc" id="L264">    return artifact.getFile();</span>
+<span class="nc" id="L266">    catch (ArtifactResolutionException | ArtifactNotFoundException ex) {</span>
+<span class="nc" id="L267">      throw new MojoExecutionException(&quot;Unable to get artifact for &quot; + dependency, ex);</span>
+<span class="fc" id="L268">    }</span>
+<span class="fc" id="L269">    return artifact.getFile();</span>
   }
 
   /**
@@ -270,7 +275,7 @@ import io.wcm.maven.plugins.nodejs.installation.NodeUnarchiveTask;
    * @return Version number
    */
   private static String cleanupVersion(String version) {
-<span class="fc" id="L273">    return Strings.CS.removeStart(version, &quot;v&quot;);</span>
+<span class="fc" id="L278">    return Strings.CS.removeStart(version, &quot;v&quot;);</span>
   }
 
 }

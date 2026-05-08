@@ -133,100 +133,101 @@ import org.codehaus.plexus.util.Os;
    * @return {@link NodeInstallationInformation}
    * @throws MojoExecutionException Mojo execution exception
    */
+  @SuppressWarnings(&quot;java:S1192&quot;) // string duplication intended
   public static NodeInstallationInformation forVersion(String version, String npmVersion, File directory) throws MojoExecutionException {
-<span class="fc" id="L137">    int nodejsMajorVersion = getMajorVersion(version);</span>
+<span class="fc" id="L138">    int nodejsMajorVersion = getMajorVersion(version);</span>
 
     String arch;
-<span class="pc bpc" id="L140" title="2 of 4 branches missed.">    if (Os.isArch(&quot;x86&quot;) || Os.isArch(&quot;i386&quot;)) {</span>
-<span class="nc" id="L141">      arch = &quot;x86&quot;;</span>
+<span class="pc bpc" id="L141" title="2 of 4 branches missed.">    if (Os.isArch(&quot;x86&quot;) || Os.isArch(&quot;i386&quot;)) {</span>
+<span class="nc" id="L142">      arch = &quot;x86&quot;;</span>
     }
-<span class="pc bpc" id="L143" title="2 of 4 branches missed.">    else if (Os.isArch(&quot;x86_64&quot;) || Os.isArch(&quot;amd64&quot;)) {</span>
-<span class="fc" id="L144">      arch = &quot;x64&quot;;</span>
+<span class="pc bpc" id="L144" title="2 of 4 branches missed.">    else if (Os.isArch(&quot;x86_64&quot;) || Os.isArch(&quot;amd64&quot;)) {</span>
+<span class="fc" id="L145">      arch = &quot;x64&quot;;</span>
     }
-<span class="nc bnc" id="L146" title="All 2 branches missed.">    else if (Os.isArch(&quot;aarch64&quot;)) {</span>
-<span class="nc bnc" id="L147" title="All 4 branches missed.">      if (Os.isFamily(Os.FAMILY_MAC) &amp;&amp; nodejsMajorVersion &lt; 16) {</span>
-<span class="nc" id="L148">        arch = &quot;x64&quot;;</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">    else if (Os.isArch(&quot;aarch64&quot;)) {</span>
+<span class="nc bnc" id="L148" title="All 4 branches missed.">      if (Os.isFamily(Os.FAMILY_MAC) &amp;&amp; nodejsMajorVersion &lt; 16) {</span>
+<span class="nc" id="L149">        arch = &quot;x64&quot;;</span>
       }
       else {
-<span class="nc" id="L151">        arch = &quot;arm64&quot;;</span>
+<span class="nc" id="L152">        arch = &quot;arm64&quot;;</span>
       }
     }
     else {
-<span class="nc" id="L155">      throw new MojoExecutionException(&quot;Unsupported OS arch: &quot; + Os.OS_ARCH);</span>
+<span class="nc" id="L156">      throw new MojoExecutionException(&quot;Unsupported OS arch: &quot; + Os.OS_ARCH);</span>
     }
 
-<span class="fc" id="L158">    NodeInstallationInformation result = new NodeInstallationInformation();</span>
+<span class="fc" id="L159">    NodeInstallationInformation result = new NodeInstallationInformation();</span>
 
-<span class="fc" id="L160">    String basePath = directory.getAbsolutePath() + File.separator;</span>
+<span class="fc" id="L161">    String basePath = directory.getAbsolutePath() + File.separator;</span>
 
-<span class="pc bpc" id="L162" title="2 of 4 branches missed.">    if (Os.isFamily(Os.FAMILY_WINDOWS) || Os.isFamily(Os.FAMILY_WIN9X)) {</span>
-<span class="nc" id="L163">      String nodeJsInstallPath = basePath + &quot;node-v&quot; + version + &quot;-&quot; + OS_WINDOWS + &quot;-&quot; + arch;</span>
-<span class="nc" id="L164">      result.setNodeJsInstallPath(nodeJsInstallPath);</span>
-<span class="nc" id="L165">      result.setNodeJsDependency(buildDependency(NODEJS_BINARIES_GROUPID, NODEJS_BINARIES_ARTIFACTID, version, OS_WINDOWS, arch, TYPE_ZIP));</span>
-<span class="nc" id="L166">      result.setArchive(new File(nodeJsInstallPath + &quot;.&quot; + TYPE_ZIP));</span>
-<span class="nc" id="L167">      result.setNodeExecutableRelativePath(&quot;node.exe&quot;);</span>
-<span class="nc" id="L168">      result.setNodeModulesBuiltInRootPath(nodeJsInstallPath);</span>
-<span class="nc" id="L169">      result.setNpmPrefixPath(nodeJsInstallPath + getNodeModulesRootPathNpmSuffix(npmVersion));</span>
-<span class="nc" id="L170">      result.setNodeModulesRootPath(result.getNpmPrefixPath());</span>
-<span class="nc" id="L171">    }</span>
-<span class="pc bpc" id="L172" title="1 of 2 branches missed.">    else if (Os.isFamily(Os.FAMILY_MAC)) {</span>
-<span class="nc" id="L173">      String nodeJsInstallPath = basePath + &quot;node-v&quot; + version + &quot;-&quot; + OS_MACOS + &quot;-&quot; + arch;</span>
-<span class="nc" id="L174">      result.setNodeJsInstallPath(nodeJsInstallPath);</span>
-<span class="nc" id="L175">      result.setNodeJsDependency(buildDependency(NODEJS_BINARIES_GROUPID, NODEJS_BINARIES_ARTIFACTID, version, OS_MACOS, arch, TYPE_TAR_GZ));</span>
-<span class="nc" id="L176">      result.setArchive(new File(nodeJsInstallPath + &quot;.&quot; + TYPE_TAR_GZ));</span>
-<span class="nc" id="L177">      result.setNodeExecutableRelativePath(&quot;bin&quot; + File.separator + &quot;node&quot;);</span>
-<span class="nc" id="L178">      result.setNodeModulesBuiltInRootPath(nodeJsInstallPath + File.separator + &quot;lib&quot;);</span>
-<span class="nc" id="L179">      result.setNpmPrefixPath(nodeJsInstallPath + getNodeModulesRootPathNpmSuffix(npmVersion));</span>
-<span class="nc" id="L180">      result.setNodeModulesRootPath(result.getNpmPrefixPath() + File.separator + &quot;lib&quot;);</span>
-<span class="nc" id="L181">    }</span>
-<span class="pc bpc" id="L182" title="1 of 2 branches missed.">    else if (Os.isFamily(Os.FAMILY_UNIX)) {</span>
-<span class="fc" id="L183">      String nodeJsInstallPath = basePath + &quot;node-v&quot; + version + &quot;-&quot; + OS_LINUX + &quot;-&quot; + arch;</span>
-<span class="fc" id="L184">      result.setNodeJsInstallPath(nodeJsInstallPath);</span>
-<span class="fc" id="L185">      result.setNodeJsDependency(buildDependency(NODEJS_BINARIES_GROUPID, NODEJS_BINARIES_ARTIFACTID, version, OS_LINUX, arch, TYPE_TAR_GZ));</span>
-<span class="fc" id="L186">      result.setArchive(new File(nodeJsInstallPath + &quot;.&quot; + TYPE_TAR_GZ));</span>
-<span class="fc" id="L187">      result.setNodeExecutableRelativePath(&quot;bin&quot; + File.separator + &quot;node&quot;);</span>
-<span class="fc" id="L188">      result.setNodeModulesBuiltInRootPath(nodeJsInstallPath + File.separator + &quot;lib&quot;);</span>
-<span class="fc" id="L189">      result.setNpmPrefixPath(nodeJsInstallPath + getNodeModulesRootPathNpmSuffix(npmVersion));</span>
-<span class="fc" id="L190">      result.setNodeModulesRootPath(result.getNpmPrefixPath() + File.separator + &quot;lib&quot;);</span>
-<span class="fc" id="L191">    }</span>
+<span class="pc bpc" id="L163" title="2 of 4 branches missed.">    if (Os.isFamily(Os.FAMILY_WINDOWS) || Os.isFamily(Os.FAMILY_WIN9X)) {</span>
+<span class="nc" id="L164">      String nodeJsInstallPath = basePath + &quot;node-v&quot; + version + &quot;-&quot; + OS_WINDOWS + &quot;-&quot; + arch;</span>
+<span class="nc" id="L165">      result.setNodeJsInstallPath(nodeJsInstallPath);</span>
+<span class="nc" id="L166">      result.setNodeJsDependency(buildDependency(NODEJS_BINARIES_GROUPID, NODEJS_BINARIES_ARTIFACTID, version, OS_WINDOWS, arch, TYPE_ZIP));</span>
+<span class="nc" id="L167">      result.setArchive(new File(nodeJsInstallPath + &quot;.&quot; + TYPE_ZIP));</span>
+<span class="nc" id="L168">      result.setNodeExecutableRelativePath(&quot;node.exe&quot;);</span>
+<span class="nc" id="L169">      result.setNodeModulesBuiltInRootPath(nodeJsInstallPath);</span>
+<span class="nc" id="L170">      result.setNpmPrefixPath(nodeJsInstallPath + getNodeModulesRootPathNpmSuffix(npmVersion));</span>
+<span class="nc" id="L171">      result.setNodeModulesRootPath(result.getNpmPrefixPath());</span>
+<span class="nc" id="L172">    }</span>
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">    else if (Os.isFamily(Os.FAMILY_MAC)) {</span>
+<span class="nc" id="L174">      String nodeJsInstallPath = basePath + &quot;node-v&quot; + version + &quot;-&quot; + OS_MACOS + &quot;-&quot; + arch;</span>
+<span class="nc" id="L175">      result.setNodeJsInstallPath(nodeJsInstallPath);</span>
+<span class="nc" id="L176">      result.setNodeJsDependency(buildDependency(NODEJS_BINARIES_GROUPID, NODEJS_BINARIES_ARTIFACTID, version, OS_MACOS, arch, TYPE_TAR_GZ));</span>
+<span class="nc" id="L177">      result.setArchive(new File(nodeJsInstallPath + &quot;.&quot; + TYPE_TAR_GZ));</span>
+<span class="nc" id="L178">      result.setNodeExecutableRelativePath(&quot;bin&quot; + File.separator + &quot;node&quot;);</span>
+<span class="nc" id="L179">      result.setNodeModulesBuiltInRootPath(nodeJsInstallPath + File.separator + &quot;lib&quot;);</span>
+<span class="nc" id="L180">      result.setNpmPrefixPath(nodeJsInstallPath + getNodeModulesRootPathNpmSuffix(npmVersion));</span>
+<span class="nc" id="L181">      result.setNodeModulesRootPath(result.getNpmPrefixPath() + File.separator + &quot;lib&quot;);</span>
+<span class="nc" id="L182">    }</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">    else if (Os.isFamily(Os.FAMILY_UNIX)) {</span>
+<span class="fc" id="L184">      String nodeJsInstallPath = basePath + &quot;node-v&quot; + version + &quot;-&quot; + OS_LINUX + &quot;-&quot; + arch;</span>
+<span class="fc" id="L185">      result.setNodeJsInstallPath(nodeJsInstallPath);</span>
+<span class="fc" id="L186">      result.setNodeJsDependency(buildDependency(NODEJS_BINARIES_GROUPID, NODEJS_BINARIES_ARTIFACTID, version, OS_LINUX, arch, TYPE_TAR_GZ));</span>
+<span class="fc" id="L187">      result.setArchive(new File(nodeJsInstallPath + &quot;.&quot; + TYPE_TAR_GZ));</span>
+<span class="fc" id="L188">      result.setNodeExecutableRelativePath(&quot;bin&quot; + File.separator + &quot;node&quot;);</span>
+<span class="fc" id="L189">      result.setNodeModulesBuiltInRootPath(nodeJsInstallPath + File.separator + &quot;lib&quot;);</span>
+<span class="fc" id="L190">      result.setNpmPrefixPath(nodeJsInstallPath + getNodeModulesRootPathNpmSuffix(npmVersion));</span>
+<span class="fc" id="L191">      result.setNodeModulesRootPath(result.getNpmPrefixPath() + File.separator + &quot;lib&quot;);</span>
+<span class="fc" id="L192">    }</span>
     else {
-<span class="nc" id="L193">      throw new MojoExecutionException(&quot;Unsupported OS: &quot; + Os.OS_FAMILY);</span>
+<span class="nc" id="L194">      throw new MojoExecutionException(&quot;Unsupported OS: &quot; + Os.OS_FAMILY);</span>
     }
 
-<span class="fc" id="L196">    return result;</span>
+<span class="fc" id="L197">    return result;</span>
   }
 
   private static int getMajorVersion(String version) {
-<span class="fc" id="L200">    ArtifactVersion versionInfo = new DefaultArtifactVersion(version);</span>
-<span class="fc" id="L201">    return versionInfo.getMajorVersion();</span>
+<span class="fc" id="L201">    ArtifactVersion versionInfo = new DefaultArtifactVersion(version);</span>
+<span class="fc" id="L202">    return versionInfo.getMajorVersion();</span>
   }
 
   private static String getNodeModulesRootPathNpmSuffix(String npmVersion) {
-<span class="fc bfc" id="L205" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(npmVersion)) {</span>
-<span class="fc" id="L206">      return File.separator + &quot;npm-v&quot; + npmVersion;</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(npmVersion)) {</span>
+<span class="fc" id="L207">      return File.separator + &quot;npm-v&quot; + npmVersion;</span>
     }
     else {
-<span class="fc" id="L209">      return &quot;&quot;;</span>
+<span class="fc" id="L210">      return &quot;&quot;;</span>
     }
   }
 
   @SuppressWarnings(&quot;PMD.UseStringBufferForStringAppends&quot;)
   private static Dependency buildDependency(String groupId, String artifactId, String version, String os, String arch, String type) {
-<span class="fc" id="L215">    String classifier = null;</span>
-<span class="pc bpc" id="L216" title="1 of 2 branches missed.">    if (StringUtils.isNotEmpty(os)) {</span>
-<span class="fc" id="L217">      classifier = os;</span>
+<span class="fc" id="L216">    String classifier = null;</span>
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">    if (StringUtils.isNotEmpty(os)) {</span>
+<span class="fc" id="L218">      classifier = os;</span>
     }
-<span class="pc bpc" id="L219" title="1 of 2 branches missed.">    if (StringUtils.isNotEmpty(arch)) {</span>
-<span class="fc" id="L220">      classifier += &quot;-&quot; + arch;</span>
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">    if (StringUtils.isNotEmpty(arch)) {</span>
+<span class="fc" id="L221">      classifier += &quot;-&quot; + arch;</span>
     }
 
-<span class="fc" id="L223">    Dependency dependency = new Dependency();</span>
-<span class="fc" id="L224">    dependency.setGroupId(groupId);</span>
-<span class="fc" id="L225">    dependency.setArtifactId(artifactId);</span>
-<span class="fc" id="L226">    dependency.setVersion(version);</span>
-<span class="fc" id="L227">    dependency.setType(type);</span>
-<span class="fc" id="L228">    dependency.setClassifier(classifier);</span>
-<span class="fc" id="L229">    return dependency;</span>
+<span class="fc" id="L224">    Dependency dependency = new Dependency();</span>
+<span class="fc" id="L225">    dependency.setGroupId(groupId);</span>
+<span class="fc" id="L226">    dependency.setArtifactId(artifactId);</span>
+<span class="fc" id="L227">    dependency.setVersion(version);</span>
+<span class="fc" id="L228">    dependency.setType(type);</span>
+<span class="fc" id="L229">    dependency.setClassifier(classifier);</span>
+<span class="fc" id="L230">    return dependency;</span>
   }
 
 }

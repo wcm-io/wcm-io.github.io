@@ -26,13 +26,14 @@ import java.util.List;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.jetbrains.annotations.NotNull;
 
 import io.wcm.maven.plugins.nodejs.installation.NodeInstallationInformation;
 
 /**
  * Wrapper around the execution of a nodejs module.
  */
-<span class="fc" id="L35">public class NodeJsTask extends Task {</span>
+<span class="fc" id="L36">public class NodeJsTask extends Task {</span>
 
   /**
    * Name of the nodejs module
@@ -53,57 +54,57 @@ import io.wcm.maven.plugins.nodejs.installation.NodeInstallationInformation;
   private String[] arguments;
 
   @Override
-  protected List&lt;String&gt; getCommand(NodeInstallationInformation information) throws MojoExecutionException {
-<span class="fc" id="L57">    List&lt;String&gt; commands = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L58">    commands.add(information.getNodeExecutable().getAbsolutePath());</span>
-<span class="fc" id="L59">    setNodeModule(commands, information);</span>
-<span class="pc bpc" id="L60" title="1 of 2 branches missed.">    if (arguments != null) {</span>
-<span class="fc" id="L61">      commands.addAll(Arrays.asList(arguments));</span>
+  protected @NotNull List&lt;String&gt; getCommand(NodeInstallationInformation information) throws MojoExecutionException {
+<span class="fc" id="L58">    List&lt;String&gt; commands = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L59">    commands.add(information.getNodeExecutable().getAbsolutePath());</span>
+<span class="fc" id="L60">    setNodeModule(commands, information);</span>
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">    if (arguments != null) {</span>
+<span class="fc" id="L62">      commands.addAll(Arrays.asList(arguments));</span>
     }
 
-<span class="fc" id="L64">    return commands;</span>
+<span class="fc" id="L65">    return commands;</span>
   }
 
   private void setNodeModule(List&lt;String&gt; commands, NodeInstallationInformation information) throws MojoExecutionException {
-<span class="fc" id="L68">    String modulePath = installModule(information);</span>
-<span class="fc" id="L69">    String moduleExecutable = getModuleExecutable(modulePath);</span>
-<span class="fc" id="L70">    commands.add(moduleExecutable);</span>
-<span class="fc" id="L71">  }</span>
+<span class="fc" id="L69">    String modulePath = installModule(information);</span>
+<span class="fc" id="L70">    String moduleExecutable = getModuleExecutable(modulePath);</span>
+<span class="fc" id="L71">    commands.add(moduleExecutable);</span>
+<span class="fc" id="L72">  }</span>
 
   private String installModule(NodeInstallationInformation information) throws MojoExecutionException {
-<span class="fc" id="L74">    String modulePath = &quot;&quot;;</span>
-<span class="fc" id="L75">    String localInstallationPath = workingDirectory.getAbsolutePath() + File.separator + &quot;node_modules&quot; + File.separator + moduleName;</span>
-<span class="fc" id="L76">    File localInstallation = new File(localInstallationPath);</span>
+<span class="fc" id="L75">    String modulePath = &quot;&quot;;</span>
+<span class="fc" id="L76">    String localInstallationPath = workingDirectory.getAbsolutePath() + File.separator + &quot;node_modules&quot; + File.separator + moduleName;</span>
+<span class="fc" id="L77">    File localInstallation = new File(localInstallationPath);</span>
 
-<span class="pc bpc" id="L78" title="1 of 2 branches missed.">    if (!localInstallation.exists()) {</span>
-<span class="fc" id="L79">      String globalInstallationPath = information.getNodeModulesRootPath() + File.separator + &quot;node_modules&quot; + File.separator + moduleName;</span>
-<span class="fc" id="L80">      File moduleInstallation = new File(globalInstallationPath);</span>
-<span class="pc bpc" id="L81" title="1 of 2 branches missed.">      if (!moduleInstallation.exists()) {</span>
-<span class="nc" id="L82">        NpmInstallTask installTask = new NpmInstallTask();</span>
-<span class="nc" id="L83">        installTask.setLog(getLog());</span>
-<span class="nc" id="L84">        installTask.setArguments(new String[] {</span>
-<span class="nc" id="L85">            &quot;--prefix&quot;, information.getNpmPrefixPath(), moduleName</span>
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">    if (!localInstallation.exists()) {</span>
+<span class="fc" id="L80">      String globalInstallationPath = information.getNodeModulesRootPath() + File.separator + &quot;node_modules&quot; + File.separator + moduleName;</span>
+<span class="fc" id="L81">      File moduleInstallation = new File(globalInstallationPath);</span>
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">      if (!moduleInstallation.exists()) {</span>
+<span class="nc" id="L83">        NpmInstallTask installTask = new NpmInstallTask();</span>
+<span class="nc" id="L84">        installTask.setLog(getLog());</span>
+<span class="nc" id="L85">        installTask.setArguments(new String[] {</span>
+<span class="nc" id="L86">            &quot;--prefix&quot;, information.getNpmPrefixPath(), moduleName</span>
         });
-<span class="nc" id="L87">        installTask.execute(information);</span>
+<span class="nc" id="L88">        installTask.execute(information);</span>
       }
 
-<span class="fc" id="L90">      modulePath = globalInstallationPath;</span>
-<span class="fc" id="L91">    }</span>
+<span class="fc" id="L91">      modulePath = globalInstallationPath;</span>
+<span class="fc" id="L92">    }</span>
     else {
-<span class="nc" id="L93">      modulePath = localInstallationPath;</span>
+<span class="nc" id="L94">      modulePath = localInstallationPath;</span>
     }
 
-<span class="fc" id="L96">    return modulePath;</span>
+<span class="fc" id="L97">    return modulePath;</span>
   }
 
   private String getModuleExecutable(String modulePath) {
-<span class="pc bpc" id="L100" title="1 of 2 branches missed.">    String executable = executableName == null ? moduleName : executableName;</span>
-<span class="fc" id="L101">    return modulePath + File.separator + &quot;bin&quot; + File.separator + executable;</span>
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">    String executable = executableName == null ? moduleName : executableName;</span>
+<span class="fc" id="L102">    return modulePath + File.separator + &quot;bin&quot; + File.separator + executable;</span>
   }
 
   @Override
   protected boolean isWorkingDirectoryMandatory() {
-<span class="nc" id="L106">    return true;</span>
+<span class="nc" id="L107">    return true;</span>
   }
 
 }
