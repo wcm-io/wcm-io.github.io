@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -59,13 +60,13 @@ import io.wcm.sling.commons.adapter.AdaptTo;
  */
 @Component(service = ContextAwareConfigurationPropertyMapper.class)
 @ServiceRanking(-250)
-<span class="fc" id="L62">public class ContentPathPropertyMapper implements ContextAwareConfigurationPropertyMapper&lt;Object&gt; {</span>
+<span class="fc" id="L63">public class ContentPathPropertyMapper implements ContextAwareConfigurationPropertyMapper&lt;Object&gt; {</span>
 
   // copied from io.wcm.caconfig.editor.EditorProperties to avoid direct dependency
   static final String PROPERTY_WIDGET_TYPE = &quot;widgetType&quot;;
   static final String WIDGET_TYPE_PATHBROWSER = &quot;pathbrowser&quot;;
 
-<span class="fc" id="L68">  private static final Logger log = LoggerFactory.getLogger(ContentPathPropertyMapper.class);</span>
+<span class="fc" id="L69">  private static final Logger log = LoggerFactory.getLogger(ContentPathPropertyMapper.class);</span>
 
   @Reference
   private LinkDecoratorManager linkDecoratorManager;
@@ -75,37 +76,37 @@ import io.wcm.sling.commons.adapter.AdaptTo;
   @Override
   public boolean accept(@NotNull Object value,
       @NotNull PropertyMetadata&lt;?&gt; metadata, @NotNull SlingHttpServletRequest request) {
-<span class="fc" id="L78">    Map&lt;String, String&gt; properties = metadata.getProperties();</span>
-<span class="fc bfc" id="L79" title="All 2 branches covered.">    if (properties == null) {</span>
-<span class="fc" id="L80">      return false;</span>
+<span class="fc" id="L79">    Map&lt;String, String&gt; properties = metadata.getProperties();</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">    if (properties == null) {</span>
+<span class="fc" id="L81">      return false;</span>
     }
-<span class="fc" id="L82">    return StringUtils.equals(properties.get(PROPERTY_WIDGET_TYPE), WIDGET_TYPE_PATHBROWSER);</span>
+<span class="fc" id="L83">    return Strings.CS.equals(properties.get(PROPERTY_WIDGET_TYPE), WIDGET_TYPE_PATHBROWSER);</span>
   }
 
   @Override
   public @Nullable Object map(@NotNull Object value,
       @NotNull PropertyMetadata&lt;?&gt; metadata, @NotNull SlingHttpServletRequest request) {
-<span class="fc" id="L88">    Resource resource = getResource(value, request.getResourceResolver());</span>
-<span class="fc bfc" id="L89" title="All 2 branches covered.">    if (resource != null) {</span>
-<span class="fc bfc" id="L90" title="All 2 branches covered.">      if (isPage(resource)) {</span>
-<span class="fc" id="L91">        return buildPageReference(resource, request);</span>
+<span class="fc" id="L89">    Resource resource = getResource(value, request.getResourceResolver());</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">    if (resource != null) {</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">      if (isPage(resource)) {</span>
+<span class="fc" id="L92">        return buildPageReference(resource, request);</span>
       }
-<span class="fc bfc" id="L93" title="All 2 branches covered.">      else if (isAsset(resource)) {</span>
-<span class="fc" id="L94">        return buildMediaReference(resource, metadata, request);</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">      else if (isAsset(resource)) {</span>
+<span class="fc" id="L95">        return buildMediaReference(resource, metadata, request);</span>
       }
     }
-<span class="fc" id="L97">    return null;</span>
+<span class="fc" id="L98">    return null;</span>
   }
 
   /**
    * Check if the given path points to a valid resource.
    */
   private @Nullable Resource getResource(@NotNull Object value, @NotNull ResourceResolver resourceResolver) {
-<span class="pc bpc" id="L104" title="1 of 2 branches missed.">    if (value instanceof String) {</span>
-<span class="fc" id="L105">      return resourceResolver.getResource((String)value);</span>
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">    if (value instanceof String) {</span>
+<span class="fc" id="L106">      return resourceResolver.getResource((String)value);</span>
     }
     else {
-<span class="nc" id="L108">      return null;</span>
+<span class="nc" id="L109">      return null;</span>
     }
   }
 
@@ -113,52 +114,53 @@ import io.wcm.sling.commons.adapter.AdaptTo;
    * Checks if the resource is a AEM page.
    */
   private boolean isPage(@NotNull Resource resource) {
-<span class="fc" id="L116">    return StringUtils.equals(resource.getResourceType(), NameConstants.NT_PAGE);</span>
+<span class="fc" id="L117">    return Strings.CS.equals(resource.getResourceType(), NameConstants.NT_PAGE);</span>
   }
 
   /**
    * Resolves a link to the page using link handler and returns the decorated reference.
    */
   private @Nullable Object buildPageReference(@NotNull Resource resource, @NotNull SlingHttpServletRequest request) {
-<span class="fc" id="L123">    Page page = resource.adaptTo(Page.class);</span>
-<span class="pc bpc" id="L124" title="1 of 2 branches missed.">    if (page == null) {</span>
-<span class="nc" id="L125">      return null;</span>
+<span class="fc" id="L124">    Page page = resource.adaptTo(Page.class);</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">    if (page == null) {</span>
+<span class="nc" id="L126">      return null;</span>
     }
-<span class="fc" id="L127">    LinkHandler linkHandler = AdaptTo.notNull(request, LinkHandler.class);</span>
-<span class="fc" id="L128">    Link link = linkHandler.get(page).build();</span>
-<span class="fc" id="L129">    return linkDecoratorManager.decorate(link, request.getResource());</span>
+<span class="fc" id="L128">    LinkHandler linkHandler = AdaptTo.notNull(request, LinkHandler.class);</span>
+<span class="fc" id="L129">    Link link = linkHandler.get(page).build();</span>
+<span class="fc" id="L130">    return linkDecoratorManager.decorate(link, request.getResource());</span>
   }
 
   /**
    * Checks if the resource is an AEM asset.
    */
   private boolean isAsset(@NotNull Resource resource) {
-<span class="fc" id="L136">    return StringUtils.equals(resource.getResourceType(), DamConstants.NT_DAM_ASSET);</span>
+<span class="fc" id="L137">    return Strings.CS.equals(resource.getResourceType(), DamConstants.NT_DAM_ASSET);</span>
   }
 
   /**
    * Resolves a reference to the asset using media handler and returns the decorated reference.
    */
+  @SuppressWarnings(&quot;PMD.AvoidCatchingGenericException&quot;)
   private @Nullable Object buildMediaReference(@NotNull Resource resource,
       @NotNull PropertyMetadata&lt;?&gt; metadata, @NotNull SlingHttpServletRequest request) {
-<span class="fc" id="L144">    MediaHandler mediaHandler = AdaptTo.notNull(request, MediaHandler.class);</span>
+<span class="fc" id="L146">    MediaHandler mediaHandler = AdaptTo.notNull(request, MediaHandler.class);</span>
 
     // support reading media handler component properties from metadata
-<span class="fc" id="L147">    MediaArgs mediaArgs = new MediaArgs();</span>
-<span class="fc" id="L148">    Map&lt;String, String&gt; properties = metadata.getProperties();</span>
-<span class="fc bfc" id="L149" title="All 2 branches covered.">    if (properties != null) {</span>
-<span class="fc" id="L150">      try (MediaComponentPropertyResolver resolver = new MediaComponentPropertyResolver(convertToValueMap(properties))) {</span>
-<span class="fc" id="L151">        mediaArgs.mediaFormatOptions(resolver.getMediaFormatOptions());</span>
-<span class="fc" id="L152">        mediaArgs.autoCrop(resolver.isAutoCrop());</span>
-<span class="fc" id="L153">        mediaArgs.imageSizes(resolver.getImageSizes());</span>
+<span class="fc" id="L149">    MediaArgs mediaArgs = new MediaArgs();</span>
+<span class="fc" id="L150">    Map&lt;String, String&gt; properties = metadata.getProperties();</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">    if (properties != null) {</span>
+<span class="fc" id="L152">      try (MediaComponentPropertyResolver resolver = new MediaComponentPropertyResolver(convertToValueMap(properties))) {</span>
+<span class="fc" id="L153">        mediaArgs.mediaFormatOptions(resolver.getMediaFormatOptions());</span>
+<span class="fc" id="L154">        mediaArgs.autoCrop(resolver.isAutoCrop());</span>
+<span class="fc" id="L155">        mediaArgs.imageSizes(resolver.getImageSizes());</span>
       }
-<span class="nc" id="L155">      catch (Exception ex) {</span>
-<span class="nc" id="L156">        log.warn(&quot;Unable to close MediaComponentPropertyResolver.&quot;, ex);</span>
-<span class="fc" id="L157">      }</span>
+<span class="nc" id="L157">      catch (Exception ex) {</span>
+<span class="nc" id="L158">        log.warn(&quot;Unable to close MediaComponentPropertyResolver.&quot;, ex);</span>
+<span class="fc" id="L159">      }</span>
     }
 
-<span class="fc" id="L160">    Media media = mediaHandler.get(resource.getPath(), mediaArgs).build();</span>
-<span class="fc" id="L161">    return mediaDecoratorManager.decorate(media, request.getResource());</span>
+<span class="fc" id="L162">    Media media = mediaHandler.get(resource.getPath(), mediaArgs).build();</span>
+<span class="fc" id="L163">    return mediaDecoratorManager.decorate(media, request.getResource());</span>
   }
 
   /**
@@ -168,9 +170,9 @@ import io.wcm.sling.commons.adapter.AdaptTo;
    * @return Value map
    */
   private ValueMap convertToValueMap(Map&lt;String, String&gt; properties) {
-<span class="fc" id="L171">    return new ValueMapDecorator(properties.entrySet().stream()</span>
-<span class="fc" id="L172">      .map(entry -&gt; Map.&lt;String, Object&gt;entry(entry.getKey(), StringUtils.split(entry.getValue(), &quot;,&quot;)))</span>
-<span class="fc" id="L173">      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));</span>
+<span class="fc" id="L173">    return new ValueMapDecorator(properties.entrySet().stream()</span>
+<span class="fc" id="L174">      .map(entry -&gt; Map.&lt;String, Object&gt;entry(entry.getKey(), StringUtils.split(entry.getValue(), &quot;,&quot;)))</span>
+<span class="fc" id="L175">      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));</span>
   }
 
 }
