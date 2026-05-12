@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -49,24 +50,24 @@ public final class PropertyIntrospector {
 
   private final Map&lt;String, List&lt;Object&gt;&gt; propertiesMap;
 
-<span class="fc" id="L52">  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder().build();</span>
-<span class="fc" id="L53">  private static final JavaType MAP_TYPE = OBJECT_MAPPER.getTypeFactory()</span>
-<span class="fc" id="L54">    .constructMapType(Map.class, String.class, Object.class);</span>
+<span class="fc" id="L53">  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder().build();</span>
+<span class="fc" id="L54">  private static final JavaType MAP_TYPE = OBJECT_MAPPER.getTypeFactory()</span>
+<span class="fc" id="L55">    .constructMapType(Map.class, String.class, Object.class);</span>
 
-<span class="fc" id="L56">  private static final Set&lt;String&gt; DEFAULT_IGNORE_METHODS = Set.of(&quot;toString&quot;, &quot;hashCode&quot;, &quot;getClass&quot;);</span>
-<span class="fc" id="L57">  private static final List&lt;String&gt; DEFAULT_GETTER_PREFIXES = List.of(&quot;get&quot;, &quot;is&quot;);</span>
+<span class="fc" id="L57">  private static final Set&lt;String&gt; DEFAULT_IGNORE_METHODS = Set.of(&quot;toString&quot;, &quot;hashCode&quot;, &quot;getClass&quot;);</span>
+<span class="fc" id="L58">  private static final List&lt;String&gt; DEFAULT_GETTER_PREFIXES = List.of(&quot;get&quot;, &quot;is&quot;);</span>
 
-<span class="fc" id="L59">  private static final Logger log = LoggerFactory.getLogger(PropertyIntrospector.class);</span>
+<span class="fc" id="L60">  private static final Logger log = LoggerFactory.getLogger(PropertyIntrospector.class);</span>
 
-<span class="fc" id="L61">  private PropertyIntrospector(@NotNull Map&lt;String, List&lt;Object&gt;&gt; propertiesMap) {</span>
-<span class="fc" id="L62">    this.propertiesMap = propertiesMap;</span>
-<span class="fc" id="L63">  }</span>
+<span class="fc" id="L62">  private PropertyIntrospector(@NotNull Map&lt;String, List&lt;Object&gt;&gt; propertiesMap) {</span>
+<span class="fc" id="L63">    this.propertiesMap = propertiesMap;</span>
+<span class="fc" id="L64">  }</span>
 
   /**
    * @return Map with property names and value list for each property.
    */
   public Map&lt;String, List&lt;Object&gt;&gt; getPropertiesMap() {
-<span class="fc" id="L69">    return this.propertiesMap;</span>
+<span class="fc" id="L70">    return this.propertiesMap;</span>
   }
 
   /**
@@ -75,8 +76,8 @@ public final class PropertyIntrospector {
    * @return Non-ignored property names
    */
   private static Set&lt;String&gt; getAllowedPropertyNames(@NotNull Object instance) {
-<span class="fc" id="L78">    Map&lt;String, Object&gt; map = OBJECT_MAPPER.convertValue(instance, MAP_TYPE);</span>
-<span class="fc" id="L79">    return map.keySet();</span>
+<span class="fc" id="L79">    Map&lt;String, Object&gt; map = OBJECT_MAPPER.convertValue(instance, MAP_TYPE);</span>
+<span class="fc" id="L80">    return map.keySet();</span>
   }
 
   /**
@@ -84,28 +85,28 @@ public final class PropertyIntrospector {
    */
   private static @NotNull Map&lt;String, List&lt;Object&gt;&gt; buildPropertiesMap(@NotNull Object instance,
       @NotNull Set&lt;String&gt; allowedProperties) {
-<span class="fc" id="L87">    Class&lt;?&gt; clazz = instance.getClass();</span>
-<span class="fc" id="L88">    List&lt;Method&gt; getterMethods = Stream.of(clazz.getMethods())</span>
-<span class="fc bfc" id="L89" title="All 4 branches covered.">      .filter(method -&gt; method.getParameterTypes().length == 0 &amp;&amp; method.getReturnType() != void.class)</span>
-<span class="fc bfc" id="L90" title="All 2 branches covered.">      .filter(method -&gt; !DEFAULT_IGNORE_METHODS.contains(method.getName()))</span>
-<span class="fc" id="L91">      .collect(Collectors.toList());</span>
-<span class="fc" id="L92">    Map&lt;String, List&lt;Object&gt;&gt; result = new TreeMap&lt;&gt;();</span>
-<span class="fc bfc" id="L93" title="All 2 branches covered.">    for (Method method : getterMethods) {</span>
-<span class="fc" id="L94">      String propertyName = toPropertyName(method, clazz);</span>
-<span class="fc bfc" id="L95" title="All 2 branches covered.">      if (allowedProperties.contains(propertyName)) {</span>
+<span class="fc" id="L88">    Class&lt;?&gt; clazz = instance.getClass();</span>
+<span class="fc" id="L89">    List&lt;Method&gt; getterMethods = Stream.of(clazz.getMethods())</span>
+<span class="fc bfc" id="L90" title="All 4 branches covered.">      .filter(method -&gt; method.getParameterTypes().length == 0 &amp;&amp; method.getReturnType() != void.class)</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">      .filter(method -&gt; !DEFAULT_IGNORE_METHODS.contains(method.getName()))</span>
+<span class="fc" id="L92">      .collect(Collectors.toList());</span>
+<span class="fc" id="L93">    Map&lt;String, List&lt;Object&gt;&gt; result = new TreeMap&lt;&gt;();</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    for (Method method : getterMethods) {</span>
+<span class="fc" id="L95">      String propertyName = toPropertyName(method, clazz);</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">      if (allowedProperties.contains(propertyName)) {</span>
         try {
-<span class="fc" id="L97">          Object value = method.invoke(instance);</span>
-<span class="pc bpc" id="L98" title="1 of 2 branches missed.">          if (value != null) {</span>
-<span class="fc" id="L99">            ValueList valueList = ValueList.from(value);</span>
-<span class="fc" id="L100">            result.put(propertyName, valueList.get());</span>
+<span class="fc" id="L98">          Object value = method.invoke(instance);</span>
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">          if (value != null) {</span>
+<span class="fc" id="L100">            ValueList valueList = ValueList.from(value);</span>
+<span class="fc" id="L101">            result.put(propertyName, valueList.get());</span>
           }
         }
-<span class="nc" id="L103">        catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException ex) {</span>
-<span class="nc" id="L104">          log.warn(&quot;Unable to introspect {}#{}&quot;, instance.getClass().getName(), method.getName(), ex);</span>
-<span class="fc" id="L105">        }</span>
+<span class="nc" id="L104">        catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException ex) {</span>
+<span class="nc" id="L105">          log.warn(&quot;Unable to introspect {}#{}&quot;, instance.getClass().getName(), method.getName(), ex);</span>
+<span class="fc" id="L106">        }</span>
       }
-<span class="fc" id="L107">    }</span>
-<span class="fc" id="L108">    return result;</span>
+<span class="fc" id="L108">    }</span>
+<span class="fc" id="L109">    return result;</span>
   }
 
   /**
@@ -115,16 +116,16 @@ public final class PropertyIntrospector {
    * @return Property name
    */
   private static @NotNull String toPropertyName(@NotNull Method method, Class&lt;?&gt; clazz) {
-<span class="fc" id="L118">    String name = getJsonPropertyNameAllDeclarations(method, clazz);</span>
-<span class="fc bfc" id="L119" title="All 2 branches covered.">    if (name == null) {</span>
-<span class="fc" id="L120">      name = method.getName();</span>
-<span class="fc bfc" id="L121" title="All 2 branches covered.">      for (String getterPrefix : DEFAULT_GETTER_PREFIXES) {</span>
-<span class="fc bfc" id="L122" title="All 2 branches covered.">        if (StringUtils.startsWith(name, getterPrefix)) {</span>
-<span class="fc" id="L123">          name = Introspector.decapitalize(StringUtils.substringAfter(name, getterPrefix));</span>
+<span class="fc" id="L119">    String name = getJsonPropertyNameAllDeclarations(method, clazz);</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (name == null) {</span>
+<span class="fc" id="L121">      name = method.getName();</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">      for (String getterPrefix : DEFAULT_GETTER_PREFIXES) {</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        if (Strings.CS.startsWith(name, getterPrefix)) {</span>
+<span class="fc" id="L124">          name = Introspector.decapitalize(StringUtils.substringAfter(name, getterPrefix));</span>
         }
-<span class="fc" id="L125">      }</span>
+<span class="fc" id="L126">      }</span>
     }
-<span class="fc" id="L127">    return name;</span>
+<span class="fc" id="L128">    return name;</span>
   }
 
   /**
@@ -135,19 +136,19 @@ public final class PropertyIntrospector {
    * @return Property name is an annotation was found
    */
   private static @Nullable String getJsonPropertyNameAllDeclarations(@NotNull Method method, Class&lt;?&gt; clazz) {
-<span class="fc bfc" id="L138" title="All 2 branches covered.">    for (Class&lt;?&gt; checkClass : getAllTypes(clazz)) {</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">    for (Class&lt;?&gt; checkClass : getAllTypes(clazz)) {</span>
       try {
-<span class="fc" id="L140">        Method checkMethod = checkClass.getDeclaredMethod(method.getName());</span>
-<span class="fc" id="L141">        String propertyName = getJsonPropertyName(checkMethod);</span>
-<span class="fc bfc" id="L142" title="All 2 branches covered.">        if (propertyName != null) {</span>
-<span class="fc" id="L143">          return propertyName;</span>
+<span class="fc" id="L141">        Method checkMethod = checkClass.getDeclaredMethod(method.getName());</span>
+<span class="fc" id="L142">        String propertyName = getJsonPropertyName(checkMethod);</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">        if (propertyName != null) {</span>
+<span class="fc" id="L144">          return propertyName;</span>
         }
       }
-<span class="fc" id="L146">      catch (NoSuchMethodException ex) {</span>
+<span class="fc" id="L147">      catch (NoSuchMethodException ex) {</span>
         // ignore
-<span class="fc" id="L148">      }</span>
-<span class="fc" id="L149">    }</span>
-<span class="fc" id="L150">    return null;</span>
+<span class="fc" id="L149">      }</span>
+<span class="fc" id="L150">    }</span>
+<span class="fc" id="L151">    return null;</span>
   }
 
   /**
@@ -156,16 +157,16 @@ public final class PropertyIntrospector {
    * @return All related classes
    */
   private static @NotNull List&lt;Class&lt;?&gt;&gt; getAllTypes(Class&lt;?&gt; clazz) {
-<span class="fc" id="L159">    List&lt;Class&lt;?&gt;&gt; allTypes = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L160">    allTypes.add(clazz);</span>
-<span class="fc bfc" id="L161" title="All 2 branches covered.">    for (Class&lt;?&gt; interfaze : clazz.getInterfaces()) {</span>
-<span class="fc" id="L162">      allTypes.addAll(getAllTypes(interfaze));</span>
+<span class="fc" id="L160">    List&lt;Class&lt;?&gt;&gt; allTypes = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L161">    allTypes.add(clazz);</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">    for (Class&lt;?&gt; interfaze : clazz.getInterfaces()) {</span>
+<span class="fc" id="L163">      allTypes.addAll(getAllTypes(interfaze));</span>
     }
-<span class="fc" id="L164">    Class&lt;?&gt; superClass = clazz.getSuperclass();</span>
-<span class="fc bfc" id="L165" title="All 4 branches covered.">    if (superClass != null &amp;&amp; superClass != Object.class) {</span>
-<span class="fc" id="L166">      allTypes.addAll(getAllTypes(superClass));</span>
+<span class="fc" id="L165">    Class&lt;?&gt; superClass = clazz.getSuperclass();</span>
+<span class="fc bfc" id="L166" title="All 4 branches covered.">    if (superClass != null &amp;&amp; superClass != Object.class) {</span>
+<span class="fc" id="L167">      allTypes.addAll(getAllTypes(superClass));</span>
     }
-<span class="fc" id="L168">    return allTypes;</span>
+<span class="fc" id="L169">    return allTypes;</span>
   }
 
   /**
@@ -175,11 +176,11 @@ public final class PropertyIntrospector {
    */
   @SuppressWarnings(&quot;null&quot;)
   private static @Nullable String getJsonPropertyName(@NotNull Method method) {
-<span class="fc" id="L178">    JsonProperty jsonProperty = method.getAnnotation(JsonProperty.class);</span>
-<span class="pc bpc" id="L179" title="1 of 4 branches missed.">    if (jsonProperty != null &amp;&amp; StringUtils.isNotEmpty(jsonProperty.value())) {</span>
-<span class="fc" id="L180">      return jsonProperty.value();</span>
+<span class="fc" id="L179">    JsonProperty jsonProperty = method.getAnnotation(JsonProperty.class);</span>
+<span class="pc bpc" id="L180" title="1 of 4 branches missed.">    if (jsonProperty != null &amp;&amp; StringUtils.isNotEmpty(jsonProperty.value())) {</span>
+<span class="fc" id="L181">      return jsonProperty.value();</span>
     }
-<span class="fc" id="L182">    return null;</span>
+<span class="fc" id="L183">    return null;</span>
   }
 
   /**
@@ -188,8 +189,8 @@ public final class PropertyIntrospector {
    * @return Property introspector
    */
   public static PropertyIntrospector from(Object instance) {
-<span class="fc" id="L191">    Map&lt;String, List&lt;Object&gt;&gt; propertiesMap = buildPropertiesMap(instance, getAllowedPropertyNames(instance));</span>
-<span class="fc" id="L192">    return new PropertyIntrospector(propertiesMap);</span>
+<span class="fc" id="L192">    Map&lt;String, List&lt;Object&gt;&gt; propertiesMap = buildPropertiesMap(instance, getAllowedPropertyNames(instance));</span>
+<span class="fc" id="L193">    return new PropertyIntrospector(propertiesMap);</span>
   }
 
 }
