@@ -22,13 +22,14 @@ package io.wcm.wcm.core.components.impl.servlets;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -77,7 +78,7 @@ import io.wcm.wcm.core.components.impl.models.v2.ImageV2Impl;
         FileExtension.JPEG, FileExtension.PNG, FileExtension.GIF
     },
     methods = &quot;GET&quot;)
-<span class="fc" id="L80">public class ImageWidthProxyServlet extends SlingSafeMethodsServlet {</span>
+<span class="fc" id="L81">public class ImageWidthProxyServlet extends SlingSafeMethodsServlet {</span>
 
   private static final long serialVersionUID = 1L;
 
@@ -89,65 +90,65 @@ import io.wcm.wcm.core.components.impl.models.v2.ImageV2Impl;
    */
   public static final String SELECTOR = &quot;imgwidth&quot;;
 
-<span class="fc" id="L92">  private static final Logger log = LoggerFactory.getLogger(ImageWidthProxyServlet.class);</span>
+<span class="fc" id="L93">  private static final Logger log = LoggerFactory.getLogger(ImageWidthProxyServlet.class);</span>
 
   @Override
   protected void doGet(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws ServletException, IOException {
-<span class="fc" id="L96">    long width = getWidth(request);</span>
+<span class="fc" id="L97">    long width = getWidth(request);</span>
 
     // build media URL and validate it
-<span class="fc" id="L99">    Media media = buildMedia(request, width);</span>
-<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (!media.isValid()) {</span>
-<span class="fc" id="L101">      log.debug(&quot;Unable to resolve media: {}, width={}&quot;, media.getMediaRequest().getMediaRef(), width);</span>
-<span class="fc" id="L102">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
-<span class="fc" id="L103">      return;</span>
+<span class="fc" id="L100">    Media media = buildMedia(request, width);</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">    if (!media.isValid()) {</span>
+<span class="fc" id="L102">      log.debug(&quot;Unable to resolve media: {}, width={}&quot;, media.getMediaRequest().getMediaRef(), width);</span>
+<span class="fc" id="L103">      response.sendError(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="fc" id="L104">      return;</span>
     }
 
     // if media url used ImageFileServlet forward request
-<span class="fc" id="L107">    String url = media.getUrl();</span>
-<span class="fc" id="L108">    Rendition rendition = media.getRendition();</span>
-<span class="fc bfc" id="L109" title="All 2 branches covered.">    if (usesImageFileServlet(url)) {</span>
-<span class="fc" id="L110">      log.debug(&quot;Forward to {}&quot;, url);</span>
-<span class="fc" id="L111">      request.getRequestDispatcher(url).forward(request, response);</span>
+<span class="fc" id="L108">    String url = media.getUrl();</span>
+<span class="fc" id="L109">    Rendition rendition = media.getRendition();</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">    if (usesImageFileServlet(url)) {</span>
+<span class="fc" id="L111">      log.debug(&quot;Forward to {}&quot;, url);</span>
+<span class="fc" id="L112">      request.getRequestDispatcher(url).forward(request, response);</span>
     }
-<span class="pc bpc" id="L113" title="1 of 2 branches missed.">    else if (rendition != null) {</span>
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">    else if (rendition != null) {</span>
       // otherwise it points directly to a binary in repository, stream it directly
-<span class="fc" id="L115">      log.debug(&quot;Stream binary content from {}&quot;, rendition.getPath());</span>
-<span class="fc" id="L116">      response.setContentType(getMimeType(request));</span>
-<span class="fc" id="L117">      Resource resource = AdaptTo.notNull(rendition, Resource.class);</span>
-<span class="fc" id="L118">      try (InputStream is = resource.adaptTo(InputStream.class)) {</span>
-<span class="fc" id="L119">        BufferedOutputStream bos = new BufferedOutputStream(response.getOutputStream());</span>
-<span class="fc" id="L120">        IOUtils.copy(is, bos);</span>
-<span class="fc" id="L121">        bos.flush();</span>
+<span class="fc" id="L116">      log.debug(&quot;Stream binary content from {}&quot;, rendition.getPath());</span>
+<span class="fc" id="L117">      response.setContentType(getMimeType(request));</span>
+<span class="fc" id="L118">      Resource resource = AdaptTo.notNull(rendition, Resource.class);</span>
+<span class="fc" id="L119">      try (InputStream is = resource.adaptTo(InputStream.class)) {</span>
+<span class="fc" id="L120">        BufferedOutputStream bos = new BufferedOutputStream(response.getOutputStream());</span>
+<span class="fc" id="L121">        IOUtils.copy(is, bos);</span>
+<span class="fc" id="L122">        bos.flush();</span>
       }
     }
-<span class="fc" id="L124">  }</span>
+<span class="fc" id="L125">  }</span>
 
   private long getWidth(SlingHttpServletRequest request) {
-<span class="fc" id="L127">    String[] selectors = request.getRequestPathInfo().getSelectors();</span>
-<span class="fc bfc" id="L128" title="All 2 branches covered.">    if (selectors.length &gt;= 2) {</span>
-<span class="fc" id="L129">      return NumberUtils.toLong(selectors[1]);</span>
+<span class="fc" id="L128">    String[] selectors = request.getRequestPathInfo().getSelectors();</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">    if (selectors.length &gt;= 2) {</span>
+<span class="fc" id="L130">      return NumberUtils.toLong(selectors[1]);</span>
     }
-<span class="fc" id="L131">    return 0;</span>
+<span class="fc" id="L132">    return 0;</span>
   }
 
   private Media buildMedia(SlingHttpServletRequest request, long width) {
-<span class="fc" id="L135">    Resource resource = request.getResource();</span>
-<span class="fc" id="L136">    MediaHandler mediaHandler = AdaptTo.notNull(request, MediaHandler.class);</span>
-<span class="fc" id="L137">    MediaBuilder builder = mediaHandler.get(resource);</span>
-<span class="fc bfc" id="L138" title="All 2 branches covered.">    if (width &gt; 0) {</span>
-<span class="fc" id="L139">      builder.args(new MediaArgs().fixedWidth(width));</span>
+<span class="fc" id="L136">    Resource resource = request.getResource();</span>
+<span class="fc" id="L137">    MediaHandler mediaHandler = AdaptTo.notNull(request, MediaHandler.class);</span>
+<span class="fc" id="L138">    MediaBuilder builder = mediaHandler.get(resource);</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">    if (width &gt; 0) {</span>
+<span class="fc" id="L140">      builder.args(new MediaArgs().fixedWidth(width));</span>
     }
-<span class="fc" id="L141">    return builder.build();</span>
+<span class="fc" id="L142">    return builder.build();</span>
   }
 
   private boolean usesImageFileServlet(@Nullable String mediaUrl) {
-<span class="fc" id="L145">    return StringUtils.contains(mediaUrl, &quot;.&quot; + ImageFileServlet.SELECTOR + &quot;.&quot;);</span>
+<span class="fc" id="L146">    return Strings.CS.contains(mediaUrl, &quot;.&quot; + ImageFileServlet.SELECTOR + &quot;.&quot;);</span>
   }
 
   private String getMimeType(SlingHttpServletRequest request) {
-<span class="fc" id="L149">    String mimeType = mimeTypeService.getMimeType(request.getRequestPathInfo().getExtension());</span>
-<span class="fc" id="L150">    return StringUtils.defaultString(mimeType, ContentType.OCTET_STREAM);</span>
+<span class="fc" id="L150">    String mimeType = mimeTypeService.getMimeType(request.getRequestPathInfo().getExtension());</span>
+<span class="fc" id="L151">    return Objects.toString(mimeType, ContentType.OCTET_STREAM);</span>
   }
 
 }
