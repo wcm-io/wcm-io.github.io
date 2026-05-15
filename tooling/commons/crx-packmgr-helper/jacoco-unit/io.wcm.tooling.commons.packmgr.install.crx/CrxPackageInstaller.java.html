@@ -63,143 +63,144 @@ public class CrxPackageInstaller implements VendorPackageInstaller {
 <span class="nc" id="L63">  }</span>
 
   @Override
+  @SuppressWarnings(&quot;java:S3776&quot;) // complexity
   public void installPackage(PackageFile packageFile, boolean replicate, PackageManagerHelper pkgmgr,
       CloseableHttpClient httpClient, HttpClientContext packageManagerHttpClientContext, HttpClientContext consoleHttpClientContext,
       PackageManagerProperties props) throws IOException, PackageManagerException {
 
-<span class="nc" id="L70">    boolean force = packageFile.isForce();</span>
+<span class="nc" id="L71">    boolean force = packageFile.isForce();</span>
 
-<span class="nc bnc" id="L72" title="All 2 branches missed.">    if (force) {</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">    if (force) {</span>
       // in force mode, just check that package manager is available and then start uploading
-<span class="nc" id="L74">      ensurePackageManagerAvailability(pkgmgr, httpClient, packageManagerHttpClientContext);</span>
+<span class="nc" id="L75">      ensurePackageManagerAvailability(pkgmgr, httpClient, packageManagerHttpClientContext);</span>
     }
     else {
       // otherwise check if package is already installed first, and skip further processing if it is
       // this implicitly also checks the availability of the package manager
-<span class="nc" id="L79">      PackageInstalledStatus status = getPackageInstalledStatus(packageFile, pkgmgr, httpClient, packageManagerHttpClientContext);</span>
-<span class="nc bnc" id="L80" title="All 5 branches missed.">      switch (status) {</span>
+<span class="nc" id="L80">      PackageInstalledStatus status = getPackageInstalledStatus(packageFile, pkgmgr, httpClient, packageManagerHttpClientContext);</span>
+<span class="nc bnc" id="L81" title="All 5 branches missed.">      switch (status) {</span>
         case NOT_FOUND:
-<span class="nc" id="L82">          log.debug(&quot;Package is not found in package list: proceed with install.&quot;);</span>
-<span class="nc" id="L83">          break;</span>
+<span class="nc" id="L83">          log.debug(&quot;Package is not found in package list: proceed with install.&quot;);</span>
+<span class="nc" id="L84">          break;</span>
         case INSTALLED:
-<span class="nc" id="L85">          log.info(&quot;Package skipped because it was already uploaded.&quot;);</span>
-<span class="nc" id="L86">          return;</span>
+<span class="nc" id="L86">          log.info(&quot;Package skipped because it was already uploaded.&quot;);</span>
+<span class="nc" id="L87">          return;</span>
         case UPLOADED:
-<span class="nc" id="L88">          log.info(&quot;Package was already uploaded but not installed: proceed with install and switch to force mode.&quot;);</span>
-<span class="nc" id="L89">          force = true;</span>
-<span class="nc" id="L90">          break;</span>
+<span class="nc" id="L89">          log.info(&quot;Package was already uploaded but not installed: proceed with install and switch to force mode.&quot;);</span>
+<span class="nc" id="L90">          force = true;</span>
+<span class="nc" id="L91">          break;</span>
         case INSTALLED_OTHER_VERSION:
-<span class="nc" id="L92">          log.info(&quot;Package was already uploaded, but another version was installed more recently: proceed with install and switch to force mode.&quot;);</span>
-<span class="nc" id="L93">          force = true;</span>
-<span class="nc" id="L94">          break;</span>
+<span class="nc" id="L93">          log.info(&quot;Package was already uploaded, but another version was installed more recently: proceed with install and switch to force mode.&quot;);</span>
+<span class="nc" id="L94">          force = true;</span>
+<span class="nc" id="L95">          break;</span>
         default:
-<span class="nc" id="L96">          throw new PackageManagerException(&quot;Unexpected status: &quot; + status);</span>
+<span class="nc" id="L97">          throw new PackageManagerException(&quot;Unexpected status: &quot; + status);</span>
       }
     }
 
     // prepare post method
-<span class="nc" id="L101">    HttpPost post = new HttpPost(url + &quot;/.json?cmd=upload&quot;);</span>
-<span class="nc" id="L102">    HttpClientUtil.applyRequestConfig(post, packageFile, props);</span>
-<span class="nc" id="L103">    MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create()</span>
-<span class="nc" id="L104">      .addBinaryBody(&quot;package&quot;, packageFile.getFile());</span>
-<span class="nc bnc" id="L105" title="All 2 branches missed.">    if (force) {</span>
-<span class="nc" id="L106">      entityBuilder.addTextBody(&quot;force&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L102">    HttpPost post = new HttpPost(url + &quot;/.json?cmd=upload&quot;);</span>
+<span class="nc" id="L103">    HttpClientUtil.applyRequestConfig(post, packageFile, props);</span>
+<span class="nc" id="L104">    MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create()</span>
+<span class="nc" id="L105">      .addBinaryBody(&quot;package&quot;, packageFile.getFile());</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">    if (force) {</span>
+<span class="nc" id="L107">      entityBuilder.addTextBody(&quot;force&quot;, &quot;true&quot;);</span>
     }
-<span class="nc" id="L108">    post.setEntity(entityBuilder.build());</span>
+<span class="nc" id="L109">    post.setEntity(entityBuilder.build());</span>
 
     // execute post
-<span class="nc" id="L111">    JSONObject jsonResponse = pkgmgr.executePackageManagerMethodJson(httpClient, packageManagerHttpClientContext, post);</span>
-<span class="nc" id="L112">    boolean success = jsonResponse.optBoolean(&quot;success&quot;, false);</span>
-<span class="nc" id="L113">    String msg = jsonResponse.optString(&quot;msg&quot;, null);</span>
-<span class="nc" id="L114">    String path = jsonResponse.optString(&quot;path&quot;, null);</span>
-<span class="nc bnc" id="L115" title="All 2 branches missed.">    if (success) {</span>
-<span class="nc bnc" id="L116" title="All 2 branches missed.">      if (packageFile.isInstall()) {</span>
-<span class="nc" id="L117">        log.info(&quot;Package uploaded to {}, now installing...&quot;, path);</span>
+<span class="nc" id="L112">    JSONObject jsonResponse = pkgmgr.executePackageManagerMethodJson(httpClient, packageManagerHttpClientContext, post);</span>
+<span class="nc" id="L113">    boolean success = jsonResponse.optBoolean(&quot;success&quot;, false);</span>
+<span class="nc" id="L114">    String msg = jsonResponse.optString(&quot;msg&quot;, null);</span>
+<span class="nc" id="L115">    String path = jsonResponse.optString(&quot;path&quot;, null);</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">    if (success) {</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">      if (packageFile.isInstall()) {</span>
+<span class="nc" id="L118">        log.info(&quot;Package uploaded to {}, now installing...&quot;, path);</span>
 
         try {
-<span class="nc" id="L120">          post = new HttpPost(url + &quot;/console.html&quot; + new URIBuilder().setPath(path).build().getRawPath() + &quot;?cmd=install&quot;</span>
-<span class="nc bnc" id="L121" title="All 2 branches missed.">              + (packageFile.isRecursive() ? &quot;&amp;recursive=true&quot; : &quot;&quot;));</span>
-<span class="nc" id="L122">          HttpClientUtil.applyRequestConfig(post, packageFile, props);</span>
+<span class="nc" id="L121">          post = new HttpPost(url + &quot;/console.html&quot; + new URIBuilder().setPath(path).build().getRawPath() + &quot;?cmd=install&quot;</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">              + (packageFile.isRecursive() ? &quot;&amp;recursive=true&quot; : &quot;&quot;));</span>
+<span class="nc" id="L123">          HttpClientUtil.applyRequestConfig(post, packageFile, props);</span>
         }
-<span class="nc" id="L124">        catch (URISyntaxException ex) {</span>
-<span class="nc" id="L125">          throw new PackageManagerException(&quot;Invalid path: &quot; + path, ex);</span>
-<span class="nc" id="L126">        }</span>
+<span class="nc" id="L125">        catch (URISyntaxException ex) {</span>
+<span class="nc" id="L126">          throw new PackageManagerException(&quot;Invalid path: &quot; + path, ex);</span>
+<span class="nc" id="L127">        }</span>
 
         // execute post
-<span class="nc" id="L129">        pkgmgr.executePackageManagerMethodHtmlOutputResponse(httpClient, packageManagerHttpClientContext, post);</span>
+<span class="nc" id="L130">        pkgmgr.executePackageManagerMethodHtmlOutputResponse(httpClient, packageManagerHttpClientContext, post);</span>
 
         // delay further processing after install (if activated)
-<span class="nc" id="L132">        delay(packageFile.getDelayAfterInstallSec());</span>
+<span class="nc" id="L133">        delay(packageFile.getDelayAfterInstallSec());</span>
 
         // after install: if bundles are still stopping/starting, wait for completion
-<span class="nc" id="L135">        pkgmgr.waitForBundlesActivation(httpClient, consoleHttpClientContext);</span>
+<span class="nc" id="L136">        pkgmgr.waitForBundlesActivation(httpClient, consoleHttpClientContext);</span>
         // after install: if packages are still installing, wait for completion
-<span class="nc" id="L137">        pkgmgr.waitForPackageManagerInstallStatusFinished(httpClient, packageManagerHttpClientContext);</span>
+<span class="nc" id="L138">        pkgmgr.waitForPackageManagerInstallStatusFinished(httpClient, packageManagerHttpClientContext);</span>
         // after install: validate system ready status
-<span class="nc" id="L139">        pkgmgr.waitForSystemReady(httpClient, consoleHttpClientContext);</span>
+<span class="nc" id="L140">        pkgmgr.waitForSystemReady(httpClient, consoleHttpClientContext);</span>
       }
       else {
-<span class="nc" id="L142">        log.info(&quot;Package uploaded successfully to {} (without installing).&quot;, path);</span>
+<span class="nc" id="L143">        log.info(&quot;Package uploaded successfully to {} (without installing).&quot;, path);</span>
       }
     }
-<span class="nc bnc" id="L145" title="All 4 branches missed.">    else if (Strings.CS.startsWith(msg, CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX) &amp;&amp; !force) {</span>
-<span class="nc" id="L146">      log.info(&quot;Package skipped because it was already uploaded.&quot;);</span>
+<span class="nc bnc" id="L146" title="All 4 branches missed.">    else if (Strings.CS.startsWith(msg, CRX_PACKAGE_EXISTS_ERROR_MESSAGE_PREFIX) &amp;&amp; !force) {</span>
+<span class="nc" id="L147">      log.info(&quot;Package skipped because it was already uploaded.&quot;);</span>
     }
     else {
-<span class="nc" id="L149">      throw new PackageManagerException(&quot;Package upload failed: &quot; + msg);</span>
+<span class="nc" id="L150">      throw new PackageManagerException(&quot;Package upload failed: &quot; + msg);</span>
     }
 
     // replicate content package
-<span class="nc bnc" id="L153" title="All 4 branches missed.">    if (success &amp;&amp; replicate) {</span>
-<span class="nc" id="L154">      log.info(&quot;Replicate package {}...&quot;, path);</span>
+<span class="nc bnc" id="L154" title="All 4 branches missed.">    if (success &amp;&amp; replicate) {</span>
+<span class="nc" id="L155">      log.info(&quot;Replicate package {}...&quot;, path);</span>
 
       try {
-<span class="nc" id="L157">        post = new HttpPost(url + &quot;/console.html&quot; + new URIBuilder().setPath(path).build().getRawPath() + &quot;?cmd=replicate&quot;);</span>
-<span class="nc" id="L158">        HttpClientUtil.applyRequestConfig(post, packageFile, props);</span>
+<span class="nc" id="L158">        post = new HttpPost(url + &quot;/console.html&quot; + new URIBuilder().setPath(path).build().getRawPath() + &quot;?cmd=replicate&quot;);</span>
+<span class="nc" id="L159">        HttpClientUtil.applyRequestConfig(post, packageFile, props);</span>
       }
-<span class="nc" id="L160">      catch (URISyntaxException ex) {</span>
-<span class="nc" id="L161">        throw new PackageManagerException(&quot;Invalid path: &quot; + path, ex);</span>
-<span class="nc" id="L162">      }</span>
+<span class="nc" id="L161">      catch (URISyntaxException ex) {</span>
+<span class="nc" id="L162">        throw new PackageManagerException(&quot;Invalid path: &quot; + path, ex);</span>
+<span class="nc" id="L163">      }</span>
 
       // execute post
-<span class="nc" id="L165">      pkgmgr.executePackageManagerMethodHtmlOutputResponse(httpClient, packageManagerHttpClientContext, post);</span>
+<span class="nc" id="L166">      pkgmgr.executePackageManagerMethodHtmlOutputResponse(httpClient, packageManagerHttpClientContext, post);</span>
     }
-<span class="nc" id="L167">  }</span>
+<span class="nc" id="L168">  }</span>
 
   @SuppressWarnings(&quot;PMD.GuardLogStatement&quot;)
   private void delay(int seconds) {
-<span class="nc bnc" id="L171" title="All 2 branches missed.">    if (seconds &gt; 0) {</span>
-<span class="nc" id="L172">      log.info(&quot;Wait {} seconds after package install...&quot;, seconds);</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">    if (seconds &gt; 0) {</span>
+<span class="nc" id="L173">      log.info(&quot;Wait {} seconds after package install...&quot;, seconds);</span>
       try {
-<span class="nc" id="L174">        Thread.sleep(seconds * 1000L);</span>
+<span class="nc" id="L175">        Thread.sleep(seconds * 1000L);</span>
       }
-<span class="nc" id="L176">      catch (InterruptedException ex) {</span>
-        // ignore
-<span class="nc" id="L178">      }</span>
+<span class="nc" id="L177">      catch (InterruptedException ex) {</span>
+<span class="nc" id="L178">        Thread.currentThread().interrupt();</span>
+<span class="nc" id="L179">      }</span>
     }
-<span class="nc" id="L180">  }</span>
+<span class="nc" id="L181">  }</span>
 
   private void ensurePackageManagerAvailability(PackageManagerHelper pkgmgr, CloseableHttpClient httpClient, HttpClientContext context) {
     // do a help GET call before upload to ensure package manager is running
-<span class="nc" id="L184">    HttpGet get = new HttpGet(url + &quot;.jsp?cmd=help&quot;);</span>
-<span class="nc" id="L185">    pkgmgr.executePackageManagerMethodStatus(httpClient, context, get);</span>
-<span class="nc" id="L186">  }</span>
+<span class="nc" id="L185">    HttpGet get = new HttpGet(url + &quot;.jsp?cmd=help&quot;);</span>
+<span class="nc" id="L186">    pkgmgr.executePackageManagerMethodStatus(httpClient, context, get);</span>
+<span class="nc" id="L187">  }</span>
 
   private PackageInstalledStatus getPackageInstalledStatus(PackageFile packageFile, PackageManagerHelper pkgmgr,
       CloseableHttpClient httpClient, HttpClientContext context) throws IOException {
     // list packages in AEM instances and check for exact match
-<span class="nc" id="L191">    String baseUrl = VendorInstallerFactory.getBaseUrl(url);</span>
-<span class="nc" id="L192">    String packageListUrl = baseUrl + PackageInstalledChecker.PACKMGR_LIST_URL;</span>
-<span class="nc" id="L193">    HttpGet get = new HttpGet(packageListUrl);</span>
-<span class="nc" id="L194">    JSONObject result = pkgmgr.executePackageManagerMethodJson(httpClient, context, get);</span>
+<span class="nc" id="L192">    String baseUrl = VendorInstallerFactory.getBaseUrl(url);</span>
+<span class="nc" id="L193">    String packageListUrl = baseUrl + PackageInstalledChecker.PACKMGR_LIST_URL;</span>
+<span class="nc" id="L194">    HttpGet get = new HttpGet(packageListUrl);</span>
+<span class="nc" id="L195">    JSONObject result = pkgmgr.executePackageManagerMethodJson(httpClient, context, get);</span>
 
-<span class="nc" id="L196">    Map&lt;String, Object&gt; props = ContentPackageProperties.get(packageFile.getFile());</span>
-<span class="nc" id="L197">    String group = (String)props.get(PackageProperties.NAME_GROUP);</span>
-<span class="nc" id="L198">    String name = (String)props.get(PackageProperties.NAME_NAME);</span>
-<span class="nc" id="L199">    String version = (String)props.get(PackageProperties.NAME_VERSION);</span>
+<span class="nc" id="L197">    Map&lt;String, Object&gt; props = ContentPackageProperties.get(packageFile.getFile());</span>
+<span class="nc" id="L198">    String group = (String)props.get(PackageProperties.NAME_GROUP);</span>
+<span class="nc" id="L199">    String name = (String)props.get(PackageProperties.NAME_NAME);</span>
+<span class="nc" id="L200">    String version = (String)props.get(PackageProperties.NAME_VERSION);</span>
 
-<span class="nc" id="L201">    PackageInstalledChecker checker = new PackageInstalledChecker(result);</span>
-<span class="nc" id="L202">    return checker.getStatus(group, name, version);</span>
+<span class="nc" id="L202">    PackageInstalledChecker checker = new PackageInstalledChecker(result);</span>
+<span class="nc" id="L203">    return checker.getStatus(group, name, version);</span>
   }
 
 }
