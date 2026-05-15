@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -66,9 +67,9 @@ import io.wcm.sling.commons.adapter.AdaptTo;
 @ProviderType
 public final class ComponentPropertyResolver implements AutoCloseable {
 
-<span class="fc" id="L69">  private ComponentPropertyResolution componentPropertiesResolution = ComponentPropertyResolution.RESOLVE_INHERIT;</span>
-<span class="fc" id="L70">  private ComponentPropertyResolution pagePropertiesResolution = ComponentPropertyResolution.IGNORE;</span>
-<span class="fc" id="L71">  private ComponentPropertyResolution contentPolicyResolution = ComponentPropertyResolution.IGNORE;</span>
+<span class="fc" id="L70">  private ComponentPropertyResolution componentPropertiesResolution = ComponentPropertyResolution.RESOLVE_INHERIT;</span>
+<span class="fc" id="L71">  private ComponentPropertyResolution pagePropertiesResolution = ComponentPropertyResolution.IGNORE;</span>
+<span class="fc" id="L72">  private ComponentPropertyResolution contentPolicyResolution = ComponentPropertyResolution.IGNORE;</span>
   private final Page currentPage;
   private final Component currentComponent;
   private final Resource resource;
@@ -78,7 +79,7 @@ public final class ComponentPropertyResolver implements AutoCloseable {
 
   private static final String SERVICEUSER_SUBSERVICE = &quot;component-properties&quot;;
 
-<span class="fc" id="L81">  private static final Logger log = LoggerFactory.getLogger(ComponentPropertyResolver.class);</span>
+<span class="fc" id="L82">  private static final Logger log = LoggerFactory.getLogger(ComponentPropertyResolver.class);</span>
 
   /**
    * This constructor is for internal use only, please use {@link ComponentPropertyResolverFactory}.
@@ -87,8 +88,8 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    */
   public ComponentPropertyResolver(@NotNull Page page,
       @Nullable ResourceResolverFactory resourceResolverFactory) {
-<span class="fc" id="L90">    this(page.getContentResource(), resourceResolverFactory);</span>
-<span class="fc" id="L91">  }</span>
+<span class="fc" id="L91">    this(page.getContentResource(), resourceResolverFactory);</span>
+<span class="fc" id="L92">  }</span>
 
   /**
    * This constructor is for internal use only, please use {@link ComponentPropertyResolverFactory}.
@@ -97,8 +98,8 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    */
   public ComponentPropertyResolver(@NotNull Resource resource,
       @Nullable ResourceResolverFactory resourceResolverFactory) {
-<span class="fc" id="L100">    this(resource, false, resourceResolverFactory);</span>
-<span class="fc" id="L101">  }</span>
+<span class="fc" id="L101">    this(resource, false, resourceResolverFactory);</span>
+<span class="fc" id="L102">  }</span>
 
   /**
    * This constructor is for internal use only, please use {@link ComponentPropertyResolverFactory}.
@@ -108,29 +109,29 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    * @param resourceResolverFactory Resource resolver factory
    */
   public ComponentPropertyResolver(@NotNull Resource resource, boolean ensureResourceType,
-<span class="fc" id="L111">      @Nullable ResourceResolverFactory resourceResolverFactory) {</span>
-<span class="fc" id="L112">    Resource contextResource = null;</span>
-<span class="fc bfc" id="L113" title="All 2 branches covered.">    if (ensureResourceType) {</span>
+<span class="fc" id="L112">      @Nullable ResourceResolverFactory resourceResolverFactory) {</span>
+<span class="fc" id="L113">    Resource contextResource = null;</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">    if (ensureResourceType) {</span>
       // find closest parent resource that has a resource type (and not nt:unstructured)
-<span class="fc" id="L115">      contextResource = getResourceWithResourceType(resource);</span>
+<span class="fc" id="L116">      contextResource = getResourceWithResourceType(resource);</span>
     }
-<span class="fc bfc" id="L117" title="All 2 branches covered.">    if (contextResource == null) {</span>
-<span class="fc" id="L118">      contextResource = resource;</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (contextResource == null) {</span>
+<span class="fc" id="L119">      contextResource = resource;</span>
     }
 
-<span class="fc" id="L121">    ResourceResolver resourceResolver = contextResource.getResourceResolver();</span>
-<span class="fc" id="L122">    PageManager pageManager = AdaptTo.notNull(resourceResolver, PageManager.class);</span>
-<span class="fc" id="L123">    this.currentPage = pageManager.getContainingPage(contextResource);</span>
-<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (hasResourceType(contextResource)) {</span>
-<span class="fc" id="L125">      ComponentManager componentManager = AdaptTo.notNull(resourceResolver, ComponentManager.class);</span>
-<span class="fc" id="L126">      this.currentComponent = componentManager.getComponentOfResource(contextResource);</span>
-<span class="fc" id="L127">    }</span>
+<span class="fc" id="L122">    ResourceResolver resourceResolver = contextResource.getResourceResolver();</span>
+<span class="fc" id="L123">    PageManager pageManager = AdaptTo.notNull(resourceResolver, PageManager.class);</span>
+<span class="fc" id="L124">    this.currentPage = pageManager.getContainingPage(contextResource);</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">    if (hasResourceType(contextResource)) {</span>
+<span class="fc" id="L126">      ComponentManager componentManager = AdaptTo.notNull(resourceResolver, ComponentManager.class);</span>
+<span class="fc" id="L127">      this.currentComponent = componentManager.getComponentOfResource(contextResource);</span>
+<span class="fc" id="L128">    }</span>
     else {
-<span class="fc" id="L129">      this.currentComponent = null;</span>
+<span class="fc" id="L130">      this.currentComponent = null;</span>
     }
-<span class="fc" id="L131">    this.resource = contextResource;</span>
-<span class="fc" id="L132">    this.resourceResolverFactory = resourceResolverFactory;</span>
-<span class="fc" id="L133">  }</span>
+<span class="fc" id="L132">    this.resource = contextResource;</span>
+<span class="fc" id="L133">    this.resourceResolverFactory = resourceResolverFactory;</span>
+<span class="fc" id="L134">  }</span>
 
   /**
    * This constructor is for internal use only, please use {@link ComponentPropertyResolverFactory}.
@@ -138,12 +139,12 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    * @param resourceResolverFactory Resource resolver factory
    */
   public ComponentPropertyResolver(@NotNull ComponentContext wcmComponentContext,
-<span class="fc" id="L141">      @Nullable ResourceResolverFactory resourceResolverFactory) {</span>
-<span class="fc" id="L142">    this.currentPage = wcmComponentContext.getPage();</span>
-<span class="fc" id="L143">    this.currentComponent = wcmComponentContext.getComponent();</span>
-<span class="fc" id="L144">    this.resource = wcmComponentContext.getResource();</span>
-<span class="fc" id="L145">    this.resourceResolverFactory = resourceResolverFactory;</span>
-<span class="fc" id="L146">  }</span>
+<span class="fc" id="L142">      @Nullable ResourceResolverFactory resourceResolverFactory) {</span>
+<span class="fc" id="L143">    this.currentPage = wcmComponentContext.getPage();</span>
+<span class="fc" id="L144">    this.currentComponent = wcmComponentContext.getComponent();</span>
+<span class="fc" id="L145">    this.resource = wcmComponentContext.getResource();</span>
+<span class="fc" id="L146">    this.resourceResolverFactory = resourceResolverFactory;</span>
+<span class="fc" id="L147">  }</span>
 
   /**
    * Lookup for content resource associated with the page component (resource type).
@@ -152,8 +153,8 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    */
   @Deprecated(since = &quot;1.6.0&quot;)
   public ComponentPropertyResolver(@NotNull Page page) {
-<span class="nc" id="L155">    this(page, null);</span>
-<span class="nc" id="L156">  }</span>
+<span class="nc" id="L156">    this(page, null);</span>
+<span class="nc" id="L157">  }</span>
 
   /**
    * Lookup for content resource associated with a component (resource type).
@@ -162,8 +163,8 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    */
   @Deprecated(since = &quot;1.6.0&quot;)
   public ComponentPropertyResolver(@NotNull Resource resource) {
-<span class="fc" id="L165">    this(resource, null);</span>
-<span class="fc" id="L166">  }</span>
+<span class="fc" id="L166">    this(resource, null);</span>
+<span class="fc" id="L167">  }</span>
 
   /**
    * Lookup for content resource associated with a component (resource type).
@@ -174,8 +175,8 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    */
   @Deprecated(since = &quot;1.6.0&quot;)
   public ComponentPropertyResolver(@NotNull Resource resource, boolean ensureResourceType) {
-<span class="fc" id="L177">    this(resource, ensureResourceType, null);</span>
-<span class="fc" id="L178">  }</span>
+<span class="fc" id="L178">    this(resource, ensureResourceType, null);</span>
+<span class="fc" id="L179">  }</span>
 
   /**
    * Lookup with content resource associated with a component (resource type).
@@ -184,25 +185,25 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    */
   @Deprecated(since = &quot;1.6.0&quot;)
   public ComponentPropertyResolver(@NotNull ComponentContext wcmComponentContext) {
-<span class="fc" id="L187">    this(wcmComponentContext, null);</span>
-<span class="fc" id="L188">  }</span>
+<span class="fc" id="L188">    this(wcmComponentContext, null);</span>
+<span class="fc" id="L189">  }</span>
 
   private static boolean hasResourceType(@NotNull Resource resource) {
-<span class="fc" id="L191">    return StringUtils.isNotEmpty(resource.getResourceType());</span>
+<span class="fc" id="L192">    return StringUtils.isNotEmpty(resource.getResourceType());</span>
   }
 
   @SuppressWarnings({
       &quot;null&quot;, &quot;java:S2589&quot;
   }) // extra null checks for backward compatibility
   private static @Nullable Resource getResourceWithResourceType(@Nullable Resource resource) {
-<span class="pc bpc" id="L198" title="1 of 2 branches missed.">    if (resource == null) {</span>
-<span class="nc" id="L199">      return null;</span>
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">    if (resource == null) {</span>
+<span class="nc" id="L200">      return null;</span>
     }
-<span class="fc" id="L201">    String resourceType = resource.getResourceType();</span>
-<span class="pc bpc" id="L202" title="1 of 4 branches missed.">    if (resourceType != null &amp;&amp; isPathBasedResourceType(resourceType)) {</span>
-<span class="fc" id="L203">      return resource;</span>
+<span class="fc" id="L202">    String resourceType = resource.getResourceType();</span>
+<span class="pc bpc" id="L203" title="1 of 4 branches missed.">    if (resourceType != null &amp;&amp; isPathBasedResourceType(resourceType)) {</span>
+<span class="fc" id="L204">      return resource;</span>
     }
-<span class="fc" id="L205">    return getResourceWithResourceType(resource.getParent());</span>
+<span class="fc" id="L206">    return getResourceWithResourceType(resource.getParent());</span>
   }
 
   /**
@@ -212,7 +213,7 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    * @return true for path-based resource types
    */
   private static boolean isPathBasedResourceType(@NotNull String resourceType) {
-<span class="fc" id="L215">    return StringUtils.contains(resourceType, &quot;/&quot;);</span>
+<span class="fc" id="L216">    return Strings.CS.contains(resourceType, &quot;/&quot;);</span>
   }
 
   /**
@@ -222,8 +223,8 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    * @return this
    */
   public ComponentPropertyResolver componentPropertiesResolution(@NotNull ComponentPropertyResolution resolution) {
-<span class="fc" id="L225">    this.componentPropertiesResolution = resolution;</span>
-<span class="fc" id="L226">    return this;</span>
+<span class="fc" id="L226">    this.componentPropertiesResolution = resolution;</span>
+<span class="fc" id="L227">    return this;</span>
   }
 
   /**
@@ -233,8 +234,8 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    * @return this
    */
   public ComponentPropertyResolver pagePropertiesResolution(@NotNull ComponentPropertyResolution resolution) {
-<span class="fc" id="L236">    this.pagePropertiesResolution = resolution;</span>
-<span class="fc" id="L237">    return this;</span>
+<span class="fc" id="L237">    this.pagePropertiesResolution = resolution;</span>
+<span class="fc" id="L238">    return this;</span>
   }
 
   /**
@@ -246,8 +247,8 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    * @return this
    */
   public ComponentPropertyResolver contentPolicyResolution(@NotNull ComponentPropertyResolution resolution) {
-<span class="fc" id="L249">    this.contentPolicyResolution = resolution;</span>
-<span class="fc" id="L250">    return this;</span>
+<span class="fc" id="L250">    this.contentPolicyResolution = resolution;</span>
+<span class="fc" id="L251">    return this;</span>
   }
 
   /**
@@ -259,14 +260,14 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    */
   public @Nullable &lt;T&gt; T get(@NotNull String name, @NotNull Class&lt;T&gt; type) {
     @Nullable
-<span class="fc" id="L262">    T value = getPageProperty(currentPage, name, type);</span>
-<span class="fc bfc" id="L263" title="All 2 branches covered.">    if (value == null) {</span>
-<span class="fc" id="L264">      value = getContentPolicyProperty(name, type);</span>
+<span class="fc" id="L263">    T value = getPageProperty(currentPage, name, type);</span>
+<span class="fc bfc" id="L264" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L265">      value = getContentPolicyProperty(name, type);</span>
     }
-<span class="fc bfc" id="L266" title="All 2 branches covered.">    if (value == null) {</span>
-<span class="fc" id="L267">      value = getComponentProperty(currentComponent, name, type);</span>
+<span class="fc bfc" id="L267" title="All 2 branches covered.">    if (value == null) {</span>
+<span class="fc" id="L268">      value = getComponentProperty(currentComponent, name, type);</span>
     }
-<span class="fc" id="L269">    return value;</span>
+<span class="fc" id="L270">    return value;</span>
   }
 
   /**
@@ -279,61 +280,61 @@ public final class ComponentPropertyResolver implements AutoCloseable {
   public @NotNull &lt;T&gt; T get(@NotNull String name, @NotNull T defaultValue) {
     @Nullable
     @SuppressWarnings(&quot;unchecked&quot;)
-<span class="fc" id="L282">    T value = get(name, (Class&lt;T&gt;)defaultValue.getClass());</span>
-<span class="fc bfc" id="L283" title="All 2 branches covered.">    if (value != null) {</span>
-<span class="fc" id="L284">      return value;</span>
+<span class="fc" id="L283">    T value = get(name, (Class&lt;T&gt;)defaultValue.getClass());</span>
+<span class="fc bfc" id="L284" title="All 2 branches covered.">    if (value != null) {</span>
+<span class="fc" id="L285">      return value;</span>
     }
     else {
-<span class="fc" id="L287">      return defaultValue;</span>
+<span class="fc" id="L288">      return defaultValue;</span>
     }
   }
 
   private @Nullable &lt;T&gt; T getComponentProperty(@Nullable Component component,
       @NotNull String name, @NotNull Class&lt;T&gt; type) {
-<span class="fc bfc" id="L293" title="All 4 branches covered.">    if (componentPropertiesResolution == ComponentPropertyResolution.IGNORE || component == null) {</span>
-<span class="fc" id="L294">      return null;</span>
+<span class="fc bfc" id="L294" title="All 4 branches covered.">    if (componentPropertiesResolution == ComponentPropertyResolution.IGNORE || component == null) {</span>
+<span class="fc" id="L295">      return null;</span>
     }
     @Nullable
     T result;
-<span class="fc bfc" id="L298" title="All 2 branches covered.">    if (StringUtils.contains(name, &quot;/&quot;)) {</span>
+<span class="fc bfc" id="L299" title="All 2 branches covered.">    if (Strings.CS.contains(name, &quot;/&quot;)) {</span>
       // if a property in child resource is addressed get property value via local resource
       // because the map behind the getProperties() method does not support child resource access
-<span class="fc" id="L301">      String childResourcePath = StringUtils.substringBeforeLast(name, &quot;/&quot;);</span>
-<span class="fc" id="L302">      String localPropertyName = StringUtils.substringAfterLast(name, &quot;/&quot;);</span>
-<span class="fc" id="L303">      Resource childResource = getLocalComponentResource(component, childResourcePath);</span>
-<span class="fc" id="L304">      result = ResourceUtil.getValueMap(childResource).get(localPropertyName, type);</span>
-<span class="fc" id="L305">    }</span>
+<span class="fc" id="L302">      String childResourcePath = StringUtils.substringBeforeLast(name, &quot;/&quot;);</span>
+<span class="fc" id="L303">      String localPropertyName = StringUtils.substringAfterLast(name, &quot;/&quot;);</span>
+<span class="fc" id="L304">      Resource childResource = getLocalComponentResource(component, childResourcePath);</span>
+<span class="fc" id="L305">      result = ResourceUtil.getValueMap(childResource).get(localPropertyName, type);</span>
+<span class="fc" id="L306">    }</span>
     else {
-<span class="fc" id="L307">      result = component.getProperties().get(name, type);</span>
+<span class="fc" id="L308">      result = component.getProperties().get(name, type);</span>
     }
-<span class="fc bfc" id="L309" title="All 4 branches covered.">    if (result == null &amp;&amp; componentPropertiesResolution == ComponentPropertyResolution.RESOLVE_INHERIT) {</span>
-<span class="fc" id="L310">      result = getComponentProperty(component.getSuperComponent(), name, type);</span>
+<span class="fc bfc" id="L310" title="All 4 branches covered.">    if (result == null &amp;&amp; componentPropertiesResolution == ComponentPropertyResolution.RESOLVE_INHERIT) {</span>
+<span class="fc" id="L311">      result = getComponentProperty(component.getSuperComponent(), name, type);</span>
     }
-<span class="fc" id="L312">    return result;</span>
+<span class="fc" id="L313">    return result;</span>
   }
 
   private @Nullable &lt;T&gt; T getPageProperty(@Nullable Page page,
       @NotNull String name, @NotNull Class&lt;T&gt; type) {
-<span class="fc bfc" id="L317" title="All 4 branches covered.">    if (pagePropertiesResolution == ComponentPropertyResolution.IGNORE || page == null) {</span>
-<span class="fc" id="L318">      return null;</span>
+<span class="fc bfc" id="L318" title="All 4 branches covered.">    if (pagePropertiesResolution == ComponentPropertyResolution.IGNORE || page == null) {</span>
+<span class="fc" id="L319">      return null;</span>
     }
     @Nullable
-<span class="fc" id="L321">    T result = page.getProperties().get(name, type);</span>
-<span class="fc bfc" id="L322" title="All 4 branches covered.">    if (result == null &amp;&amp; pagePropertiesResolution == ComponentPropertyResolution.RESOLVE_INHERIT) {</span>
-<span class="fc" id="L323">      result = getPageProperty(page.getParent(), name, type);</span>
+<span class="fc" id="L322">    T result = page.getProperties().get(name, type);</span>
+<span class="fc bfc" id="L323" title="All 4 branches covered.">    if (result == null &amp;&amp; pagePropertiesResolution == ComponentPropertyResolution.RESOLVE_INHERIT) {</span>
+<span class="fc" id="L324">      result = getPageProperty(page.getParent(), name, type);</span>
     }
-<span class="fc" id="L325">    return result;</span>
+<span class="fc" id="L326">    return result;</span>
   }
 
   private @Nullable &lt;T&gt; T getContentPolicyProperty(@NotNull String name, @NotNull Class&lt;T&gt; type) {
-<span class="pc bpc" id="L329" title="1 of 4 branches missed.">    if (contentPolicyResolution == ComponentPropertyResolution.IGNORE || resource == null) {</span>
-<span class="fc" id="L330">      return null;</span>
+<span class="pc bpc" id="L330" title="1 of 4 branches missed.">    if (contentPolicyResolution == ComponentPropertyResolution.IGNORE || resource == null) {</span>
+<span class="fc" id="L331">      return null;</span>
     }
-<span class="fc" id="L332">    ContentPolicy policy = getPolicy(resource);</span>
-<span class="fc bfc" id="L333" title="All 2 branches covered.">    if (policy != null) {</span>
-<span class="fc" id="L334">      return policy.getProperties().get(name, type);</span>
+<span class="fc" id="L333">    ContentPolicy policy = getPolicy(resource);</span>
+<span class="fc bfc" id="L334" title="All 2 branches covered.">    if (policy != null) {</span>
+<span class="fc" id="L335">      return policy.getProperties().get(name, type);</span>
     }
-<span class="fc" id="L336">    return null;</span>
+<span class="fc" id="L337">    return null;</span>
   }
 
   /**
@@ -342,62 +343,62 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    * @return List of child resources or null if not set.
    */
   public @Nullable Collection&lt;Resource&gt; getResources(@NotNull String name) {
-<span class="fc" id="L345">    Collection&lt;Resource&gt; list = getPageResources(currentPage, name);</span>
-<span class="fc bfc" id="L346" title="All 2 branches covered.">    if (list == null) {</span>
-<span class="fc" id="L347">      list = getContentPolicyResources(name);</span>
+<span class="fc" id="L346">    Collection&lt;Resource&gt; list = getPageResources(currentPage, name);</span>
+<span class="fc bfc" id="L347" title="All 2 branches covered.">    if (list == null) {</span>
+<span class="fc" id="L348">      list = getContentPolicyResources(name);</span>
     }
-<span class="fc bfc" id="L349" title="All 2 branches covered.">    if (list == null) {</span>
-<span class="fc" id="L350">      list = getComponentResources(currentComponent, name);</span>
+<span class="fc bfc" id="L350" title="All 2 branches covered.">    if (list == null) {</span>
+<span class="fc" id="L351">      list = getComponentResources(currentComponent, name);</span>
     }
-<span class="fc" id="L352">    return list;</span>
+<span class="fc" id="L353">    return list;</span>
   }
 
   private @Nullable Collection&lt;Resource&gt; getComponentResources(@Nullable Component component, @NotNull String name) {
-<span class="fc bfc" id="L356" title="All 4 branches covered.">    if (componentPropertiesResolution == ComponentPropertyResolution.IGNORE || component == null) {</span>
-<span class="fc" id="L357">      return null;</span>
+<span class="fc bfc" id="L357" title="All 4 branches covered.">    if (componentPropertiesResolution == ComponentPropertyResolution.IGNORE || component == null) {</span>
+<span class="fc" id="L358">      return null;</span>
     }
-<span class="fc" id="L359">    Collection&lt;Resource&gt; result = getResources(getLocalComponentResource(component, name));</span>
-<span class="fc bfc" id="L360" title="All 4 branches covered.">    if (result == null &amp;&amp; componentPropertiesResolution == ComponentPropertyResolution.RESOLVE_INHERIT) {</span>
-<span class="fc" id="L361">      result = getComponentResources(component.getSuperComponent(), name);</span>
+<span class="fc" id="L360">    Collection&lt;Resource&gt; result = getResources(getLocalComponentResource(component, name));</span>
+<span class="fc bfc" id="L361" title="All 4 branches covered.">    if (result == null &amp;&amp; componentPropertiesResolution == ComponentPropertyResolution.RESOLVE_INHERIT) {</span>
+<span class="fc" id="L362">      result = getComponentResources(component.getSuperComponent(), name);</span>
     }
-<span class="fc" id="L363">    return result;</span>
+<span class="fc" id="L364">    return result;</span>
   }
 
   private @Nullable Collection&lt;Resource&gt; getPageResources(@Nullable Page page, @NotNull String name) {
-<span class="fc bfc" id="L367" title="All 4 branches covered.">    if (pagePropertiesResolution == ComponentPropertyResolution.IGNORE || page == null) {</span>
-<span class="fc" id="L368">      return null;</span>
+<span class="fc bfc" id="L368" title="All 4 branches covered.">    if (pagePropertiesResolution == ComponentPropertyResolution.IGNORE || page == null) {</span>
+<span class="fc" id="L369">      return null;</span>
     }
-<span class="fc" id="L370">    Collection&lt;Resource&gt; result = getResources(page.getContentResource(name));</span>
-<span class="fc bfc" id="L371" title="All 4 branches covered.">    if (result == null &amp;&amp; pagePropertiesResolution == ComponentPropertyResolution.RESOLVE_INHERIT) {</span>
-<span class="fc" id="L372">      result = getPageResources(page.getParent(), name);</span>
+<span class="fc" id="L371">    Collection&lt;Resource&gt; result = getResources(page.getContentResource(name));</span>
+<span class="fc bfc" id="L372" title="All 4 branches covered.">    if (result == null &amp;&amp; pagePropertiesResolution == ComponentPropertyResolution.RESOLVE_INHERIT) {</span>
+<span class="fc" id="L373">      result = getPageResources(page.getParent(), name);</span>
     }
-<span class="fc" id="L374">    return result;</span>
+<span class="fc" id="L375">    return result;</span>
   }
 
   @SuppressWarnings(&quot;PMD.ReturnEmptyCollectionRatherThanNull&quot;)
   private @Nullable Collection&lt;Resource&gt; getContentPolicyResources(@NotNull String name) {
-<span class="pc bpc" id="L379" title="1 of 4 branches missed.">    if (contentPolicyResolution == ComponentPropertyResolution.IGNORE || resource == null) {</span>
-<span class="fc" id="L380">      return null;</span>
+<span class="pc bpc" id="L380" title="1 of 4 branches missed.">    if (contentPolicyResolution == ComponentPropertyResolution.IGNORE || resource == null) {</span>
+<span class="fc" id="L381">      return null;</span>
     }
-<span class="fc" id="L382">    ContentPolicy policy = getPolicy(resource);</span>
-<span class="fc bfc" id="L383" title="All 2 branches covered.">    if (policy != null) {</span>
-<span class="fc" id="L384">      Resource policyResource = policy.adaptTo(Resource.class);</span>
-<span class="pc bpc" id="L385" title="1 of 2 branches missed.">      if (policyResource != null) {</span>
-<span class="fc" id="L386">        return getResources(policyResource.getChild(name));</span>
+<span class="fc" id="L383">    ContentPolicy policy = getPolicy(resource);</span>
+<span class="fc bfc" id="L384" title="All 2 branches covered.">    if (policy != null) {</span>
+<span class="fc" id="L385">      Resource policyResource = policy.adaptTo(Resource.class);</span>
+<span class="pc bpc" id="L386" title="1 of 2 branches missed.">      if (policyResource != null) {</span>
+<span class="fc" id="L387">        return getResources(policyResource.getChild(name));</span>
       }
     }
-<span class="fc" id="L389">    return null;</span>
+<span class="fc" id="L390">    return null;</span>
   }
 
   private @Nullable Collection&lt;Resource&gt; getResources(@Nullable Resource parent) {
-<span class="fc bfc" id="L393" title="All 2 branches covered.">    if (parent == null) {</span>
-<span class="fc" id="L394">      return null;</span>
+<span class="fc bfc" id="L394" title="All 2 branches covered.">    if (parent == null) {</span>
+<span class="fc" id="L395">      return null;</span>
     }
-<span class="fc" id="L396">    Collection&lt;Resource&gt; children = IterableUtils.toList(parent.getChildren());</span>
-<span class="pc bpc" id="L397" title="1 of 2 branches missed.">    if (children.isEmpty()) {</span>
-<span class="nc" id="L398">      return null;</span>
+<span class="fc" id="L397">    Collection&lt;Resource&gt; children = IterableUtils.toList(parent.getChildren());</span>
+<span class="pc bpc" id="L398" title="1 of 2 branches missed.">    if (children.isEmpty()) {</span>
+<span class="nc" id="L399">      return null;</span>
     }
-<span class="fc" id="L400">    return children;</span>
+<span class="fc" id="L401">    return children;</span>
   }
 
   /**
@@ -406,8 +407,8 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    * @return Policy or null
    */
   private static @Nullable ContentPolicy getPolicy(@NotNull Resource resource) {
-<span class="fc" id="L409">    ContentPolicyManager policyManager = AdaptTo.notNull(resource.getResourceResolver(), ContentPolicyManager.class);</span>
-<span class="fc" id="L410">    return policyManager.getPolicy(resource);</span>
+<span class="fc" id="L410">    ContentPolicyManager policyManager = AdaptTo.notNull(resource.getResourceResolver(), ContentPolicyManager.class);</span>
+<span class="fc" id="L411">    return policyManager.getPolicy(resource);</span>
   }
 
   /**
@@ -419,36 +420,36 @@ public final class ComponentPropertyResolver implements AutoCloseable {
    */
   private @Nullable Resource getLocalComponentResource(@NotNull Component component,
       @NotNull String childResourcePath) {
-<span class="pc bpc" id="L422" title="1 of 6 branches missed.">    if (componentsResourceResolver == null</span>
+<span class="pc bpc" id="L423" title="1 of 6 branches missed.">    if (componentsResourceResolver == null</span>
         &amp;&amp; resourceResolverFactory != null
         &amp;&amp; !initComponentsResourceResolverFailed) {
       try {
-<span class="fc" id="L426">        componentsResourceResolver = resourceResolverFactory.getServiceResourceResolver(</span>
-<span class="fc" id="L427">            Map.of(ResourceResolverFactory.SUBSERVICE, SERVICEUSER_SUBSERVICE));</span>
+<span class="fc" id="L427">        componentsResourceResolver = resourceResolverFactory.getServiceResourceResolver(</span>
+<span class="fc" id="L428">            Map.of(ResourceResolverFactory.SUBSERVICE, SERVICEUSER_SUBSERVICE));</span>
       }
-<span class="nc" id="L429">      catch (LoginException ex) {</span>
-<span class="nc" id="L430">        initComponentsResourceResolverFailed = true;</span>
-<span class="nc bnc" id="L431" title="All 2 branches missed.">        if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L432">          log.debug(&quot;Unable to get resource resolver for accessing local component resource, &quot;</span>
+<span class="nc" id="L430">      catch (LoginException ex) {</span>
+<span class="nc" id="L431">        initComponentsResourceResolverFailed = true;</span>
+<span class="nc bnc" id="L432" title="All 2 branches missed.">        if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L433">          log.debug(&quot;Unable to get resource resolver for accessing local component resource, &quot;</span>
               + &quot;please make sure to grant access to system user 'sling-scripting' for &quot;
               + &quot;bundle 'io.wcm.wcm.commons', subservice '{}'.&quot;, SERVICEUSER_SUBSERVICE, ex);
         }
-<span class="fc" id="L436">      }</span>
+<span class="fc" id="L437">      }</span>
     }
-<span class="fc bfc" id="L438" title="All 2 branches covered.">    if (componentsResourceResolver != null) {</span>
-<span class="fc" id="L439">      String resourcePath = component.getPath() + &quot;/&quot; + childResourcePath;</span>
-<span class="fc" id="L440">      return componentsResourceResolver.getResource(resourcePath);</span>
+<span class="fc bfc" id="L439" title="All 2 branches covered.">    if (componentsResourceResolver != null) {</span>
+<span class="fc" id="L440">      String resourcePath = component.getPath() + &quot;/&quot; + childResourcePath;</span>
+<span class="fc" id="L441">      return componentsResourceResolver.getResource(resourcePath);</span>
     }
     // fallback implementation for previous behavior - this will usually not work in publish instances
-<span class="fc" id="L443">    return component.getLocalResource(childResourcePath);</span>
+<span class="fc" id="L444">    return component.getLocalResource(childResourcePath);</span>
   }
 
   @Override
   public void close() {
-<span class="fc bfc" id="L448" title="All 2 branches covered.">    if (componentsResourceResolver != null) {</span>
-<span class="fc" id="L449">      componentsResourceResolver.close();</span>
+<span class="fc bfc" id="L449" title="All 2 branches covered.">    if (componentsResourceResolver != null) {</span>
+<span class="fc" id="L450">      componentsResourceResolver.close();</span>
     }
-<span class="fc" id="L451">  }</span>
+<span class="fc" id="L452">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

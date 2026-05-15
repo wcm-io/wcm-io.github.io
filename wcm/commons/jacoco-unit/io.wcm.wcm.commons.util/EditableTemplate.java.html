@@ -24,6 +24,7 @@ import static com.day.cq.commons.jcr.JcrConstants.JCR_PRIMARYTYPE;
 import static com.day.cq.wcm.api.NameConstants.NT_TEMPLATE;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.jetbrains.annotations.NotNull;
@@ -54,40 +55,40 @@ public final class EditableTemplate {
    * @return true if editing the component is forbidden
    */
   public static boolean isEditRestricted(@NotNull ComponentContext wcmComponentContext) {
-<span class="fc" id="L57">    Page page = wcmComponentContext.getPage();</span>
-<span class="fc bfc" id="L58" title="All 2 branches covered.">    if (page == null) {</span>
-<span class="fc" id="L59">      return false;</span>
+<span class="fc" id="L58">    Page page = wcmComponentContext.getPage();</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    if (page == null) {</span>
+<span class="fc" id="L60">      return false;</span>
     }
-<span class="fc" id="L61">    ResourceResolver resourceResolver = wcmComponentContext.getResource().getResourceResolver();</span>
-<span class="fc" id="L62">    Template template = page.getTemplate();</span>
+<span class="fc" id="L62">    ResourceResolver resourceResolver = wcmComponentContext.getResource().getResourceResolver();</span>
+<span class="fc" id="L63">    Template template = page.getTemplate();</span>
 
-<span class="fc bfc" id="L64" title="All 6 branches covered.">    if (template == null || isPageInTemplateDefinition(page) || !isEditableTemplate(template)) {</span>
-<span class="fc" id="L65">      return false;</span>
+<span class="fc bfc" id="L65" title="All 6 branches covered.">    if (template == null || isPageInTemplateDefinition(page) || !isEditableTemplate(template)) {</span>
+<span class="fc" id="L66">      return false;</span>
     }
 
     // check if the current resource path already points to a structure path in the editable template
-<span class="fc" id="L69">    String resourcePath = wcmComponentContext.getResource().getPath();</span>
-<span class="fc" id="L70">    String templateStructurePath = template.getPath() + &quot;/&quot; + NN_EDITABLE_TEMPLATE_STRUCTURE + &quot;/&quot; + JCR_CONTENT;</span>
-<span class="fc" id="L71">    String resourcePathInStructure = null;</span>
-<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (StringUtils.startsWith(resourcePath, templateStructurePath + &quot;/&quot;)) {</span>
-<span class="fc" id="L73">      resourcePathInStructure = resourcePath;</span>
+<span class="fc" id="L70">    String resourcePath = wcmComponentContext.getResource().getPath();</span>
+<span class="fc" id="L71">    String templateStructurePath = template.getPath() + &quot;/&quot; + NN_EDITABLE_TEMPLATE_STRUCTURE + &quot;/&quot; + JCR_CONTENT;</span>
+<span class="fc" id="L72">    String resourcePathInStructure = null;</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">    if (Strings.CS.startsWith(resourcePath, templateStructurePath + &quot;/&quot;)) {</span>
+<span class="fc" id="L74">      resourcePathInStructure = resourcePath;</span>
     }
     else {
       // resource path points to the current page, build structure path from path in page
-<span class="fc" id="L77">      String relativePathInPage = StringUtils.substringAfter(resourcePath, page.getContentResource().getPath());</span>
-<span class="pc bpc" id="L78" title="1 of 2 branches missed.">      if (StringUtils.isNotEmpty(relativePathInPage)) {</span>
-<span class="fc" id="L79">        resourcePathInStructure = templateStructurePath + relativePathInPage;</span>
+<span class="fc" id="L78">      String relativePathInPage = StringUtils.substringAfter(resourcePath, page.getContentResource().getPath());</span>
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">      if (StringUtils.isNotEmpty(relativePathInPage)) {</span>
+<span class="fc" id="L80">        resourcePathInStructure = templateStructurePath + relativePathInPage;</span>
       }
     }
-<span class="pc bpc" id="L82" title="1 of 2 branches missed.">    if (resourcePathInStructure == null) {</span>
-<span class="nc" id="L83">      return false;</span>
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">    if (resourcePathInStructure == null) {</span>
+<span class="nc" id="L84">      return false;</span>
     }
 
-<span class="fc" id="L86">    Resource resourceInStructure = resourceResolver.getResource(resourcePathInStructure);</span>
-<span class="fc bfc" id="L87" title="All 2 branches covered.">    if (resourceInStructure == null) {</span>
-<span class="fc" id="L88">      return false;</span>
+<span class="fc" id="L87">    Resource resourceInStructure = resourceResolver.getResource(resourcePathInStructure);</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (resourceInStructure == null) {</span>
+<span class="fc" id="L89">      return false;</span>
     }
-<span class="fc bfc" id="L90" title="All 2 branches covered.">    return !resourceInStructure.getValueMap().get(PN_EDITABLE, false);</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    return !resourceInStructure.getValueMap().get(PN_EDITABLE, false);</span>
   }
 
   /**
@@ -96,13 +97,13 @@ public final class EditableTemplate {
    * @return true if template is editable
    */
   private static boolean isEditableTemplate(@NotNull Template template) {
-<span class="fc" id="L99">    Resource resource = template.adaptTo(Resource.class);</span>
-<span class="pc bpc" id="L100" title="1 of 2 branches missed.">    if (resource != null) {</span>
-<span class="fc bfc" id="L101" title="All 2 branches covered.">      return resource.getChild(NN_EDITABLE_TEMPLATE_INITIAL) != null</span>
-<span class="pc bpc" id="L102" title="1 of 2 branches missed.">          &amp;&amp; resource.getChild(NN_EDITABLE_TEMPLATE_STRUCTURE) != null</span>
-<span class="pc bpc" id="L103" title="1 of 2 branches missed.">          &amp;&amp; resource.getChild(NN_EDITABLE_TEMPLATE_POLICIES) != null;</span>
+<span class="fc" id="L100">    Resource resource = template.adaptTo(Resource.class);</span>
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">    if (resource != null) {</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">      return resource.getChild(NN_EDITABLE_TEMPLATE_INITIAL) != null</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">          &amp;&amp; resource.getChild(NN_EDITABLE_TEMPLATE_STRUCTURE) != null</span>
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">          &amp;&amp; resource.getChild(NN_EDITABLE_TEMPLATE_POLICIES) != null;</span>
     }
-<span class="nc" id="L105">    return false;</span>
+<span class="nc" id="L106">    return false;</span>
   }
 
   /**
@@ -111,14 +112,14 @@ public final class EditableTemplate {
    * @return true if page is part of template definition.
    */
   private static boolean isPageInTemplateDefinition(Page page) {
-<span class="fc" id="L114">    Resource resource = page.adaptTo(Resource.class);</span>
-<span class="pc bpc" id="L115" title="1 of 2 branches missed.">    if (resource != null) {</span>
-<span class="fc" id="L116">      Resource parent = resource.getParent();</span>
-<span class="pc bpc" id="L117" title="1 of 2 branches missed.">      if (parent != null) {</span>
-<span class="fc" id="L118">        return StringUtils.equals(NT_TEMPLATE, parent.getValueMap().get(JCR_PRIMARYTYPE, String.class));</span>
+<span class="fc" id="L115">    Resource resource = page.adaptTo(Resource.class);</span>
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">    if (resource != null) {</span>
+<span class="fc" id="L117">      Resource parent = resource.getParent();</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">      if (parent != null) {</span>
+<span class="fc" id="L119">        return Strings.CS.equals(NT_TEMPLATE, parent.getValueMap().get(JCR_PRIMARYTYPE, String.class));</span>
       }
     }
-<span class="nc" id="L121">    return false;</span>
+<span class="nc" id="L122">    return false;</span>
   }
 
 }
