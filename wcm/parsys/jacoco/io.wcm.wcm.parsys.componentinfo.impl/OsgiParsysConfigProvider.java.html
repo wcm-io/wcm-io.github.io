@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -47,9 +48,9 @@ import io.wcm.wcm.parsys.componentinfo.ParsysConfig;
     &quot;webconsole.configurationFactory.nameHint={pageComponentPath}&quot;
 })
 @Designate(ocd = OsgiParsysConfigProvider.Config.class, factory = true)
-<span class="fc" id="L50">public final class OsgiParsysConfigProvider implements ParsysConfig {</span>
+<span class="fc" id="L51">public final class OsgiParsysConfigProvider implements ParsysConfig {</span>
 
-<span class="fc" id="L52">  private static final Logger log = LoggerFactory.getLogger(OsgiParsysConfigProvider.class);</span>
+<span class="fc" id="L53">  private static final Logger log = LoggerFactory.getLogger(OsgiParsysConfigProvider.class);</span>
 
   static final int DEFAULT_PARENT_ANCESTOR_LEVEL = 1;
 
@@ -109,37 +110,37 @@ import io.wcm.wcm.parsys.componentinfo.ParsysConfig;
 
   @Override
   public @NotNull String getPageComponentPath() {
-<span class="fc" id="L112">    return this.pageComponentPath;</span>
+<span class="fc" id="L113">    return this.pageComponentPath;</span>
   }
 
   @Override
   public Pattern getPathPattern() {
-<span class="fc" id="L117">    return this.pathPattern;</span>
+<span class="fc" id="L118">    return this.pathPattern;</span>
   }
 
   @Override
   public int getParentAncestorLevel() {
-<span class="fc" id="L122">    return this.parentAncestorLevel;</span>
+<span class="fc" id="L123">    return this.parentAncestorLevel;</span>
   }
 
   @Override
   public @NotNull Set&lt;String&gt; getAllowedParents() {
-<span class="fc" id="L127">    return this.allowedParents;</span>
+<span class="fc" id="L128">    return this.allowedParents;</span>
   }
 
   @Override
   public @NotNull Set&lt;String&gt; getAllowedChildren() {
-<span class="fc" id="L132">    return this.allowedChildren;</span>
+<span class="fc" id="L133">    return this.allowedChildren;</span>
   }
 
   @Override
   public @NotNull Set&lt;String&gt; getDeniedChildren() {
-<span class="fc" id="L137">    return this.deniedChildren;</span>
+<span class="fc" id="L138">    return this.deniedChildren;</span>
   }
 
   @Override
   public boolean isInherit() {
-<span class="fc" id="L142">    return this.inherit;</span>
+<span class="fc" id="L143">    return this.inherit;</span>
   }
 
   // --- SCR Integration ---
@@ -147,61 +148,61 @@ import io.wcm.wcm.parsys.componentinfo.ParsysConfig;
   @Activate
   private void activate(Config config) {
 
-<span class="fc" id="L150">    this.pageComponentPath = config.pageComponentPath();</span>
-<span class="fc" id="L151">    this.parentAncestorLevel = config.parentAncestorLevel();</span>
+<span class="fc" id="L151">    this.pageComponentPath = config.pageComponentPath();</span>
+<span class="fc" id="L152">    this.parentAncestorLevel = config.parentAncestorLevel();</span>
 
     // set path pattern if any
-<span class="fc" id="L154">    String pathPatternString = config.pathPattern();</span>
-<span class="fc" id="L155">    String path = config.path();</span>
-<span class="fc bfc" id="L156" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(pathPatternString)) {</span>
-<span class="fc" id="L157">      this.pathPattern = Pattern.compile(pathPatternString);</span>
+<span class="fc" id="L155">    String pathPatternString = config.pathPattern();</span>
+<span class="fc" id="L156">    String path = config.path();</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(pathPatternString)) {</span>
+<span class="fc" id="L158">      this.pathPattern = Pattern.compile(pathPatternString);</span>
     }
     // alternative: use path to build a pattern
-<span class="fc bfc" id="L160" title="All 2 branches covered.">    else if (StringUtils.isNotBlank(path)) {</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">    else if (StringUtils.isNotBlank(path)) {</span>
       // path may also contain a simple node name
-<span class="pc bpc" id="L162" title="1 of 2 branches missed.">      if (!StringUtils.startsWith(path, JcrConstants.JCR_CONTENT + &quot;/&quot;)) {</span>
-<span class="fc" id="L163">        path = JcrConstants.JCR_CONTENT + &quot;/&quot; + path; //NOPMD</span>
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">      if (!Strings.CS.startsWith(path, JcrConstants.JCR_CONTENT + &quot;/&quot;)) {</span>
+<span class="fc" id="L164">        path = JcrConstants.JCR_CONTENT + &quot;/&quot; + path; //NOPMD</span>
       }
-<span class="fc" id="L165">      this.pathPattern = Pattern.compile(&quot;^&quot; + Pattern.quote(path) + &quot;$&quot;);</span>
+<span class="fc" id="L166">      this.pathPattern = Pattern.compile(&quot;^&quot; + Pattern.quote(path) + &quot;$&quot;);</span>
     }
 
     // set allowed children
-<span class="fc" id="L169">    Set&lt;String&gt; allowedChildrenSet = new HashSet&lt;&gt;();</span>
-<span class="pc bpc" id="L170" title="1 of 2 branches missed.">    if (config.allowedChildren() != null) {</span>
-<span class="fc bfc" id="L171" title="All 2 branches covered.">      for (String resourceType : config.allowedChildren()) {</span>
-<span class="pc bpc" id="L172" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
-<span class="fc" id="L173">          allowedChildrenSet.add(resourceType);</span>
+<span class="fc" id="L170">    Set&lt;String&gt; allowedChildrenSet = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L171" title="1 of 2 branches missed.">    if (config.allowedChildren() != null) {</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">      for (String resourceType : config.allowedChildren()) {</span>
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
+<span class="fc" id="L174">          allowedChildrenSet.add(resourceType);</span>
         }
       }
     }
-<span class="fc" id="L177">    this.allowedChildren = Collections.unmodifiableSet(allowedChildrenSet);</span>
+<span class="fc" id="L178">    this.allowedChildren = Collections.unmodifiableSet(allowedChildrenSet);</span>
 
     // set denied children
-<span class="fc" id="L180">    Set&lt;String&gt; deniedChildrenSet = new HashSet&lt;&gt;();</span>
-<span class="pc bpc" id="L181" title="1 of 2 branches missed.">    if (config.deniedChildren() != null) {</span>
-<span class="fc bfc" id="L182" title="All 2 branches covered.">      for (String resourceType : config.deniedChildren()) {</span>
-<span class="pc bpc" id="L183" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
-<span class="fc" id="L184">          deniedChildrenSet.add(resourceType);</span>
+<span class="fc" id="L181">    Set&lt;String&gt; deniedChildrenSet = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">    if (config.deniedChildren() != null) {</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">      for (String resourceType : config.deniedChildren()) {</span>
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
+<span class="fc" id="L185">          deniedChildrenSet.add(resourceType);</span>
         }
       }
     }
-<span class="fc" id="L188">    this.deniedChildren = Collections.unmodifiableSet(deniedChildrenSet);</span>
+<span class="fc" id="L189">    this.deniedChildren = Collections.unmodifiableSet(deniedChildrenSet);</span>
 
     // set allowed parents
-<span class="fc" id="L191">    Set&lt;String&gt; allowedParentsSet = new HashSet&lt;&gt;();</span>
-<span class="pc bpc" id="L192" title="1 of 2 branches missed.">    if (config.allowedParents() != null) {</span>
-<span class="fc bfc" id="L193" title="All 2 branches covered.">      for (String resourceType : config.allowedParents()) {</span>
-<span class="pc bpc" id="L194" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
-<span class="fc" id="L195">          allowedParentsSet.add(resourceType);</span>
+<span class="fc" id="L192">    Set&lt;String&gt; allowedParentsSet = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">    if (config.allowedParents() != null) {</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">      for (String resourceType : config.allowedParents()) {</span>
+<span class="pc bpc" id="L195" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
+<span class="fc" id="L196">          allowedParentsSet.add(resourceType);</span>
         }
       }
     }
-<span class="fc" id="L199">    this.allowedParents = Collections.unmodifiableSet(allowedParentsSet);</span>
+<span class="fc" id="L200">    this.allowedParents = Collections.unmodifiableSet(allowedParentsSet);</span>
 
-<span class="fc" id="L201">    this.inherit = config.inherit();</span>
+<span class="fc" id="L202">    this.inherit = config.inherit();</span>
 
-<span class="pc bpc" id="L203" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L204">      log.debug(&quot;{}: &quot;</span>
+<span class="pc bpc" id="L204" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L205">      log.debug(&quot;{}: &quot;</span>
           + &quot;pageComponentPath={}, &quot;
           + &quot;path={}, &quot;
           + &quot;pathPattern={}, &quot;
@@ -210,25 +211,25 @@ import io.wcm.wcm.parsys.componentinfo.ParsysConfig;
           + &quot;allowedParents={}, &quot;
           + &quot;parentAncestorLevel={},&quot;
           + &quot;inherit={}&quot;,
-<span class="nc" id="L213">          getClass().getSimpleName(),</span>
+<span class="nc" id="L214">          getClass().getSimpleName(),</span>
           this.pageComponentPath,
           path,
           this.pathPattern,
           this.allowedChildren,
           this.deniedChildren,
           this.allowedParents,
-<span class="nc" id="L220">          this.parentAncestorLevel,</span>
-<span class="nc" id="L221">          this.inherit);</span>
+<span class="nc" id="L221">          this.parentAncestorLevel,</span>
+<span class="nc" id="L222">          this.inherit);</span>
     }
 
     // validation messages
-<span class="fc bfc" id="L225" title="All 2 branches covered.">    if (StringUtils.isBlank(this.pageComponentPath)) {</span>
-<span class="fc" id="L226">      log.warn(&quot;pageComponentPath cannot be null or empty. This configuration will be ignored.&quot;);</span>
+<span class="fc bfc" id="L226" title="All 2 branches covered.">    if (StringUtils.isBlank(this.pageComponentPath)) {</span>
+<span class="fc" id="L227">      log.warn(&quot;pageComponentPath cannot be null or empty. This configuration will be ignored.&quot;);</span>
     }
-<span class="fc bfc" id="L228" title="All 2 branches covered.">    if (this.pathPattern == null) {</span>
-<span class="fc" id="L229">      log.warn(&quot;Path pattern cannot be null. Please set the property pathPattern or path.&quot;);</span>
+<span class="fc bfc" id="L229" title="All 2 branches covered.">    if (this.pathPattern == null) {</span>
+<span class="fc" id="L230">      log.warn(&quot;Path pattern cannot be null. Please set the property pathPattern or path.&quot;);</span>
     }
-<span class="fc" id="L231">  }</span>
+<span class="fc" id="L232">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
