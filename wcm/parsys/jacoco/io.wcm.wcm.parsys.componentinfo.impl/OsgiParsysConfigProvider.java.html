@@ -146,63 +146,66 @@ import io.wcm.wcm.parsys.componentinfo.ParsysConfig;
   // --- SCR Integration ---
 
   @Activate
+  @SuppressWarnings({
+      &quot;java:S3776&quot;, &quot;java:S6541&quot; // complexity
+  })
   private void activate(Config config) {
 
-<span class="fc" id="L151">    this.pageComponentPath = config.pageComponentPath();</span>
-<span class="fc" id="L152">    this.parentAncestorLevel = config.parentAncestorLevel();</span>
+<span class="fc" id="L154">    this.pageComponentPath = config.pageComponentPath();</span>
+<span class="fc" id="L155">    this.parentAncestorLevel = config.parentAncestorLevel();</span>
 
     // set path pattern if any
-<span class="fc" id="L155">    String pathPatternString = config.pathPattern();</span>
-<span class="fc" id="L156">    String path = config.path();</span>
-<span class="fc bfc" id="L157" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(pathPatternString)) {</span>
-<span class="fc" id="L158">      this.pathPattern = Pattern.compile(pathPatternString);</span>
+<span class="fc" id="L158">    String pathPatternString = config.pathPattern();</span>
+<span class="fc" id="L159">    String path = config.path();</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(pathPatternString)) {</span>
+<span class="fc" id="L161">      this.pathPattern = Pattern.compile(pathPatternString);</span>
     }
     // alternative: use path to build a pattern
-<span class="fc bfc" id="L161" title="All 2 branches covered.">    else if (StringUtils.isNotBlank(path)) {</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">    else if (StringUtils.isNotBlank(path)) {</span>
       // path may also contain a simple node name
-<span class="pc bpc" id="L163" title="1 of 2 branches missed.">      if (!Strings.CS.startsWith(path, JcrConstants.JCR_CONTENT + &quot;/&quot;)) {</span>
-<span class="fc" id="L164">        path = JcrConstants.JCR_CONTENT + &quot;/&quot; + path; //NOPMD</span>
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">      if (!Strings.CS.startsWith(path, JcrConstants.JCR_CONTENT + &quot;/&quot;)) {</span>
+<span class="fc" id="L167">        path = JcrConstants.JCR_CONTENT + &quot;/&quot; + path; //NOPMD</span>
       }
-<span class="fc" id="L166">      this.pathPattern = Pattern.compile(&quot;^&quot; + Pattern.quote(path) + &quot;$&quot;);</span>
+<span class="fc" id="L169">      this.pathPattern = Pattern.compile(&quot;^&quot; + Pattern.quote(path) + &quot;$&quot;);</span>
     }
 
     // set allowed children
-<span class="fc" id="L170">    Set&lt;String&gt; allowedChildrenSet = new HashSet&lt;&gt;();</span>
-<span class="pc bpc" id="L171" title="1 of 2 branches missed.">    if (config.allowedChildren() != null) {</span>
-<span class="fc bfc" id="L172" title="All 2 branches covered.">      for (String resourceType : config.allowedChildren()) {</span>
-<span class="pc bpc" id="L173" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
-<span class="fc" id="L174">          allowedChildrenSet.add(resourceType);</span>
+<span class="fc" id="L173">    Set&lt;String&gt; allowedChildrenSet = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">    if (config.allowedChildren() != null) {</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">      for (String resourceType : config.allowedChildren()) {</span>
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
+<span class="fc" id="L177">          allowedChildrenSet.add(resourceType);</span>
         }
       }
     }
-<span class="fc" id="L178">    this.allowedChildren = Collections.unmodifiableSet(allowedChildrenSet);</span>
+<span class="fc" id="L181">    this.allowedChildren = Collections.unmodifiableSet(allowedChildrenSet);</span>
 
     // set denied children
-<span class="fc" id="L181">    Set&lt;String&gt; deniedChildrenSet = new HashSet&lt;&gt;();</span>
-<span class="pc bpc" id="L182" title="1 of 2 branches missed.">    if (config.deniedChildren() != null) {</span>
-<span class="fc bfc" id="L183" title="All 2 branches covered.">      for (String resourceType : config.deniedChildren()) {</span>
-<span class="pc bpc" id="L184" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
-<span class="fc" id="L185">          deniedChildrenSet.add(resourceType);</span>
+<span class="fc" id="L184">    Set&lt;String&gt; deniedChildrenSet = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">    if (config.deniedChildren() != null) {</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">      for (String resourceType : config.deniedChildren()) {</span>
+<span class="pc bpc" id="L187" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
+<span class="fc" id="L188">          deniedChildrenSet.add(resourceType);</span>
         }
       }
     }
-<span class="fc" id="L189">    this.deniedChildren = Collections.unmodifiableSet(deniedChildrenSet);</span>
+<span class="fc" id="L192">    this.deniedChildren = Collections.unmodifiableSet(deniedChildrenSet);</span>
 
     // set allowed parents
-<span class="fc" id="L192">    Set&lt;String&gt; allowedParentsSet = new HashSet&lt;&gt;();</span>
-<span class="pc bpc" id="L193" title="1 of 2 branches missed.">    if (config.allowedParents() != null) {</span>
-<span class="fc bfc" id="L194" title="All 2 branches covered.">      for (String resourceType : config.allowedParents()) {</span>
-<span class="pc bpc" id="L195" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
-<span class="fc" id="L196">          allowedParentsSet.add(resourceType);</span>
+<span class="fc" id="L195">    Set&lt;String&gt; allowedParentsSet = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">    if (config.allowedParents() != null) {</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">      for (String resourceType : config.allowedParents()) {</span>
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">        if (StringUtils.isNotBlank(resourceType)) {</span>
+<span class="fc" id="L199">          allowedParentsSet.add(resourceType);</span>
         }
       }
     }
-<span class="fc" id="L200">    this.allowedParents = Collections.unmodifiableSet(allowedParentsSet);</span>
+<span class="fc" id="L203">    this.allowedParents = Collections.unmodifiableSet(allowedParentsSet);</span>
 
-<span class="fc" id="L202">    this.inherit = config.inherit();</span>
+<span class="fc" id="L205">    this.inherit = config.inherit();</span>
 
-<span class="pc bpc" id="L204" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
-<span class="nc" id="L205">      log.debug(&quot;{}: &quot;</span>
+<span class="pc bpc" id="L207" title="1 of 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L208">      log.debug(&quot;{}: &quot;</span>
           + &quot;pageComponentPath={}, &quot;
           + &quot;path={}, &quot;
           + &quot;pathPattern={}, &quot;
@@ -211,25 +214,25 @@ import io.wcm.wcm.parsys.componentinfo.ParsysConfig;
           + &quot;allowedParents={}, &quot;
           + &quot;parentAncestorLevel={},&quot;
           + &quot;inherit={}&quot;,
-<span class="nc" id="L214">          getClass().getSimpleName(),</span>
+<span class="nc" id="L217">          getClass().getSimpleName(),</span>
           this.pageComponentPath,
           path,
           this.pathPattern,
           this.allowedChildren,
           this.deniedChildren,
           this.allowedParents,
-<span class="nc" id="L221">          this.parentAncestorLevel,</span>
-<span class="nc" id="L222">          this.inherit);</span>
+<span class="nc" id="L224">          this.parentAncestorLevel,</span>
+<span class="nc" id="L225">          this.inherit);</span>
     }
 
     // validation messages
-<span class="fc bfc" id="L226" title="All 2 branches covered.">    if (StringUtils.isBlank(this.pageComponentPath)) {</span>
-<span class="fc" id="L227">      log.warn(&quot;pageComponentPath cannot be null or empty. This configuration will be ignored.&quot;);</span>
+<span class="fc bfc" id="L229" title="All 2 branches covered.">    if (StringUtils.isBlank(this.pageComponentPath)) {</span>
+<span class="fc" id="L230">      log.warn(&quot;pageComponentPath cannot be null or empty. This configuration will be ignored.&quot;);</span>
     }
-<span class="fc bfc" id="L229" title="All 2 branches covered.">    if (this.pathPattern == null) {</span>
-<span class="fc" id="L230">      log.warn(&quot;Path pattern cannot be null. Please set the property pathPattern or path.&quot;);</span>
+<span class="fc bfc" id="L232" title="All 2 branches covered.">    if (this.pathPattern == null) {</span>
+<span class="fc" id="L233">      log.warn(&quot;Path pattern cannot be null. Please set the property pathPattern or path.&quot;);</span>
     }
-<span class="fc" id="L232">  }</span>
+<span class="fc" id="L235">  }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
