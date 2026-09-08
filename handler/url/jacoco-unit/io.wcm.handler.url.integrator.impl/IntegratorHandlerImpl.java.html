@@ -37,9 +37,9 @@ import org.jetbrains.annotations.Nullable;
 
 import com.day.cq.wcm.api.Page;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.wcm.handler.url.integrator.IntegratorHandler;
 import io.wcm.handler.url.integrator.IntegratorMode;
+import io.wcm.handler.url.integrator.IntegratorModes;
 import io.wcm.handler.url.integrator.IntegratorNameConstants;
 import io.wcm.handler.url.integrator.IntegratorProtocol;
 import io.wcm.handler.url.spi.UrlHandlerConfig;
@@ -147,31 +147,32 @@ import io.wcm.sling.models.annotations.AemObject;
 
 
   /**
-   * Read integrator mode from content container. Defaults to first integrator mode defined.
+   * Read integrator mode from content container. Defaults to first integrator mode defined,
+   * or to {@link IntegratorModes#SIMPLE} if no integrator modes are configured.
    * @param properties Content container
    * @return Integrator mode
    */
-  @SuppressWarnings({
-      &quot;null&quot;, &quot;java:S2637&quot;
-  })
-  @SuppressFBWarnings(&quot;NP_NONNULL_RETURN_VIOLATION&quot;)
   private @NotNull IntegratorMode getIntegratorMode(ValueMap properties) {
-<span class="fc" id="L159">    IntegratorMode mode = null;</span>
-<span class="fc" id="L160">    Collection&lt;IntegratorMode&gt; integratorModes = urlHandlerConfig.getIntegratorModes();</span>
-<span class="fc" id="L161">    String modeString = properties.get(IntegratorNameConstants.PN_INTEGRATOR_MODE, String.class);</span>
-<span class="fc bfc" id="L162" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(modeString)) {</span>
-<span class="pc bpc" id="L163" title="1 of 2 branches missed.">      for (IntegratorMode candidate : integratorModes) {</span>
-<span class="fc bfc" id="L164" title="All 2 branches covered.">        if (Strings.CS.equals(modeString, candidate.getId())) {</span>
-<span class="fc" id="L165">          mode = candidate;</span>
-<span class="fc" id="L166">          break;</span>
+<span class="fc" id="L156">    IntegratorMode mode = null;</span>
+<span class="fc" id="L157">    Collection&lt;IntegratorMode&gt; integratorModes = urlHandlerConfig.getIntegratorModes();</span>
+<span class="fc" id="L158">    String modeString = properties.get(IntegratorNameConstants.PN_INTEGRATOR_MODE, String.class);</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">    if (StringUtils.isNotEmpty(modeString)) {</span>
+<span class="pc bpc" id="L160" title="1 of 2 branches missed.">      for (IntegratorMode candidate : integratorModes) {</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">        if (Strings.CS.equals(modeString, candidate.getId())) {</span>
+<span class="fc" id="L162">          mode = candidate;</span>
+<span class="fc" id="L163">          break;</span>
         }
-<span class="fc" id="L168">      }</span>
+<span class="fc" id="L165">      }</span>
     }
     // fallback to first mode defined in configuration
-<span class="fc bfc" id="L171" title="All 4 branches covered.">    if (mode == null &amp;&amp; !integratorModes.isEmpty()) {</span>
-<span class="fc" id="L172">      mode = integratorModes.iterator().next();</span>
+<span class="fc bfc" id="L168" title="All 4 branches covered.">    if (mode == null &amp;&amp; !integratorModes.isEmpty()) {</span>
+<span class="fc" id="L169">      mode = integratorModes.iterator().next();</span>
     }
-<span class="fc" id="L174">    return mode;</span>
+    // fallback to simple mode if no integrator modes are configured
+<span class="fc bfc" id="L172" title="All 2 branches covered.">    if (mode == null) {</span>
+<span class="fc" id="L173">      mode = IntegratorModes.SIMPLE;</span>
+    }
+<span class="fc" id="L175">    return mode;</span>
   }
 
   /**
@@ -181,17 +182,17 @@ import io.wcm.sling.models.annotations.AemObject;
    */
   @SuppressWarnings(&quot;null&quot;)
   private IntegratorProtocol getIntegratorProtocol(ValueMap properties) {
-<span class="fc" id="L184">    IntegratorProtocol protocol = IntegratorProtocol.AUTO;</span>
+<span class="fc" id="L185">    IntegratorProtocol protocol = IntegratorProtocol.AUTO;</span>
     try {
-<span class="fc" id="L186">      String protocolString = properties.get(IntegratorNameConstants.PN_INTEGRATOR_PROTOCOL, String.class);</span>
-<span class="fc bfc" id="L187" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(protocolString)) {</span>
-<span class="fc" id="L188">        protocol = IntegratorProtocol.valueOf(protocolString.toUpperCase());</span>
+<span class="fc" id="L187">      String protocolString = properties.get(IntegratorNameConstants.PN_INTEGRATOR_PROTOCOL, String.class);</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">      if (StringUtils.isNotEmpty(protocolString)) {</span>
+<span class="fc" id="L189">        protocol = IntegratorProtocol.valueOf(protocolString.toUpperCase());</span>
       }
     }
-<span class="nc" id="L191">    catch (IllegalArgumentException ex) {</span>
+<span class="nc" id="L192">    catch (IllegalArgumentException ex) {</span>
       // ignore
-<span class="fc" id="L193">    }</span>
-<span class="fc" id="L194">    return protocol;</span>
+<span class="fc" id="L194">    }</span>
+<span class="fc" id="L195">    return protocol;</span>
   }
 
   /**
@@ -199,19 +200,19 @@ import io.wcm.sling.models.annotations.AemObject;
    * @return true if resource URLs should be rendered in secure mode
    */
   private boolean isResourceUrlSecure(Page page) {
-<span class="fc" id="L202">    ValueMap props = getPagePropertiesNullSafe(page);</span>
-<span class="fc" id="L203">    IntegratorMode mode = getIntegratorMode(props);</span>
-<span class="fc bfc" id="L204" title="All 2 branches covered.">    if (mode.isDetectProtocol()) {</span>
-<span class="fc" id="L205">      IntegratorProtocol integratorProtocol = getIntegratorProtocol(props);</span>
-<span class="fc bfc" id="L206" title="All 2 branches covered.">      if (integratorProtocol == IntegratorProtocol.HTTPS) {</span>
-<span class="fc" id="L207">        return true;</span>
+<span class="fc" id="L203">    ValueMap props = getPagePropertiesNullSafe(page);</span>
+<span class="fc" id="L204">    IntegratorMode mode = getIntegratorMode(props);</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">    if (mode.isDetectProtocol()) {</span>
+<span class="fc" id="L206">      IntegratorProtocol integratorProtocol = getIntegratorProtocol(props);</span>
+<span class="fc bfc" id="L207" title="All 2 branches covered.">      if (integratorProtocol == IntegratorProtocol.HTTPS) {</span>
+<span class="fc" id="L208">        return true;</span>
       }
-<span class="pc bpc" id="L209" title="1 of 2 branches missed.">      else if (integratorProtocol == IntegratorProtocol.AUTO) {</span>
-<span class="fc" id="L210">        return RequestPath.hasSelector(request, SELECTOR_INTEGRATORTEMPLATE_SECURE);</span>
+<span class="pc bpc" id="L210" title="1 of 2 branches missed.">      else if (integratorProtocol == IntegratorProtocol.AUTO) {</span>
+<span class="fc" id="L211">        return RequestPath.hasSelector(request, SELECTOR_INTEGRATORTEMPLATE_SECURE);</span>
       }
 
     }
-<span class="fc" id="L214">    return false;</span>
+<span class="fc" id="L215">    return false;</span>
   }
 
   /**
@@ -220,11 +221,11 @@ import io.wcm.sling.models.annotations.AemObject;
    * @return Value map of current page or empty map if current page is null.
    */
   private static ValueMap getPagePropertiesNullSafe(Page page) {
-<span class="fc bfc" id="L223" title="All 2 branches covered.">    if (page != null) {</span>
-<span class="fc" id="L224">      return page.getProperties();</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">    if (page != null) {</span>
+<span class="fc" id="L225">      return page.getProperties();</span>
     }
     else {
-<span class="fc" id="L227">      return ValueMap.EMPTY;</span>
+<span class="fc" id="L228">      return ValueMap.EMPTY;</span>
     }
   }
 
