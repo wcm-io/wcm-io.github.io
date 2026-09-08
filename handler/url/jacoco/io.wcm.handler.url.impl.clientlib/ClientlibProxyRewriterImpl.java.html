@@ -19,11 +19,9 @@
  */
 package io.wcm.handler.url.impl.clientlib;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
@@ -34,11 +32,11 @@ import org.slf4j.LoggerFactory;
  * Rewrites resource links to client libraries that are in &quot;allowProxy&quot; mode to /etc.clientlibs.
  */
 @Component(service = ClientlibProxyRewriter.class, immediate = true)
-<span class="fc" id="L37">public class ClientlibProxyRewriterImpl implements ClientlibProxyRewriter {</span>
+<span class="fc" id="L35">public class ClientlibProxyRewriterImpl implements ClientlibProxyRewriter {</span>
 
-<span class="fc" id="L39">  private static final Pattern STATIC_RESOURCE_PATH_PATTERN = Pattern.compile(&quot;^(/(apps|libs)/.*)/resources/.*$&quot;);</span>
+  private static final String RESOURCES_PATH_SEGMENT = &quot;/resources/&quot;;
 
-<span class="fc" id="L41">  private static final Logger log = LoggerFactory.getLogger(ClientlibProxyRewriterImpl.class);</span>
+<span class="fc" id="L39">  private static final Logger log = LoggerFactory.getLogger(ClientlibProxyRewriterImpl.class);</span>
 
   @Reference
   private ResourceResolverFactory resourceResolverFactory;
@@ -48,42 +46,56 @@ import org.slf4j.LoggerFactory;
 
   @Deactivate
   private void deactivate() {
-<span class="fc bfc" id="L51" title="All 2 branches covered.">    if (clientlibPathCache != null) {</span>
-<span class="fc" id="L52">      this.clientlibPathCache.close();</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">    if (clientlibPathCache != null) {</span>
+<span class="fc" id="L50">      this.clientlibPathCache.close();</span>
     }
-<span class="fc" id="L54">    this.clientlibPathCache = null;</span>
-<span class="fc" id="L55">  }</span>
+<span class="fc" id="L52">    this.clientlibPathCache = null;</span>
+<span class="fc" id="L53">  }</span>
 
   private ClientlibPathCache getClientlibPathCache() {
-<span class="fc bfc" id="L58" title="All 2 branches covered.">    if (this.clientlibPathCache == null) {</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">    if (this.clientlibPathCache == null) {</span>
       // lazy initialization
-<span class="fc" id="L60">      synchronized (this) {</span>
-<span class="pc bpc" id="L61" title="1 of 2 branches missed.">        if (this.clientlibPathCache == null) {</span>
-<span class="fc" id="L62">          this.clientlibPathCache = new ClientlibPathCache(resourceResolverFactory);</span>
+<span class="fc" id="L58">      synchronized (this) {</span>
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">        if (this.clientlibPathCache == null) {</span>
+<span class="fc" id="L60">          this.clientlibPathCache = new ClientlibPathCache(resourceResolverFactory);</span>
         }
-<span class="fc" id="L64">      }</span>
+<span class="fc" id="L62">      }</span>
     }
-<span class="fc" id="L66">    return this.clientlibPathCache;</span>
+<span class="fc" id="L64">    return this.clientlibPathCache;</span>
   }
 
   @Override
   public @NotNull String rewriteStaticResourcePath(@NotNull String path) {
-<span class="fc" id="L71">    Matcher matcher = STATIC_RESOURCE_PATH_PATTERN.matcher(path);</span>
-<span class="fc bfc" id="L72" title="All 2 branches covered.">    if (matcher.matches()) {</span>
-<span class="fc" id="L73">      String clientlibPath = matcher.group(1);</span>
-<span class="fc" id="L74">      boolean clientlibProxyMode = getClientlibPathCache().isClientlibWithAllowProxy(clientlibPath);</span>
-<span class="fc bfc" id="L75" title="All 2 branches covered.">      if (clientlibProxyMode) {</span>
-<span class="fc" id="L76">        return rewriteClientlibProxyPath(path);</span>
+<span class="fc" id="L69">    String clientlibPath = getClientlibPath(path);</span>
+<span class="fc bfc" id="L70" title="All 4 branches covered.">    if (clientlibPath != null &amp;&amp; getClientlibPathCache().isClientlibWithAllowProxy(clientlibPath)) {</span>
+<span class="fc" id="L71">      return rewriteClientlibProxyPath(path);</span>
+    }
+<span class="fc" id="L73">    return path;</span>
+  }
+
+  /**
+   * Extracts the client library path from a static resource path located below a client library's
+   * &quot;resources&quot; folder. Example: for &quot;/apps/myapp/clientlibs/clientlib1/resources/images/img.png&quot;
+   * the returned client library path is &quot;/apps/myapp/clientlibs/clientlib1&quot;.
+   * @param path Static resource path
+   * @return Client library path, or null if the path is not a valid /apps or /libs resource path
+   */
+  private static @Nullable String getClientlibPath(@NotNull String path) {
+<span class="pc bpc" id="L84" title="1 of 4 branches missed.">    if (path.startsWith(&quot;/apps/&quot;) || path.startsWith(&quot;/libs/&quot;)) {</span>
+<span class="fc" id="L85">      int resourcesIndex = path.lastIndexOf(RESOURCES_PATH_SEGMENT);</span>
+      // require at least the &quot;/apps/&quot; or &quot;/libs/&quot; prefix before the &quot;/resources/&quot; segment
+<span class="fc bfc" id="L87" title="All 2 branches covered.">      if (resourcesIndex &gt;= &quot;/apps/&quot;.length()) {</span>
+<span class="fc" id="L88">        return path.substring(0, resourcesIndex);</span>
       }
     }
-<span class="fc" id="L79">    return path;</span>
+<span class="fc" id="L91">    return null;</span>
   }
 
   private String rewriteClientlibProxyPath(String path) {
     // replace /apps or /libs with /etc.clientlibs
-<span class="fc" id="L84">    String rewrittenPath = &quot;/etc.clientlibs&quot; + path.substring(5);</span>
-<span class="fc" id="L85">    log.debug(&quot;Rewrite {} to {}&quot;, path, rewrittenPath);</span>
-<span class="fc" id="L86">    return rewrittenPath;</span>
+<span class="fc" id="L96">    String rewrittenPath = &quot;/etc.clientlibs&quot; + path.substring(5);</span>
+<span class="fc" id="L97">    log.debug(&quot;Rewrite {} to {}&quot;, path, rewrittenPath);</span>
+<span class="fc" id="L98">    return rewrittenPath;</span>
   }
 
 }
