@@ -26,6 +26,7 @@ import java.util.List;
 import javax.inject.Inject;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.vault.packaging.DependencyHandling;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -44,7 +45,7 @@ import io.wcm.tooling.commons.packmgr.install.PackageInstaller;
 @Mojo(name = &quot;install&quot;, defaultPhase = LifecyclePhase.INSTALL, requiresProject = false, requiresDependencyResolution = ResolutionScope.RUNTIME,
     threadSafe = true)
 @SuppressWarnings(&quot;java:S6813&quot;) // allow field injection
-<span class="fc" id="L47">public final class InstallMojo extends AbstractContentPackageMojo {</span>
+<span class="fc" id="L48">public final class InstallMojo extends AbstractContentPackageMojo {</span>
 
   /**
    * Whether to install (unpack) the uploaded package automatically or not.
@@ -68,6 +69,15 @@ import io.wcm.tooling.commons.packmgr.install.PackageInstaller;
    */
   @Parameter(property = &quot;vault.recursive&quot;, defaultValue = &quot;true&quot;)
   private boolean recursive;
+
+  /**
+   * Defines how package dependencies are handled on package installation.
+   * Possible values: &lt;code&gt;IGNORE&lt;/code&gt;, &lt;code&gt;BEST_EFFORT&lt;/code&gt;, &lt;code&gt;REQUIRED&lt;/code&gt;, &lt;code&gt;STRICT&lt;/code&gt;.
+   * If not set, the package manager's default is used (&lt;code&gt;REQUIRED&lt;/code&gt;).
+   * Only supported for CRX package manager.
+   */
+  @Parameter(property = &quot;vault.dependencyHandling&quot;)
+  private DependencyHandling dependencyHandling;
 
   /**
    * The groupId of the artifact to install.
@@ -157,6 +167,7 @@ import io.wcm.tooling.commons.packmgr.install.PackageInstaller;
    * &lt;li&gt;&lt;code&gt;force&lt;/code&gt;: Force upload and install of content package. If set to false a package is not uploaded or
    * installed if it was already uploaded before.&lt;/li&gt;
    * &lt;li&gt;&lt;code&gt;recursive&lt;/code&gt;: If set to true nested packages get installed as well.&lt;/li&gt;
+   * &lt;li&gt;&lt;code&gt;dependencyHandling&lt;/code&gt;: Defines how package dependencies are handled on package installation.&lt;/li&gt;
    * &lt;li&gt;&lt;code&gt;delayAfterInstallSec&lt;/code&gt;: Delay further steps after package installation by this amount of
    * seconds.&lt;/li&gt;
    * &lt;li&gt;&lt;code&gt;httpSocketTimeoutSec&lt;/code&gt;: HTTP socket timeout (in seconds) for this package.&lt;/li&gt;
@@ -175,112 +186,119 @@ import io.wcm.tooling.commons.packmgr.install.PackageInstaller;
   @Override
   @SuppressWarnings(&quot;java:S3776&quot;) // accept complexity
   public void execute() throws MojoExecutionException, MojoFailureException {
-<span class="pc bpc" id="L178" title="1 of 2 branches missed.">    if (isSkip()) {</span>
-<span class="nc" id="L179">      return;</span>
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">    if (isSkip()) {</span>
+<span class="nc" id="L190">      return;</span>
     }
 
     // collect files to install
-<span class="fc" id="L183">    List&lt;io.wcm.tooling.commons.packmgr.install.PackageFile&gt; items = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L184">    ArtifactHelper helper = new ArtifactHelper(repoSystem, repoSession, repositories);</span>
-<span class="pc bpc" id="L185" title="3 of 4 branches missed.">    if (packageFiles != null &amp;&amp; packageFiles.length &gt; 0) {</span>
-<span class="nc bnc" id="L186" title="All 2 branches missed.">      for (PackageFile ref : packageFiles) {</span>
-<span class="nc" id="L187">        io.wcm.tooling.commons.packmgr.install.PackageFile item = toPackageFile(ref, helper);</span>
-<span class="nc bnc" id="L188" title="All 2 branches missed.">        if (item.getFile() != null) {</span>
-<span class="nc" id="L189">          items.add(item);</span>
+<span class="fc" id="L194">    List&lt;io.wcm.tooling.commons.packmgr.install.PackageFile&gt; items = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L195">    ArtifactHelper helper = new ArtifactHelper(repoSystem, repoSession, repositories);</span>
+<span class="pc bpc" id="L196" title="1 of 4 branches missed.">    if (packageFiles != null &amp;&amp; packageFiles.length &gt; 0) {</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">      for (PackageFile ref : packageFiles) {</span>
+<span class="fc" id="L198">        io.wcm.tooling.commons.packmgr.install.PackageFile item = toPackageFile(ref, helper);</span>
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">        if (item.getFile() != null) {</span>
+<span class="fc" id="L200">          items.add(item);</span>
         }
       }
     }
-<span class="pc bpc" id="L193" title="1 of 2 branches missed.">    else if (StringUtils.isNotBlank(packageFileList)) {</span>
-<span class="nc" id="L194">      String[] fileNames = StringUtils.split(packageFileList, &quot;,&quot;);</span>
-<span class="nc bnc" id="L195" title="All 2 branches missed.">      for (String fileName : fileNames) {</span>
-<span class="nc" id="L196">        File file = new File(StringUtils.trimToEmpty(fileName));</span>
-<span class="nc" id="L197">        items.add(toPackageFile(file));</span>
+<span class="pc bpc" id="L204" title="1 of 2 branches missed.">    else if (StringUtils.isNotBlank(packageFileList)) {</span>
+<span class="nc" id="L205">      String[] fileNames = StringUtils.split(packageFileList, &quot;,&quot;);</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">      for (String fileName : fileNames) {</span>
+<span class="nc" id="L207">        File file = new File(StringUtils.trimToEmpty(fileName));</span>
+<span class="nc" id="L208">        items.add(toPackageFile(file));</span>
       }
-<span class="nc" id="L199">    }</span>
+<span class="nc" id="L210">    }</span>
     else {
-<span class="fc" id="L201">      File file = helper.getArtifactFile(artifactId, groupId, version, type, classifier, artifact);</span>
-<span class="pc bpc" id="L202" title="1 of 2 branches missed.">      if (file == null) {</span>
-<span class="fc" id="L203">        file = getPackageFile();</span>
-<span class="pc bpc" id="L204" title="4 of 6 branches missed.">        if (file != null &amp;&amp; !file.exists() &amp;&amp; !failOnNoFile) {</span>
-<span class="nc" id="L205">          file = null;</span>
+<span class="fc" id="L212">      File file = helper.getArtifactFile(artifactId, groupId, version, type, classifier, artifact);</span>
+<span class="pc bpc" id="L213" title="1 of 2 branches missed.">      if (file == null) {</span>
+<span class="fc" id="L214">        file = getPackageFile();</span>
+<span class="pc bpc" id="L215" title="4 of 6 branches missed.">        if (file != null &amp;&amp; !file.exists() &amp;&amp; !failOnNoFile) {</span>
+<span class="nc" id="L216">          file = null;</span>
         }
       }
-<span class="pc bpc" id="L208" title="1 of 2 branches missed.">      if (file != null) {</span>
-<span class="fc" id="L209">        items.add(toPackageFile(file));</span>
+<span class="pc bpc" id="L219" title="1 of 2 branches missed.">      if (file != null) {</span>
+<span class="fc" id="L220">        items.add(toPackageFile(file));</span>
       }
     }
 
     // ensure any file exist
-<span class="pc bpc" id="L214" title="1 of 2 branches missed.">    if (items.isEmpty()) {</span>
-<span class="nc bnc" id="L215" title="All 2 branches missed.">      if (failOnNoFile) {</span>
-<span class="nc" id="L216">        throw new MojoExecutionException(&quot;No file found for installing.&quot;);</span>
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">    if (items.isEmpty()) {</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">      if (failOnNoFile) {</span>
+<span class="nc" id="L227">        throw new MojoExecutionException(&quot;No file found for installing.&quot;);</span>
       }
       else {
-<span class="nc" id="L219">        getLog().warn(&quot;No file found for installing.&quot;);</span>
+<span class="nc" id="L230">        getLog().warn(&quot;No file found for installing.&quot;);</span>
       }
-<span class="nc" id="L221">      return;</span>
+<span class="nc" id="L232">      return;</span>
     }
 
     // install files
-<span class="fc" id="L225">    PackageInstaller installer = new PackageInstaller(getPackageManagerProperties());</span>
-<span class="fc" id="L226">    installer.setReplicate(this.replicate);</span>
-<span class="fc" id="L227">    installer.installFiles(items);</span>
-<span class="fc" id="L228">  }</span>
+<span class="fc" id="L236">    PackageInstaller installer = new PackageInstaller(getPackageManagerProperties());</span>
+<span class="fc" id="L237">    installer.setReplicate(this.replicate);</span>
+<span class="fc" id="L238">    installer.installFiles(items);</span>
+<span class="fc" id="L239">  }</span>
 
   private io.wcm.tooling.commons.packmgr.install.PackageFile toPackageFile(PackageFile ref, ArtifactHelper helper)
       throws MojoFailureException, MojoExecutionException {
-<span class="nc" id="L232">    io.wcm.tooling.commons.packmgr.install.PackageFile output = new io.wcm.tooling.commons.packmgr.install.PackageFile();</span>
+<span class="fc" id="L243">    io.wcm.tooling.commons.packmgr.install.PackageFile output = new io.wcm.tooling.commons.packmgr.install.PackageFile();</span>
 
-<span class="nc" id="L234">    File file = helper.getArtifactFile(ref.getArtifactId(), ref.getGroupId(), ref.getVersion(), ref.getType(), ref.getClassifier(), ref.getArtifact());</span>
-<span class="nc bnc" id="L235" title="All 2 branches missed.">    if (file == null) {</span>
-<span class="nc" id="L236">      file = ref.getPackageFile();</span>
+<span class="fc" id="L245">    File file = helper.getArtifactFile(ref.getArtifactId(), ref.getGroupId(), ref.getVersion(), ref.getType(), ref.getClassifier(), ref.getArtifact());</span>
+<span class="pc bpc" id="L246" title="1 of 2 branches missed.">    if (file == null) {</span>
+<span class="fc" id="L247">      file = ref.getPackageFile();</span>
     }
-<span class="nc" id="L238">    output.setFile(file);</span>
+<span class="fc" id="L249">    output.setFile(file);</span>
 
-<span class="nc bnc" id="L240" title="All 2 branches missed.">    if (ref.getInstall() != null) {</span>
-<span class="nc" id="L241">      output.setInstall(ref.getInstall());</span>
+<span class="fc bfc" id="L251" title="All 2 branches covered.">    if (ref.getInstall() != null) {</span>
+<span class="fc" id="L252">      output.setInstall(ref.getInstall());</span>
     }
     else {
-<span class="nc" id="L244">      output.setInstall(this.install);</span>
+<span class="fc" id="L255">      output.setInstall(this.install);</span>
     }
-<span class="nc bnc" id="L246" title="All 2 branches missed.">    if (ref.getForce() != null) {</span>
-<span class="nc" id="L247">      output.setForce(ref.getForce());</span>
-    }
-    else {
-<span class="nc" id="L250">      output.setForce(this.force);</span>
-    }
-<span class="nc bnc" id="L252" title="All 2 branches missed.">    if (ref.getRecursive() != null) {</span>
-<span class="nc" id="L253">      output.setRecursive(ref.getRecursive());</span>
+<span class="pc bpc" id="L257" title="1 of 2 branches missed.">    if (ref.getForce() != null) {</span>
+<span class="nc" id="L258">      output.setForce(ref.getForce());</span>
     }
     else {
-<span class="nc" id="L256">      output.setRecursive(this.recursive);</span>
+<span class="fc" id="L261">      output.setForce(this.force);</span>
     }
-<span class="nc bnc" id="L258" title="All 2 branches missed.">    if (ref.getDelayAfterInstallSec() != null) {</span>
-<span class="nc" id="L259">      output.setDelayAfterInstallSec(ref.getDelayAfterInstallSec());</span>
-    }
-<span class="nc bnc" id="L261" title="All 2 branches missed.">    else if (this.delayAfterInstallSec != null) {</span>
-<span class="nc" id="L262">      output.setDelayAfterInstallSec(this.delayAfterInstallSec);</span>
+<span class="fc bfc" id="L263" title="All 2 branches covered.">    if (ref.getRecursive() != null) {</span>
+<span class="fc" id="L264">      output.setRecursive(ref.getRecursive());</span>
     }
     else {
-<span class="nc" id="L265">      output.setDelayAfterInstallSecAutoDetect();</span>
+<span class="fc" id="L267">      output.setRecursive(this.recursive);</span>
     }
-<span class="nc" id="L267">    output.setHttpSocketTimeoutSec(ref.getHttpSocketTimeoutSec());</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">    if (ref.getDependencyHandling() != null) {</span>
+<span class="fc" id="L270">      output.setDependencyHandling(ref.getDependencyHandling());</span>
+    }
+    else {
+<span class="fc" id="L273">      output.setDependencyHandling(this.dependencyHandling);</span>
+    }
+<span class="fc bfc" id="L275" title="All 2 branches covered.">    if (ref.getDelayAfterInstallSec() != null) {</span>
+<span class="fc" id="L276">      output.setDelayAfterInstallSec(ref.getDelayAfterInstallSec());</span>
+    }
+<span class="pc bpc" id="L278" title="1 of 2 branches missed.">    else if (this.delayAfterInstallSec != null) {</span>
+<span class="nc" id="L279">      output.setDelayAfterInstallSec(this.delayAfterInstallSec);</span>
+    }
+    else {
+<span class="fc" id="L282">      output.setDelayAfterInstallSecAutoDetect();</span>
+    }
+<span class="fc" id="L284">    output.setHttpSocketTimeoutSec(ref.getHttpSocketTimeoutSec());</span>
 
-<span class="nc" id="L269">    return output;</span>
+<span class="fc" id="L286">    return output;</span>
   }
 
   private io.wcm.tooling.commons.packmgr.install.PackageFile toPackageFile(File file) {
-<span class="fc" id="L273">    io.wcm.tooling.commons.packmgr.install.PackageFile output = new io.wcm.tooling.commons.packmgr.install.PackageFile();</span>
+<span class="fc" id="L290">    io.wcm.tooling.commons.packmgr.install.PackageFile output = new io.wcm.tooling.commons.packmgr.install.PackageFile();</span>
 
-<span class="fc" id="L275">    output.setFile(file);</span>
-<span class="fc" id="L276">    output.setInstall(this.install);</span>
-<span class="fc" id="L277">    output.setForce(this.force);</span>
-<span class="fc" id="L278">    output.setRecursive(this.recursive);</span>
-<span class="pc bpc" id="L279" title="1 of 2 branches missed.">    if (this.delayAfterInstallSec != null) {</span>
-<span class="nc" id="L280">      output.setDelayAfterInstallSec(this.delayAfterInstallSec);</span>
+<span class="fc" id="L292">    output.setFile(file);</span>
+<span class="fc" id="L293">    output.setInstall(this.install);</span>
+<span class="fc" id="L294">    output.setForce(this.force);</span>
+<span class="fc" id="L295">    output.setRecursive(this.recursive);</span>
+<span class="fc" id="L296">    output.setDependencyHandling(this.dependencyHandling);</span>
+<span class="pc bpc" id="L297" title="1 of 2 branches missed.">    if (this.delayAfterInstallSec != null) {</span>
+<span class="nc" id="L298">      output.setDelayAfterInstallSec(this.delayAfterInstallSec);</span>
     }
 
-<span class="fc" id="L283">    return output;</span>
+<span class="fc" id="L301">    return output;</span>
   }
 
 }
