@@ -116,9 +116,9 @@
   <section>
    <a id="Overview"></a>
    <h3 id="overview">Overview</h3>
-   <p>wcm.io Context-Aware Configuration Extensions provide an implementation of the AEM <a href="https://docs.adobe.com/docs/en/aem/6-3/develop/ref/javadoc/com/day/cq/wcm/api/reference/ReferenceProvider.html" class="externalLink">ReferenceProvider</a> service interface. For each content page it provides references to the related configuration pages (e.g. stored below /conf).</p>
+   <p>wcm.io Context-Aware Configuration Extensions provide an implementation of the AEM <a href="https://experienceleague.adobe.com/en/tools/aem-api-documentation/cloud-service/javadoc/com/day/cq/wcm/api/reference/ReferenceProvider.html" class="externalLink">ReferenceProvider</a> service interface. For each content page it provides references to the related configuration pages (e.g. stored below /conf).</p>
    <p>If you activate an AEM page you will be asked if you want to publish references as well. If there are unpublished configuration changes in configuration pages related to the current configuration context (or higher hierarchy levels) they are listed as well.</p>
-   <p>This only works if the configurations are stored as AEM pages, e.g. using the “AEM Page” persistence strategy, see <a href="persistence-strategies.html">Persistence Strategies</a>.</p>
+   <p>This reference provider only works if the configurations are stored as AEM pages, e.g. using the “AEM Page” persistence strategy, see <a href="persistence-strategies.html">Persistence Strategies</a>.</p>
   </section>
   <section>
    <a id="Configuration"></a>
@@ -134,6 +134,37 @@
     assetReferences=B"true"
 </code></pre>
   </section>
+  <section>
+   <a id="Logic"></a>
+   <h3 id="logic">Logic</h3>
+   <p>In order to find CAC resources associated with a content page this reference provider uses the following approach:</p>
+   <ol style="list-style-type: decimal;">
+    <li>It retrieves all configuration names from <code>ConfigurationManager.getConfigurationNames()</code></li>
+    <li>For each configuration name it tries to find the relevant resources (including inherited ones) from <code>ConfigurationResourceResolvingStrategyMultiplexer.getResourceInheritanceChain(...)</code> considering all buckets retrieved from <code>ConfigurationResourceResolverConfig.configBucketNames()</code></li>
+    <li>All found resources are mapped to their container pages and the returned references refer to the pages and their respective modification date</li>
+   </ol>
+   <p>This is just a <em>heuristic</em> as this will return all CACs potentially used on the content page. It doesn't necessarily mean the returned CAC resource is actually leveraged when rendering the page.</p>
+   <p>Also it doesn't necessarily find all CACs. The following ones are not found:</p>
+   <ul>
+    <li>CACs not using <a href="https://sling.apache.org/documentation/bundles/context-aware-configuration/context-aware-configuration.html#describe-configurations-via-annotation-classes" class="externalLink"><code>@Configuration</code> annotations</a> (as this is the only source for configuration names)</li>
+   </ul>
+  </section>
+  <section>
+   <a id="AEM_Core_WCM_Components.27_Reference_Provider"></a>
+   <h3 id="aem_core_wcm_components_reference_provider">AEM Core WCM Components' Reference Provider</h3>
+   <p>AEMs Core WCM Components ship with a <a href="https://github.com/adobe/aem-core-wcm-components/blob/main/bundles/core/src/main/java/com/adobe/cq/wcm/core/components/internal/services/CaConfigReferenceProvider.java" class="externalLink">similar reference provider</a>. However, this has the following limitations compared to this one:</p>
+   <ul>
+    <li>It doesn't properly support the full inheritance chain of CACs (but only finds the deepest one)</li>
+    <li>It only supports the default bucket name <code>sling:configs</code> (<a href="https://github.com/adobe/aem-core-wcm-components/issues/3114" class="externalLink">#3114</a>)</li>
+    <li>It doesn't find asset references inside CAC resources</li>
+   </ul>
+   <p>Therefore, the Core WCM Components' reference provider is <a href="https://github.com/wcm-io/io.wcm.caconfig.extensions/blob/develop/src/main/java/io/wcm/caconfig/extensions/references/impl/CoreCompReferenceProviderDisabler.java" class="externalLink">automatically disabled</a> when this bundle is active.</p>
+  </section>
+  <section>
+   <a id="Activating_CACs_via_other_means"></a>
+   <h3 id="activating_cacs_via_other_means">Activating CACs via other means</h3>
+   <p>Publishing the CACs alone (e.g. via the <a href="https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/developing/configurations#using-configuration-browser" class="externalLink">Configuration Browser</a>) does usually not have the desired effect as this won't invalidate the affected cached content pages in the dispatcher and also this is cumbersome as it doesn't consider the full inheritance hierarchy. Therefore relying on a reference provider and just activating CACs along with a content page is the most reliable way.</p>
+  </section>
  </section>
 </section>
       </div>
@@ -147,6 +178,9 @@
       <ul class="nav nav-list">
     <li><a href="#overview" title="Overview">Overview</a>
     <li><a href="#configuration" title="Configuration">Configuration</a>
+    <li><a href="#logic" title="Logic">Logic</a>
+    <li><a href="#aem_core_wcm_components_reference_provider" title="AEM Core WCM Components' Reference Provider">AEM Core WCM Components' Reference Provider</a>
+    <li><a href="#activating_cacs_via_other_means" title="Activating CACs via other means">Activating CACs via other means</a>
         <li class="divider"></li>
       </ul>
     </li>
